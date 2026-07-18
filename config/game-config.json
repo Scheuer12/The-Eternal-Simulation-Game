@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "timing": {
+    "simulationStepMs": 100,
+    "renderIntervalMs": 100,
+    "autosaveIntervalMs": 5000,
+    "maximumTickSeconds": 1
+  },
+  "energy": {
+    "baseProductionPerSecond": 1e-12,
+    "manualCondensingGain": 5e-12,
+    "powerCellCapacity": 1,
+    "initialCrcCount": 1
+  },
+  "study": {
+    "baseDurationSeconds": 7,
+    "durationGrowthCoefficient": 0.08,
+    "durationGrowthPower": 1.5,
+    "onboardingImprovements": 15,
+    "onboardingInitialBonus": 9,
+    "baselineBonus": 0.05,
+    "onboardingDecayShape": 1.55,
+    "lateDecayScale": 40,
+    "lateDecayPower": 0.65
+  },
+  "upgrade": {
+    "initialChance": 0.1,
+    "decayCoefficient": 0.75,
+    "decayPower": 1.15,
+    "softcap": 0.01,
+    "softcapPower": 0.6,
+    "hardcap": 0.001,
+    "hardcapPower": 0.35,
+    "minimumChance": 0.0001,
+    "productionMultiplier": 2
+  },
+  "autoCalculator": {
+    "revealAtImprovements": 13,
+    "unlockAtImprovements": 15,
+    "cost": 0.05,
+    "speedMultiplier": 2
+  },
+  "blueprint": {
+    "chancePerUpgrade": 0.01,
+    "guaranteedAtImprovements": 17,
+    "guaranteedAtUpgrades": 3,
+    "studyDurationMultiplier": 0.65
+  },
+  "crcConstruction": {
+    "maximumCrcs": 2,
+    "cost": 0.08,
+    "durationSeconds": 20
+  },
+  "processor": {
+    "cost": 0.6,
+    "deviceDurationMultiplier": 0.9
+  },
+  "development": {
+    "durationMultiplier": 0.05,
+    "productionMultiplier": 1000
+  }
+}

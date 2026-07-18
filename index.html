@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#05090f" />
+    <meta
+      name="description"
+      content="The Eternal Simulation — a cosmic incremental game prototype."
+    />
+    <title>The Eternal Simulation</title>
+    <link rel="stylesheet" href="css/game.css" />
+  </head>
+  <body>
+    <noscript>This prototype requires JavaScript to run.</noscript>
+
+    <main id="app" class="app-shell" aria-live="polite">
+      <section id="loading-screen" class="screen screen--centered">
+        <div class="boot-screen">
+          <p class="eyebrow">SYSTEM BOOT</p>
+          <h1>The Eternal Simulation</h1>
+          <div class="boot-indicator" aria-label="Loading">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p id="boot-status" class="muted">Recovering dormant systems…</p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      window.__TES_BOOT_TIMEOUT__ = window.setTimeout(function () {
+        var status = document.getElementById("boot-status");
+        if (!status) return;
+        status.textContent =
+          "Boot is taking longer than expected. Verify that all project files are present, then reload.";
+        status.classList.add("boot-status--error");
+      }, 4000);
+    </script>
+    <script defer src="js/game.bundle.js"></script>
+  </body>
+</html>
