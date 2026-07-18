@@ -15,29 +15,31 @@ Uma run normal deve levar aproximadamente 7 minutos entre a ativação do CRC e 
 | Marco | Parâmetro inicial |
 |---|---:|
 | Produção-base | `1e-12 J/s` |
-| Manual Condensing | `5e-12 J` |
-| Auto Calculator | 15 Improvements e `0.05 J` |
-| Blueprint garantida | 17 Improvements ou 3 Upgrades |
+| Soft Data Display | `1e-8 J` |
+| Auto Calculator | `0.05 J` |
+| Blueprint revelada | `100 J` de pico, ou descoberta rara antes disso |
 | Segundo CRC | `0.08 J`, 20 segundos |
-| Processor | `0.60 J` |
+| Processor | `0.25 J` |
 
 ## Hipóteses a testar
 
 - O começo desperta curiosidade antes que os números dominem a tela.
+- O Soft Data Display chega cedo o suficiente para transformar números ocultos em telemetria útil.
 - Quinze Improvements são suficientes para comunicar crescimento extremo sem parecerem repetição vazia.
-- O Auto Calculator chega no momento em que o bônus marginal estabiliza em 5%.
+- O Auto Calculator aparece desde o início como objetivo e fica disponível quando há energia suficiente.
 - O segundo CRC é percebido como um salto importante.
 - A variância dos Upgrades altera a run sem criar frustração.
-- O Processor aparece perto de 7 minutos em uma run sem cliques excessivos.
+- A Blueprint permanece oculta e funciona como surpresa, não como objetivo inicial.
+- O Processor aparece desde o início como objetivo maior e deve ser alcançável em até 8 minutos.
 
 ## Métricas do playtest
 
 - tempo até Auto Calculator;
+- tempo até Soft Data Display;
 - tempo até Blueprint;
 - tempo até segundo CRC;
 - tempo até Processor;
 - quantidade de Upgrades;
-- cliques de Manual Condensing;
 - períodos sem decisão significativa;
 - clareza da interface em tela mobile.
 

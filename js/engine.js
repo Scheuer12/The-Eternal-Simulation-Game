@@ -35,6 +35,11 @@ export class GameEngine {
   }
 
   pressButton() {
+    this.state.introState = "crc-briefing";
+    this.notify();
+  }
+
+  activateCrc() {
     this.state.introState = "active";
     this.addLog(
       "Cosmic Radiation Condenser detected. Status: ONLINE.",
@@ -89,13 +94,6 @@ export class GameEngine {
 
     if (notify) this.notify();
     return collected;
-  }
-
-  manualCondense() {
-    if (this.state.introState !== "active") return;
-    this.addEnergy(this.config.energy.manualCondensingGain, false);
-    this.state.stats.manualCondensingCount += 1;
-    this.notify();
   }
 
   startStudy(automated = false) {
@@ -178,12 +176,8 @@ export class GameEngine {
   checkBlueprintGuarantee() {
     if (this.state.discoveries.crcBlueprint) return;
 
-    if (
-      this.state.improvements >=
-        this.config.blueprint.guaranteedAtImprovements ||
-      this.state.upgrades >= this.config.blueprint.guaranteedAtUpgrades
-    ) {
-      this.discoverBlueprint("threshold");
+    if (this.state.peakEnergy >= this.config.blueprint.revealAtPeakEnergy) {
+      this.discoverBlueprint("energy-threshold");
     }
   }
 
@@ -194,7 +188,9 @@ export class GameEngine {
     this.addLog(
       source === "probability"
         ? "Unexpected structural symmetry detected. CRC Blueprint recovered early."
-        : "Repeated analysis has resolved the CRC structure. Blueprint reconstructed.",
+        : source === "energy-threshold"
+          ? "Stored Energy has crossed an impossible threshold. CRC Blueprint surfaced from protected memory."
+          : "CRC Blueprint reconstructed.",
       "discovery"
     );
     this.notify();
@@ -203,10 +199,27 @@ export class GameEngine {
   canPurchaseAutoCalculator() {
     return (
       !this.state.devices.autoCalculator &&
-      this.state.improvements >=
-        this.config.autoCalculator.unlockAtImprovements &&
       this.state.energy >= this.config.autoCalculator.cost
     );
+  }
+
+  canPurchaseSoftDataDisplay() {
+    return (
+      !this.state.devices.softDataDisplay &&
+      this.state.energy >= this.config.softDataDisplay.cost
+    );
+  }
+
+  purchaseSoftDataDisplay() {
+    if (!this.canPurchaseSoftDataDisplay()) return false;
+    this.state.energy -= this.config.softDataDisplay.cost;
+    this.state.devices.softDataDisplay = true;
+    this.addLog(
+      "Soft Data Display restored. Production telemetry is now readable.",
+      "device"
+    );
+    this.notify();
+    return true;
   }
 
   purchaseAutoCalculator() {
@@ -268,7 +281,6 @@ export class GameEngine {
 
   canPurchaseProcessor() {
     return (
-      this.state.crcCount >= this.config.crcConstruction.maximumCrcs &&
       !this.state.devices.processor &&
       this.state.energy >= this.config.processor.cost
     );
@@ -300,7 +312,6 @@ export class GameEngine {
 
   developmentForceBlueprint() {
     if (!this.developmentMode) return;
-    this.discoverBlueprint("threshold");
+    this.discoverBlueprint("energy-threshold");
   }
 }
-

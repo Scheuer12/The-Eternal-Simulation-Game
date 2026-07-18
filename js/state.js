@@ -11,6 +11,7 @@ export function createInitialState(config) {
     upgrades: 0,
     crcCount: config.energy.initialCrcCount,
     devices: {
+      softDataDisplay: false,
       autoCalculator: false,
       processor: false
     },
@@ -31,7 +32,6 @@ export function createInitialState(config) {
     },
     prototypeComplete: false,
     stats: {
-      manualCondensingCount: 0,
       totalEnergyCollected: 0,
       totalPlayTime: 0,
       runPlayTime: 0
@@ -59,4 +59,3 @@ export function normalizeState(candidate, config) {
     log: Array.isArray(candidate.log) ? candidate.log.slice(0, 60) : []
   };
 }
-

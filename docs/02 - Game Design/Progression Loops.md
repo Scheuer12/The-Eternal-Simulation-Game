@@ -21,5 +21,4 @@ O [[MVP-0 Scope]] implementa o ciclo curto e o começo do intermediário. O cicl
 
 ## Regra de aleatoriedade
 
-Descobertas podem acontecer antecipadamente por sorte, mas sistemas essenciais devem possuir thresholds determinísticos. A sorte cria runs memoráveis; o azar não cria bloqueios permanentes.
-
+Descobertas essenciais podem acontecer antecipadamente por sorte, mas devem possuir thresholds determinísticos quando forem necessárias para progressão principal. Descobertas-surpresa podem permanecer ocultas por muito mais tempo. A sorte cria runs memoráveis; o azar não deve bloquear sistemas indispensáveis.

@@ -64,6 +64,7 @@ class Run:
     improvements: int = 0
     upgrades: int = 0
     crc_count: int = 1
+    soft_data_display: bool = False
     auto_calculator: bool = False
     blueprint: bool = False
     construction_remaining: float | None = None
@@ -106,10 +107,7 @@ def complete_study(run: Run, config: dict, rng: random.Random) -> None:
         ):
             run.blueprint = True
 
-    if (
-        run.improvements >= config["blueprint"]["guaranteedAtImprovements"]
-        or run.upgrades >= config["blueprint"]["guaranteedAtUpgrades"]
-    ):
+    if run.energy >= config["blueprint"]["revealAtPeakEnergy"]:
         run.blueprint = True
 
 
@@ -133,8 +131,14 @@ def simulate(seed: int, config: dict, maximum_seconds: float = 1_200) -> Run:
             run.study_remaining = None
 
         if (
+            not run.soft_data_display
+            and run.energy >= config["softDataDisplay"]["cost"]
+        ):
+            run.energy -= config["softDataDisplay"]["cost"]
+            run.soft_data_display = True
+
+        if (
             not run.auto_calculator
-            and run.improvements >= config["autoCalculator"]["unlockAtImprovements"]
             and run.energy >= config["autoCalculator"]["cost"]
         ):
             run.energy -= config["autoCalculator"]["cost"]
@@ -157,8 +161,7 @@ def simulate(seed: int, config: dict, maximum_seconds: float = 1_200) -> Run:
                 run.construction_remaining = None
 
         if (
-            run.crc_count >= config["crcConstruction"]["maximumCrcs"]
-            and run.energy >= config["processor"]["cost"]
+            run.energy >= config["processor"]["cost"]
         ):
             run.energy -= config["processor"]["cost"]
             return run
@@ -192,4 +195,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -11,7 +11,6 @@
   },
   "energy": {
     "baseProductionPerSecond": 1e-12,
-    "manualCondensingGain": 5e-12,
     "powerCellCapacity": 1,
     "initialCrcCount": 1
   },
@@ -37,16 +36,16 @@
     "minimumChance": 0.0001,
     "productionMultiplier": 2
   },
+  "softDataDisplay": {
+    "cost": 1e-8
+  },
   "autoCalculator": {
-    "revealAtImprovements": 13,
-    "unlockAtImprovements": 15,
     "cost": 0.05,
     "speedMultiplier": 2
   },
   "blueprint": {
     "chancePerUpgrade": 0.01,
-    "guaranteedAtImprovements": 17,
-    "guaranteedAtUpgrades": 3,
+    "revealAtPeakEnergy": 100,
     "studyDurationMultiplier": 0.65
   },
   "crcConstruction": {
@@ -55,7 +54,7 @@
     "durationSeconds": 20
   },
   "processor": {
-    "cost": 0.6,
+    "cost": 0.25,
     "deviceDurationMultiplier": 0.9
   },
   "development": {
@@ -83,12 +82,21 @@ const TEXT = Object.freeze({
     body: "Perhaps you made the right choice. Perhaps humanity will never learn what was waiting behind those panels.",
     restart: "Return to the room"
   },
+  crcBriefing: {
+    eyebrow: "FIRST SYSTEM // COSMIC RADIATION CONDENSER",
+    title: "The first machine wakes by pulling energy out of noise.",
+    paragraphs: [
+      "The screen identifies the device as a Cosmic Radiation Condenser: a damaged instrument built to catch background cosmic radiation and compress it into usable Stored Energy.",
+      "Its output is almost nothing at first. The facility expects you to improve the algorithm, not to operate the machine by hand.",
+      "A Power Cell below the floor begins accepting charge. Every system you recover will either improve the condenser, automate the study cycle, or prepare the next layer of the facility."
+    ],
+    continue: "Open facility control"
+  },
   activation: "A low vibration passes through the floor. One screen flickers awake.",
   record: "14.3 BILLION YEARS",
   processorComplete:
     "A new processing core joins the facility network. The system responds before you finish issuing the command. This is only the beginning."
 });
-
 
 
 // ---- js/formulas.js ----
@@ -228,6 +236,7 @@ function createInitialState(config) {
     upgrades: 0,
     crcCount: config.energy.initialCrcCount,
     devices: {
+      softDataDisplay: false,
       autoCalculator: false,
       processor: false
     },
@@ -248,7 +257,6 @@ function createInitialState(config) {
     },
     prototypeComplete: false,
     stats: {
-      manualCondensingCount: 0,
       totalEnergyCollected: 0,
       totalPlayTime: 0,
       runPlayTime: 0
@@ -276,7 +284,6 @@ function normalizeState(candidate, config) {
     log: Array.isArray(candidate.log) ? candidate.log.slice(0, 60) : []
   };
 }
-
 
 
 // ---- js/save-system.js ----
@@ -347,6 +354,11 @@ class GameEngine {
   }
 
   pressButton() {
+    this.state.introState = "crc-briefing";
+    this.notify();
+  }
+
+  activateCrc() {
     this.state.introState = "active";
     this.addLog(
       "Cosmic Radiation Condenser detected. Status: ONLINE.",
@@ -401,13 +413,6 @@ class GameEngine {
 
     if (notify) this.notify();
     return collected;
-  }
-
-  manualCondense() {
-    if (this.state.introState !== "active") return;
-    this.addEnergy(this.config.energy.manualCondensingGain, false);
-    this.state.stats.manualCondensingCount += 1;
-    this.notify();
   }
 
   startStudy(automated = false) {
@@ -490,12 +495,8 @@ class GameEngine {
   checkBlueprintGuarantee() {
     if (this.state.discoveries.crcBlueprint) return;
 
-    if (
-      this.state.improvements >=
-        this.config.blueprint.guaranteedAtImprovements ||
-      this.state.upgrades >= this.config.blueprint.guaranteedAtUpgrades
-    ) {
-      this.discoverBlueprint("threshold");
+    if (this.state.peakEnergy >= this.config.blueprint.revealAtPeakEnergy) {
+      this.discoverBlueprint("energy-threshold");
     }
   }
 
@@ -506,7 +507,9 @@ class GameEngine {
     this.addLog(
       source === "probability"
         ? "Unexpected structural symmetry detected. CRC Blueprint recovered early."
-        : "Repeated analysis has resolved the CRC structure. Blueprint reconstructed.",
+        : source === "energy-threshold"
+          ? "Stored Energy has crossed an impossible threshold. CRC Blueprint surfaced from protected memory."
+          : "CRC Blueprint reconstructed.",
       "discovery"
     );
     this.notify();
@@ -515,10 +518,27 @@ class GameEngine {
   canPurchaseAutoCalculator() {
     return (
       !this.state.devices.autoCalculator &&
-      this.state.improvements >=
-        this.config.autoCalculator.unlockAtImprovements &&
       this.state.energy >= this.config.autoCalculator.cost
     );
+  }
+
+  canPurchaseSoftDataDisplay() {
+    return (
+      !this.state.devices.softDataDisplay &&
+      this.state.energy >= this.config.softDataDisplay.cost
+    );
+  }
+
+  purchaseSoftDataDisplay() {
+    if (!this.canPurchaseSoftDataDisplay()) return false;
+    this.state.energy -= this.config.softDataDisplay.cost;
+    this.state.devices.softDataDisplay = true;
+    this.addLog(
+      "Soft Data Display restored. Production telemetry is now readable.",
+      "device"
+    );
+    this.notify();
+    return true;
   }
 
   purchaseAutoCalculator() {
@@ -580,7 +600,6 @@ class GameEngine {
 
   canPurchaseProcessor() {
     return (
-      this.state.crcCount >= this.config.crcConstruction.maximumCrcs &&
       !this.state.devices.processor &&
       this.state.energy >= this.config.processor.cost
     );
@@ -612,10 +631,9 @@ class GameEngine {
 
   developmentForceBlueprint() {
     if (!this.developmentMode) return;
-    this.discoverBlueprint("threshold");
+    this.discoverBlueprint("energy-threshold");
   }
 }
-
 
 
 // ---- js/ui.js ----
@@ -645,6 +663,46 @@ function progressBar(value, label, tone = "energy", key = "") {
   return `
     <div class="progress" ${key ? `data-progress="${key}"` : ""} role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percentage.toFixed(1)}">
       <div class="progress__fill progress__fill--${tone}" style="width:${percentage}%"></div>
+    </div>
+  `;
+}
+
+function helpNote(text) {
+  return `
+    <details class="help-note">
+      <summary aria-label="More information">?</summary>
+      <p>${text}</p>
+    </details>
+  `;
+}
+
+function renderTelemetry(state, config, developmentMode) {
+  const production = calculateProduction(state, config, developmentMode);
+  const remainingCapacity = Math.max(
+    0,
+    config.energy.powerCellCapacity - state.energy
+  );
+  const fillTime =
+    production > 0 && remainingCapacity > 0
+      ? formatDuration(remainingCapacity / production)
+      : "FULL";
+
+  if (!state.devices.softDataDisplay) return "";
+
+  return `
+    <div class="telemetry-grid">
+      <div>
+        <span>Production</span>
+        <strong data-field="energy-rate">${formatRate(production)}</strong>
+      </div>
+      <div>
+        <span>Cell fill estimate</span>
+        <strong data-field="fill-time">${fillTime}</strong>
+      </div>
+      <div>
+        <span>Total condensed</span>
+        <strong data-field="total-energy">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
+      </div>
     </div>
   `;
 }
@@ -679,6 +737,25 @@ function renderEnding() {
   `;
 }
 
+function renderCrcBriefing() {
+  return `
+    <section class="screen screen--centered">
+      <div class="panel panel--narrative system-briefing">
+        <p class="eyebrow">${TEXT.crcBriefing.eyebrow}</p>
+        <h1>${TEXT.crcBriefing.title}</h1>
+        ${TEXT.crcBriefing.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("")}
+        <div class="briefing-note">
+          <span>CRC</span>
+          <p>A condenser is passive infrastructure: once online, it gathers energy continuously.</p>
+        </div>
+        <div class="button-row button-row--intro">
+          ${button(TEXT.crcBriefing.continue, "activate-crc", { variant: "glow" })}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function renderHeader(state, developmentMode) {
   return `
     <header class="topbar">
@@ -696,10 +773,11 @@ function renderHeader(state, developmentMode) {
 
 function renderRecord() {
   return `
-    <article class="panel record-panel">
-      <p class="panel__label">SIMULATION RECORD</p>
+    <article class="ambient-record">
+      <p class="panel__label">BEST SIMULATION RECORD</p>
       <strong>${TEXT.record}</strong>
       <span>ORIGIN // UNKNOWN</span>
+      <p>The number repeats in recovered logs. It is not a task yet.</p>
     </article>
   `;
 }
@@ -707,6 +785,7 @@ function renderRecord() {
 function renderEnergy(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
   const capacityProgress = state.energy / config.energy.powerCellCapacity;
+  const displayTelemetry = state.devices.softDataDisplay;
 
   return `
     <article class="panel energy-panel">
@@ -715,27 +794,82 @@ function renderEnergy(state, config, developmentMode) {
           <p class="panel__label">STORED ENERGY</p>
         <strong class="energy-readout" data-field="energy">${formatEnergy(state.energy)}</strong>
         </div>
-        <span class="status status--online">CRC ONLINE</span>
+        <span class="status status--online">CELL STABLE</span>
       </div>
       ${progressBar(capacityProgress, "Power Cell charge", "energy", "energy")}
+      ${helpNote("Stored Energy is the usable charge held by the current Power Cell. Devices spend it to restore parts of the facility.")}
       <div class="metric-row">
         <span>Power Cell capacity</span>
         <strong>${formatEnergy(config.energy.powerCellCapacity)}</strong>
       </div>
       <div class="metric-row">
+        <span>Power Cells installed</span>
+        <strong>1</strong>
+      </div>
+      <div class="metric-row">
         <span>Energy production</span>
         <strong>${
-          state.devices.autoCalculator ? formatRate(production) : "UNMEASURED"
+          displayTelemetry ? formatRate(production) : "UNREADABLE"
         }</strong>
       </div>
       <div class="metric-row">
         <span>Condensers online</span>
         <strong>${state.crcCount}</strong>
       </div>
-      ${button("Manual Condensing", "manual-condense", {
-        detail: `+${formatEnergy(config.energy.manualCondensingGain)}`,
-        variant: "energy"
-      })}
+      ${renderTelemetry(state, config, developmentMode)}
+    </article>
+  `;
+}
+
+function renderCrcDevice(state, config, developmentMode) {
+  const production = calculateProduction(state, config, developmentMode);
+
+  return `
+    <article class="panel device-card condenser-card device-card--online">
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">DEVICE // ONLINE</p>
+          <h2>Cosmic Radiation Condenser</h2>
+        </div>
+        <span class="count-chip">${state.crcCount}</span>
+      </div>
+      <p class="muted">The CRC listens to cosmic background radiation and compresses trace signals into charge the Power Cell can hold.</p>
+      ${helpNote("Each active condenser adds passive energy production. Improvements and Upgrades modify every CRC at once.")}
+      <div class="metric-row">
+        <span>Current output</span>
+        <strong>${
+          state.devices.softDataDisplay ? formatRate(production) : "UNREADABLE"
+        }</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderSoftDataDisplay(state, config) {
+  const affordable = state.energy >= config.softDataDisplay.cost;
+
+  return `
+    <article class="panel device-card ${state.devices.softDataDisplay ? "device-card--online" : ""}">
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">DEVICE</p>
+          <h2>Soft Data Display</h2>
+        </div>
+        <span class="status ${state.devices.softDataDisplay ? "status--online" : "status--locked"}">
+          ${state.devices.softDataDisplay ? "ONLINE" : affordable ? "AVAILABLE" : "UNPOWERED"}
+        </span>
+      </div>
+      <p class="muted">A dim diagnostic surface that translates condenser noise into readable production telemetry.</p>
+      ${helpNote("This display does not increase production. It reveals energy per second, fill estimates, and related soft data so the facility's progress becomes legible.")}
+      ${
+        state.devices.softDataDisplay
+          ? '<p class="effect-line">TELEMETRY READABLE // ENERGY FLOW EXPOSED</p>'
+          : button("Restore Soft Data Display", "buy-soft-display", {
+              disabled: !affordable,
+              detail: `Cost: ${formatEnergy(config.softDataDisplay.cost)}`,
+              variant: affordable ? "primary" : "ghost"
+            })
+      }
     </article>
   `;
 }
@@ -761,7 +895,8 @@ function renderStudy(state, config, developmentMode) {
         </div>
         <span class="count-chip">${state.improvements}</span>
       </div>
-      <p class="muted">Refine the condensation algorithm through repeated calculation and observation.</p>
+      <p class="muted">Study is the facility's first control loop: it improves how the CRC converts background radiation into Stored Energy.</p>
+      ${helpNote("Algorithm Improvements always complete. Algorithm Upgrades are rare discoveries that can appear after a Study and double energy production.")}
       <div class="study-metrics">
         <div><span>Next efficiency gain</span><strong>+${formatPercent(nextBonus)}</strong></div>
         <div><span>Upgrade probability</span><strong>${formatPercent(upgradeChance, upgradeChance < 0.001 ? 4 : 2)}</strong></div>
@@ -785,14 +920,6 @@ function renderStudy(state, config, developmentMode) {
 }
 
 function renderAutoCalculator(state, config) {
-  const revealed =
-    state.devices.autoCalculator ||
-    state.improvements >= config.autoCalculator.revealAtImprovements;
-
-  if (!revealed) return "";
-
-  const unlocked =
-    state.improvements >= config.autoCalculator.unlockAtImprovements;
   const affordable = state.energy >= config.autoCalculator.cost;
 
   return `
@@ -803,19 +930,18 @@ function renderAutoCalculator(state, config) {
           <h2>Auto Calculator</h2>
         </div>
         <span class="status ${state.devices.autoCalculator ? "status--online" : "status--locked"}">
-          ${state.devices.autoCalculator ? "ONLINE" : unlocked ? "AVAILABLE" : "ANALYZING"}
+          ${state.devices.autoCalculator ? "ONLINE" : affordable ? "AVAILABLE" : "UNPOWERED"}
         </span>
       </div>
-      <p class="muted">Automates Algorithm Improvements and completes them twice as fast.</p>
+      <p class="muted">A recovered calculation unit. It runs Studies without manual input and completes them twice as fast.</p>
+      ${helpNote("The Auto Calculator costs Stored Energy to reactivate. Once online, it starts the next Study automatically.")}
       ${
         state.devices.autoCalculator
           ? '<p class="effect-line">AUTOMATION ACTIVE // ×2 STUDY SPEED</p>'
           : button("Activate Auto Calculator", "buy-auto", {
-              disabled: !unlocked || !affordable,
-              detail: unlocked
-                ? `Cost: ${formatEnergy(config.autoCalculator.cost)}`
-                : `Requires ${config.autoCalculator.unlockAtImprovements} Improvements`,
-              variant: unlocked ? "primary" : "ghost"
+              disabled: !affordable,
+              detail: `Cost: ${formatEnergy(config.autoCalculator.cost)}`,
+              variant: affordable ? "primary" : "ghost"
             })
       }
     </article>
@@ -841,7 +967,8 @@ function renderBlueprint(state, config) {
         </div>
         <span class="status status--discovery">RESOLVED</span>
       </div>
-      <p class="muted">The condenser can now be studied directly and reconstructed from local materials.</p>
+      <p class="muted">A recovered structural plan for the CRC. It lets the facility analyze the condenser directly and build a second unit.</p>
+      ${helpNote("This structural plan was not listed in the facility index. It appears only after discovery.")}
       <p class="effect-line">STUDY TIME ×0.65</p>
       ${state.construction.active ? progressBar(progress, "CRC construction", "discovery", "construction") : ""}
       <div class="progress-caption">
@@ -864,14 +991,7 @@ function renderBlueprint(state, config) {
 }
 
 function renderProcessor(state, config) {
-  if (
-    !state.discoveries.crcBlueprint &&
-    state.crcCount < config.crcConstruction.maximumCrcs
-  ) {
-    return "";
-  }
-
-  const unlocked = state.crcCount >= config.crcConstruction.maximumCrcs;
+  const affordable = state.energy >= config.processor.cost;
 
   return `
     <article class="panel device-card ${state.devices.processor ? "device-card--online" : ""}">
@@ -881,19 +1001,18 @@ function renderProcessor(state, config) {
           <h2>Processor</h2>
         </div>
         <span class="status ${state.devices.processor ? "status--online" : "status--locked"}">
-          ${state.devices.processor ? "ONLINE" : unlocked ? "AVAILABLE" : "NO HOST NETWORK"}
+          ${state.devices.processor ? "ONLINE" : affordable ? "AVAILABLE" : "UNPOWERED"}
         </span>
       </div>
-      <p class="muted">A generic processing core capable of accelerating every connected device.</p>
+      <p class="muted">A generic processing core. Once installed, connected devices respond faster and the MVP-0 facility loop is complete.</p>
+      ${helpNote("The Processor is the first major restoration target. It only needs enough Stored Energy to reactivate.")}
       ${
         state.devices.processor
           ? '<p class="effect-line">DEVICE EXECUTION TIME ×0.90</p>'
           : button("Install Processor", "buy-processor", {
-              disabled: !unlocked || state.energy < config.processor.cost,
-              detail: unlocked
-                ? `Cost: ${formatEnergy(config.processor.cost)}`
-                : "Requires two active CRCs",
-              variant: unlocked ? "primary" : "ghost"
+              disabled: !affordable,
+              detail: `Cost: ${formatEnergy(config.processor.cost)}`,
+              variant: affordable ? "primary" : "ghost"
             })
       }
     </article>
@@ -908,13 +1027,14 @@ function renderDoor(state, config) {
   else if (progress > 0.2) status = "TRACE CURRENT";
 
   return `
-    <article class="panel door-panel">
-      <div class="door-mark" aria-hidden="true"><span></span></div>
-      <p class="panel__label">RESTRICTED ACCESS</p>
-      <h2>Particle Laboratory</h2>
-      <strong class="door-status">${status}</strong>
+    <article class="ambient-door">
+      <p class="panel__label">UNOPENED ROUTE</p>
+      <div class="ambient-door__heading">
+        <h2>Particle Laboratory</h2>
+        <strong class="door-status">${status}</strong>
+      </div>
       ${progressBar(progress, "Particle Laboratory power response", "door", "door")}
-      <p class="muted">The locking system does not respond. Additional infrastructure is required.</p>
+      <p class="muted">A dead line on the facility map mentions particle synthesis. The route stays quiet, reacting only to rising power.</p>
     </article>
   `;
 }
@@ -966,6 +1086,21 @@ function renderCompletion() {
   `;
 }
 
+function renderSection(title, label, note, content, className = "") {
+  return `
+    <section class="layer-section ${className}">
+      <div class="section-heading">
+        <div>
+          <p class="panel__label">${label}</p>
+          <h2>${title}</h2>
+        </div>
+        <p>${note}</p>
+      </div>
+      ${content}
+    </section>
+  `;
+}
+
 function setField(app, key, value) {
   const element = app.querySelector(`[data-field="${key}"]`);
   if (element && element.textContent !== value) {
@@ -991,13 +1126,10 @@ function createRenderSignature(state, config, developmentMode) {
     });
   }
 
-  const autoCalculatorRevealed =
-    state.devices.autoCalculator ||
-    state.improvements >= config.autoCalculator.revealAtImprovements;
-  const autoCalculatorUnlocked =
-    state.improvements >= config.autoCalculator.unlockAtImprovements;
   const autoCalculatorAffordable =
     state.energy >= config.autoCalculator.cost;
+  const softDataDisplayAffordable =
+    state.energy >= config.softDataDisplay.cost;
   const crcComplete =
     state.crcCount >= config.crcConstruction.maximumCrcs;
   const crcAffordable =
@@ -1011,9 +1143,9 @@ function createRenderSignature(state, config, developmentMode) {
     improvements: state.improvements,
     upgrades: state.upgrades,
     crcCount: state.crcCount,
+    softDataDisplay: state.devices.softDataDisplay,
+    softDataDisplayAffordable,
     autoCalculator: state.devices.autoCalculator,
-    autoCalculatorRevealed,
-    autoCalculatorUnlocked,
     autoCalculatorAffordable,
     processor: state.devices.processor,
     processorAffordable,
@@ -1034,6 +1166,22 @@ function updateDynamicFields(app, state, config, developmentMode) {
   setField(app, "energy", formatEnergy(state.energy));
   setProgress(app, "energy", state.energy / config.energy.powerCellCapacity);
   setProgress(app, "door", calculateDoorProgress(state, config));
+
+  if (state.devices.softDataDisplay) {
+    const production = calculateProduction(state, config, developmentMode);
+    const remainingCapacity = Math.max(
+      0,
+      config.energy.powerCellCapacity - state.energy
+    );
+    const fillTime =
+      production > 0 && remainingCapacity > 0
+        ? formatDuration(remainingCapacity / production)
+        : "FULL";
+
+    setField(app, "energy-rate", formatRate(production));
+    setField(app, "fill-time", fillTime);
+    setField(app, "total-energy", formatEnergy(state.stats.totalEnergyCollected));
+  }
 
   if (state.study.active) {
     setProgress(app, "study", state.study.elapsed / state.study.duration);
@@ -1066,20 +1214,42 @@ function renderGame(state, config, developmentMode) {
     ${state.prototypeComplete ? renderCompletion() : ""}
     <section class="dashboard-grid">
       <div class="dashboard-main">
-        <div class="overview-grid">
-          ${renderRecord()}
-          ${renderEnergy(state, config, developmentMode)}
-        </div>
-        ${renderStudy(state, config, developmentMode)}
-        <section class="section-stack" aria-label="Devices and discoveries">
-          ${renderAutoCalculator(state, config)}
-          ${renderBlueprint(state, config)}
-          ${renderProcessor(state, config)}
-        </section>
+        ${renderSection(
+          "Energy Layer",
+          "LAYER 1 // CONDENSATION",
+          "The facility converts a faint cosmic signal into Stored Energy and keeps it inside the first Power Cell.",
+          `<div class="energy-layout">
+            ${renderEnergy(state, config, developmentMode)}
+            ${renderCrcDevice(state, config, developmentMode)}
+          </div>`,
+          "layer-section--energy"
+        )}
+        ${renderSection(
+          "Algorithm Study",
+          "ANALYSIS LOOP",
+          "Every completed study sharpens the condenser behavior; rare structural jumps are logged as discoveries.",
+          renderStudy(state, config, developmentMode),
+          "layer-section--study"
+        )}
+        ${renderSection(
+          "Recovered Devices",
+          "INFRASTRUCTURE",
+          "Recovered hardware appears only when the current layer can support it.",
+          `<div class="section-stack" aria-label="Devices and discoveries">
+            ${renderSoftDataDisplay(state, config)}
+            ${renderAutoCalculator(state, config)}
+            ${renderBlueprint(state, config)}
+            ${renderProcessor(state, config)}
+          </div>`,
+          "layer-section--devices"
+        )}
         ${developmentMode ? renderDevelopmentPanel() : ""}
       </div>
       <aside class="dashboard-aside">
-        ${renderDoor(state, config)}
+        <section class="ambient-signals" aria-label="Ambient signals">
+          ${renderRecord()}
+          ${renderDoor(state, config)}
+        </section>
         ${renderLog(state)}
       </aside>
     </section>
@@ -1109,6 +1279,11 @@ function createRenderer(app, config, developmentMode) {
       return;
     }
 
+    if (state.introState === "crc-briefing") {
+      app.innerHTML = renderCrcBriefing();
+      return;
+    }
+
     app.innerHTML = renderGame(state, config, developmentMode);
     updateDynamicFields(app, state, config, developmentMode);
   };
@@ -1134,10 +1309,11 @@ function bindActions(app, engine, resetSave) {
 
     const actions = {
       "press-button": () => engine.pressButton(),
+      "activate-crc": () => engine.activateCrc(),
       "leave-room": () => engine.leaveRoom(),
       "return-to-room": () => engine.returnToRoom(),
-      "manual-condense": () => engine.manualCondense(),
       "start-study": () => engine.startStudy(false),
+      "buy-soft-display": () => engine.purchaseSoftDataDisplay(),
       "buy-auto": () => engine.purchaseAutoCalculator(),
       "construct-crc": () => engine.startCrcConstruction(),
       "buy-processor": () => engine.purchaseProcessor(),

@@ -49,6 +49,6 @@ npm run build
 
 ## Current scope
 
-Included: introduction, Stored Energy, Power Cell, CRC, Manual Condensing, Algorithm Improvements, Algorithm Upgrades, Auto Calculator, CRC Blueprint, a second CRC, Processor, local save and development controls.
+Included: introduction, Stored Energy, Power Cell, CRC, Soft Data Display, Algorithm Improvements, Algorithm Upgrades, Auto Calculator, CRC Blueprint, a second CRC, Processor, local save and development controls.
 
 Deferred: Particle Laboratory access, particles, prestige, Science Points and full offline progress.

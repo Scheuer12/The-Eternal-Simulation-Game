@@ -17,6 +17,7 @@ status: active
 | Marco | Tempo |
 |---|---:|
 | Primeiro Improvement | |
+| Soft Data Display | |
 | Auto Calculator | |
 | CRC Blueprint | |
 | Segundo CRC | |
@@ -25,7 +26,6 @@ status: active
 ## Resultado
 
 - Algorithm Upgrades encontrados:
-- Manual Condensing clicks:
 - Tempo total:
 
 ## Percepção
@@ -41,4 +41,3 @@ status: active
 ## Ajustes sugeridos
 
 - 
-

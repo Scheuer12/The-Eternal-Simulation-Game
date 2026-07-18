@@ -10,11 +10,11 @@ milestone: MVP-0
 
 - cena inicial e final alternativo ao sair;
 - Stored Energy, Power Cell e CRC;
-- Manual Condensing;
+- Soft Data Display;
 - Algorithm Improvement com duração crescente e impacto decrescente;
 - Algorithm Upgrade probabilístico;
 - Auto Calculator;
-- CRC Blueprint probabilística e garantida por threshold;
+- CRC Blueprint probabilística, oculta e revelada por energia extrema;
 - construção do segundo CRC;
 - Processor;
 - Simulation Record e porta do Particle Laboratory;
@@ -34,4 +34,3 @@ milestone: MVP-0
 ## Critério de conclusão
 
 O jogador instala o primeiro Processor e recebe a mensagem `END OF MVP-0` sem perder o save.
-

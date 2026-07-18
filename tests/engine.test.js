@@ -13,8 +13,20 @@ function createEngine(random = () => 1) {
   const state = createInitialState(config);
   const engine = new GameEngine({ state, config, random });
   engine.pressButton();
+  engine.activateCrc();
   return engine;
 }
+
+test("pressing the first button opens the CRC briefing before active play", () => {
+  const state = createInitialState(config);
+  const engine = new GameEngine({ state, config });
+
+  engine.pressButton();
+  assert.equal(engine.state.introState, "crc-briefing");
+
+  engine.activateCrc();
+  assert.equal(engine.state.introState, "active");
+});
 
 test("energy production is limited by Power Cell capacity", () => {
   const engine = createEngine();
@@ -30,27 +42,38 @@ test("a completed Study applies its next marginal multiplier", () => {
   assert.equal(engine.state.improvementMultiplier, 10);
 });
 
-test("Blueprint discovery is guaranteed at its Improvement threshold", () => {
+test("Blueprint discovery stays hidden until its energy threshold", () => {
   const engine = createEngine();
 
-  for (
-    let index = 0;
-    index < config.blueprint.guaranteedAtImprovements;
-    index += 1
-  ) {
-    engine.startStudy();
-    engine.completeStudy();
-  }
+  engine.state.improvements = 100;
+  engine.state.upgrades = 100;
+  engine.checkBlueprintGuarantee();
+  assert.equal(engine.state.discoveries.crcBlueprint, false);
 
+  engine.state.peakEnergy = config.blueprint.revealAtPeakEnergy;
+  engine.checkBlueprintGuarantee();
   assert.equal(engine.state.discoveries.crcBlueprint, true);
-  assert.equal(engine.state.discoveries.blueprintSource, "threshold");
+  assert.equal(engine.state.discoveries.blueprintSource, "energy-threshold");
 });
 
-test("Processor requires the second CRC and sufficient energy", () => {
+test("Auto Calculator requires only sufficient energy", () => {
   const engine = createEngine();
-  engine.state.crcCount = 2;
+  engine.state.energy = config.autoCalculator.cost;
+  assert.equal(engine.purchaseAutoCalculator(), true);
+  assert.equal(engine.state.devices.autoCalculator, true);
+});
+
+test("Soft Data Display requires only sufficient energy", () => {
+  const engine = createEngine();
+  engine.state.energy = config.softDataDisplay.cost;
+  assert.equal(engine.purchaseSoftDataDisplay(), true);
+  assert.equal(engine.state.devices.softDataDisplay, true);
+});
+
+test("Processor requires only sufficient energy", () => {
+  const engine = createEngine();
+  engine.state.crcCount = 1;
   engine.state.energy = config.processor.cost;
   assert.equal(engine.purchaseProcessor(), true);
   assert.equal(engine.state.prototypeComplete, true);
 });
-

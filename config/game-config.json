@@ -8,7 +8,6 @@
   },
   "energy": {
     "baseProductionPerSecond": 1e-12,
-    "manualCondensingGain": 5e-12,
     "powerCellCapacity": 1,
     "initialCrcCount": 1
   },
@@ -34,16 +33,16 @@
     "minimumChance": 0.0001,
     "productionMultiplier": 2
   },
+  "softDataDisplay": {
+    "cost": 1e-8
+  },
   "autoCalculator": {
-    "revealAtImprovements": 13,
-    "unlockAtImprovements": 15,
     "cost": 0.05,
     "speedMultiplier": 2
   },
   "blueprint": {
     "chancePerUpgrade": 0.01,
-    "guaranteedAtImprovements": 17,
-    "guaranteedAtUpgrades": 3,
+    "revealAtPeakEnergy": 100,
     "studyDurationMultiplier": 0.65
   },
   "crcConstruction": {
@@ -52,7 +51,7 @@
     "durationSeconds": 20
   },
   "processor": {
-    "cost": 0.6,
+    "cost": 0.25,
     "deviceDurationMultiplier": 0.9
   },
   "development": {

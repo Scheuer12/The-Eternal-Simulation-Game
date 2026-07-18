@@ -200,6 +200,73 @@ h2 {
   text-align: center;
 }
 
+.system-briefing {
+  max-width: 760px;
+}
+
+.briefing-note,
+.help-note {
+  border: 1px solid rgba(129, 177, 210, 0.12);
+  border-radius: 7px;
+  background: rgba(4, 10, 16, 0.42);
+}
+
+.briefing-note {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 14px;
+}
+
+.briefing-note span,
+.explain-list strong {
+  color: var(--blue-bright);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.briefing-note p {
+  margin: 0;
+  color: #8ea6b5;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.help-note {
+  margin: 14px 0 0;
+  overflow: hidden;
+}
+
+.help-note summary {
+  display: inline-grid;
+  width: 25px;
+  height: 25px;
+  margin: 9px;
+  place-items: center;
+  border: 1px solid rgba(101, 196, 255, 0.28);
+  border-radius: 50%;
+  color: var(--blue-bright);
+  cursor: pointer;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.help-note summary::-webkit-details-marker {
+  display: none;
+}
+
+.help-note p {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: #8da2b0;
+  font-size: 0.78rem;
+  line-height: 1.48;
+}
+
 .topbar {
   display: flex;
   align-items: flex-start;
@@ -292,15 +359,10 @@ h2 {
   font-size: 0.78rem;
 }
 
-.button--energy {
-  width: 100%;
-  margin-top: 20px;
-}
-
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.38fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.32fr);
+  gap: clamp(18px, 3vw, 34px);
 }
 
 .dashboard-main,
@@ -311,34 +373,97 @@ h2 {
   gap: 20px;
 }
 
-.overview-grid {
+.dashboard-main {
+  gap: 26px;
+}
+
+.dashboard-aside {
+  gap: 16px;
+}
+
+.energy-layout {
   display: grid;
-  grid-template-columns: minmax(230px, 0.42fr) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(250px, 0.85fr);
+  gap: 16px;
+  align-items: stretch;
 }
 
-.record-panel {
+.energy-panel {
+  min-height: 100%;
+}
+
+.layer-section {
+  display: grid;
+  gap: 14px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(129, 177, 210, 0.12);
+}
+
+.layer-section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.section-heading {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: end;
+}
+
+.section-heading h2 {
+  color: #d6e7f0;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.section-heading p:last-child {
+  margin: 0;
+  color: #728898;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.ambient-signals {
+  display: grid;
+  gap: 14px;
+  padding: 2px 0 4px;
+}
+
+.ambient-record {
   display: flex;
-  min-height: 210px;
   flex-direction: column;
-  justify-content: center;
-  border-color: rgba(179, 147, 255, 0.32);
-  background: linear-gradient(145deg, rgba(49, 35, 74, 0.42), rgba(11, 20, 32, 0.94));
+  gap: 3px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid rgba(179, 147, 255, 0.13);
+  opacity: 0.78;
 }
 
-.record-panel strong {
-  color: #d7caff;
+.ambient-record .panel__label {
+  margin-bottom: 2px;
+  color: #8f7fc0;
+}
+
+.ambient-record strong {
+  color: #b8a8e6;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: clamp(1.35rem, 3vw, 2.15rem);
-  letter-spacing: -0.05em;
-  text-shadow: 0 0 24px rgba(179, 147, 255, 0.34);
+  font-size: 0.96rem;
+  font-weight: 560;
+  letter-spacing: 0;
+  text-shadow: none;
 }
 
-.record-panel span {
-  margin-top: 10px;
+.ambient-record span {
   color: #806f9e;
   font-size: 0.65rem;
   letter-spacing: 0.15em;
+}
+
+.ambient-record p {
+  margin: 4px 0 0;
+  color: #6f7d90;
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .panel__heading {
@@ -447,6 +572,40 @@ h2 {
   font-weight: 550;
 }
 
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(99, 242, 220, 0.12);
+  border-radius: 7px;
+  background: rgba(99, 242, 220, 0.12);
+}
+
+.telemetry-grid > div {
+  padding: 11px 12px;
+  background: rgba(4, 12, 16, 0.74);
+}
+
+.telemetry-grid span,
+.telemetry-grid strong {
+  display: block;
+}
+
+.telemetry-grid span {
+  margin-bottom: 6px;
+  color: #6f8c95;
+  font-size: 0.66rem;
+}
+
+.telemetry-grid strong {
+  color: #a8e8df;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 550;
+}
+
 .study-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -503,53 +662,46 @@ h2 {
   border-color: rgba(179, 147, 255, 0.31);
 }
 
-.door-panel {
-  min-height: 330px;
-  border-color: rgba(255, 202, 110, 0.18);
+.ambient-door {
+  padding: 0 0 14px;
+  border-bottom: 1px solid rgba(255, 202, 110, 0.12);
+  opacity: 0.76;
 }
 
-.door-mark {
-  position: relative;
-  width: 82px;
-  height: 118px;
-  margin: 4px auto 24px;
-  border: 2px solid rgba(133, 158, 174, 0.23);
-  border-radius: 34px 34px 5px 5px;
-  background:
-    linear-gradient(90deg, transparent 47%, rgba(255, 202, 110, 0.2) 49%, rgba(255, 202, 110, 0.2) 51%, transparent 53%),
-    #070c12;
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.72);
+.ambient-door .panel__label {
+  margin-bottom: 6px;
+  color: #aa8651;
 }
 
-.door-mark span {
-  position: absolute;
-  top: 52%;
-  right: 12px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 9px var(--amber);
+.ambient-door__heading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 9px;
 }
 
-.door-panel h2 {
-  margin-bottom: 8px;
-  font-size: 1.2rem;
+.ambient-door h2 {
+  color: #c8d4dc;
+  font-size: 0.86rem;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
 .door-status {
   display: block;
-  margin-bottom: 18px;
-  color: var(--amber);
+  color: #b89157;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 0.69rem;
+  font-size: 0.62rem;
   letter-spacing: 0.09em;
 }
 
-.door-panel .muted {
-  margin: 18px 0 0;
-  font-size: 0.78rem;
+.ambient-door .progress {
+  height: 5px;
+}
+
+.ambient-door .muted {
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.48;
 }
 
 .log-panel {
@@ -642,18 +794,24 @@ h2 {
     align-items: flex-start;
   }
 
-  .overview-grid,
+  .section-heading,
+  .energy-layout,
   .dashboard-aside,
+  .telemetry-grid,
   .study-metrics {
     grid-template-columns: 1fr;
   }
 
-  .record-panel {
-    min-height: 150px;
+  .section-heading {
+    gap: 8px;
   }
 
   .button-row--intro .button {
     width: 100%;
+  }
+
+  .briefing-note {
+    grid-template-columns: 1fr;
   }
 
   .study-metrics {

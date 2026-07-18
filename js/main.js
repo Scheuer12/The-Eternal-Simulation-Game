@@ -19,10 +19,11 @@ function bindActions(app, engine, resetSave) {
 
     const actions = {
       "press-button": () => engine.pressButton(),
+      "activate-crc": () => engine.activateCrc(),
       "leave-room": () => engine.leaveRoom(),
       "return-to-room": () => engine.returnToRoom(),
-      "manual-condense": () => engine.manualCondense(),
       "start-study": () => engine.startStudy(false),
+      "buy-soft-display": () => engine.purchaseSoftDataDisplay(),
       "buy-auto": () => engine.purchaseAutoCalculator(),
       "construct-crc": () => engine.startCrcConstruction(),
       "buy-processor": () => engine.purchaseProcessor(),
