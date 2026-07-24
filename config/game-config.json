@@ -1,58 +1,122 @@
 {
   "version": 1,
   "timing": {
+    "baseTickSeconds": 1,
     "simulationStepMs": 100,
     "renderIntervalMs": 100,
     "autosaveIntervalMs": 5000,
     "maximumTickSeconds": 1
   },
+  "offlineProgress": {
+    "maxOfflineSeconds": 28800,
+    "stepSeconds": 0.25,
+    "maxSteps": 120000
+  },
   "energy": {
     "baseProductionPerSecond": 1e-12,
     "powerCellCapacity": 1,
-    "initialCrcCount": 1
+    "initialPowerCells": 1,
+    "initialCrcCount": 1,
+    "overflowDecayRate": 0.009,
+    "overflowDecayPower": 1.35
+  },
+  "powerCell": {
+    "algorithmUpgradesRequired": 3,
+    "baseCapacityCostMultiplier": 1.5,
+    "costGrowthScale": 4,
+    "costGrowthPower": 1.25
+  },
+  "powerModule": {
+    "cellsPerModule": 100,
+    "baseCost": 100,
+    "costGrowth": 3.2,
+    "costGrowthExponent": 1.18,
+    "capacityMultiplier": 1.35
+  },
+  "particleLab": {
+    "doorEnergyRequired": 100,
+    "synthesizerEnergyRequired": 100000000000
+  },
+  "science": {
+    "matrixMechanics": {
+      "cost": 1,
+      "improvementSpeedBonusPerUpgradePerImprovement": 0.0025
+    }
   },
   "study": {
-    "baseDurationSeconds": 7,
-    "durationGrowthCoefficient": 0.08,
-    "durationGrowthPower": 1.5,
+    "baseDurationSeconds": 5,
+    "durationGrowthCoefficient": 0.1315,
+    "durationGrowthPower": 2.2,
+    "durationEarlyLoadMultiplier": 0.7,
+    "durationEarlyLoadUntil": 10,
+    "durationFullLoadAt": 15,
+    "durationLoadMultiplierPerSetup": 0.86,
     "onboardingImprovements": 15,
     "onboardingInitialBonus": 9,
     "baselineBonus": 0.05,
+    "minimumBonus": 0.025,
     "onboardingDecayShape": 1.55,
     "lateDecayScale": 40,
-    "lateDecayPower": 0.65
+    "lateDecayPower": 0.65,
+    "effectPenaltyMultiplierPerMethod": 0.9
   },
-  "upgrade": {
-    "initialChance": 0.1,
-    "decayCoefficient": 0.75,
-    "decayPower": 1.15,
-    "softcap": 0.01,
-    "softcapPower": 0.6,
-    "hardcap": 0.001,
-    "hardcapPower": 0.35,
-    "minimumChance": 0.0001,
+  "algorithmUpgrade": {
+    "baseDurationSeconds": 30,
+    "durationGrowthCoefficient": 0.2,
+    "durationGrowthPower": 1.35,
+    "initialImprovementsRequired": 10,
+    "improvementsRequiredGrowth": 5,
     "productionMultiplier": 2
   },
   "softDataDisplay": {
     "cost": 1e-8
   },
+  "t2SoftDataDisplay": {
+    "cost": 2
+  },
   "autoCalculator": {
-    "cost": 0.05,
-    "speedMultiplier": 2
+    "baseCost": 0.001,
+    "costGrowth": 50,
+    "costGrowthExponent": 1.2,
+    "firstSpeedMultiplier": 2,
+    "additionalSpeedMultiplier": 2
   },
   "blueprint": {
-    "chancePerUpgrade": 0.01,
-    "revealAtPeakEnergy": 100,
-    "studyDurationMultiplier": 0.65
+    "revealAtPeakEnergy": 10,
+    "researchDurationSeconds": 60
   },
   "crcConstruction": {
-    "maximumCrcs": 2,
-    "cost": 0.08,
+    "baseCost": 2,
+    "costGrowth": 2.5,
+    "costGrowthExponent": 1.12,
     "durationSeconds": 20
   },
   "processor": {
-    "cost": 0.25,
-    "deviceDurationMultiplier": 0.9
+    "baseCost": 0.25,
+    "costGrowth": 4,
+    "costGrowthExponent": 1.15,
+    "deviceEfficiencyMultiplier": 1.15
+  },
+  "overclocker": {
+    "baseCost": 2,
+    "costGrowth": 10,
+    "costGrowthExponent": 1.35,
+    "processorsRequired": 3,
+    "powerCellsRequired": 3,
+    "baseCalculatorSpeedMultiplier": 5,
+    "additionalCalculatorSpeedMultiplier": 1.5,
+    "baseEnergyDrainPerSecond": 0.005,
+    "energyDrainGrowth": 6,
+    "runtimeDrainGrowthBase": 1.75,
+    "coolingDurationMultiplier": 2
+  },
+  "calculationMethodUpgrade": {
+    "initialAlgorithmUpgradesRequired": 5,
+    "algorithmUpgradesRequiredGrowth": 5
+  },
+  "setupOptimization": {
+    "initialMethodUpgradesRequired": 2,
+    "methodUpgradesRequiredGrowth": 2
   },
   "development": {
     "durationMultiplier": 0.05,

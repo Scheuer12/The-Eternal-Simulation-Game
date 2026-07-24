@@ -1,7 +1,8 @@
-"""Monte Carlo balance runner for the MVP-0 progression.
+"""Deterministic balance runner for the current Energy Layer.
 
 The browser is the canonical game runtime. This standard-library simulator mirrors
-the relevant formulas so balance can be explored quickly without rendering a UI.
+the core formulas so rough pacing can be explored without rendering UI. It uses a
+simple eager strategy and is not a target-duration assertion.
 """
 
 from __future__ import annotations
@@ -9,8 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import random
-import statistics
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,174 +22,229 @@ def load_config() -> dict:
     return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
 
 
-def improvement_bonus(completed: int, config: dict) -> float:
+def escalating_cost(base: float, growth: float, exponent: float, owned: int) -> float:
+    if owned <= 0:
+        return base
+    return base * growth ** (owned ** exponent)
+
+
+def improvement_bonus(completed: int, config: dict, method_upgrades: int = 0) -> float:
     study = config["study"]
+    effective = completed * study["effectPenaltyMultiplierPerMethod"] ** method_upgrades
     onboarding = study["onboardingImprovements"]
-    if completed < onboarding:
-        remaining = 1 - completed / onboarding
+
+    if effective < onboarding:
+        remaining = 1 - effective / onboarding
         return study["baselineBonus"] + (
             study["onboardingInitialBonus"] - study["baselineBonus"]
         ) * remaining ** study["onboardingDecayShape"]
 
-    late = completed - onboarding
+    late = effective - onboarding
     return study["baselineBonus"] / (
         1 + late / study["lateDecayScale"]
     ) ** study["lateDecayPower"]
 
 
-def upgrade_chance(upgrades: int, config: dict) -> float:
-    settings = config["upgrade"]
-    chance = settings["initialChance"] / (
-        1 + settings["decayCoefficient"] * upgrades
-    ) ** settings["decayPower"]
-
-    if chance < settings["softcap"]:
-        chance = settings["softcap"] * (
-            chance / settings["softcap"]
-        ) ** settings["softcapPower"]
-
-    if chance < settings["hardcap"]:
-        chance = settings["hardcap"] * (
-            chance / settings["hardcap"]
-        ) ** settings["hardcapPower"]
-
-    return max(settings["minimumChance"], chance)
+def auto_calculator_cost(owned: int, config: dict) -> float:
+    settings = config["autoCalculator"]
+    return escalating_cost(
+        settings["baseCost"],
+        settings["costGrowth"],
+        settings["costGrowthExponent"],
+        owned,
+    )
 
 
-@dataclass
-class Run:
-    energy: float = 0.0
-    production_multiplier: float = 1.0
-    improvements: int = 0
-    upgrades: int = 0
-    crc_count: int = 1
-    soft_data_display: bool = False
-    auto_calculator: bool = False
-    blueprint: bool = False
-    construction_remaining: float | None = None
-    study_remaining: float | None = None
-    elapsed: float = 0.0
+def processor_cost(owned: int, config: dict) -> float:
+    settings = config["processor"]
+    return escalating_cost(
+        settings["baseCost"],
+        settings["costGrowth"],
+        settings["costGrowthExponent"],
+        owned,
+    )
 
 
-def production(run: Run, config: dict) -> float:
+def stable_energy_capacity(run: "Run", config: dict) -> float:
+    return config["energy"]["powerCellCapacity"] * run.power_cells
+
+
+def power_cell_cost(run: "Run", config: dict) -> float:
+    settings = config["powerCell"]
+    current_capacity = stable_energy_capacity(run, config)
+    owned = max(1, run.power_cells)
+    multiplier = settings["baseCapacityCostMultiplier"] * (
+        1 + (owned - 1) / settings["costGrowthScale"]
+    ) ** settings["costGrowthPower"]
+    return current_capacity * multiplier
+
+
+def energy_overflow_decay(run: "Run", config: dict) -> float:
+    capacity = stable_energy_capacity(run, config)
+    if run.energy <= capacity:
+        return 0
+
+    overflow_ratio = (run.energy - capacity) / capacity
+    return (
+        capacity
+        * config["energy"]["overflowDecayRate"]
+        * overflow_ratio ** config["energy"]["overflowDecayPower"]
+    )
+
+
+def effective_energy_gain(run: "Run", raw_gain: float, config: dict) -> float:
+    return max(0, raw_gain)
+
+
+def device_efficiency(run: "Run", config: dict) -> float:
+    return config["processor"]["deviceEfficiencyMultiplier"] ** run.processors
+
+
+def auto_calculator_speed(run: "Run", config: dict) -> float:
+    if run.auto_calculators <= 0:
+        return 1
+    settings = config["autoCalculator"]
+    return (
+        settings["firstSpeedMultiplier"]
+        * settings["additionalSpeedMultiplier"] ** (run.auto_calculators - 1)
+        * device_efficiency(run, config)
+    )
+
+
+def study_duration(run: "Run", config: dict) -> float:
+    study = config["study"]
+    early_until = study["durationEarlyLoadUntil"]
+    full_at = study["durationFullLoadAt"]
+    early_load = run.improvements * study["durationEarlyLoadMultiplier"]
+    effective_load = run.improvements
+    if run.improvements <= early_until:
+        effective_load = early_load
+    elif run.improvements < full_at:
+        progress = (run.improvements - early_until) / (full_at - early_until)
+        eased = progress * progress * (3 - 2 * progress)
+        effective_load = early_load + (run.improvements - early_load) * eased
+    effective_load *= study["durationLoadMultiplierPerSetup"] ** run.setup_optimizations
+    return (
+        study["baseDurationSeconds"]
+        * (1 + study["durationGrowthCoefficient"] * effective_load ** study["durationGrowthPower"])
+        / auto_calculator_speed(run, config)
+    )
+
+
+def production(run: "Run", config: dict) -> float:
     return (
         config["energy"]["baseProductionPerSecond"]
         * run.crc_count
         * run.production_multiplier
-        * config["upgrade"]["productionMultiplier"] ** run.upgrades
+        * config["algorithmUpgrade"]["productionMultiplier"] ** run.upgrades
     )
 
 
-def study_duration(run: Run, config: dict) -> float:
-    study = config["study"]
-    duration = study["baseDurationSeconds"] * (
-        1
-        + study["durationGrowthCoefficient"]
-        * run.improvements ** study["durationGrowthPower"]
+def algorithm_upgrade_requirement(run: "Run", config: dict) -> int:
+    settings = config["algorithmUpgrade"]
+    return settings["initialImprovementsRequired"] + (
+        settings["improvementsRequiredGrowth"] * run.upgrades
     )
-    if run.auto_calculator:
-        duration /= config["autoCalculator"]["speedMultiplier"]
-    if run.blueprint:
-        duration *= config["blueprint"]["studyDurationMultiplier"]
-    return duration
 
 
-def complete_study(run: Run, config: dict, rng: random.Random) -> None:
-    run.production_multiplier *= 1 + improvement_bonus(run.improvements, config)
+@dataclass
+class Run:
+    energy: float = 0
+    power_cells: int = 1
+    production_multiplier: float = 1
+    improvements: int = 0
+    upgrades: int = 0
+    crc_count: int = 1
+    soft_data_display: bool = False
+    auto_calculators: int = 0
+    processors: int = 0
+    method_upgrades: int = 0
+    setup_optimizations: int = 0
+    study_remaining: float | None = None
+    elapsed: float = 0
+
+
+def complete_improvement(run: Run, config: dict) -> None:
+    run.production_multiplier *= 1 + improvement_bonus(
+        run.improvements,
+        config,
+        run.method_upgrades,
+    )
     run.improvements += 1
 
-    if rng.random() < upgrade_chance(run.upgrades, config):
-        run.upgrades += 1
-        if (
-            not run.blueprint
-            and rng.random() < config["blueprint"]["chancePerUpgrade"]
-        ):
-            run.blueprint = True
 
-    if run.energy >= config["blueprint"]["revealAtPeakEnergy"]:
-        run.blueprint = True
+def complete_algorithm_upgrade(run: Run, config: dict) -> None:
+    run.upgrades += 1
+    run.improvements = 0
+    run.production_multiplier = 1
+    run.study_remaining = None
 
 
-def simulate(seed: int, config: dict, maximum_seconds: float = 1_200) -> Run:
-    rng = random.Random(seed)
-    run = Run(crc_count=config["energy"]["initialCrcCount"])
+def simulate(config: dict, maximum_seconds: float = 86_400) -> Run:
+    run = Run(
+        crc_count=config["energy"]["initialCrcCount"],
+        power_cells=config["energy"]["initialPowerCells"],
+    )
     step = config["timing"]["simulationStepMs"] / 1_000
 
     while run.elapsed < maximum_seconds:
         run.elapsed += step
-        run.energy = min(
-            config["energy"]["powerCellCapacity"],
-            run.energy + production(run, config) * step,
-        )
+        run.energy += effective_energy_gain(run, production(run, config) * step, config)
+        if run.energy > stable_energy_capacity(run, config):
+            run.energy -= min(
+                run.energy - stable_energy_capacity(run, config),
+                energy_overflow_decay(run, config) * step,
+            )
 
         if run.study_remaining is None:
             run.study_remaining = study_duration(run, config)
         run.study_remaining -= step
         if run.study_remaining <= 0:
-            complete_study(run, config, rng)
-            run.study_remaining = None
+            complete_improvement(run, config)
 
-        if (
-            not run.soft_data_display
-            and run.energy >= config["softDataDisplay"]["cost"]
-        ):
+        if run.improvements >= algorithm_upgrade_requirement(run, config):
+            complete_algorithm_upgrade(run, config)
+
+        if not run.soft_data_display and run.energy >= config["softDataDisplay"]["cost"]:
             run.energy -= config["softDataDisplay"]["cost"]
             run.soft_data_display = True
 
-        if (
-            not run.auto_calculator
-            and run.energy >= config["autoCalculator"]["cost"]
-        ):
-            run.energy -= config["autoCalculator"]["cost"]
-            run.auto_calculator = True
+        if run.auto_calculators < 1 and run.energy >= auto_calculator_cost(run.auto_calculators, config):
+            run.energy -= auto_calculator_cost(run.auto_calculators, config)
+            run.auto_calculators += 1
             run.study_remaining = None
 
-        if (
-            run.blueprint
-            and run.crc_count < config["crcConstruction"]["maximumCrcs"]
-            and run.construction_remaining is None
-            and run.energy >= config["crcConstruction"]["cost"]
-        ):
-            run.energy -= config["crcConstruction"]["cost"]
-            run.construction_remaining = config["crcConstruction"]["durationSeconds"]
-
-        if run.construction_remaining is not None:
-            run.construction_remaining -= step
-            if run.construction_remaining <= 0:
-                run.crc_count += 1
-                run.construction_remaining = None
-
-        if (
-            run.energy >= config["processor"]["cost"]
-        ):
-            run.energy -= config["processor"]["cost"]
+        if run.energy >= processor_cost(run.processors, config):
+            run.energy -= processor_cost(run.processors, config)
+            run.processors += 1
             return run
+
+        if (
+            run.soft_data_display
+            and run.upgrades >= config["powerCell"]["algorithmUpgradesRequired"]
+            and run.energy >= power_cell_cost(run, config)
+        ):
+            run.energy -= power_cell_cost(run, config)
+            run.power_cells += 1
 
     return run
 
 
-def percentile(values: list[float], fraction: float) -> float:
-    ordered = sorted(values)
-    index = min(len(ordered) - 1, math.floor((len(ordered) - 1) * fraction))
-    return ordered[index]
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Simulate MVP-0 progression.")
-    parser.add_argument("--runs", type=int, default=1_000)
-    parser.add_argument("--seed", type=int, default=20260717)
+    parser = argparse.ArgumentParser(description="Simulate current Energy Layer progression.")
+    parser.add_argument("--max-seconds", type=float, default=86_400)
     args = parser.parse_args()
 
     config = load_config()
-    results = [simulate(args.seed + index, config) for index in range(args.runs)]
-    seconds = [run.elapsed for run in results]
+    result = simulate(config, maximum_seconds=args.max_seconds)
 
-    print(f"Runs: {len(results)}")
-    print(f"Mean: {statistics.mean(seconds) / 60:.2f} minutes")
-    print(f"Median: {statistics.median(seconds) / 60:.2f} minutes")
-    print(f"P10: {percentile(seconds, 0.10) / 60:.2f} minutes")
-    print(f"P90: {percentile(seconds, 0.90) / 60:.2f} minutes")
-    print(f"Maximum: {max(seconds) / 60:.2f} minutes")
+    print(f"Elapsed: {result.elapsed / 60:.2f} minutes")
+    print(f"Energy: {result.energy:.6g} J")
+    print(f"Improvements: {result.improvements}")
+    print(f"Algorithm Upgrades: {result.upgrades}")
+    print(f"Processors: {result.processors}")
+    print(f"Auto Calculators: {result.auto_calculators}")
+    print(f"Power Cells: {result.power_cells}")
 
 
 if __name__ == "__main__":

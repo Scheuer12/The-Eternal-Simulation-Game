@@ -4,58 +4,122 @@
   globalThis.__TES_GAME_CONFIG__ = {
   "version": 1,
   "timing": {
+    "baseTickSeconds": 1,
     "simulationStepMs": 100,
     "renderIntervalMs": 100,
     "autosaveIntervalMs": 5000,
     "maximumTickSeconds": 1
   },
+  "offlineProgress": {
+    "maxOfflineSeconds": 28800,
+    "stepSeconds": 0.25,
+    "maxSteps": 120000
+  },
   "energy": {
     "baseProductionPerSecond": 1e-12,
     "powerCellCapacity": 1,
-    "initialCrcCount": 1
+    "initialPowerCells": 1,
+    "initialCrcCount": 1,
+    "overflowDecayRate": 0.009,
+    "overflowDecayPower": 1.35
+  },
+  "powerCell": {
+    "algorithmUpgradesRequired": 3,
+    "baseCapacityCostMultiplier": 1.5,
+    "costGrowthScale": 4,
+    "costGrowthPower": 1.25
+  },
+  "powerModule": {
+    "cellsPerModule": 100,
+    "baseCost": 100,
+    "costGrowth": 3.2,
+    "costGrowthExponent": 1.18,
+    "capacityMultiplier": 1.35
+  },
+  "particleLab": {
+    "doorEnergyRequired": 100,
+    "synthesizerEnergyRequired": 100000000000
+  },
+  "science": {
+    "matrixMechanics": {
+      "cost": 1,
+      "improvementSpeedBonusPerUpgradePerImprovement": 0.0025
+    }
   },
   "study": {
-    "baseDurationSeconds": 7,
-    "durationGrowthCoefficient": 0.08,
-    "durationGrowthPower": 1.5,
+    "baseDurationSeconds": 5,
+    "durationGrowthCoefficient": 0.1315,
+    "durationGrowthPower": 2.2,
+    "durationEarlyLoadMultiplier": 0.7,
+    "durationEarlyLoadUntil": 10,
+    "durationFullLoadAt": 15,
+    "durationLoadMultiplierPerSetup": 0.86,
     "onboardingImprovements": 15,
     "onboardingInitialBonus": 9,
     "baselineBonus": 0.05,
+    "minimumBonus": 0.025,
     "onboardingDecayShape": 1.55,
     "lateDecayScale": 40,
-    "lateDecayPower": 0.65
+    "lateDecayPower": 0.65,
+    "effectPenaltyMultiplierPerMethod": 0.9
   },
-  "upgrade": {
-    "initialChance": 0.1,
-    "decayCoefficient": 0.75,
-    "decayPower": 1.15,
-    "softcap": 0.01,
-    "softcapPower": 0.6,
-    "hardcap": 0.001,
-    "hardcapPower": 0.35,
-    "minimumChance": 0.0001,
+  "algorithmUpgrade": {
+    "baseDurationSeconds": 30,
+    "durationGrowthCoefficient": 0.2,
+    "durationGrowthPower": 1.35,
+    "initialImprovementsRequired": 10,
+    "improvementsRequiredGrowth": 5,
     "productionMultiplier": 2
   },
   "softDataDisplay": {
     "cost": 1e-8
   },
+  "t2SoftDataDisplay": {
+    "cost": 2
+  },
   "autoCalculator": {
-    "cost": 0.05,
-    "speedMultiplier": 2
+    "baseCost": 0.001,
+    "costGrowth": 50,
+    "costGrowthExponent": 1.2,
+    "firstSpeedMultiplier": 2,
+    "additionalSpeedMultiplier": 2
   },
   "blueprint": {
-    "chancePerUpgrade": 0.01,
-    "revealAtPeakEnergy": 100,
-    "studyDurationMultiplier": 0.65
+    "revealAtPeakEnergy": 10,
+    "researchDurationSeconds": 60
   },
   "crcConstruction": {
-    "maximumCrcs": 2,
-    "cost": 0.08,
+    "baseCost": 2,
+    "costGrowth": 2.5,
+    "costGrowthExponent": 1.12,
     "durationSeconds": 20
   },
   "processor": {
-    "cost": 0.25,
-    "deviceDurationMultiplier": 0.9
+    "baseCost": 0.25,
+    "costGrowth": 4,
+    "costGrowthExponent": 1.15,
+    "deviceEfficiencyMultiplier": 1.15
+  },
+  "overclocker": {
+    "baseCost": 2,
+    "costGrowth": 10,
+    "costGrowthExponent": 1.35,
+    "processorsRequired": 3,
+    "powerCellsRequired": 3,
+    "baseCalculatorSpeedMultiplier": 5,
+    "additionalCalculatorSpeedMultiplier": 1.5,
+    "baseEnergyDrainPerSecond": 0.005,
+    "energyDrainGrowth": 6,
+    "runtimeDrainGrowthBase": 1.75,
+    "coolingDurationMultiplier": 2
+  },
+  "calculationMethodUpgrade": {
+    "initialAlgorithmUpgradesRequired": 5,
+    "algorithmUpgradesRequiredGrowth": 5
+  },
+  "setupOptimization": {
+    "initialMethodUpgradesRequired": 2,
+    "methodUpgradesRequiredGrowth": 2
   },
   "development": {
     "durationMultiplier": 0.05,
@@ -104,75 +168,313 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-function calculateImprovementBonus(completedImprovements, config) {
+function calculateImprovementBonus(
+  completedImprovements,
+  config,
+  calculationMethodUpgrades = 0
+) {
   const study = config.study;
+  const effectiveImprovements =
+    completedImprovements *
+    study.effectPenaltyMultiplierPerMethod ** calculationMethodUpgrades;
+  let bonus;
 
-  if (completedImprovements < study.onboardingImprovements) {
+  if (effectiveImprovements < study.onboardingImprovements) {
     const remaining =
-      1 - completedImprovements / study.onboardingImprovements;
+      1 - effectiveImprovements / study.onboardingImprovements;
 
-    return (
+    bonus =
       study.baselineBonus +
       (study.onboardingInitialBonus - study.baselineBonus) *
-        remaining ** study.onboardingDecayShape
-    );
+        remaining ** study.onboardingDecayShape;
+  } else {
+    const lateImprovements =
+      effectiveImprovements - study.onboardingImprovements;
+
+    bonus =
+      study.baselineBonus /
+      (1 + lateImprovements / study.lateDecayScale) ** study.lateDecayPower;
   }
 
-  const lateImprovements =
-    completedImprovements - study.onboardingImprovements;
+  return Math.max(study.minimumBonus ?? 0, bonus);
+}
 
-  return (
-    study.baselineBonus /
-    (1 + lateImprovements / study.lateDecayScale) ** study.lateDecayPower
+function calculateEscalatingCost(baseCost, growth, exponent, ownedCount) {
+  if (ownedCount <= 0) return baseCost;
+  return baseCost * growth ** (ownedCount ** exponent);
+}
+
+function calculateAutoCalculatorCost(ownedCalculators, config) {
+  return calculateEscalatingCost(
+    config.autoCalculator.baseCost,
+    config.autoCalculator.costGrowth,
+    config.autoCalculator.costGrowthExponent,
+    ownedCalculators
   );
 }
 
-function calculateUpgradeChance(upgradeCount, config) {
-  const upgrade = config.upgrade;
-  let chance =
-    upgrade.initialChance /
-    (1 + upgrade.decayCoefficient * upgradeCount) ** upgrade.decayPower;
+function calculateProcessorCost(ownedProcessors, config) {
+  return calculateEscalatingCost(
+    config.processor.baseCost,
+    config.processor.costGrowth,
+    config.processor.costGrowthExponent,
+    ownedProcessors
+  );
+}
 
-  if (chance < upgrade.softcap) {
-    chance =
-      upgrade.softcap *
-      (chance / upgrade.softcap) ** upgrade.softcapPower;
+function calculateOverclockerCost(ownedOverclockers, config) {
+  return calculateEscalatingCost(
+    config.overclocker.baseCost,
+    config.overclocker.costGrowth,
+    config.overclocker.costGrowthExponent,
+    ownedOverclockers
+  );
+}
+
+function calculateCrcCost(state, config) {
+  const purchasedCrcs = Math.max(
+    0,
+    state.crcCount - config.energy.initialCrcCount
+  );
+
+  return calculateEscalatingCost(
+    config.crcConstruction.baseCost,
+    config.crcConstruction.costGrowth,
+    config.crcConstruction.costGrowthExponent,
+    purchasedCrcs
+  );
+}
+
+function calculatePowerCellCost(ownedPowerCells, config) {
+  const owned = Math.max(1, ownedPowerCells);
+  const currentCapacity = config.energy.powerCellCapacity * owned;
+  const multiplier =
+    config.powerCell.baseCapacityCostMultiplier *
+    (1 + (owned - 1) / config.powerCell.costGrowthScale) **
+      config.powerCell.costGrowthPower;
+
+  return (
+    currentCapacity *
+    multiplier
+  );
+}
+
+function calculatePowerModuleRequirement(ownedPowerModules, config) {
+  return (ownedPowerModules + 1) * config.powerModule.cellsPerModule;
+}
+
+function calculatePowerModuleCost(ownedPowerModules, config) {
+  return calculateEscalatingCost(
+    config.powerModule.baseCost,
+    config.powerModule.costGrowth,
+    config.powerModule.costGrowthExponent,
+    ownedPowerModules
+  );
+}
+
+function calculatePowerModuleCapacityMultiplier(state, config) {
+  return config.powerModule.capacityMultiplier ** state.powerModules;
+}
+
+function calculateStableEnergyCapacity(state, config) {
+  return (
+    config.energy.powerCellCapacity *
+    Math.max(1, state.powerCells) *
+    calculatePowerModuleCapacityMultiplier(state, config)
+  );
+}
+
+function calculateEnergyOverflowDecay(state, config) {
+  const capacity = calculateStableEnergyCapacity(state, config);
+  if (capacity <= 0 || state.energy <= capacity) return 0;
+
+  const overflowRatio = (state.energy - capacity) / capacity;
+  return (
+    capacity *
+    config.energy.overflowDecayRate *
+    overflowRatio ** config.energy.overflowDecayPower
+  );
+}
+
+function calculateEnergyRetention(state, config, developmentMode = false) {
+  const production = calculateProduction(state, config, developmentMode);
+  if (production <= 0) return state.energy > calculateStableEnergyCapacity(state, config) ? 0 : 1;
+
+  return clamp(
+    (production - calculateEnergyOverflowDecay(state, config)) / production,
+    0,
+    1
+  );
+}
+
+function calculateAutoCalculatorSpeedMultiplier(state, config) {
+  const calculators = state.devices.autoCalculators;
+  if (calculators <= 0) return 1;
+
+  const calculatorSpeed =
+    config.autoCalculator.firstSpeedMultiplier *
+    config.autoCalculator.additionalSpeedMultiplier ** (calculators - 1);
+
+  return (
+    calculatorSpeed *
+    calculateDeviceEfficiencyMultiplier(state, config) *
+    calculateOverclockerSpeedMultiplier(state, config)
+  );
+}
+
+function calculateMatrixMechanicsSpeedMultiplier(state, config) {
+  if (!state.science?.matrixMechanics) return 1;
+
+  const bonus =
+    config.science?.matrixMechanics
+      ?.improvementSpeedBonusPerUpgradePerImprovement ?? 0;
+
+  return (1 + bonus) ** (state.upgrades * state.improvements);
+}
+
+function calculateOverclockerSpeedMultiplier(state, config) {
+  const overclockers = state.devices.overclockers;
+  if (overclockers <= 0 || !state.overclocker.active) return 1;
+
+  return (
+    config.overclocker.baseCalculatorSpeedMultiplier *
+    config.overclocker.additionalCalculatorSpeedMultiplier ** (overclockers - 1)
+  );
+}
+
+function calculateOverclockerDrainPerSecond(state, config) {
+  const overclockers = state.devices.overclockers;
+  if (overclockers <= 0 || !state.overclocker.active) return 0;
+  const activeSeconds = Math.max(0, state.overclocker.activeSeconds ?? 0);
+  const runtimeMultiplier = config.overclocker.runtimeDrainGrowthBase
+    ? config.overclocker.runtimeDrainGrowthBase ** activeSeconds
+    : 1 +
+      config.overclocker.runtimeDrainGrowthCoefficient *
+        activeSeconds ** config.overclocker.runtimeDrainGrowthPower;
+
+  return (
+    config.overclocker.baseEnergyDrainPerSecond *
+    config.overclocker.energyDrainGrowth ** (overclockers - 1) *
+    runtimeMultiplier
+  );
+}
+
+function calculateDeviceEfficiencyMultiplier(state, config) {
+  return config.processor.deviceEfficiencyMultiplier ** state.devices.processors;
+}
+
+function calculateDeviceDurationMultiplier(state, config) {
+  return 1 / calculateDeviceEfficiencyMultiplier(state, config);
+}
+
+function calculateAlgorithmUpgradeRequirement(state, config) {
+  return (
+    config.algorithmUpgrade.initialImprovementsRequired +
+    config.algorithmUpgrade.improvementsRequiredGrowth * state.upgrades
+  );
+}
+
+function calculateAlgorithmUpgradeDuration(state, config, developmentMode = false) {
+  let duration =
+    config.algorithmUpgrade.baseDurationSeconds *
+    (1 +
+      config.algorithmUpgrade.durationGrowthCoefficient *
+        state.upgrades ** config.algorithmUpgrade.durationGrowthPower);
+
+  if (developmentMode) {
+    duration *= getDevelopmentDurationMultiplier(state, config);
   }
 
-  if (chance < upgrade.hardcap) {
-    chance =
-      upgrade.hardcap *
-      (chance / upgrade.hardcap) ** upgrade.hardcapPower;
+  return duration;
+}
+
+function calculateCalculationMethodRequirement(state, config) {
+  return (
+    config.calculationMethodUpgrade.initialAlgorithmUpgradesRequired +
+    config.calculationMethodUpgrade.algorithmUpgradesRequiredGrowth *
+      state.calculationMethods
+  );
+}
+
+function calculateSetupOptimizationRequirement(state, config) {
+  return (
+    config.setupOptimization.initialMethodUpgradesRequired +
+    config.setupOptimization.methodUpgradesRequiredGrowth *
+      state.setupOptimizations
+  );
+}
+
+function calculateBlueprintResearchDuration(state, config, developmentMode = false) {
+  let duration = config.blueprint.researchDurationSeconds;
+  if (developmentMode) {
+    duration *= getDevelopmentDurationMultiplier(state, config);
   }
 
-  return Math.max(upgrade.minimumChance, chance);
+  return duration;
+}
+
+function canResearchBlueprint(state, config) {
+  return (
+    !state.discoveries.crcBlueprint &&
+    state.peakEnergy >= config.blueprint.revealAtPeakEnergy
+  );
+}
+
+function canPurchasePowerCell(state, config) {
+  const requiredAlgorithmUpgrades = config?.powerCell?.algorithmUpgradesRequired ?? 3;
+  return state.devices.softDataDisplay && state.upgrades >= requiredAlgorithmUpgrades;
+}
+
+function canAccessParticleLab(state, config) {
+  return state.peakEnergy >= config.particleLab.doorEnergyRequired;
+}
+
+function calculateParticleSynthesizerProgress(state, config) {
+  return state.energy / config.particleLab.synthesizerEnergyRequired;
+}
+
+function getDevelopmentDurationMultiplier(state, config) {
+  return state.devSettings?.durationMultiplier ?? config.development.durationMultiplier;
+}
+
+function getDevelopmentProductionMultiplier(state, config) {
+  return state.devSettings?.productionMultiplier ?? config.development.productionMultiplier;
 }
 
 function calculateStudyDuration(state, config, developmentMode = false) {
   const study = config.study;
+  const effectiveLoad =
+    calculateStudyDurationLoad(state.improvements, state.setupOptimizations, config);
   let duration =
     study.baseDurationSeconds *
-    (1 +
-      study.durationGrowthCoefficient *
-        state.improvements ** study.durationGrowthPower);
+    (1 + study.durationGrowthCoefficient * effectiveLoad ** study.durationGrowthPower);
 
-  if (state.devices.autoCalculator) {
-    duration /= config.autoCalculator.speedMultiplier;
-  }
-
-  if (state.discoveries.crcBlueprint) {
-    duration *= config.blueprint.studyDurationMultiplier;
-  }
-
-  if (state.devices.processor) {
-    duration *= config.processor.deviceDurationMultiplier;
-  }
+  duration /= calculateAutoCalculatorSpeedMultiplier(state, config);
+  duration /= calculateMatrixMechanicsSpeedMultiplier(state, config);
 
   if (developmentMode) {
-    duration *= config.development.durationMultiplier;
+    duration *= getDevelopmentDurationMultiplier(state, config);
   }
 
   return duration;
+}
+
+function calculateStudyDurationLoad(completedImprovements, setupOptimizations, config) {
+  const study = config.study;
+  const earlyUntil = study.durationEarlyLoadUntil;
+  const fullAt = study.durationFullLoadAt;
+  const earlyLoad = completedImprovements * study.durationEarlyLoadMultiplier;
+  let baseLoad = completedImprovements;
+
+  if (completedImprovements <= earlyUntil) {
+    baseLoad = earlyLoad;
+  } else if (completedImprovements < fullAt) {
+    const progress = (completedImprovements - earlyUntil) / (fullAt - earlyUntil);
+    const easedProgress = progress * progress * (3 - 2 * progress);
+    baseLoad = earlyLoad + (completedImprovements - earlyLoad) * easedProgress;
+  }
+
+  return baseLoad * study.durationLoadMultiplierPerSetup ** setupOptimizations;
 }
 
 function calculateProduction(state, config, developmentMode = false) {
@@ -180,29 +482,93 @@ function calculateProduction(state, config, developmentMode = false) {
     config.energy.baseProductionPerSecond *
     state.crcCount *
     state.improvementMultiplier *
-    config.upgrade.productionMultiplier ** state.upgrades;
+    config.algorithmUpgrade.productionMultiplier ** state.upgrades;
 
   if (developmentMode) {
-    production *= config.development.productionMultiplier;
+    production *= getDevelopmentProductionMultiplier(state, config);
   }
 
   return production;
 }
 
-function calculateDoorProgress(state, config) {
-  const production = calculateProduction(state, config, false);
-  const start = Math.log10(config.energy.baseProductionPerSecond);
-  const target = Math.log10(config.processor.cost);
-  const current = Math.log10(Math.max(production, config.energy.baseProductionPerSecond));
+function calculateProductionBreakdown(state, config, developmentMode = false) {
+  const rows = [];
+  const baseFromCrcs = config.energy.baseProductionPerSecond * state.crcCount;
+  let running = baseFromCrcs;
 
-  return clamp((current - start) / (target - start), 0, 1);
+  rows.push({
+    id: "crc-base",
+    label: "Total base from CRCs",
+    value: baseFromCrcs
+  });
+
+  if (state.improvementMultiplier > 1) {
+    const improved = running * state.improvementMultiplier;
+    rows.push({
+      id: "algorithm-improvements",
+      label: "From Algorithm Improvements",
+      value: improved - running
+    });
+    running = improved;
+  }
+
+  const upgradeMultiplier =
+    config.algorithmUpgrade.productionMultiplier ** state.upgrades;
+  if (upgradeMultiplier > 1) {
+    const upgraded = running * upgradeMultiplier;
+    rows.push({
+      id: "algorithm-upgrades",
+      label: "From Algorithm Upgrades",
+      value: upgraded - running
+    });
+    running = upgraded;
+  }
+
+  if (developmentMode) {
+    const developmentMultiplier = getDevelopmentProductionMultiplier(state, config);
+    if (developmentMultiplier !== 1) {
+      const developed = running * developmentMultiplier;
+      rows.push({
+        id: "development-production",
+        label: "From Development mode",
+        value: developed - running
+      });
+    }
+  }
+
+  return rows;
+}
+
+function calculateEffectiveProduction(state, config, developmentMode = false) {
+  return calculateProduction(state, config, developmentMode) -
+    calculateEnergyOverflowDecay(state, config);
+}
+
+function calculateEffectiveEnergyGain(state, rawGain, config) {
+  if (rawGain <= 0) return 0;
+  return rawGain;
+}
+
+function calculateDoorProgress(state, config) {
+  return clamp(state.peakEnergy / config.particleLab.doorEnergyRequired, 0, 1);
 }
 
 function formatEnergy(value) {
   if (!Number.isFinite(value)) return "SIGNAL ERROR";
   if (value === 0) return "0 J";
 
-  return `${value.toExponential(3).replace("e+", "e")} J`;
+  const absolute = Math.abs(value);
+  if (absolute >= 1 && absolute <= 999) {
+    const digits = absolute < 10 ? 3 : absolute < 100 ? 2 : 1;
+    return `${Number(value.toFixed(digits)).toString()} J`;
+  }
+
+  const exponent = Math.floor(Math.log10(absolute) / 3) * 3;
+  const mantissa = value / 10 ** exponent;
+  const exponentLabel = exponent >= 0 ? `e${exponent}` : `e${exponent}`;
+  const readableMantissa = Number(mantissa.toFixed(3)).toString();
+
+  return `${readableMantissa}${exponentLabel} J`;
 }
 
 function formatRate(value) {
@@ -221,9 +587,460 @@ function formatDuration(seconds) {
 }
 
 
+// ---- js/effect-system.js ----
+
+function getProductionEffects(state, config, developmentMode = false) {
+  const effects = [
+    {
+      id: "base-crc-production",
+      label: "Base CRC signal",
+      target: "crc.production",
+      operation: "base",
+      value: config.energy.baseProductionPerSecond
+    },
+    {
+      id: "crc-count",
+      label: "Active CRCs",
+      target: "crc.production",
+      operation: "multiply",
+      value: state.crcCount
+    },
+    {
+      id: "algorithm-improvements",
+      label: "Algorithm Improvements",
+      target: "crc.production",
+      operation: "multiply",
+      value: state.improvementMultiplier
+    },
+    {
+      id: "algorithm-upgrades",
+      label: "Algorithm Upgrades",
+      target: "crc.production",
+      operation: "multiply",
+      value: config.algorithmUpgrade.productionMultiplier ** state.upgrades
+    }
+  ];
+
+  if (developmentMode) {
+    effects.push({
+      id: "development-production",
+      label: "Development multiplier",
+      target: "crc.production",
+      operation: "multiply",
+      value: getDevelopmentProductionMultiplier(state, config)
+    });
+  }
+
+  return effects;
+}
+
+function applyProductionEffects(effects) {
+  const base = effects.find((effect) => effect.operation === "base")?.value ?? 0;
+  return effects
+    .filter((effect) => effect.operation === "multiply")
+    .reduce((value, effect) => value * effect.value, base);
+}
+
+
+// ---- js/component-registry.js ----
+const COMPONENT_REGISTRY = {
+  softDataDisplay: {
+    id: "softDataDisplay",
+    type: "device",
+    tab: "devices",
+    subcategory: "computational",
+    label: "Soft Display",
+    action: "buy-soft-display",
+    ownedPath: "devices.softDataDisplay",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "config", path: "softDataDisplay.cost" },
+    visibleWhen: [],
+    enabledWhen: [
+      { kind: "notOwned" },
+      { kind: "resourceAtLeastCost", resource: "energy" }
+    ]
+  },
+  t2SoftDataDisplay: {
+    id: "t2SoftDataDisplay",
+    type: "device",
+    tab: "devices",
+    subcategory: "computational",
+    label: "T2 Soft Display",
+    action: "buy-t2-soft-display",
+    ownedPath: "devices.t2SoftDataDisplay",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "config", path: "t2SoftDataDisplay.cost" },
+    visibleWhen: [{ kind: "truthy", path: "devices.softDataDisplay" }],
+    enabledWhen: [
+      { kind: "notOwned" },
+      { kind: "resourceAtLeastCost", resource: "energy" }
+    ]
+  },
+  autoCalculator: {
+    id: "autoCalculator",
+    type: "device",
+    tab: "devices",
+    subcategory: "computational",
+    label: "Auto Calculator",
+    action: "buy-auto",
+    ownedPath: "devices.autoCalculators",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "autoCalculatorCost" },
+    visibleWhen: [],
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+  },
+  processor: {
+    id: "processor",
+    type: "device",
+    tab: "devices",
+    subcategory: "computational",
+    label: "Processor",
+    action: "buy-processor",
+    ownedPath: "devices.processors",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "processorCost" },
+    visibleWhen: [],
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+  },
+  overclocker: {
+    id: "overclocker",
+    type: "device",
+    tab: "devices",
+    subcategory: "computational",
+    label: "Overclocker",
+    action: "buy-overclocker",
+    ownedPath: "devices.overclockers",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "overclockerCost" },
+    visibleWhen: [
+      { kind: "stateAtLeast", path: "devices.processors", configPath: "overclocker.processorsRequired" },
+      { kind: "stateAtLeast", path: "powerCells", configPath: "overclocker.powerCellsRequired" }
+    ],
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+  },
+  powerCell: {
+    id: "powerCell",
+    type: "device",
+    tab: "devices",
+    subcategory: "energy",
+    label: "Power Cell",
+    action: "buy-power-cell",
+    ownedPath: "powerCells",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "powerCellCost" },
+    visibleWhen: [
+      { kind: "truthy", path: "devices.softDataDisplay" },
+      { kind: "stateAtLeast", path: "upgrades", configPath: "powerCell.algorithmUpgradesRequired" }
+    ],
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+  },
+  powerModule: {
+    id: "powerModule",
+    type: "device",
+    tab: "devices",
+    subcategory: "energy",
+    label: "Power Module",
+    action: "buy-power-module",
+    ownedPath: "powerModules",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "powerModuleCost" },
+    requirement: { kind: "formula", name: "powerModuleRequirement" },
+    visibleWhen: [
+      { kind: "stateAtLeastRequirement", path: "powerCells" }
+    ],
+    enabledWhen: [
+      { kind: "stateAtLeastRequirement", path: "powerCells" },
+      { kind: "resourceAtLeastCost", resource: "energy" }
+    ]
+  },
+  particleSynthesizer: {
+    id: "particleSynthesizer",
+    type: "device",
+    tab: "science",
+    subcategory: "energy",
+    label: "Particle Sintetizer",
+    action: "activate-particle-synthesizer",
+    ownedPath: "particleSynthesizer.activated",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "config", path: "particleLab.synthesizerEnergyRequired" },
+    visibleWhen: [
+      { kind: "stateAtLeast", path: "peakEnergy", configPath: "particleLab.doorEnergyRequired" }
+    ],
+    enabledWhen: [
+      { kind: "notOwned" },
+      { kind: "resourceAtLeastCost", resource: "energy" }
+    ]
+  },
+  matrixMechanics: {
+    id: "matrixMechanics",
+    type: "science",
+    tab: "science",
+    label: "Matrix Mechanics",
+    action: "buy-matrix-mechanics",
+    ownedPath: "science.matrixMechanics",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "config", path: "science.matrixMechanics.cost" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "stateAtLeast", path: "sciencePoints", value: 1 },
+        { kind: "truthy", path: "science.matrixMechanics" }
+      ] }
+    ],
+    enabledWhen: [
+      { kind: "notOwned" },
+      { kind: "resourceAtLeastCost", resource: "sciencePoints" }
+    ]
+  },
+  crcBlueprint: {
+    id: "crcBlueprint",
+    type: "study",
+    tab: "studies",
+    label: "CRC Blueprint",
+    action: "start-blueprint-research",
+    ownedPath: "discoveries.crcBlueprint",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "none" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "truthy", path: "discoveries.crcBlueprint" },
+        { kind: "truthy", path: "blueprintStudy.active" },
+        { kind: "stateAtLeast", path: "peakEnergy", configPath: "blueprint.revealAtPeakEnergy" }
+      ] }
+    ],
+    enabledWhen: [
+      { kind: "falsy", path: "discoveries.crcBlueprint" },
+      { kind: "falsy", path: "blueprintStudy.active" },
+      { kind: "stateAtLeast", path: "peakEnergy", configPath: "blueprint.revealAtPeakEnergy" }
+    ]
+  },
+  crcConstruction: {
+    id: "crcConstruction",
+    type: "device",
+    tab: "devices",
+    subcategory: "energy",
+    label: "Cosmic Radiation Condenser",
+    action: "construct-crc",
+    ownedPath: "crcCount",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "crcCost" },
+    visibleWhen: [{ kind: "truthy", path: "discoveries.crcBlueprint" }],
+    enabledWhen: [
+      { kind: "falsy", path: "construction.active" },
+      { kind: "resourceAtLeastCost", resource: "energy" }
+    ]
+  },
+  algorithmUpgrade: {
+    id: "algorithmUpgrade",
+    type: "study",
+    tab: "studies",
+    label: "Algorithm Upgrade",
+    action: "start-algorithm-upgrade",
+    ownedPath: "upgrades",
+    ownedMode: "count",
+    cost: { kind: "none" },
+    requirement: { kind: "formula", name: "algorithmUpgradeRequirement" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "stateAtLeast", path: "upgrades", value: 1 },
+        { kind: "stateAtLeastRequirement", path: "improvements" }
+      ] }
+    ],
+    enabledWhen: [
+      { kind: "falsy", path: "algorithmUpgradeStudy.active" },
+      { kind: "stateAtLeastRequirement", path: "improvements" }
+    ]
+  },
+  calculationMethodUpgrade: {
+    id: "calculationMethodUpgrade",
+    type: "reset",
+    tab: "studies",
+    label: "Calculation Method Upgrade",
+    action: "claim-method",
+    ownedPath: "calculationMethods",
+    ownedMode: "count",
+    cost: { kind: "none" },
+    requirement: { kind: "formula", name: "calculationMethodRequirement" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "stateAtLeast", path: "upgrades", value: 1 },
+        { kind: "stateAtLeast", path: "calculationMethods", value: 1 }
+      ] }
+    ],
+    enabledWhen: [{ kind: "stateAtLeastRequirement", path: "upgrades" }]
+  },
+  setupOptimization: {
+    id: "setupOptimization",
+    type: "reset",
+    tab: "devices",
+    subcategory: "reset",
+    label: "Setup Optimization",
+    action: "claim-setup",
+    ownedPath: "setupOptimizations",
+    ownedMode: "count",
+    cost: { kind: "none" },
+    requirement: { kind: "formula", name: "setupOptimizationRequirement" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "stateAtLeast", path: "upgrades", value: 1 },
+        { kind: "stateAtLeast", path: "calculationMethods", value: 1 },
+        { kind: "stateAtLeast", path: "setupOptimizations", value: 1 }
+      ] }
+    ],
+    enabledWhen: [{ kind: "stateAtLeastRequirement", path: "calculationMethods" }]
+  }
+};
+
+
+// ---- js/availability.js ----
+
+function readPath(source, path) {
+  return path.split(".").reduce((value, key) => value?.[key], source);
+}
+
+function readConfigValue(config, rule) {
+  if (rule.configPath) return readPath(config, rule.configPath);
+  return rule.value;
+}
+
+function calculateRequirement(spec, state, config) {
+  if (!spec.requirement) return null;
+
+  const formulas = {
+    algorithmUpgradeRequirement: () =>
+      calculateAlgorithmUpgradeRequirement(state, config),
+    calculationMethodRequirement: () =>
+      calculateCalculationMethodRequirement(state, config),
+    setupOptimizationRequirement: () =>
+      calculateSetupOptimizationRequirement(state, config),
+    powerModuleRequirement: () =>
+      calculatePowerModuleRequirement(state.powerModules, config)
+  };
+
+  return formulas[spec.requirement.name]?.() ?? null;
+}
+
+function calculateComponentCost(componentId, state, config) {
+  const spec = COMPONENT_REGISTRY[componentId];
+  if (!spec || !spec.cost || spec.cost.kind === "none") return 0;
+
+  if (spec.cost.kind === "config") {
+    return readPath(config, spec.cost.path);
+  }
+
+  const formulas = {
+    autoCalculatorCost: () =>
+      calculateAutoCalculatorCost(state.devices.autoCalculators, config),
+    processorCost: () =>
+      calculateProcessorCost(state.devices.processors, config),
+    overclockerCost: () =>
+      calculateOverclockerCost(state.devices.overclockers, config),
+    powerCellCost: () => calculatePowerCellCost(state.powerCells, config),
+    powerModuleCost: () => calculatePowerModuleCost(state.powerModules, config),
+    crcCost: () => calculateCrcCost(state, config)
+  };
+
+  return formulas[spec.cost.name]?.() ?? 0;
+}
+
+function getOwnedCount(spec, state) {
+  if (!spec.ownedPath) return 0;
+  const value = readPath(state, spec.ownedPath);
+  if (spec.ownedMode === "boolean") return value ? 1 : 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+function evaluateRule(rule, spec, state, config, cost, requirement) {
+  if (rule.kind === "any") {
+    return rule.rules.some((child) =>
+      evaluateRule(child, spec, state, config, cost, requirement)
+    );
+  }
+
+  if (rule.kind === "truthy") return Boolean(readPath(state, rule.path));
+  if (rule.kind === "falsy") return !readPath(state, rule.path);
+  if (rule.kind === "notOwned") return getOwnedCount(spec, state) <= 0;
+
+  if (rule.kind === "resourceAtLeastCost") {
+    return readPath(state, rule.resource) >= cost;
+  }
+
+  if (rule.kind === "stateAtLeast") {
+    return readPath(state, rule.path) >= readConfigValue(config, rule);
+  }
+
+  if (rule.kind === "stateAtLeastRequirement") {
+    return readPath(state, rule.path) >= requirement;
+  }
+
+  return false;
+}
+
+function describeBlockedRule(rule, state, config, cost, requirement) {
+  if (rule.kind === "resourceAtLeastCost") {
+    return `Needs ${formatEnergy(cost)}`;
+  }
+
+  if (rule.kind === "stateAtLeastRequirement") {
+    return `Needs ${requirement}`;
+  }
+
+  if (rule.kind === "stateAtLeast") {
+    return `Needs ${readConfigValue(config, rule)}`;
+  }
+
+  if (rule.kind === "notOwned") return "Already restored";
+  if (rule.kind === "falsy") return "Busy";
+  return "Locked";
+}
+
+function evaluateComponent(componentId, state, config) {
+  const spec = COMPONENT_REGISTRY[componentId];
+  if (!spec) throw new Error(`Unknown component: ${componentId}`);
+
+  const cost = calculateComponentCost(componentId, state, config);
+  const requirement = calculateRequirement(spec, state, config);
+  const visible = spec.visibleWhen.every((rule) =>
+    evaluateRule(rule, spec, state, config, cost, requirement)
+  );
+  const blockedRule = spec.enabledWhen.find(
+    (rule) => !evaluateRule(rule, spec, state, config, cost, requirement)
+  );
+
+  return {
+    id: spec.id,
+    label: spec.label,
+    type: spec.type,
+    action: spec.action,
+    visible,
+    enabled: visible && !blockedRule,
+    affordable: cost === 0 || state.energy >= cost,
+    cost,
+    requirement,
+    owned: getOwnedCount(spec, state),
+    completed: Boolean(spec.completedWhenOwned && getOwnedCount(spec, state) > 0),
+    reason: blockedRule
+      ? describeBlockedRule(blockedRule, state, config, cost, requirement)
+      : ""
+  };
+}
+
+function buildAvailabilitySnapshot(state, config) {
+  return Object.fromEntries(
+    Object.keys(COMPONENT_REGISTRY).map((componentId) => [
+      componentId,
+      evaluateComponent(componentId, state, config)
+    ])
+  );
+}
+
 
 // ---- js/state.js ----
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 
 function createInitialState(config) {
   return {
@@ -231,14 +1048,37 @@ function createInitialState(config) {
     introState: "choice",
     energy: 0,
     peakEnergy: 0,
+    powerCells: config.energy.initialPowerCells,
     improvements: 0,
     improvementMultiplier: 1,
     upgrades: 0,
+    calculationMethods: 0,
+    setupOptimizations: 0,
+    sciencePoints: 0,
+    science: {
+      matrixMechanics: false,
+      syntheses: 0
+    },
     crcCount: config.energy.initialCrcCount,
+    powerModules: 0,
+    particleSynthesizer: {
+      activated: false
+    },
+    ui: {
+      activeTab: "devices",
+      hideCompletedPurchases: false,
+      seenComponents: {}
+    },
     devices: {
       softDataDisplay: false,
-      autoCalculator: false,
-      processor: false
+      t2SoftDataDisplay: false,
+      autoCalculators: 0,
+      processors: 0,
+      overclockers: 0
+    },
+    overclocker: {
+      active: false,
+      activeSeconds: 0
     },
     discoveries: {
       crcBlueprint: false,
@@ -250,10 +1090,24 @@ function createInitialState(config) {
       duration: 0,
       automated: false
     },
+    algorithmUpgradeStudy: {
+      active: false,
+      elapsed: 0,
+      duration: 0
+    },
+    blueprintStudy: {
+      active: false,
+      elapsed: 0,
+      duration: 0
+    },
     construction: {
       active: false,
       elapsed: 0,
       duration: 0
+    },
+    devSettings: {
+      productionMultiplier: config.development.productionMultiplier,
+      durationMultiplier: config.development.durationMultiplier
     },
     prototypeComplete: false,
     stats: {
@@ -273,13 +1127,64 @@ function normalizeState(candidate, config) {
     return initial;
   }
 
+  const devices = {
+    ...initial.devices,
+    ...candidate.devices,
+    autoCalculators:
+      candidate.devices?.autoCalculators ??
+      (candidate.devices?.autoCalculator ? 1 : 0),
+    processors:
+      candidate.devices?.processors ??
+      (candidate.devices?.processor ? 1 : 0),
+    overclockers:
+      candidate.devices?.overclockers ??
+      (candidate.devices?.overclocker ? 1 : 0)
+  };
+
+  delete devices.autoCalculator;
+  delete devices.processor;
+  delete devices.overclocker;
+
   return {
     ...initial,
     ...candidate,
-    devices: { ...initial.devices, ...candidate.devices },
+    powerCells: Math.max(
+      initial.powerCells,
+      Number.isFinite(candidate.powerCells) ? candidate.powerCells : initial.powerCells
+    ),
+    powerModules:
+      Number.isFinite(candidate.powerModules) ? candidate.powerModules : 0,
+    particleSynthesizer: {
+      ...initial.particleSynthesizer,
+      ...candidate.particleSynthesizer
+    },
+    ui: {
+      ...initial.ui,
+      ...candidate.ui,
+      seenComponents: {
+        ...initial.ui.seenComponents,
+        ...candidate.ui?.seenComponents
+      }
+    },
+    setupOptimizations:
+      candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,
+    sciencePoints:
+      Number.isFinite(candidate.sciencePoints) ? candidate.sciencePoints : 0,
+    science: {
+      ...initial.science,
+      ...candidate.science
+    },
+    devices,
     discoveries: { ...initial.discoveries, ...candidate.discoveries },
     study: { ...initial.study, ...candidate.study },
+    algorithmUpgradeStudy: {
+      ...initial.algorithmUpgradeStudy,
+      ...candidate.algorithmUpgradeStudy
+    },
+    blueprintStudy: { ...initial.blueprintStudy, ...candidate.blueprintStudy },
     construction: { ...initial.construction, ...candidate.construction },
+    overclocker: { ...initial.overclocker, ...candidate.overclocker },
+    devSettings: { ...initial.devSettings, ...candidate.devSettings },
     stats: { ...initial.stats, ...candidate.stats },
     log: Array.isArray(candidate.log) ? candidate.log.slice(0, 60) : []
   };
@@ -288,11 +1193,32 @@ function normalizeState(candidate, config) {
 
 // ---- js/save-system.js ----
 
-const NORMAL_SAVE_KEY = "the-eternal-simulation.save.v1";
-const DEVELOPMENT_SAVE_KEY = "the-eternal-simulation.development.v1";
+const NORMAL_SAVE_PREFIX = "the-eternal-simulation.save";
+const DEVELOPMENT_SAVE_PREFIX = "the-eternal-simulation.development";
+
+const SAVE_MODES = [
+  { id: "normal", label: "Normal", developmentMode: false },
+  { id: "development", label: "Development", developmentMode: true }
+];
+
+function getSavePrefix(developmentMode) {
+  return developmentMode ? DEVELOPMENT_SAVE_PREFIX : NORMAL_SAVE_PREFIX;
+}
 
 function getSaveKey(developmentMode) {
-  return developmentMode ? DEVELOPMENT_SAVE_KEY : NORMAL_SAVE_KEY;
+  return `${getSavePrefix(developmentMode)}.v${SAVE_VERSION}`;
+}
+
+function getSaveKeysForMode(developmentMode) {
+  const prefix = `${getSavePrefix(developmentMode)}.v`;
+  const keys = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(prefix)) keys.push(key);
+  }
+
+  return keys;
 }
 
 function loadState(config, developmentMode) {
@@ -316,21 +1242,62 @@ function saveState(state, developmentMode) {
 
 function deleteState(developmentMode) {
   try {
-    localStorage.removeItem(getSaveKey(developmentMode));
+    for (const key of getSaveKeysForMode(developmentMode)) {
+      localStorage.removeItem(key);
+    }
   } catch (error) {
     console.warn("The save could not be deleted.", error);
   }
+}
+
+function deleteAllStates() {
+  for (const mode of SAVE_MODES) {
+    deleteState(mode.developmentMode);
+  }
+}
+
+function listSaveSlots() {
+  return SAVE_MODES.map((mode) => {
+    const key = getSaveKey(mode.developmentMode);
+    const raw = localStorage.getItem(key);
+    let parsed = null;
+
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      parsed = null;
+    }
+
+    return {
+      ...mode,
+      key,
+      exists: Boolean(raw),
+      lastSavedAt: parsed?.lastSavedAt ?? null,
+      totalPlayTime: parsed?.stats?.totalPlayTime ?? null,
+      energy: parsed?.energy ?? null
+    };
+  });
 }
 
 
 // ---- js/engine.js ----
 
 class GameEngine {
-  constructor({ state, config, developmentMode = false, random = Math.random }) {
+  constructor({
+    state,
+    config,
+    developmentMode = false,
+    random = Math.random,
+    collectEvents = false,
+    suppressLogs = false
+  }) {
     this.state = state;
     this.config = config;
     this.developmentMode = developmentMode;
     this.random = random;
+    this.collectEvents = collectEvents;
+    this.suppressLogs = suppressLogs;
+    this.events = [];
     this.listeners = new Set();
   }
 
@@ -343,7 +1310,24 @@ class GameEngine {
     for (const listener of this.listeners) listener(this.state);
   }
 
+  emitEvent(type, payload = {}) {
+    if (!this.collectEvents) return;
+    this.events.push({
+      type,
+      at: this.state.stats.runPlayTime,
+      ...payload
+    });
+  }
+
+  consumeEvents() {
+    const events = this.events;
+    this.events = [];
+    return events;
+  }
+
   addLog(message, tone = "info") {
+    if (this.suppressLogs) return;
+
     this.state.log.unshift({
       id: `${Date.now()}-${Math.random()}`,
       message,
@@ -397,22 +1381,163 @@ class GameEngine {
       this.developmentMode
     );
     this.addEnergy(production * delta, false);
+    this.decayOverflowEnergy(delta, false);
+    this.drainOverclocker(delta, false);
+    this.coolOverclocker(delta, false);
 
     this.tickStudy(delta);
+    this.tickAlgorithmUpgradeStudy(delta);
+    this.tickBlueprintStudy(delta);
     this.tickConstruction(delta);
   }
 
   addEnergy(amount, notify = true) {
-    const availableSpace =
-      this.config.energy.powerCellCapacity - this.state.energy;
-    const collected = Math.max(0, Math.min(amount, availableSpace));
+    const collected = calculateEffectiveEnergyGain(
+      this.state,
+      amount,
+      this.config
+    );
 
     this.state.energy += collected;
     this.state.peakEnergy = Math.max(this.state.peakEnergy, this.state.energy);
     this.state.stats.totalEnergyCollected += collected;
+    if (collected > 0) {
+      this.emitEvent("energy-collected", { amount: collected });
+    }
 
     if (notify) this.notify();
     return collected;
+  }
+
+  decayOverflowEnergy(delta, notify = true) {
+    const capacity = calculateStableEnergyCapacity(this.state, this.config);
+    if (this.state.energy <= capacity) return 0;
+
+    const decay = Math.min(
+      this.state.energy - capacity,
+      calculateEnergyOverflowDecay(this.state, this.config) * delta
+    );
+
+    this.state.energy -= decay;
+    if (decay > 0) {
+      this.emitEvent("energy-decayed", { amount: decay });
+    }
+    if (notify) this.notify();
+    return decay;
+  }
+
+  drainOverclocker(delta, notify = true) {
+    if (this.state.devices.overclockers <= 0 || !this.state.overclocker.active) {
+      return 0;
+    }
+
+    const stableCapacity = calculateStableEnergyCapacity(this.state, this.config);
+    const availableExcess = Math.max(0, this.state.energy - stableCapacity);
+    if (availableExcess <= 0) {
+      this.state.overclocker.active = false;
+      this.refreshAlgorithmImprovementDuration();
+      this.addLog("Overclocker lost excess feed. Cooling sequence started.", "info");
+      if (notify) this.notify();
+      return 0;
+    }
+
+    const drain = calculateOverclockerDrainPerSecond(this.state, this.config) * delta;
+    if (drain <= 0) return 0;
+
+    const consumed = Math.min(availableExcess, drain);
+    this.state.energy -= consumed;
+    if (consumed > 0) {
+      this.emitEvent("overclocker-drained", { amount: consumed });
+    }
+
+    if (consumed < drain || this.state.energy <= stableCapacity) {
+      this.state.energy = Math.max(stableCapacity, this.state.energy);
+      this.state.overclocker.active = false;
+      this.refreshAlgorithmImprovementDuration();
+      this.addLog("Overclocker lost excess feed. Cooling sequence started.", "info");
+    } else {
+      this.state.overclocker.activeSeconds += delta;
+    }
+
+    if (notify) this.notify();
+    return consumed;
+  }
+
+  coolOverclocker(delta, notify = true) {
+    if (
+      this.state.devices.overclockers <= 0 ||
+      this.state.overclocker.active ||
+      this.state.overclocker.activeSeconds <= 0
+    ) {
+      return 0;
+    }
+
+    const coolingMultiplier =
+      this.config.overclocker.coolingDurationMultiplier ?? 2;
+    const cooling = Math.min(
+      this.state.overclocker.activeSeconds,
+      delta / Math.max(coolingMultiplier, Number.EPSILON)
+    );
+
+    this.state.overclocker.activeSeconds = Math.max(
+      0,
+      this.state.overclocker.activeSeconds - cooling
+    );
+
+    if (notify) this.notify();
+    return cooling;
+  }
+
+  retimeActiveProgress(task, nextDuration) {
+    if (!task.active || nextDuration <= 0) return;
+
+    const progress = task.duration > 0
+      ? clamp(task.elapsed / task.duration, 0, 1)
+      : 0;
+
+    task.duration = nextDuration;
+    task.elapsed = Math.min(task.duration, progress * task.duration);
+  }
+
+  calculateCrcConstructionDuration() {
+    return (
+      this.config.crcConstruction.durationSeconds *
+      calculateDeviceDurationMultiplier(this.state, this.config) *
+      (this.developmentMode
+        ? this.state.devSettings.durationMultiplier
+        : 1)
+    );
+  }
+
+  refreshAlgorithmImprovementDuration() {
+    this.retimeActiveProgress(
+      this.state.study,
+      calculateStudyDuration(this.state, this.config, this.developmentMode)
+    );
+  }
+
+  refreshAllActiveDurations() {
+    this.refreshAlgorithmImprovementDuration();
+    this.retimeActiveProgress(
+      this.state.algorithmUpgradeStudy,
+      calculateAlgorithmUpgradeDuration(
+        this.state,
+        this.config,
+        this.developmentMode
+      )
+    );
+    this.retimeActiveProgress(
+      this.state.blueprintStudy,
+      calculateBlueprintResearchDuration(
+        this.state,
+        this.config,
+        this.developmentMode
+      )
+    );
+    this.retimeActiveProgress(
+      this.state.construction,
+      this.calculateCrcConstructionDuration()
+    );
   }
 
   startStudy(automated = false) {
@@ -434,7 +1559,7 @@ class GameEngine {
 
   tickStudy(delta) {
     if (!this.state.study.active) {
-      if (this.state.devices.autoCalculator) this.startStudy(true);
+      if (this.state.devices.autoCalculators > 0) this.startStudy(true);
       return;
     }
 
@@ -447,13 +1572,18 @@ class GameEngine {
   completeStudy() {
     const bonus = calculateImprovementBonus(
       this.state.improvements,
-      this.config
+      this.config,
+      this.state.calculationMethods
     );
 
     this.state.improvementMultiplier *= 1 + bonus;
     this.state.improvements += 1;
     this.state.study.active = false;
     this.state.study.elapsed = 0;
+    this.emitEvent("algorithm-improvement-completed", {
+      count: this.state.improvements,
+      bonus
+    });
 
     this.addLog(
       `Algorithm Improvement ${this.state.improvements} completed: +${(
@@ -461,31 +1591,9 @@ class GameEngine {
       ).toFixed(2)}% efficiency.`
     );
 
-    const upgradeChance = calculateUpgradeChance(
-      this.state.upgrades,
-      this.config
-    );
-
-    if (this.random() < upgradeChance) {
-      this.state.upgrades += 1;
-      this.addLog(
-        `Algorithm Upgrade discovered. Energy production doubled (×${
-          2 ** this.state.upgrades
-        }).`,
-        "discovery"
-      );
-
-      if (
-        !this.state.discoveries.crcBlueprint &&
-        this.random() < this.config.blueprint.chancePerUpgrade
-      ) {
-        this.discoverBlueprint("probability");
-      }
-    }
-
     this.checkBlueprintGuarantee();
 
-    if (this.state.devices.autoCalculator) {
+    if (this.state.devices.autoCalculators > 0) {
       this.startStudy(true);
     } else {
       this.notify();
@@ -493,60 +1601,252 @@ class GameEngine {
   }
 
   checkBlueprintGuarantee() {
-    if (this.state.discoveries.crcBlueprint) return;
-
-    if (this.state.peakEnergy >= this.config.blueprint.revealAtPeakEnergy) {
-      this.discoverBlueprint("energy-threshold");
+    if (
+      canResearchBlueprint(this.state, this.config) &&
+      this.state.discoveries.blueprintSource !== "research-available"
+    ) {
+      this.state.discoveries.blueprintSource = "research-available";
+      this.addLog(
+        "CRC Blueprint signal isolated. A short reconstruction pass is now available.",
+        "discovery"
+      );
+      this.notify();
     }
   }
 
-  discoverBlueprint(source) {
+  completeBlueprintResearch(source = "research") {
     if (this.state.discoveries.crcBlueprint) return;
     this.state.discoveries.crcBlueprint = true;
     this.state.discoveries.blueprintSource = source;
-    this.addLog(
-      source === "probability"
-        ? "Unexpected structural symmetry detected. CRC Blueprint recovered early."
-        : source === "energy-threshold"
-          ? "Stored Energy has crossed an impossible threshold. CRC Blueprint surfaced from protected memory."
-          : "CRC Blueprint reconstructed.",
-      "discovery"
-    );
+    this.emitEvent("blueprint-research-completed", { source });
+    this.addLog("CRC Blueprint reconstructed. New condensers can now be fabricated.", "discovery");
     this.notify();
   }
 
-  canPurchaseAutoCalculator() {
-    return (
-      !this.state.devices.autoCalculator &&
-      this.state.energy >= this.config.autoCalculator.cost
+  canStartBlueprintResearch() {
+    return evaluateComponent("crcBlueprint", this.state, this.config).enabled;
+  }
+
+  startBlueprintResearch() {
+    if (!this.canStartBlueprintResearch()) return false;
+    this.state.blueprintStudy.active = true;
+    this.state.blueprintStudy.elapsed = 0;
+    this.state.blueprintStudy.duration = calculateBlueprintResearchDuration(
+      this.state,
+      this.config,
+      this.developmentMode
     );
+    this.addLog("CRC Blueprint research started.", "device");
+    this.notify();
+    return true;
+  }
+
+  tickBlueprintStudy(delta) {
+    if (!this.state.blueprintStudy.active) return;
+    this.state.blueprintStudy.elapsed += delta;
+    if (this.state.blueprintStudy.elapsed < this.state.blueprintStudy.duration) {
+      return;
+    }
+
+    this.state.blueprintStudy.active = false;
+    this.state.blueprintStudy.elapsed = 0;
+    this.completeBlueprintResearch("research");
+  }
+
+  canPurchaseAutoCalculator() {
+    return evaluateComponent("autoCalculator", this.state, this.config).enabled;
   }
 
   canPurchaseSoftDataDisplay() {
-    return (
-      !this.state.devices.softDataDisplay &&
-      this.state.energy >= this.config.softDataDisplay.cost
-    );
+    return evaluateComponent("softDataDisplay", this.state, this.config).enabled;
   }
 
-  purchaseSoftDataDisplay() {
-    if (!this.canPurchaseSoftDataDisplay()) return false;
-    this.state.energy -= this.config.softDataDisplay.cost;
-    this.state.devices.softDataDisplay = true;
+  canPurchaseT2SoftDataDisplay() {
+    return evaluateComponent("t2SoftDataDisplay", this.state, this.config).enabled;
+  }
+
+  canPurchasePowerCell() {
+    return evaluateComponent("powerCell", this.state, this.config).enabled;
+  }
+
+  canPurchasePowerModule() {
+    return evaluateComponent("powerModule", this.state, this.config).enabled;
+  }
+
+  canPurchaseOverclocker() {
+    return evaluateComponent("overclocker", this.state, this.config).enabled;
+  }
+
+  purchasePowerCell() {
+    if (!this.canPurchasePowerCell()) return false;
+    const cost = evaluateComponent("powerCell", this.state, this.config).cost;
+
+    this.state.energy -= cost;
+    this.state.powerCells += 1;
+    this.emitEvent("device-purchased", {
+      device: "powerCell",
+      count: this.state.powerCells,
+      cost
+    });
     this.addLog(
-      "Soft Data Display restored. Production telemetry is now readable.",
+      `Power Cell ${this.state.powerCells} stabilized. Energy capacity expanded.`,
       "device"
     );
     this.notify();
     return true;
   }
 
+  purchaseMaxPowerCells(maxPurchases = 100000) {
+    let purchased = 0;
+
+    while (purchased < maxPurchases) {
+      const availability = evaluateComponent("powerCell", this.state, this.config);
+      if (
+        !availability.enabled ||
+        !Number.isFinite(availability.cost) ||
+        availability.cost <= 0 ||
+        this.state.energy < availability.cost
+      ) {
+        break;
+      }
+
+      this.state.energy -= availability.cost;
+      this.state.powerCells += 1;
+      purchased += 1;
+      this.emitEvent("device-purchased", {
+        device: "powerCell",
+        count: this.state.powerCells,
+        cost: availability.cost
+      });
+    }
+
+    if (purchased <= 0) return 0;
+
+    this.addLog(
+      `Power Cell Array expanded. ${purchased} cells stabilized.`,
+      "device"
+    );
+    this.notify();
+    return purchased;
+  }
+
+  purchasePowerModule() {
+    if (!this.canPurchasePowerModule()) return false;
+    const availability = evaluateComponent("powerModule", this.state, this.config);
+
+    this.state.energy -= availability.cost;
+    this.state.powerModules += 1;
+    this.emitEvent("device-purchased", {
+      device: "powerModule",
+      count: this.state.powerModules,
+      cost: availability.cost
+    });
+    this.addLog(
+      `Power Module ${this.state.powerModules} synchronized. Cell conduction capacity increased.`,
+      "device"
+    );
+    this.notify();
+    return true;
+  }
+
+  purchaseSoftDataDisplay() {
+    if (!this.canPurchaseSoftDataDisplay()) return false;
+    const cost = evaluateComponent("softDataDisplay", this.state, this.config).cost;
+    this.state.energy -= cost;
+    this.state.devices.softDataDisplay = true;
+    this.emitEvent("device-purchased", {
+      device: "softDataDisplay",
+      count: 1,
+      cost
+    });
+    this.addLog(
+      "Soft Display restored. Production telemetry is now readable.",
+      "device"
+    );
+    this.notify();
+    return true;
+  }
+
+  purchaseT2SoftDataDisplay() {
+    if (!this.canPurchaseT2SoftDataDisplay()) return false;
+    const cost = evaluateComponent("t2SoftDataDisplay", this.state, this.config).cost;
+    this.state.energy -= cost;
+    this.state.devices.t2SoftDataDisplay = true;
+    this.emitEvent("device-purchased", {
+      device: "t2SoftDataDisplay",
+      count: 1,
+      cost
+    });
+    this.addLog(
+      "T2 Soft Display restored. Condenser output composition is now readable.",
+      "device"
+    );
+    this.notify();
+    return true;
+  }
+
+  purchaseOverclocker() {
+    if (!this.canPurchaseOverclocker()) return false;
+    const cost = evaluateComponent("overclocker", this.state, this.config).cost;
+    this.state.energy -= cost;
+    this.state.devices.overclockers += 1;
+    this.state.overclocker.active = false;
+    this.emitEvent("device-purchased", {
+      device: "overclocker",
+      count: this.state.devices.overclockers,
+      cost
+    });
+    this.addLog(
+      `Overclocker ${this.state.devices.overclockers} installed. Stored Energy can now be burned to force faster calculations.`,
+      "device"
+    );
+    this.refreshAlgorithmImprovementDuration();
+    this.notify();
+    return true;
+  }
+
+  toggleOverclocker() {
+    if (this.state.devices.overclockers <= 0) return false;
+
+    if (this.state.overclocker.active) {
+      this.state.overclocker.active = false;
+      this.refreshAlgorithmImprovementDuration();
+      this.addLog("Overclocker disengaged. Cooling sequence started.", "info");
+      this.notify();
+      return true;
+    }
+
+    if (
+      this.state.devices.autoCalculators <= 0 ||
+      this.state.energy <= calculateStableEnergyCapacity(this.state, this.config)
+    ) {
+      return false;
+    }
+
+    this.state.overclocker.active = true;
+    this.refreshAlgorithmImprovementDuration();
+    this.addLog("Overclocker engaged. Auto Calculator speed increased.", "device");
+    this.notify();
+    return true;
+  }
+
   purchaseAutoCalculator() {
     if (!this.canPurchaseAutoCalculator()) return false;
-    this.state.energy -= this.config.autoCalculator.cost;
-    this.state.devices.autoCalculator = true;
+    const cost = evaluateComponent("autoCalculator", this.state, this.config).cost;
+
+    this.state.energy -= cost;
+    this.state.devices.autoCalculators += 1;
+    this.emitEvent("device-purchased", {
+      device: "autoCalculator",
+      count: this.state.devices.autoCalculators,
+      cost
+    });
+    if (this.state.study.active) {
+      this.state.study.automated = true;
+      this.refreshAlgorithmImprovementDuration();
+    }
     this.addLog(
-      "Auto Calculator connected. Algorithm Improvements are now automated.",
+      `Auto Calculator ${this.state.devices.autoCalculators} connected. Study automation improved.`,
       "device"
     );
     if (!this.state.study.active) this.startStudy(true);
@@ -555,24 +1855,20 @@ class GameEngine {
   }
 
   canConstructCrc() {
-    return (
-      this.state.discoveries.crcBlueprint &&
-      !this.state.construction.active &&
-      this.state.crcCount < this.config.crcConstruction.maximumCrcs &&
-      this.state.energy >= this.config.crcConstruction.cost
-    );
+    return evaluateComponent("crcConstruction", this.state, this.config).enabled;
   }
 
   startCrcConstruction() {
     if (!this.canConstructCrc()) return false;
-    this.state.energy -= this.config.crcConstruction.cost;
+    const cost = evaluateComponent("crcConstruction", this.state, this.config).cost;
+    this.state.energy -= cost;
     this.state.construction.active = true;
     this.state.construction.elapsed = 0;
-    this.state.construction.duration =
-      this.config.crcConstruction.durationSeconds *
-      (this.developmentMode
-        ? this.config.development.durationMultiplier
-        : 1);
+    this.state.construction.duration = this.calculateCrcConstructionDuration();
+    this.emitEvent("construction-started", {
+      device: "crc",
+      cost
+    });
     this.addLog("CRC construction sequence initiated.", "device");
     this.notify();
     return true;
@@ -591,6 +1887,10 @@ class GameEngine {
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.crcCount += 1;
+    this.emitEvent("construction-completed", {
+      device: "crc",
+      count: this.state.crcCount
+    });
     this.addLog(
       `Cosmic Radiation Condenser ${this.state.crcCount} is online.`,
       "discovery"
@@ -599,28 +1899,269 @@ class GameEngine {
   }
 
   canPurchaseProcessor() {
-    return (
-      !this.state.devices.processor &&
-      this.state.energy >= this.config.processor.cost
-    );
+    return evaluateComponent("processor", this.state, this.config).enabled;
   }
 
   purchaseProcessor() {
     if (!this.canPurchaseProcessor()) return false;
-    this.state.energy -= this.config.processor.cost;
-    this.state.devices.processor = true;
+    const cost = evaluateComponent("processor", this.state, this.config).cost;
+
+    this.state.energy -= cost;
+    this.state.devices.processors += 1;
     this.state.prototypeComplete = true;
+    this.emitEvent("device-purchased", {
+      device: "processor",
+      count: this.state.devices.processors,
+      cost
+    });
+    this.refreshAlgorithmImprovementDuration();
+    this.retimeActiveProgress(
+      this.state.construction,
+      this.calculateCrcConstructionDuration()
+    );
     this.addLog(
-      "Processor online. Device execution time reduced by 10%.",
+      `Processor ${this.state.devices.processors} online. Device execution time reduced.`,
       "milestone"
     );
     this.notify();
     return true;
   }
 
+  canStartAlgorithmUpgradeStudy() {
+    return evaluateComponent("algorithmUpgrade", this.state, this.config).enabled;
+  }
+
+  startAlgorithmUpgradeStudy() {
+    if (!this.canStartAlgorithmUpgradeStudy()) return false;
+    this.state.algorithmUpgradeStudy.active = true;
+    this.state.algorithmUpgradeStudy.elapsed = 0;
+    this.state.algorithmUpgradeStudy.duration =
+      calculateAlgorithmUpgradeDuration(
+        this.state,
+        this.config,
+        this.developmentMode
+      );
+    this.addLog("Algorithm Upgrade study started.", "device");
+    this.notify();
+    return true;
+  }
+
+  tickAlgorithmUpgradeStudy(delta) {
+    if (!this.state.algorithmUpgradeStudy.active) return;
+    this.state.algorithmUpgradeStudy.elapsed += delta;
+    if (
+      this.state.algorithmUpgradeStudy.elapsed <
+      this.state.algorithmUpgradeStudy.duration
+    ) {
+      return;
+    }
+
+    this.completeAlgorithmUpgrade();
+  }
+
+  completeAlgorithmUpgrade() {
+    this.state.algorithmUpgradeStudy.active = false;
+    this.state.algorithmUpgradeStudy.elapsed = 0;
+    this.state.upgrades += 1;
+    this.resetAlgorithmImprovements();
+    this.emitEvent("algorithm-upgrade-completed", {
+      count: this.state.upgrades
+    });
+    this.addLog(
+      `Algorithm Upgrade ${this.state.upgrades} completed. CRC production doubled and Improvements were reset.`,
+      "milestone"
+    );
+    if (this.state.devices.autoCalculators > 0) this.startStudy(true);
+    this.notify();
+  }
+
+  canClaimCalculationMethodUpgrade() {
+    return evaluateComponent("calculationMethodUpgrade", this.state, this.config).enabled;
+  }
+
+  claimCalculationMethodUpgrade() {
+    if (!this.canClaimCalculationMethodUpgrade()) return false;
+
+    this.state.calculationMethods += 1;
+    this.resetAllStudies();
+    this.emitEvent("calculation-method-upgraded", {
+      count: this.state.calculationMethods
+    });
+    this.addLog(
+      `Calculation Method Upgrade ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
+      "milestone"
+    );
+    this.notify();
+    return true;
+  }
+
+  canClaimSetupOptimization() {
+    return evaluateComponent("setupOptimization", this.state, this.config).enabled;
+  }
+
+  canActivateParticleSynthesizer() {
+    return evaluateComponent("particleSynthesizer", this.state, this.config).enabled;
+  }
+
+  activateParticleSynthesizer() {
+    if (!this.canActivateParticleSynthesizer()) return false;
+    const cost = evaluateComponent("particleSynthesizer", this.state, this.config).cost;
+
+    this.state.energy -= cost;
+    this.state.sciencePoints += 1;
+    this.state.science.syntheses += 1;
+    this.emitEvent("particle-synthesizer-activated", {
+      cost,
+      sciencePoints: 1
+    });
+    this.resetEnergyLayerForSynthesis();
+    this.addLog(
+      "Particle Synthesizer activated. One Science Point preserved through a full Energy Layer reset.",
+      "milestone"
+    );
+    this.notify();
+    return true;
+  }
+
+  canPurchaseMatrixMechanics() {
+    return evaluateComponent("matrixMechanics", this.state, this.config).enabled;
+  }
+
+  purchaseMatrixMechanics() {
+    if (!this.canPurchaseMatrixMechanics()) return false;
+    const cost = evaluateComponent("matrixMechanics", this.state, this.config).cost;
+
+    this.state.sciencePoints -= cost;
+    this.state.science.matrixMechanics = true;
+    this.emitEvent("science-upgrade-purchased", {
+      upgrade: "matrixMechanics",
+      cost
+    });
+    this.refreshAlgorithmImprovementDuration();
+    this.addLog(
+      "Matrix Mechanics acquired. Algorithm Upgrades now compound a small Improvement calculation speed correction.",
+      "milestone"
+    );
+    this.notify();
+    return true;
+  }
+
+  claimSetupOptimization() {
+    if (!this.canClaimSetupOptimization()) return false;
+
+    this.state.setupOptimizations += 1;
+    this.resetHardwareForSetupOptimization();
+    this.emitEvent("setup-optimized", {
+      count: this.state.setupOptimizations
+    });
+    this.addLog(
+      `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
+      "milestone"
+    );
+    this.notify();
+    return true;
+  }
+
+  resetAlgorithmImprovements() {
+    this.state.improvements = 0;
+    this.state.improvementMultiplier = 1;
+    this.state.study.active = false;
+    this.state.study.elapsed = 0;
+    this.state.study.duration = 0;
+    this.state.study.automated = false;
+  }
+
+  resetAllStudies() {
+    this.resetAlgorithmImprovements();
+    this.state.upgrades = 0;
+    this.state.algorithmUpgradeStudy.active = false;
+    this.state.algorithmUpgradeStudy.elapsed = 0;
+    this.state.algorithmUpgradeStudy.duration = 0;
+    this.state.blueprintStudy.active = false;
+    this.state.blueprintStudy.elapsed = 0;
+    this.state.blueprintStudy.duration = 0;
+  }
+
+  resetHardwareForSetupOptimization() {
+    this.state.energy = 0;
+    this.state.peakEnergy = 0;
+    this.resetAllStudies();
+    this.state.calculationMethods = 0;
+    this.state.devices.softDataDisplay = false;
+    this.state.devices.t2SoftDataDisplay = false;
+    this.state.devices.autoCalculators = 0;
+    this.state.devices.processors = 0;
+    this.state.devices.overclockers = 0;
+    this.state.powerModules = 0;
+    this.state.overclocker.active = false;
+    this.state.overclocker.activeSeconds = 0;
+    this.state.crcCount = this.config.energy.initialCrcCount;
+    this.state.discoveries.crcBlueprint = false;
+    this.state.discoveries.blueprintSource = null;
+    this.state.blueprintStudy.active = false;
+    this.state.blueprintStudy.elapsed = 0;
+    this.state.blueprintStudy.duration = 0;
+    this.state.construction.active = false;
+    this.state.construction.elapsed = 0;
+    this.state.construction.duration = 0;
+    this.state.prototypeComplete = false;
+  }
+
+  resetEnergyLayerForSynthesis() {
+    this.state.energy = 0;
+    this.state.peakEnergy = 0;
+    this.state.powerCells = this.config.energy.initialPowerCells;
+    this.state.powerModules = 0;
+    this.state.improvements = 0;
+    this.state.improvementMultiplier = 1;
+    this.state.upgrades = 0;
+    this.state.calculationMethods = 0;
+    this.state.setupOptimizations = 0;
+    this.state.crcCount = this.config.energy.initialCrcCount;
+    this.state.devices.softDataDisplay = false;
+    this.state.devices.t2SoftDataDisplay = false;
+    this.state.devices.autoCalculators = 0;
+    this.state.devices.processors = 0;
+    this.state.devices.overclockers = 0;
+    this.state.overclocker.active = false;
+    this.state.overclocker.activeSeconds = 0;
+    this.state.discoveries.crcBlueprint = false;
+    this.state.discoveries.blueprintSource = null;
+    this.state.study.active = false;
+    this.state.study.elapsed = 0;
+    this.state.study.duration = 0;
+    this.state.study.automated = false;
+    this.state.algorithmUpgradeStudy.active = false;
+    this.state.algorithmUpgradeStudy.elapsed = 0;
+    this.state.algorithmUpgradeStudy.duration = 0;
+    this.state.blueprintStudy.active = false;
+    this.state.blueprintStudy.elapsed = 0;
+    this.state.blueprintStudy.duration = 0;
+    this.state.construction.active = false;
+    this.state.construction.elapsed = 0;
+    this.state.construction.duration = 0;
+    this.state.particleSynthesizer.activated = false;
+    this.state.prototypeComplete = false;
+    this.state.stats.runPlayTime = 0;
+    this.state.ui.activeTab = "science";
+  }
+
+  resetStudyProgression() {
+    this.resetAllStudies();
+    this.state.study.active = false;
+    this.state.study.elapsed = 0;
+    this.state.study.duration = 0;
+    this.state.study.automated = false;
+  }
+
   developmentAddEnergy() {
     if (!this.developmentMode) return;
     this.addEnergy(this.config.energy.powerCellCapacity * 0.25);
+  }
+
+  developmentAddLargeEnergy() {
+    if (!this.developmentMode) return;
+    this.addEnergy(Math.max(1, this.state.energy || 1));
   }
 
   developmentCompleteStudy() {
@@ -629,10 +2170,214 @@ class GameEngine {
     this.completeStudy();
   }
 
+  developmentCompleteAlgorithmUpgrade() {
+    if (!this.developmentMode) return;
+    if (!this.canStartAlgorithmUpgradeStudy()) {
+      this.state.improvements = calculateAlgorithmUpgradeRequirement(
+        this.state,
+        this.config
+      );
+    }
+    this.completeAlgorithmUpgrade();
+  }
+
   developmentForceBlueprint() {
     if (!this.developmentMode) return;
-    this.discoverBlueprint("energy-threshold");
+    this.completeBlueprintResearch("development");
   }
+
+  developmentCycleProductionMultiplier() {
+    if (!this.developmentMode) return;
+    const options = [1, 1000, 1_000_000, 1_000_000_000];
+    const current = this.state.devSettings.productionMultiplier;
+    const index = options.indexOf(current);
+    this.state.devSettings.productionMultiplier =
+      options[(index + 1) % options.length];
+    this.notify();
+  }
+
+  developmentCycleDurationMultiplier() {
+    if (!this.developmentMode) return;
+    const options = [1, 0.05, 0.005, 0.0005];
+    const current = this.state.devSettings.durationMultiplier;
+    const index = options.indexOf(current);
+    this.state.devSettings.durationMultiplier =
+      options[(index + 1) % options.length];
+    this.refreshAllActiveDurations();
+    this.notify();
+  }
+}
+
+
+// ---- js/offline-progress.js ----
+
+const DEFAULT_MAX_OFFLINE_SECONDS = 8 * 60 * 60;
+const DEFAULT_STEP_SECONDS = 0.25;
+const DEFAULT_MAX_STEPS = 120000;
+
+function createSummary(offlineSeconds, simulatedSeconds, capped) {
+  return {
+    offlineSeconds,
+    simulatedSeconds,
+    capped,
+    energyProduced: 0,
+    energyDecayed: 0,
+    overclockerEnergySpent: 0,
+    netEnergy: 0,
+    algorithmImprovementsCompleted: 0,
+    algorithmUpgradesCompleted: 0,
+    blueprintResearchCompleted: 0,
+    constructionsCompleted: 0,
+    purchases: {},
+    events: 0
+  };
+}
+
+function collectEvents(summary, events) {
+  summary.events += events.length;
+
+  for (const event of events) {
+    if (event.type === "energy-collected") {
+      summary.energyProduced += event.amount;
+    }
+
+    if (event.type === "energy-decayed") {
+      summary.energyDecayed += event.amount;
+    }
+
+    if (event.type === "overclocker-drained") {
+      summary.overclockerEnergySpent += event.amount;
+    }
+
+    if (event.type === "algorithm-improvement-completed") {
+      summary.algorithmImprovementsCompleted += 1;
+    }
+
+    if (event.type === "algorithm-upgrade-completed") {
+      summary.algorithmUpgradesCompleted += 1;
+    }
+
+    if (event.type === "blueprint-research-completed") {
+      summary.blueprintResearchCompleted += 1;
+    }
+
+    if (event.type === "construction-completed") {
+      summary.constructionsCompleted += 1;
+    }
+
+    if (event.type === "particle-synthesizer-activated") {
+      summary.particleSynthesizerActivated = true;
+    }
+
+    if (event.type === "device-purchased") {
+      summary.purchases[event.device] =
+        (summary.purchases[event.device] ?? 0) + 1;
+    }
+  }
+}
+
+function applyCurrentOfflineAutomation(engine) {
+  // Continuous systems belong in GameEngine.tick whenever possible. This hook is
+  // where future unlocked automations should be mirrored for offline progress.
+  if (
+    engine.state.devices.autoCalculators > 0 &&
+    !engine.state.study.active &&
+    engine.state.introState === "active"
+  ) {
+    engine.startStudy(true);
+  }
+}
+
+function writeOfflineLog(state, summary) {
+  if (summary.simulatedSeconds < 1 || summary.events <= 0) return;
+
+  const parts = [
+    `${formatDuration(summary.simulatedSeconds)} recovered`,
+    `+${formatEnergy(summary.netEnergy)} net`
+  ];
+
+  if (summary.algorithmImprovementsCompleted > 0) {
+    parts.push(`${summary.algorithmImprovementsCompleted} Improvements`);
+  }
+
+  if (summary.algorithmUpgradesCompleted > 0) {
+    parts.push(`${summary.algorithmUpgradesCompleted} Algorithm Upgrades`);
+  }
+
+  if (summary.blueprintResearchCompleted > 0) {
+    parts.push("Blueprint reconstructed");
+  }
+
+  if (summary.constructionsCompleted > 0) {
+    parts.push(`${summary.constructionsCompleted} CRCs completed`);
+  }
+
+  const message = `Offline recovery: ${parts.join(", ")}.`;
+  state.log.unshift({
+    id: `${Date.now()}-offline`,
+    message,
+    tone: "discovery",
+    at: state.stats.runPlayTime
+  });
+  state.log = state.log.slice(0, 60);
+}
+
+function simulateOfflineProgress(
+  state,
+  config,
+  { developmentMode = false, now = Date.now() } = {}
+) {
+  const lastSavedAt = Number(state.lastSavedAt);
+  const offlineSeconds = Number.isFinite(lastSavedAt)
+    ? Math.max(0, (now - lastSavedAt) / 1000)
+    : 0;
+
+  const settings = config.offlineProgress ?? {};
+  const maxOfflineSeconds =
+    settings.maxOfflineSeconds ?? DEFAULT_MAX_OFFLINE_SECONDS;
+  const stepSeconds = settings.stepSeconds ?? DEFAULT_STEP_SECONDS;
+  const maxSteps = settings.maxSteps ?? DEFAULT_MAX_STEPS;
+  const simulatedSeconds = Math.min(offlineSeconds, maxOfflineSeconds);
+  const capped = offlineSeconds > simulatedSeconds;
+  const startEnergy = state.energy;
+  const summary = createSummary(offlineSeconds, simulatedSeconds, capped);
+
+  if (
+    simulatedSeconds < 1 ||
+    state.introState !== "active" ||
+    stepSeconds <= 0 ||
+    maxSteps <= 0
+  ) {
+    state.lastSavedAt = now;
+    return summary;
+  }
+
+  const engine = new GameEngine({
+    state,
+    config,
+    developmentMode,
+    collectEvents: true,
+    suppressLogs: true
+  });
+
+  let remaining = simulatedSeconds;
+  let steps = 0;
+
+  while (remaining > 0 && steps < maxSteps) {
+    applyCurrentOfflineAutomation(engine);
+    const delta = Math.min(stepSeconds, remaining);
+    engine.tick(delta);
+    collectEvents(summary, engine.consumeEvents());
+    remaining -= delta;
+    steps += 1;
+  }
+
+  summary.simulatedSeconds -= remaining;
+  summary.netEnergy = state.energy - startEnergy;
+  state.lastSavedAt = now;
+  writeOfflineLog(state, summary);
+
+  return summary;
 }
 
 
@@ -669,35 +2414,204 @@ function progressBar(value, label, tone = "energy", key = "") {
 
 function helpNote(text) {
   return `
-    <details class="help-note">
-      <summary aria-label="More information">?</summary>
-      <p>${text}</p>
-    </details>
+    <div class="help-note" tabindex="0" aria-label="${text}">
+      <span>?</span>
+      <p role="tooltip">${text}</p>
+    </div>
   `;
+}
+
+function headingAction(label, action, options = {}) {
+  const {
+    cost = null,
+    costLabel = cost !== null ? formatEnergy(cost) : "",
+    count = null,
+    disabled = false,
+    variant = "primary"
+  } = options;
+  const countLabel = count === null ? "" : ` (${count})`;
+
+  return `
+    <div class="panel__action">
+      ${cost !== null ? `<small>${costLabel}</small>` : ""}
+      ${button(`${label}${countLabel}`, action, {
+        disabled,
+        variant,
+        className: "button--compact"
+      })}
+    </div>
+  `;
+}
+
+function statusPill(text, tone = "") {
+  return `<span class="status ${tone ? `status--${tone}` : ""}">${text}</span>`;
+}
+
+const TAB_DEFINITIONS = [
+  { id: "devices", label: "Devices" },
+  { id: "studies", label: "Studies" },
+  { id: "measure", label: "Measure", visible: (state) => state.devices.t2SoftDataDisplay },
+  { id: "science", label: "Science", visible: (state, config) => canAccessParticleLab(state, config) || state.sciencePoints > 0 || state.science?.syntheses > 0 },
+  { id: "statistics", label: "Statistics" },
+  { id: "save", label: "Save" }
+];
+
+const DEVICE_GROUPS = [
+  {
+    id: "energy",
+    label: "Energy Devices",
+    note: "Hardware that collects, stores, routes, or spends Stored Energy."
+  },
+  {
+    id: "computational",
+    label: "Computational Devices",
+    note: "Hardware that exposes information or accelerates study systems."
+  }
+];
+
+function isTabVisible(tab, state, config) {
+  return tab.visible ? tab.visible(state, config) : true;
+}
+
+function getActiveTab(state, config) {
+  const requested = state.ui?.activeTab ?? "devices";
+  return TAB_DEFINITIONS.some(
+    (tab) => tab.id === requested && isTabVisible(tab, state, config)
+  )
+    ? requested
+    : "devices";
+}
+
+function getComponentsForTab(tabId) {
+  return Object.values(COMPONENT_REGISTRY).filter((spec) => spec.tab === tabId);
+}
+
+function getVisibleComponentIdsForTab(tabId, state, config) {
+  return getComponentsForTab(tabId)
+    .filter((spec) => evaluateComponent(spec.id, state, config).visible)
+    .map((spec) => spec.id);
+}
+
+function markTabComponentsSeen(state, config, tabId = null) {
+  const activeTab = tabId ?? getActiveTab(state, config);
+  if (!state.ui) return;
+
+  const seen = { ...state.ui.seenComponents };
+  for (const componentId of getVisibleComponentIdsForTab(activeTab, state, config)) {
+    seen[componentId] = true;
+  }
+  state.ui.seenComponents = seen;
+}
+
+function getTabIndicators(tabId, state, config) {
+  const seen = state.ui?.seenComponents ?? {};
+  const availability = getComponentsForTab(tabId).map((spec) =>
+    evaluateComponent(spec.id, state, config)
+  );
+
+  return {
+    ready: availability.filter((item) => item.visible && item.enabled && !item.completed).length,
+    newlyVisible: availability.filter((item) => item.visible && !seen[item.id]).length
+  };
+}
+
+function renderTabBar(state, config) {
+  const activeTab = getActiveTab(state, config);
+
+  return `
+    <nav class="tabbar" aria-label="Facility sections">
+      ${TAB_DEFINITIONS
+        .filter((tab) => isTabVisible(tab, state, config))
+        .map((tab) => {
+          const indicators = getTabIndicators(tab.id, state, config);
+          return `
+            <button
+              class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
+              data-action="set-tab"
+              data-tab="${tab.id}"
+              type="button"
+            >
+              <span>${tab.label}</span>
+              ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
+              ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
+            </button>
+          `;
+        })
+        .join("")}
+    </nav>
+  `;
+}
+
+function renderTabTools(state) {
+  const hidden = Boolean(state.ui?.hideCompletedPurchases);
+
+  return `
+    <div class="tab-tools">
+      <button
+        class="toggle-control ${hidden ? "toggle-control--on" : ""}"
+        data-action="toggle-hide-completed"
+        type="button"
+        role="switch"
+        aria-checked="${hidden}"
+      >
+        <span aria-hidden="true"></span>
+        <strong>${hidden ? "Show completed" : "Hide completed"}</strong>
+      </button>
+    </div>
+  `;
+}
+
+function shouldHideCompletedComponent(componentId, state, config) {
+  if (!state.ui?.hideCompletedPurchases) return false;
+  const availability = evaluateComponent(componentId, state, config);
+  return availability.completed;
+}
+
+function renderComponent(componentId, state, config, render) {
+  return shouldHideCompletedComponent(componentId, state, config)
+    ? ""
+    : render();
 }
 
 function renderTelemetry(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
+  const netProduction = calculateEffectiveProduction(
+    state,
+    config,
+    developmentMode
+  );
+  const capacity = calculateStableEnergyCapacity(state, config);
+  const overflowDecay = calculateEnergyOverflowDecay(state, config);
   const remainingCapacity = Math.max(
     0,
-    config.energy.powerCellCapacity - state.energy
+    capacity - state.energy
   );
   const fillTime =
     production > 0 && remainingCapacity > 0
-      ? formatDuration(remainingCapacity / production)
-      : "FULL";
+      ? formatDuration(remainingCapacity / Math.max(production, Number.EPSILON))
+      : state.energy > capacity
+        ? "EQUILIBRATING"
+        : "FULL";
 
   if (!state.devices.softDataDisplay) return "";
 
   return `
     <div class="telemetry-grid">
       <div>
-        <span>Production</span>
+        <span>Raw production</span>
         <strong data-field="energy-rate">${formatRate(production)}</strong>
       </div>
       <div>
-        <span>Cell fill estimate</span>
+        <span>Net flow</span>
+        <strong data-field="retained-rate">${formatRate(netProduction)}</strong>
+      </div>
+      <div>
+        <span>Stable fill estimate</span>
         <strong data-field="fill-time">${fillTime}</strong>
+      </div>
+      <div>
+        <span>Overflow decay</span>
+        <strong data-field="energy-retention">${formatRate(overflowDecay)}</strong>
       </div>
       <div>
         <span>Total condensed</span>
@@ -765,9 +2679,61 @@ function renderHeader(state, developmentMode) {
       </div>
       <div class="topbar__actions">
         ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
-        ${button("Reset save", "reset-save", { variant: "text" })}
+        ${
+          developmentMode
+            ? button("Exit dev", "exit-dev-mode", { variant: "text" })
+            : button("Dev mode", "enter-dev-mode", { variant: "text" })
+        }
+        ${button("Save now", "save-now", { variant: "text" })}
+        ${button("Reset current", "reset-current-save", { variant: "text" })}
       </div>
     </header>
+  `;
+}
+
+function formatSaveTime(timestamp) {
+  if (!timestamp) return "EMPTY";
+  const savedAt = new Date(timestamp);
+  if (Number.isNaN(savedAt.getTime())) return "CORRUPT";
+  return savedAt.toLocaleString(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function renderSaveManagement(saveSlots, developmentMode) {
+  const slots = saveSlots?.length ? saveSlots : [];
+
+  return `
+    <article class="panel save-panel">
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">SAVE MANAGEMENT</p>
+          <h2>Simulation Memory</h2>
+        </div>
+      </div>
+      <div class="save-slots">
+        ${slots
+          .map(
+            (slot) => `
+              <div class="save-slot ${slot.developmentMode === developmentMode ? "save-slot--current" : ""}">
+                <span>${slot.label}</span>
+                <strong>${formatSaveTime(slot.lastSavedAt)}</strong>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+      <div class="dev-actions save-actions">
+        ${button("Save now", "save-now", { variant: "secondary" })}
+        ${button("Reset current", "reset-current-save", { variant: "ghost" })}
+        ${button("Reset normal", "reset-normal-save", { variant: "ghost" })}
+        ${button("Reset dev", "reset-development-save", { variant: "ghost" })}
+        ${button("Reset all", "reset-all-saves", { variant: "ghost" })}
+      </div>
+    </article>
   `;
 }
 
@@ -784,8 +2750,16 @@ function renderRecord() {
 
 function renderEnergy(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
-  const capacityProgress = state.energy / config.energy.powerCellCapacity;
+  const netProduction = calculateEffectiveProduction(
+    state,
+    config,
+    developmentMode
+  );
+  const capacity = calculateStableEnergyCapacity(state, config);
+  const overflowDecay = calculateEnergyOverflowDecay(state, config);
+  const capacityProgress = state.energy / capacity;
   const displayTelemetry = state.devices.softDataDisplay;
+  const overflowing = state.energy > capacity;
 
   return `
     <article class="panel energy-panel">
@@ -794,23 +2768,29 @@ function renderEnergy(state, config, developmentMode) {
           <p class="panel__label">STORED ENERGY</p>
         <strong class="energy-readout" data-field="energy">${formatEnergy(state.energy)}</strong>
         </div>
-        <span class="status status--online">CELL STABLE</span>
+        <span class="status ${overflowing ? "status--warning" : "status--online"}">
+          ${overflowing ? "EXCESS UNSTABLE" : "CELL STABLE"}
+        </span>
       </div>
-      ${progressBar(capacityProgress, "Power Cell charge", "energy", "energy")}
-      ${helpNote("Stored Energy is the usable charge held by the current Power Cell. Devices spend it to restore parts of the facility.")}
+      ${progressBar(capacityProgress, "Stable Power Cell charge", "energy", "energy")}
+      ${helpNote("Power Cells define stable capacity. Energy above that capacity is still usable, but unstable excess leaks back into background noise every second. More excess means faster decay.")}
       <div class="metric-row">
-        <span>Power Cell capacity</span>
-        <strong>${formatEnergy(config.energy.powerCellCapacity)}</strong>
+        <span>Stable capacity</span>
+        <strong data-field="stable-capacity">${formatEnergy(capacity)}</strong>
       </div>
       <div class="metric-row">
         <span>Power Cells installed</span>
-        <strong>1</strong>
+        <strong data-field="power-cells">${state.powerCells}</strong>
       </div>
       <div class="metric-row">
-        <span>Energy production</span>
-        <strong>${
-          displayTelemetry ? formatRate(production) : "UNREADABLE"
+        <span>Net flow</span>
+        <strong data-field="retained-rate-main">${
+          displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
         }</strong>
+      </div>
+      <div class="metric-row">
+        <span>Overflow decay</span>
+        <strong data-field="energy-retention-main">${displayTelemetry ? formatRate(overflowDecay) : "UNREADABLE"}</strong>
       </div>
       <div class="metric-row">
         <span>Condensers online</span>
@@ -826,15 +2806,15 @@ function renderCrcDevice(state, config, developmentMode) {
 
   return `
     <article class="panel device-card condenser-card device-card--online">
+      ${helpNote("Each active condenser adds passive energy production. Improvements and Upgrades modify every CRC at once.")}
       <div class="panel__heading">
         <div>
-          <p class="panel__label">DEVICE // ONLINE</p>
+          <p class="panel__label">ENERGY DEVICE // ONLINE</p>
           <h2>Cosmic Radiation Condenser</h2>
         </div>
-        <span class="count-chip">${state.crcCount}</span>
+        ${statusPill(`${state.crcCount} ONLINE`, "online")}
       </div>
-      <p class="muted">The CRC listens to cosmic background radiation and compresses trace signals into charge the Power Cell can hold.</p>
-      ${helpNote("Each active condenser adds passive energy production. Improvements and Upgrades modify every CRC at once.")}
+      <p class="muted">Collects cosmic radiation and condenses it into usable energy.</p>
       <div class="metric-row">
         <span>Current output</span>
         <strong>${
@@ -845,38 +2825,172 @@ function renderCrcDevice(state, config, developmentMode) {
   `;
 }
 
+function renderPowerCellArray(state, config) {
+  const availability = evaluateComponent("powerCell", state, config);
+  if (!availability.visible) return "";
+
+  const cost = availability.cost;
+  const capacity = calculateStableEnergyCapacity(state, config);
+  const nextCapacity = calculateStableEnergyCapacity(
+    { ...state, powerCells: state.powerCells + 1 },
+    config
+  );
+  const moduleMultiplier = calculatePowerModuleCapacityMultiplier(state, config);
+
+  return `
+    <article class="panel device-card power-cell-card">
+      ${helpNote("Buying a Power Cell expands stable capacity. It does not increase raw production, but it raises the point where overflow decay starts pushing back against Stored Energy.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">ENERGY DEVICE</p>
+          <h2>Power Cell Array</h2>
+        </div>
+        <div class="panel__action-group">
+          ${headingAction("Add Cell", "buy-power-cell", {
+            cost,
+            count: state.powerCells,
+            disabled: !availability.enabled,
+            variant: availability.enabled ? "primary" : "ghost"
+          })}
+          ${headingAction("Buy Max", "buy-max-power-cells", {
+            disabled: !availability.enabled,
+            variant: availability.enabled ? "secondary" : "ghost"
+          })}
+        </div>
+      </div>
+      <p class="muted">Stable cells give condensed energy somewhere to stay.</p>
+      <div class="metric-row">
+        <span>Current stable capacity</span>
+        <strong>${formatEnergy(capacity)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Next stable capacity</span>
+        <strong>${formatEnergy(nextCapacity)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Module routing</span>
+        <strong>${state.powerModules} / x${moduleMultiplier.toFixed(2)}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderPowerModule(state, config) {
+  const availability = evaluateComponent("powerModule", state, config);
+  if (!availability.visible) return "";
+
+  const requirement = availability.requirement;
+  const currentMultiplier = calculatePowerModuleCapacityMultiplier(state, config);
+  const nextMultiplier = calculatePowerModuleCapacityMultiplier(
+    { ...state, powerModules: state.powerModules + 1 },
+    config
+  );
+
+  return `
+    <article class="panel device-card">
+      ${helpNote("Power Modules do not consume Power Cells. They activate capture and conduction circuits around each full group of 100 cells, increasing effective stable capacity.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">ENERGY DEVICE</p>
+          <h2>Power Module</h2>
+        </div>
+        ${headingAction("Install", "buy-power-module", {
+          cost: availability.cost,
+          count: state.powerModules,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
+      </div>
+      <p class="muted">Activates capture and conduction circuits that organize Power Cells into a stronger storage route.</p>
+      <div class="metric-row">
+        <span>Cell requirement</span>
+        <strong>${Math.min(state.powerCells, requirement)} / ${requirement}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Capacity route</span>
+        <strong>x${currentMultiplier.toFixed(2)} -> x${nextMultiplier.toFixed(2)}</strong>
+      </div>
+    </article>
+  `;
+}
+
 function renderSoftDataDisplay(state, config) {
-  const affordable = state.energy >= config.softDataDisplay.cost;
+  const availability = evaluateComponent("softDataDisplay", state, config);
 
   return `
     <article class="panel device-card ${state.devices.softDataDisplay ? "device-card--online" : ""}">
+      ${helpNote("Soft Display reveals usable energy production rate, Power Cell capacity, capacity occupation, and the current decay rate of unstable overflow energy.")}
       <div class="panel__heading">
         <div>
-          <p class="panel__label">DEVICE</p>
-          <h2>Soft Data Display</h2>
+          <p class="panel__label">COMPUTATIONAL DEVICE</p>
+          <h2>Soft Display</h2>
         </div>
-        <span class="status ${state.devices.softDataDisplay ? "status--online" : "status--locked"}">
-          ${state.devices.softDataDisplay ? "ONLINE" : affordable ? "AVAILABLE" : "UNPOWERED"}
-        </span>
+        ${
+          state.devices.softDataDisplay
+            ? statusPill("ONLINE", "online")
+            : headingAction("Restore", "buy-soft-display", {
+                cost: availability.cost,
+                disabled: !availability.enabled,
+                variant: availability.enabled ? "primary" : "ghost"
+              })
+        }
       </div>
-      <p class="muted">A dim diagnostic surface that translates condenser noise into readable production telemetry.</p>
-      ${helpNote("This display does not increase production. It reveals energy per second, fill estimates, and related soft data so the facility's progress becomes legible.")}
+      <p class="muted">${
+        state.devices.softDataDisplay
+          ? "Shows basic useful information."
+          : "Seems like with enough power this display could show some useful information."
+      }</p>
       ${
         state.devices.softDataDisplay
           ? '<p class="effect-line">TELEMETRY READABLE // ENERGY FLOW EXPOSED</p>'
-          : button("Restore Soft Data Display", "buy-soft-display", {
-              disabled: !affordable,
-              detail: `Cost: ${formatEnergy(config.softDataDisplay.cost)}`,
-              variant: affordable ? "primary" : "ghost"
-            })
+          : ""
+      }
+    </article>
+  `;
+}
+
+function renderT2SoftDataDisplay(state, config) {
+  const availability = evaluateComponent("t2SoftDataDisplay", state, config);
+  if (!availability.visible) return "";
+
+  return `
+    <article class="panel device-card ${state.devices.t2SoftDataDisplay ? "device-card--online" : ""}">
+      ${helpNote("T2 Soft Display unlocks the Measure tab, separating current output into base condenser signal and active production bonuses. It does not change production by itself.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">COMPUTATIONAL DEVICE</p>
+          <h2>T2 Soft Display</h2>
+        </div>
+        ${
+          state.devices.t2SoftDataDisplay
+            ? statusPill("ONLINE", "online")
+            : headingAction("Restore", "buy-t2-soft-display", {
+                cost: availability.cost,
+                disabled: !availability.enabled,
+                variant: availability.enabled ? "primary" : "ghost"
+              })
+        }
+      </div>
+      <p class="muted">${
+        state.devices.t2SoftDataDisplay
+          ? "The Measure tab now separates condenser output into readable source layers."
+          : "A dim second layer under the Soft Display waits for enough stored power to decode output composition."
+      }</p>
+      ${
+        state.devices.t2SoftDataDisplay
+          ? '<p class="effect-line">OUTPUT COMPOSITION READABLE</p>'
+          : ""
       }
     </article>
   `;
 }
 
 function renderStudy(state, config, developmentMode) {
-  const nextBonus = calculateImprovementBonus(state.improvements, config);
-  const upgradeChance = calculateUpgradeChance(state.upgrades, config);
+  const nextBonus = calculateImprovementBonus(
+    state.improvements,
+    config,
+    state.calculationMethods
+  );
   const previewDuration = calculateStudyDuration(
     state,
     config,
@@ -888,18 +3002,25 @@ function renderStudy(state, config, developmentMode) {
 
   return `
     <article class="panel study-panel">
+      ${helpNote("Algorithm Improvements always complete. After enough Improvements, an Algorithm Upgrade study can be run manually. It doubles CRC production and resets Improvements.")}
       <div class="panel__heading">
         <div>
           <p class="panel__label">STUDY</p>
           <h2>Algorithm Improvement</h2>
         </div>
-        <span class="count-chip">${state.improvements}</span>
+        ${headingAction(
+          state.study.active ? "Running" : "Start",
+          "start-study",
+          {
+            count: state.improvements,
+            disabled: state.study.active || state.devices.autoCalculators > 0,
+            variant: state.devices.autoCalculators > 0 ? "ghost" : "primary"
+          }
+        )}
       </div>
-      <p class="muted">Study is the facility's first control loop: it improves how the CRC converts background radiation into Stored Energy.</p>
-      ${helpNote("Algorithm Improvements always complete. Algorithm Upgrades are rare discoveries that can appear after a Study and double energy production.")}
+      <p class="muted">Improves how the CRC converts background radiation into Stored Energy.</p>
       <div class="study-metrics">
         <div><span>Next efficiency gain</span><strong>+${formatPercent(nextBonus)}</strong></div>
-        <div><span>Upgrade probability</span><strong>${formatPercent(upgradeChance, upgradeChance < 0.001 ? 4 : 2)}</strong></div>
         <div><span>Estimated duration</span><strong>${formatDuration(previewDuration)}</strong></div>
       </div>
       ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
@@ -907,120 +3028,487 @@ function renderStudy(state, config, developmentMode) {
         <span data-field="study-status">${state.study.active ? (state.study.automated ? "AUTO CALCULATION" : "CALCULATION IN PROGRESS") : "READY"}</span>
         <span data-field="study-remaining">${state.study.active ? formatDuration(Math.max(0, state.study.duration - state.study.elapsed)) : ""}</span>
       </div>
-      ${button(
-        state.study.active ? "Study in progress" : "Start Improvement",
-        "start-study",
-        {
-          disabled: state.study.active || state.devices.autoCalculator,
-          variant: state.devices.autoCalculator ? "ghost" : "primary"
-        }
-      )}
+    </article>
+  `;
+}
+
+function renderAlgorithmUpgrade(state, config, developmentMode) {
+  const requirement = calculateAlgorithmUpgradeRequirement(state, config);
+  const visible = state.upgrades > 0 || state.improvements >= requirement;
+  if (!visible) return "";
+
+  const ready = state.improvements >= requirement;
+  const availability = evaluateComponent("algorithmUpgrade", state, config);
+  const duration = calculateAlgorithmUpgradeDuration(
+    state,
+    config,
+    developmentMode
+  );
+  const progress = state.algorithmUpgradeStudy.active
+    ? state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
+    : state.improvements / requirement;
+
+  return `
+    <article class="panel study-panel">
+      ${helpNote("Algorithm Upgrades double CRC production. Completing one resets Algorithm Improvements, and the next Upgrade requires more Improvements.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">STUDY</p>
+          <h2>Algorithm Upgrade</h2>
+        </div>
+        ${headingAction(
+          state.algorithmUpgradeStudy.active ? "Running" : "Upgrade",
+          "start-algorithm-upgrade",
+          {
+            count: state.upgrades,
+            disabled: !availability.enabled,
+            variant: availability.enabled ? "primary" : "ghost"
+          }
+        )}
+      </div>
+      <p class="muted">Rebuild the Theseus algorithm into a stronger version.</p>
+      ${progressBar(progress, "Algorithm Upgrade readiness", "discovery", "algorithm-upgrade")}
+      <div class="progress-caption">
+        <span data-field="algorithm-upgrade-status">${
+          state.algorithmUpgradeStudy.active
+            ? "UPGRADE STUDY"
+            : ready
+              ? "READY"
+              : `${state.improvements} / ${requirement} Improvements`
+        }</span>
+        <span data-field="algorithm-upgrade-remaining">${
+          state.algorithmUpgradeStudy.active
+            ? formatDuration(Math.max(0, state.algorithmUpgradeStudy.duration - state.algorithmUpgradeStudy.elapsed))
+            : formatDuration(duration)
+        }</span>
+      </div>
+    </article>
+  `;
+}
+
+function renderStudyOverclockControl(state, config) {
+  const overclockers = state.devices.overclockers;
+  if (overclockers <= 0) return "";
+
+  const overclockActive = state.overclocker.active;
+  const cooling = !overclockActive && state.overclocker.activeSeconds > 0;
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const canToggleOverclock =
+    overclockActive ||
+    (state.devices.autoCalculators > 0 && state.energy > stableCapacity);
+  const previewState = {
+    ...state,
+    overclocker: {
+      ...state.overclocker,
+      active: true
+    }
+  };
+  const speed = calculateOverclockerSpeedMultiplier(previewState, config);
+  const drain = calculateOverclockerDrainPerSecond(previewState, config);
+
+  return `
+    <article class="panel study-panel study-overclock-card ${overclockActive ? "device-card--overclocking" : ""}">
+      ${helpNote("Overclock burns unstable energy above stable Power Cell capacity to accelerate Auto Calculator-driven Algorithm Improvements. The energy draw rises while active.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">STUDY ACCELERATION</p>
+          <h2>Processor Overclock</h2>
+        </div>
+      </div>
+      <button
+        class="button button--${overclockActive ? "ghost" : "primary"} study-overclock-button"
+        data-action="toggle-overclocker"
+        ${!canToggleOverclock ? "disabled" : ""}
+      >
+        <span>${overclockActive ? "Stop Overclock" : "Overclock"}</span>
+        <small data-field="study-overclock-button-detail">x${speed.toFixed(2)} // ${formatRate(drain)}</small>
+      </button>
+      <p class="muted" data-field="study-overclock-status">${
+        overclockActive
+          ? "The calculator route is running hot."
+          : cooling
+            ? "Cooling. Re-engaging now resumes from the current thermal load."
+            : "Available while Auto Calculator is online and excess Stored Energy exists."
+      }</p>
     </article>
   `;
 }
 
 function renderAutoCalculator(state, config) {
-  const affordable = state.energy >= config.autoCalculator.cost;
+  const owned = state.devices.autoCalculators;
+  const availability = evaluateComponent("autoCalculator", state, config);
+  const cost = availability.cost;
+  const speedMultiplier = calculateAutoCalculatorSpeedMultiplier(state, config);
 
   return `
-    <article class="panel device-card ${state.devices.autoCalculator ? "device-card--online" : ""}">
+    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
+      ${helpNote("The first Auto Calculator automates Algorithm Improvements and runs them 2x faster than manual runs. Each additional calculator doubles Algorithm Improvement speed again.")}
       <div class="panel__heading">
         <div>
-          <p class="panel__label">DEVICE</p>
+          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Auto Calculator</h2>
         </div>
-        <span class="status ${state.devices.autoCalculator ? "status--online" : "status--locked"}">
-          ${state.devices.autoCalculator ? "ONLINE" : affordable ? "AVAILABLE" : "UNPOWERED"}
-        </span>
+        ${headingAction(owned > 0 ? "Add" : "Activate", "buy-auto", {
+          cost,
+          count: owned,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
       </div>
-      <p class="muted">A recovered calculation unit. It runs Studies without manual input and completes them twice as fast.</p>
-      ${helpNote("The Auto Calculator costs Stored Energy to reactivate. Once online, it starts the next Study automatically.")}
-      ${
-        state.devices.autoCalculator
-          ? '<p class="effect-line">AUTOMATION ACTIVE // ×2 STUDY SPEED</p>'
-          : button("Activate Auto Calculator", "buy-auto", {
-              disabled: !affordable,
-              detail: `Cost: ${formatEnergy(config.autoCalculator.cost)}`,
-              variant: affordable ? "primary" : "ghost"
-            })
-      }
+      <p class="muted">${
+        owned > 0
+          ? "Glows softly while automatically calculating better condensing methods."
+          : "Fadingly glows and then goes dark every time the CRC collects energy."
+      }</p>
+      ${owned > 0 ? `<p class="effect-line">AUTOMATION ACTIVE // STUDY SPEED x${speedMultiplier.toFixed(2)}</p>` : ""}
     </article>
   `;
 }
 
-function renderBlueprint(state, config) {
-  if (!state.discoveries.crcBlueprint) return "";
+function renderOverclocker(state, config) {
+  const availability = evaluateComponent("overclocker", state, config);
+  if (!availability.visible) return "";
 
-  const complete = state.crcCount >= config.crcConstruction.maximumCrcs;
-  const progress = state.construction.active
-    ? state.construction.elapsed / state.construction.duration
-    : complete
-      ? 1
-      : 0;
+  const owned = state.devices.overclockers;
+  const active = owned > 0 && state.overclocker.active;
+  const cooling = owned > 0 && !active && state.overclocker.activeSeconds > 0;
+  const previewState = {
+    ...state,
+    devices: {
+      ...state.devices,
+      overclockers: Math.max(1, owned)
+    },
+    overclocker: { ...state.overclocker, active: true }
+  };
+  const speedMultiplier = owned > 0
+    ? calculateOverclockerSpeedMultiplier(previewState, config)
+    : config.overclocker.baseCalculatorSpeedMultiplier;
+  const drain = owned > 0
+    ? calculateOverclockerDrainPerSecond(
+        previewState,
+        config
+      )
+    : config.overclocker.baseEnergyDrainPerSecond;
+  const nextSpeed = calculateOverclockerSpeedMultiplier(
+    {
+      ...state,
+      devices: { ...state.devices, overclockers: owned + 1 },
+      overclocker: { ...state.overclocker, active: true }
+    },
+    config
+  );
+  const nextDrain = calculateOverclockerDrainPerSecond(
+    {
+      ...state,
+      devices: { ...state.devices, overclockers: owned + 1 },
+      overclocker: { ...state.overclocker, active: true }
+    },
+    config
+  );
+
+  return `
+    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""} ${active ? "device-card--overclocking" : ""}">
+      ${helpNote("The Overclocker expands the Processor control loop. Each unit increases Auto Calculator acceleration, but the energy draw scales faster than the speed gain.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">COMPUTATIONAL DEVICE</p>
+          <h2>Overclocker</h2>
+        </div>
+        ${headingAction(owned > 0 ? "Upgrade" : "Install", "buy-overclocker", {
+          cost: availability.cost,
+          count: owned,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
+      </div>
+      <p class="muted">${
+        owned > 0
+          ? "Additional overclock routes push calculators harder, with sharply worsening energy efficiency."
+          : "The processors and stable cells can now support a controlled calculator overload."
+      }</p>
+      <div class="metric-row">
+        <span>${owned > 0 ? "Current overclock" : "Initial overclock"}</span>
+        <strong data-field="overclock-current">x${speedMultiplier.toFixed(2)} / ${formatRate(drain)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Thermal state</span>
+        <strong data-field="overclock-runtime">${
+          active
+            ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
+            : cooling
+              ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
+              : "STANDBY"
+        }</strong>
+      </div>
+      <div class="metric-row">
+        <span>Next overclock</span>
+        <strong>x${nextSpeed.toFixed(2)} / ${formatRate(nextDrain)}</strong>
+      </div>
+      ${owned > 0 ? `<p class="effect-line" data-field="overclock-effect">${active ? "OVERCLOCK ACTIVE" : cooling ? "COOLING" : "OVERCLOCK ROUTE EXPANDED"}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderBlueprint(state, config, developmentMode) {
+  const available = canResearchBlueprint(state, config);
+  if (!state.discoveries.crcBlueprint && !available && !state.blueprintStudy.active) {
+    return "";
+  }
+
+  const researchDuration = calculateBlueprintResearchDuration(
+    state,
+    config,
+    developmentMode
+  );
+  const progress = state.blueprintStudy.active
+      ? state.blueprintStudy.elapsed / state.blueprintStudy.duration
+      : state.discoveries.crcBlueprint
+        ? 1
+        : 0;
+  const researchAvailability = evaluateComponent("crcBlueprint", state, config);
 
   return `
     <article class="panel discovery-card">
+      ${helpNote("Blueprint research reconstructs the fabrication plan for additional CRCs. Once completed, each new CRC costs Stored Energy and increases base condensation.")}
       <div class="panel__heading">
         <div>
-          <p class="panel__label">TECHNOLOGY RECOVERED</p>
+          <p class="panel__label">${state.discoveries.crcBlueprint ? "TECHNOLOGY RECOVERED" : "RESEARCH SIGNAL"}</p>
           <h2>CRC Blueprint</h2>
         </div>
-        <span class="status status--discovery">RESOLVED</span>
+        ${
+          state.discoveries.crcBlueprint
+            ? statusPill("RECOVERED", "discovery")
+            : headingAction("Research", "start-blueprint-research", {
+                count: 0,
+                disabled: !researchAvailability.enabled,
+                variant: researchAvailability.enabled ? "primary" : "ghost"
+              })
+        }
       </div>
-      <p class="muted">A recovered structural plan for the CRC. It lets the facility analyze the condenser directly and build a second unit.</p>
-      ${helpNote("This structural plan was not listed in the facility index. It appears only after discovery.")}
-      <p class="effect-line">STUDY TIME ×0.65</p>
-      ${state.construction.active ? progressBar(progress, "CRC construction", "discovery", "construction") : ""}
+      <p class="muted">A structural plan for fabricating additional Cosmic Radiation Condensers.</p>
+      ${state.blueprintStudy.active ? progressBar(progress, "CRC Blueprint progress", "discovery", "blueprint") : ""}
       <div class="progress-caption">
-        <span data-field="construction-status">${state.construction.active ? "CRC CONSTRUCTION" : complete ? "SECOND CRC ONLINE" : "FABRICATION READY"}</span>
-        <span data-field="construction-remaining">${state.construction.active ? formatDuration(Math.max(0, state.construction.duration - state.construction.elapsed)) : ""}</span>
+        <span data-field="blueprint-status">${
+          state.blueprintStudy.active
+            ? "BLUEPRINT RESEARCH"
+            : state.discoveries.crcBlueprint
+                ? "FABRICATION READY"
+                : "RESEARCH READY"
+        }</span>
+        <span data-field="blueprint-remaining">${
+          state.blueprintStudy.active
+            ? formatDuration(Math.max(0, state.blueprintStudy.duration - state.blueprintStudy.elapsed))
+            : state.discoveries.crcBlueprint
+                ? "Device fabrication unlocked"
+                : formatDuration(researchDuration)
+        }</span>
       </div>
-      ${
-        complete
-          ? ""
-          : button("Construct another CRC", "construct-crc", {
-              disabled:
-                state.construction.active ||
-                state.energy < config.crcConstruction.cost,
-              detail: `Cost: ${formatEnergy(config.crcConstruction.cost)}`,
-              variant: "primary"
-            })
-      }
     </article>
   `;
 }
 
-function renderProcessor(state, config) {
-  const affordable = state.energy >= config.processor.cost;
+function renderCrcConstruction(state, config) {
+  const availability = evaluateComponent("crcConstruction", state, config);
+  if (!availability.visible && !state.construction.active) return "";
+
+  const progress = state.construction.active
+    ? state.construction.elapsed / state.construction.duration
+    : 0;
 
   return `
-    <article class="panel device-card ${state.devices.processor ? "device-card--online" : ""}">
+    <article class="panel device-card">
+      ${helpNote("CRC fabrication uses the recovered Blueprint to build another Cosmic Radiation Condenser. Each completed condenser adds another base energy source.")}
       <div class="panel__heading">
         <div>
-          <p class="panel__label">DEVICE</p>
+          <p class="panel__label">ENERGY DEVICE</p>
+          <h2>Cosmic Radiation Condenser Fabrication</h2>
+        </div>
+        ${headingAction(
+          state.construction.active ? "Building" : "Construct",
+          "construct-crc",
+          {
+            cost: availability.cost,
+            count: state.crcCount,
+            disabled: !availability.enabled,
+            variant: availability.enabled ? "primary" : "ghost"
+          }
+        )}
+      </div>
+      <p class="muted">Uses the recovered condenser plan to add another passive radiation collection point.</p>
+      ${state.construction.active ? progressBar(progress, "CRC construction progress", "discovery", "construction") : ""}
+      <div class="progress-caption">
+        <span data-field="construction-status">${state.construction.active ? "CRC CONSTRUCTION" : "FABRICATION READY"}</span>
+        <span data-field="construction-remaining">${
+          state.construction.active
+            ? formatDuration(Math.max(0, state.construction.duration - state.construction.elapsed))
+            : `Cost: ${formatEnergy(availability.cost)}`
+        }</span>
+      </div>
+    </article>
+  `;
+}
+function renderProcessor(state, config) {
+  const owned = state.devices.processors;
+  const availability = evaluateComponent("processor", state, config);
+  const cost = availability.cost;
+  const efficiencyMultiplier = calculateDeviceEfficiencyMultiplier(state, config);
+  const overclockers = state.devices.overclockers;
+  const overclockActive = overclockers > 0 && state.overclocker.active;
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const canToggleOverclock =
+    overclockers > 0 &&
+    (overclockActive ||
+      (state.devices.autoCalculators > 0 && state.energy > stableCapacity));
+  const overclockSpeed = calculateOverclockerSpeedMultiplier(state, config);
+  const overclockDrain = overclockers > 0
+    ? calculateOverclockerDrainPerSecond(
+        { ...state, overclocker: { ...state.overclocker, active: true } },
+        config
+      )
+    : 0;
+
+  return `
+    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
+      ${helpNote("Each Processor adds 15% multiplicative efficiency to computational and fabrication systems. It improves Auto Calculators and CRC construction speed, but does not increase CRC energy production.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Processor</h2>
         </div>
-        <span class="status ${state.devices.processor ? "status--online" : "status--locked"}">
-          ${state.devices.processor ? "ONLINE" : affordable ? "AVAILABLE" : "UNPOWERED"}
-        </span>
+        ${headingAction(owned > 0 ? "Add" : "Install", "buy-processor", {
+          cost,
+          count: owned,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
       </div>
-      <p class="muted">A generic processing core. Once installed, connected devices respond faster and the MVP-0 facility loop is complete.</p>
-      ${helpNote("The Processor is the first major restoration target. It only needs enough Stored Energy to reactivate.")}
+      <p class="muted">${
+        owned > 0
+          ? "Improves calculator throughput and fabrication control with transistor-based processment."
+          : "Seems like a better technology for devices control."
+      }</p>
+      ${owned > 0 ? `<p class="effect-line">COMPUTE / FABRICATION EFFICIENCY x${efficiencyMultiplier.toFixed(2)}</p>` : ""}
       ${
-        state.devices.processor
-          ? '<p class="effect-line">DEVICE EXECUTION TIME ×0.90</p>'
-          : button("Install Processor", "buy-processor", {
-              disabled: !affordable,
-              detail: `Cost: ${formatEnergy(config.processor.cost)}`,
-              variant: affordable ? "primary" : "ghost"
-            })
+        overclockers > 0
+          ? `<div class="device-inline-actions">
+              ${button(overclockActive ? "Stop Overclock" : "Overclock", "toggle-overclocker", {
+                disabled: !canToggleOverclock,
+                variant: overclockActive ? "ghost" : "primary",
+                className: "button--compact"
+              })}
+              <span data-field="overclock-inline">${overclockActive ? `x${overclockSpeed.toFixed(2)} active` : `x${calculateOverclockerSpeedMultiplier({ ...state, overclocker: { ...state.overclocker, active: true } }, config).toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"}`} // ${formatRate(overclockDrain)}</span>
+            </div>`
+          : ""
       }
     </article>
   `;
 }
 
+function renderCalculationMethod(state, config) {
+  const visible = state.upgrades > 0 || state.calculationMethods > 0;
+  if (!visible) return "";
+
+  const required = calculateCalculationMethodRequirement(state, config);
+  const ready = state.upgrades >= required;
+  const availability = evaluateComponent("calculationMethodUpgrade", state, config);
+  const progress = state.upgrades / required;
+  const penaltyScale =
+    config.study.effectPenaltyMultiplierPerMethod ** state.calculationMethods;
+
+  return `
+    <article class="panel method-card ${ready ? "method-card--ready" : ""}">
+      ${helpNote("A Calculation Method Upgrade requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and makes future Algorithm Improvement effects decay more slowly.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">STUDY RESET</p>
+          <h2>Calculation Method Upgrade</h2>
+        </div>
+        ${headingAction("Upgrade", "claim-method", {
+          count: state.calculationMethods,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
+      </div>
+      <p class="muted">A whole new method. Starts studies over, but improves future Improvement effects.</p>
+      ${progressBar(progress, "Calculation Method Upgrade readiness", "study")}
+      <div class="progress-caption">
+        <span>${ready ? "METHOD UPGRADE READY" : `${Math.min(state.upgrades, required)} / ${required} Algorithm Upgrades`}</span>
+        <span>Penalty scale x${penaltyScale.toFixed(2)}</span>
+      </div>
+    </article>
+  `;
+}
+
+function renderSetupOptimization(state, config) {
+  const visible = state.upgrades > 0 || state.calculationMethods > 0 || state.setupOptimizations > 0;
+  if (!visible) return "";
+
+  const required = calculateSetupOptimizationRequirement(state, config);
+  const ready = state.calculationMethods >= required;
+  const availability = evaluateComponent("setupOptimization", state, config);
+  const progress = state.calculationMethods / required;
+  const loadScale =
+    config.study.durationLoadMultiplierPerSetup ** state.setupOptimizations;
+  const penaltyScale = loadScale ** config.study.durationGrowthPower;
+
+  return `
+    <article class="panel method-card ${ready ? "method-card--ready" : ""}">
+      ${helpNote("Setup Optimization costs no energy, but resets energy, studies, CRCs and hardware except Power Cells. It permanently reduces the time penalty growth of Algorithm Improvements.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">HARD RESET</p>
+          <h2>Setup Optimization</h2>
+        </div>
+        ${headingAction("Optimize", "claim-setup", {
+          count: state.setupOptimizations,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
+      </div>
+      <p class="muted">A whole new setup. Discards most hardware, but improves research time scaling.</p>
+      ${progressBar(progress, "Setup Optimization readiness", "discovery")}
+      <div class="progress-caption">
+        <span>${ready ? "SETUP READY" : `${Math.min(state.calculationMethods, required)} / ${required} Method Upgrades`}</span>
+        <span>Penalty curve x${penaltyScale.toFixed(2)}</span>
+      </div>
+    </article>
+  `;
+}
 function renderDoor(state, config) {
   const progress = calculateDoorProgress(state, config);
+  const labOpen = canAccessParticleLab(state, config);
+
+  if (labOpen) {
+    const availability = evaluateComponent("particleSynthesizer", state, config);
+    const synthesizerProgress = calculateParticleSynthesizerProgress(
+      state,
+      config
+    );
+
+    return `
+      <article class="ambient-door ambient-door--open">
+        <p class="panel__label">PARTICLE LABORATORY</p>
+        <div class="ambient-door__heading">
+          <h2>Particle Sintetizer</h2>
+          <strong class="door-status">${
+            state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT"
+          }</strong>
+        </div>
+        ${progressBar(synthesizerProgress, "Activate Particle Sintetizer", "door", "particle-synthesizer")}
+        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.</p>
+        ${headingAction(
+          state.particleSynthesizer.activated ? "Activated" : "Activate",
+          "activate-particle-synthesizer",
+          {
+            cost: availability.cost,
+            disabled: !availability.enabled,
+            variant: availability.enabled ? "primary" : "ghost"
+          }
+        )}
+      </article>
+    `;
+  }
+
   let status = "LOW POWER";
   if (progress > 0.75) status = "AUXILIARY CURRENT DETECTED";
   else if (progress > 0.45) status = "SYSTEM RESPONSE DETECTED";
@@ -1034,7 +3522,95 @@ function renderDoor(state, config) {
         <strong class="door-status">${status}</strong>
       </div>
       ${progressBar(progress, "Particle Laboratory power response", "door", "door")}
-      <p class="muted">A dead line on the facility map mentions particle synthesis. The route stays quiet, reacting only to rising power.</p>
+      <p class="muted">A dead line on the facility map mentions particle synthesis. It should open once the facility has proven it can hold ${formatEnergy(config.particleLab.doorEnergyRequired)}.</p>
+    </article>
+  `;
+}
+
+function renderParticleLabDetails(state, config) {
+  const progress = calculateParticleSynthesizerProgress(state, config);
+
+  return `
+    <article class="panel science-panel">
+      ${helpNote("The Particle Sintetizer is the next layer bridge. At full charge it will become the reset point into particle synthesis and Science Points.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">PARTICLE LABORATORY</p>
+          <h2>Particle Sintetizer</h2>
+        </div>
+        ${statusPill(state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT", state.particleSynthesizer.activated ? "online" : "locked")}
+      </div>
+      <p class="muted">The central panel shows an immense structure. Most lines are still dark; the readable route asks for ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.</p>
+      <div class="metric-row">
+        <span>Activation charge</span>
+        <strong>${formatPercent(progress)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Stored Energy</span>
+        <strong>${formatEnergy(state.energy)}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderScienceStatus(state) {
+  return `
+    <article class="panel science-panel">
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">SCIENCE</p>
+          <h2>Preserved Knowledge</h2>
+        </div>
+        ${statusPill(`${state.sciencePoints} SP`, state.sciencePoints > 0 ? "discovery" : "locked")}
+      </div>
+      <div class="metric-row">
+        <span>Science Points</span>
+        <strong>${state.sciencePoints}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Particle Sintetizations</span>
+        <strong>${state.science?.syntheses ?? 0}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderMatrixMechanics(state, config) {
+  const availability = evaluateComponent("matrixMechanics", state, config);
+  if (!availability.visible) return "";
+
+  const bonus =
+    config.science.matrixMechanics.improvementSpeedBonusPerUpgradePerImprovement;
+  const currentSpeed = calculateMatrixMechanicsSpeedMultiplier(state, config);
+
+  return `
+    <article class="panel science-panel ${state.science.matrixMechanics ? "device-card--online" : ""}">
+      ${helpNote("Matrix Mechanics compounds a small calculation speed correction across each Algorithm Improvement cycle. It scales with current Algorithm Upgrades and current Improvements.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">CENTRAL PRINCIPLE</p>
+          <h2>Matrix Mechanics</h2>
+        </div>
+        ${
+          state.science.matrixMechanics
+            ? statusPill("ACTIVE", "online")
+            : headingAction("Study", "buy-matrix-mechanics", {
+                cost: availability.cost,
+                costLabel: `${availability.cost} SP`,
+                disabled: !availability.enabled,
+                variant: availability.enabled ? "primary" : "ghost"
+              })
+        }
+      </div>
+      <p class="muted">Reframes repeated condenser calculations as discrete matrix states.</p>
+      <div class="metric-row">
+        <span>Effect</span>
+        <strong>x${(1 + bonus).toFixed(4)}^(A.Upgrades x A.Improvements)</strong>
+      </div>
+      <div class="metric-row">
+        <span>Current study speed</span>
+        <strong>x${currentSpeed.toFixed(2)}</strong>
+      </div>
     </article>
   `;
 }
@@ -1062,14 +3638,26 @@ function renderLog(state) {
   `;
 }
 
-function renderDevelopmentPanel() {
+function renderDevelopmentPanel(state) {
   return `
     <article class="panel dev-panel">
       <p class="panel__label">DEVELOPMENT CONTROLS</p>
+      <div class="metric-row">
+        <span>Production multiplier</span>
+        <strong>x${state.devSettings.productionMultiplier}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Duration multiplier</span>
+        <strong>x${state.devSettings.durationMultiplier}</strong>
+      </div>
       <div class="dev-actions">
         ${button("Add 0.25 J", "dev-add-energy", { variant: "ghost" })}
+        ${button("Double Energy", "dev-add-large-energy", { variant: "ghost" })}
         ${button("Complete Study", "dev-complete-study", { variant: "ghost" })}
+        ${button("Complete Upgrade", "dev-complete-upgrade", { variant: "ghost" })}
         ${button("Force Blueprint", "dev-force-blueprint", { variant: "ghost" })}
+        ${button("Cycle Production", "dev-cycle-production", { variant: "ghost" })}
+        ${button("Cycle Duration", "dev-cycle-duration", { variant: "ghost" })}
       </div>
     </article>
   `;
@@ -1081,7 +3669,7 @@ function renderCompletion() {
       <p class="eyebrow">MILESTONE REACHED</p>
       <h2>PROCESSING NETWORK ONLINE</h2>
       <p>${TEXT.processorComplete}</p>
-      <p class="completion-panel__note">END OF MVP-0 // SAVE PRESERVED</p>
+      <p class="completion-panel__note">MVP-0 COMPLETE // LAYER CONTINUES</p>
     </article>
   `;
 }
@@ -1099,6 +3687,237 @@ function renderSection(title, label, note, content, className = "") {
       ${content}
     </section>
   `;
+}
+
+function renderDeviceGroup(group, content) {
+  const cleanContent = content.trim();
+  if (!cleanContent) return "";
+
+  return `
+    <section class="device-group" aria-label="${group.label}">
+      <div class="device-group__heading">
+        <div>
+          <p class="panel__label">${group.label.toUpperCase()}</p>
+          <h2>${group.label}</h2>
+        </div>
+        <p>${group.note}</p>
+      </div>
+      <div class="section-stack">${cleanContent}</div>
+    </section>
+  `;
+}
+
+function renderDevicesTab(state, config, developmentMode) {
+  const energyDevices = `
+    ${renderCrcDevice(state, config, developmentMode)}
+    ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
+    ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
+    ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
+  `;
+  const computationalDevices = `
+    ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
+    ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
+    ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
+    ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
+    ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
+  `;
+  const deviceResets = `
+    ${renderSetupOptimization(state, config)}
+  `;
+
+  return `
+    ${renderTabTools(state)}
+    <div class="tab-grid">
+      <section class="tab-main-column">
+        ${renderDeviceGroup(DEVICE_GROUPS[0], energyDevices)}
+        ${renderDeviceGroup(DEVICE_GROUPS[1], computationalDevices)}
+      </section>
+      <aside class="tab-side-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">DEVICE RESET</p>
+            <h2>Setup Layer</h2>
+          </div>
+          <p>Routes that replace the physical setup and discard most local hardware.</p>
+        </div>
+        <div class="section-stack">${deviceResets.trim() || '<p class="empty-note">No setup reset is readable yet.</p>'}</div>
+      </aside>
+    </div>
+  `;
+}
+
+function renderStudiesTab(state, config, developmentMode) {
+  const studyCards = `
+    ${renderStudy(state, config, developmentMode)}
+    ${renderAlgorithmUpgrade(state, config, developmentMode)}
+    ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
+  `;
+  const resetCards = `
+    ${renderStudyOverclockControl(state, config)}
+    ${renderCalculationMethod(state, config)}
+  `;
+
+  return `
+    ${renderTabTools(state)}
+    <div class="tab-grid">
+      <section class="tab-main-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">STUDIES</p>
+            <h2>Study Routes</h2>
+          </div>
+          <p>Methods, calculations, and research routes that change how the facility understands the condenser.</p>
+        </div>
+        <div class="section-stack">${studyCards}</div>
+      </section>
+      <aside class="tab-side-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">METHOD RESET</p>
+            <h2>Method Layer</h2>
+          </div>
+          <p>Routes that discard study progress to improve long-term method scaling.</p>
+        </div>
+        <div class="section-stack">${resetCards.trim() || '<p class="empty-note">No method reset is readable yet.</p>'}</div>
+      </aside>
+    </div>
+  `;
+}
+
+function renderScienceTab(state, config) {
+  const labReadable = canAccessParticleLab(state, config);
+
+  return `
+    ${renderTabTools(state)}
+    <div class="tab-grid">
+      <section class="tab-main-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">SCIENCE</p>
+            <h2>Science Tree</h2>
+          </div>
+          <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
+        </div>
+        <div class="section-stack">
+          ${renderScienceStatus(state)}
+          ${renderComponent("matrixMechanics", state, config, () => renderMatrixMechanics(state, config))}
+        </div>
+      </section>
+      <aside class="tab-side-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">LAB</p>
+            <h2>Particle Laboratory</h2>
+          </div>
+          <p>The central panel remains the bridge into the next reset.</p>
+        </div>
+        <div class="section-stack">
+          ${labReadable ? renderComponent("particleSynthesizer", state, config, () => renderParticleLabDetails(state, config)) : '<p class="empty-note">Particle Laboratory signal is not readable in this run yet.</p>'}
+        </div>
+      </aside>
+    </div>
+  `;
+}
+
+function renderStatisticsTab(state) {
+  return `
+    <div class="tab-grid">
+      <section class="tab-main-column">
+        ${renderRecord()}
+        ${renderLog(state)}
+      </section>
+      <aside class="tab-side-column">
+        <article class="panel">
+          <p class="panel__label">RUN DATA</p>
+          <div class="metric-row">
+            <span>Total play time</span>
+            <strong>${formatDuration(state.stats.totalPlayTime)}</strong>
+          </div>
+          <div class="metric-row">
+            <span>Current run time</span>
+            <strong>${formatDuration(state.stats.runPlayTime)}</strong>
+          </div>
+          <div class="metric-row">
+            <span>Total condensed</span>
+            <strong>${formatEnergy(state.stats.totalEnergyCollected)}</strong>
+          </div>
+          <div class="metric-row">
+            <span>Peak stored</span>
+            <strong>${formatEnergy(state.peakEnergy)}</strong>
+          </div>
+        </article>
+      </aside>
+    </div>
+  `;
+}
+
+function renderMeasureTab(state, config, developmentMode) {
+  const production = calculateProduction(state, config, developmentMode);
+  const breakdown = calculateProductionBreakdown(state, config, developmentMode);
+
+  return `
+    <div class="tab-grid tab-grid--single">
+      <section class="tab-main-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">MEASURE</p>
+            <h2>Energy Production Composition</h2>
+          </div>
+          <p>T2 Soft Display reads the live condenser route and separates the current output into source layers.</p>
+        </div>
+        <article class="panel measure-panel">
+          ${helpNote("This panel shows raw energy production before overflow decay. Percentages represent each component's share of current production.")}
+          <div class="panel__heading">
+            <div>
+              <p class="panel__label">T2 SOFT DISPLAY // ONLINE</p>
+              <h2>Current Output</h2>
+            </div>
+            ${statusPill(formatRate(production), "online")}
+          </div>
+          <div class="measure-table" role="table" aria-label="Energy production composition">
+            <div class="measure-table__row measure-table__row--head" role="row">
+              <span>Component</span>
+              <span>Contribution</span>
+              <span>Share</span>
+            </div>
+            ${breakdown
+              .map((row) => {
+                const share = production > 0 ? row.value / production : 0;
+                return `
+                  <div class="measure-table__row" role="row">
+                    <span>${row.label}</span>
+                    <strong>${formatRate(row.value)}</strong>
+                    <strong>${formatPercent(share)}</strong>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+          <div class="metric-row measure-total">
+            <span>Total raw production</span>
+            <strong>${formatRate(production)}</strong>
+          </div>
+        </article>
+      </section>
+    </div>
+  `;
+}
+
+function renderSaveTab(saveSlots, developmentMode) {
+  return `
+    <div class="tab-grid tab-grid--single">
+      ${renderSaveManagement(saveSlots, developmentMode)}
+    </div>
+  `;
+}
+
+function renderTabContent(activeTab, state, config, developmentMode, saveSlots) {
+  if (activeTab === "studies") return renderStudiesTab(state, config, developmentMode);
+  if (activeTab === "measure") return renderMeasureTab(state, config, developmentMode);
+  if (activeTab === "science") return renderScienceTab(state, config);
+  if (activeTab === "statistics") return renderStatisticsTab(state);
+  if (activeTab === "save") return renderSaveTab(saveSlots, developmentMode);
+  return renderDevicesTab(state, config, developmentMode);
 }
 
 function setField(app, key, value) {
@@ -1119,43 +3938,54 @@ function setProgress(app, key, value) {
   fill.style.width = `${percentage}%`;
 }
 
-function createRenderSignature(state, config, developmentMode) {
+function createRenderSignature(state, config, developmentMode, saveSlots = []) {
   if (state.introState !== "active") {
     return JSON.stringify({
-      introState: state.introState
+      introState: state.introState,
+      developmentMode,
+      saveSlots
     });
   }
 
-  const autoCalculatorAffordable =
-    state.energy >= config.autoCalculator.cost;
-  const softDataDisplayAffordable =
-    state.energy >= config.softDataDisplay.cost;
-  const crcComplete =
-    state.crcCount >= config.crcConstruction.maximumCrcs;
-  const crcAffordable =
-    state.energy >= config.crcConstruction.cost;
-  const processorAffordable =
-    state.energy >= config.processor.cost;
+  const availability = buildAvailabilitySnapshot(state, config);
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
 
   return JSON.stringify({
     introState: state.introState,
     developmentMode,
+    activeTab: getActiveTab(state, config),
+    hideCompletedPurchases: state.ui?.hideCompletedPurchases ?? false,
+    seenComponents: state.ui?.seenComponents ?? {},
     improvements: state.improvements,
     upgrades: state.upgrades,
     crcCount: state.crcCount,
+    powerCells: state.powerCells,
+    powerModules: state.powerModules,
+    sciencePoints: state.sciencePoints,
+    matrixMechanics: state.science?.matrixMechanics ?? false,
+    syntheses: state.science?.syntheses ?? 0,
+    particleSynthesizerActivated: state.particleSynthesizer.activated,
+    calculationMethods: state.calculationMethods,
+    setupOptimizations: state.setupOptimizations,
     softDataDisplay: state.devices.softDataDisplay,
-    softDataDisplayAffordable,
-    autoCalculator: state.devices.autoCalculator,
-    autoCalculatorAffordable,
-    processor: state.devices.processor,
-    processorAffordable,
+    t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
+    overclockers: state.devices.overclockers,
+    overclockerActive: state.overclocker.active,
+    availability,
+    overflowingEnergy: state.energy > stableCapacity,
+    autoCalculators: state.devices.autoCalculators,
+    processors: state.devices.processors,
     crcBlueprint: state.discoveries.crcBlueprint,
-    crcComplete,
-    crcAffordable,
+    blueprintResearchAvailable: canResearchBlueprint(state, config),
     studyActive: state.study.active,
     studyAutomated: state.study.automated,
+    algorithmUpgradeActive: state.algorithmUpgradeStudy.active,
+    blueprintStudyActive: state.blueprintStudy.active,
     constructionActive: state.construction.active,
     prototypeComplete: state.prototypeComplete,
+    devProductionMultiplier: state.devSettings.productionMultiplier,
+    devDurationMultiplier: state.devSettings.durationMultiplier,
+    saveSlots,
     latestLogId: state.log[0]?.id ?? ""
   });
 }
@@ -1163,24 +3993,90 @@ function createRenderSignature(state, config, developmentMode) {
 function updateDynamicFields(app, state, config, developmentMode) {
   if (state.introState !== "active") return;
 
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
   setField(app, "energy", formatEnergy(state.energy));
-  setProgress(app, "energy", state.energy / config.energy.powerCellCapacity);
-  setProgress(app, "door", calculateDoorProgress(state, config));
+  setProgress(app, "energy", state.energy / stableCapacity);
+  if (canAccessParticleLab(state, config)) {
+    setProgress(
+      app,
+      "particle-synthesizer",
+      calculateParticleSynthesizerProgress(state, config)
+    );
+  } else {
+    setProgress(app, "door", calculateDoorProgress(state, config));
+  }
 
   if (state.devices.softDataDisplay) {
     const production = calculateProduction(state, config, developmentMode);
+    const netProduction = calculateEffectiveProduction(
+      state,
+      config,
+      developmentMode
+    );
+    const overflowDecay = calculateEnergyOverflowDecay(state, config);
     const remainingCapacity = Math.max(
       0,
-      config.energy.powerCellCapacity - state.energy
+      stableCapacity - state.energy
     );
     const fillTime =
       production > 0 && remainingCapacity > 0
-        ? formatDuration(remainingCapacity / production)
-        : "FULL";
+        ? formatDuration(remainingCapacity / Math.max(production, Number.EPSILON))
+        : state.energy > stableCapacity
+          ? "EQUILIBRATING"
+          : "FULL";
 
     setField(app, "energy-rate", formatRate(production));
+    setField(app, "retained-rate-main", formatRate(netProduction));
+    setField(app, "retained-rate", formatRate(netProduction));
+    setField(app, "energy-retention-main", formatRate(overflowDecay));
     setField(app, "fill-time", fillTime);
+    setField(app, "energy-retention", formatRate(overflowDecay));
     setField(app, "total-energy", formatEnergy(state.stats.totalEnergyCollected));
+  }
+
+  if (state.devices.overclockers > 0) {
+    const activePreview = {
+      ...state,
+      overclocker: {
+        ...state.overclocker,
+        active: true
+      }
+    };
+    const speed = calculateOverclockerSpeedMultiplier(activePreview, config);
+    const drain = calculateOverclockerDrainPerSecond(activePreview, config);
+    const status = state.overclocker.active
+      ? `x${speed.toFixed(2)} active // ${formatRate(drain)}`
+      : `x${speed.toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"} // ${formatRate(drain)}`;
+    setField(app, "overclock-inline", status);
+    setField(app, "study-overclock-button-detail", `x${speed.toFixed(2)} // ${formatRate(drain)}`);
+    setField(app, "overclock-current", `x${speed.toFixed(2)} / ${formatRate(drain)}`);
+    setField(
+      app,
+      "study-overclock-status",
+      state.overclocker.active
+        ? "The calculator route is running hot."
+        : state.overclocker.activeSeconds > 0
+          ? "Cooling. Re-engaging now resumes from the current thermal load."
+          : "Available while Auto Calculator is online and excess Stored Energy exists."
+    );
+    setField(
+      app,
+      "overclock-effect",
+      state.overclocker.active
+        ? "OVERCLOCK ACTIVE"
+        : state.overclocker.activeSeconds > 0
+          ? "COOLING"
+          : "OVERCLOCK ROUTE EXPANDED"
+    );
+    setField(
+      app,
+      "overclock-runtime",
+      state.overclocker.active
+        ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
+        : state.overclocker.activeSeconds > 0
+          ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
+          : "STANDBY"
+    );
   }
 
   if (state.study.active) {
@@ -1190,6 +4086,34 @@ function updateDynamicFields(app, state, config, developmentMode) {
       "study-remaining",
       formatDuration(Math.max(0, state.study.duration - state.study.elapsed))
     );
+  }
+
+  if (state.algorithmUpgradeStudy.active) {
+    setProgress(
+      app,
+      "algorithm-upgrade",
+      state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
+    );
+    setField(
+      app,
+      "algorithm-upgrade-remaining",
+      formatDuration(
+        Math.max(
+          0,
+          state.algorithmUpgradeStudy.duration -
+            state.algorithmUpgradeStudy.elapsed
+        )
+      )
+    );
+  }
+
+  if (state.blueprintStudy.active) {
+    setProgress(
+      app,
+      "blueprint",
+      state.blueprintStudy.elapsed / state.blueprintStudy.duration
+    );
+    setField(app, "blueprint-remaining", formatDuration(Math.max(0, state.blueprintStudy.duration - state.blueprintStudy.elapsed)));
   }
 
   if (state.construction.active) {
@@ -1208,59 +4132,37 @@ function updateDynamicFields(app, state, config, developmentMode) {
   }
 }
 
-function renderGame(state, config, developmentMode) {
+function renderGame(state, config, developmentMode, saveSlots) {
+  const activeTab = getActiveTab(state, config);
+
   return `
     ${renderHeader(state, developmentMode)}
     ${state.prototypeComplete ? renderCompletion() : ""}
-    <section class="dashboard-grid">
-      <div class="dashboard-main">
-        ${renderSection(
-          "Energy Layer",
-          "LAYER 1 // CONDENSATION",
-          "The facility converts a faint cosmic signal into Stored Energy and keeps it inside the first Power Cell.",
-          `<div class="energy-layout">
-            ${renderEnergy(state, config, developmentMode)}
-            ${renderCrcDevice(state, config, developmentMode)}
-          </div>`,
-          "layer-section--energy"
-        )}
-        ${renderSection(
-          "Algorithm Study",
-          "ANALYSIS LOOP",
-          "Every completed study sharpens the condenser behavior; rare structural jumps are logged as discoveries.",
-          renderStudy(state, config, developmentMode),
-          "layer-section--study"
-        )}
-        ${renderSection(
-          "Recovered Devices",
-          "INFRASTRUCTURE",
-          "Recovered hardware appears only when the current layer can support it.",
-          `<div class="section-stack" aria-label="Devices and discoveries">
-            ${renderSoftDataDisplay(state, config)}
-            ${renderAutoCalculator(state, config)}
-            ${renderBlueprint(state, config)}
-            ${renderProcessor(state, config)}
-          </div>`,
-          "layer-section--devices"
-        )}
-        ${developmentMode ? renderDevelopmentPanel() : ""}
-      </div>
-      <aside class="dashboard-aside">
-        <section class="ambient-signals" aria-label="Ambient signals">
-          ${renderRecord()}
-          ${renderDoor(state, config)}
-        </section>
-        ${renderLog(state)}
-      </aside>
+    ${renderTabBar(state, config)}
+    <section class="operation-focus" aria-label="Power and production focus">
+      ${renderEnergy(state, config, developmentMode)}
+    </section>
+    <section class="next-tier-focus" aria-label="Next tier progress">
+      ${renderDoor(state, config)}
+    </section>
+    <section class="tab-content tab-content--${activeTab}" aria-label="${activeTab}">
+      ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
+      ${developmentMode ? renderDevelopmentPanel(state) : ""}
     </section>
   `;
 }
 
-function createRenderer(app, config, developmentMode) {
+function createRenderer(app, config, developmentMode, getSaveSlots = () => []) {
   let lastRenderSignature = "";
 
   return function render(state) {
-    const signature = createRenderSignature(state, config, developmentMode);
+    const saveSlots = getSaveSlots();
+    const signature = createRenderSignature(
+      state,
+      config,
+      developmentMode,
+      saveSlots
+    );
 
     if (signature === lastRenderSignature) {
       updateDynamicFields(app, state, config, developmentMode);
@@ -1284,7 +4186,7 @@ function createRenderer(app, config, developmentMode) {
       return;
     }
 
-    app.innerHTML = renderGame(state, config, developmentMode);
+    app.innerHTML = renderGame(state, config, developmentMode, saveSlots);
     updateDynamicFields(app, state, config, developmentMode);
   };
 }
@@ -1302,7 +4204,7 @@ async function loadConfig() {
   return response.json();
 }
 
-function bindActions(app, engine, resetSave) {
+function bindActions(app, engine, saveActions, config) {
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
@@ -1313,14 +4215,55 @@ function bindActions(app, engine, resetSave) {
       "leave-room": () => engine.leaveRoom(),
       "return-to-room": () => engine.returnToRoom(),
       "start-study": () => engine.startStudy(false),
+      "start-algorithm-upgrade": () => engine.startAlgorithmUpgradeStudy(),
+      "start-blueprint-research": () => engine.startBlueprintResearch(),
+      "buy-power-cell": () => engine.purchasePowerCell(),
+      "buy-max-power-cells": () => engine.purchaseMaxPowerCells(),
+      "buy-power-module": () => engine.purchasePowerModule(),
       "buy-soft-display": () => engine.purchaseSoftDataDisplay(),
+      "buy-t2-soft-display": () => engine.purchaseT2SoftDataDisplay(),
+      "buy-overclocker": () => engine.purchaseOverclocker(),
+      "toggle-overclocker": () => engine.toggleOverclocker(),
       "buy-auto": () => engine.purchaseAutoCalculator(),
       "construct-crc": () => engine.startCrcConstruction(),
       "buy-processor": () => engine.purchaseProcessor(),
+      "activate-particle-synthesizer": () => engine.activateParticleSynthesizer(),
+      "buy-matrix-mechanics": () => engine.purchaseMatrixMechanics(),
+      "claim-method": () => engine.claimCalculationMethodUpgrade(),
+      "claim-setup": () => engine.claimSetupOptimization(),
+      "set-tab": () => {
+        engine.state.ui.activeTab = target.dataset.tab || "devices";
+        markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
+        engine.notify();
+      },
+      "toggle-hide-completed": () => {
+        engine.state.ui.hideCompletedPurchases =
+          !engine.state.ui.hideCompletedPurchases;
+        engine.notify();
+      },
+      "enter-dev-mode": () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("dev", "1");
+        window.location.href = url.toString();
+      },
+      "exit-dev-mode": () => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("dev");
+        window.location.href = url.toString();
+      },
       "dev-add-energy": () => engine.developmentAddEnergy(),
+      "dev-add-large-energy": () => engine.developmentAddLargeEnergy(),
       "dev-complete-study": () => engine.developmentCompleteStudy(),
+      "dev-complete-upgrade": () => engine.developmentCompleteAlgorithmUpgrade(),
       "dev-force-blueprint": () => engine.developmentForceBlueprint(),
-      "reset-save": resetSave
+      "dev-cycle-production": () => engine.developmentCycleProductionMultiplier(),
+      "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
+      "save-now": () => saveActions.saveNow(),
+      "reset-save": () => saveActions.resetCurrent(),
+      "reset-current-save": () => saveActions.resetCurrent(),
+      "reset-normal-save": () => saveActions.resetMode(false),
+      "reset-development-save": () => saveActions.resetMode(true),
+      "reset-all-saves": () => saveActions.resetAll()
     };
 
     actions[target.dataset.action]?.();
@@ -1335,21 +4278,59 @@ async function start() {
   try {
     const config = await loadConfig();
     const state = loadState(config, developmentMode);
+    simulateOfflineProgress(state, config, { developmentMode });
     const engine = new GameEngine({ state, config, developmentMode });
-    const render = createRenderer(app, config, developmentMode);
+    const render = createRenderer(app, config, developmentMode, listSaveSlots);
+    let saveSuppressed = false;
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);
 
-    const resetSave = () => {
-      const confirmed = window.confirm(
-        "Delete all progress for this mode? This cannot be undone."
-      );
-      if (!confirmed) return;
-      deleteState(developmentMode);
+    const reloadWithoutSaving = () => {
+      saveSuppressed = true;
       window.location.reload();
     };
 
-    bindActions(app, engine, resetSave);
+    const resetMode = (mode) => {
+      const label = mode ? "development" : "normal";
+      const confirmed = window.confirm(
+        `Delete ${label} mode progress? This cannot be undone.`
+      );
+      if (!confirmed) return;
+      deleteState(mode);
+      if (mode === developmentMode) {
+        reloadWithoutSaving();
+        return;
+      }
+      render(state);
+    };
+
+    const resetAll = () => {
+      const confirmed = window.confirm(
+        "Delete normal and development progress? This cannot be undone."
+      );
+      if (!confirmed) return;
+      deleteAllStates();
+      reloadWithoutSaving();
+    };
+
+    const saveNow = () => {
+      if (saveSuppressed) return;
+      saveState(state, developmentMode);
+      engine.addLog(
+        "Simulation memory saved. Offline recovery anchor updated.",
+        "device"
+      );
+      engine.notify();
+    };
+
+    markTabComponentsSeen(state, config);
+
+    bindActions(app, engine, {
+      saveNow,
+      resetCurrent: () => resetMode(developmentMode),
+      resetMode,
+      resetAll
+    }, config);
     engine.subscribe(render);
     render(state);
 
@@ -1368,7 +4349,7 @@ async function start() {
       }
 
       if (now - previousSave >= config.timing.autosaveIntervalMs) {
-        saveState(state, developmentMode);
+        if (!saveSuppressed) saveState(state, developmentMode);
         previousSave = now;
       }
 
@@ -1376,7 +4357,7 @@ async function start() {
     }
 
     window.addEventListener("beforeunload", () => {
-      saveState(state, developmentMode);
+      if (!saveSuppressed) saveState(state, developmentMode);
     });
 
     window.requestAnimationFrame(frame);

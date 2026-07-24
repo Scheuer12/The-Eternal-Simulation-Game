@@ -6,9 +6,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sources = [
   "content/texts.js",
   "js/formulas.js",
+  "js/effect-system.js",
+  "js/component-registry.js",
+  "js/availability.js",
   "js/state.js",
   "js/save-system.js",
   "js/engine.js",
+  "js/offline-progress.js",
   "js/ui.js",
   "js/main.js"
 ];
@@ -39,4 +43,3 @@ ${sections.join("\n")}
 
 await writeFile(path.join(root, "js/game.bundle.js"), bundle, "utf8");
 console.log("Generated js/game.bundle.js");
-

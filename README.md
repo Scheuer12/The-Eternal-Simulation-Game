@@ -2,7 +2,7 @@
 
 A text-driven cosmic incremental game prototype. The player restores an abandoned facility, condenses cosmic radiation and gradually turns manual experimentation into an automated system.
 
-This first playable slice ends when the first **Processor** comes online.
+This first playable slice marks **MVP-0** when the first Processor comes online, but the Energy Layer now continues through repeatable devices and minor resets.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ http://localhost:8000/?dev=1
 
 ```powershell
 npm test
-python simulation/simulator.py --runs 1000
+python simulation/simulator.py
 ```
 
 No runtime dependencies or build step are required.
@@ -49,6 +49,6 @@ npm run build
 
 ## Current scope
 
-Included: introduction, Stored Energy, Power Cell, CRC, Soft Data Display, Algorithm Improvements, Algorithm Upgrades, Auto Calculator, CRC Blueprint, a second CRC, Processor, local save and development controls.
+Included: introduction, Stored Energy, Power Cell soft cap, buyable Power Cells, CRC, Soft Data Display, Algorithm Improvements, manual Algorithm Upgrades, repeatable Auto Calculators, Calculation Method Upgrades, Setup Optimizations, CRC Blueprint research, repeatable CRC construction, repeatable Processors, local save and development controls.
 
 Deferred: Particle Laboratory access, particles, prestige, Science Points and full offline progress.
