@@ -8,6 +8,7 @@
 - Preserve save compatibility or add an explicit migration.
 - Add or update tests whenever a formula or rule changes.
 - Keep player-facing game text in English.
+- Read Architecturing before you start.
 
 ## Before committing
 
