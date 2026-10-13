@@ -8,7 +8,10 @@ import { simulateOfflineProgress } from "../../js/offline-progress.js";
 import { createInitialState } from "../../js/state.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
+  await readFile(
+    new URL("../../config/game-config.json", import.meta.url),
+    "utf8",
+  ),
 );
 
 function createActiveState() {
@@ -50,6 +53,22 @@ test("offline progress completes active Algorithm Upgrade studies", () => {
   assert.equal(state.improvements, 0);
 });
 
+test("offline progress uses 50G Calculator to automate Algorithm Upgrades", () => {
+  const now = Date.now();
+  const state = createActiveState();
+  state.devices.autoCalculators = 1;
+  state.science.perks.redundancyElimination = true;
+  state.science.fiftyGCalculator = true;
+  state.upgrades = 3;
+  state.improvements = calculateAlgorithmUpgradeRequirement(state, config);
+  state.lastSavedAt = now - 60000;
+
+  const summary = simulateOfflineProgress(state, config, { now });
+
+  assert.ok(summary.algorithmUpgradesCompleted >= 1);
+  assert.ok(state.upgrades >= 4);
+});
+
 test("offline progress summarizes overflow decay and suppresses event spam logs", () => {
   const now = Date.now();
   const state = createActiveState();
@@ -62,7 +81,7 @@ test("offline progress summarizes overflow decay and suppresses event spam logs"
   assert.equal(state.log[0].message.startsWith("Offline recovery:"), true);
   assert.equal(
     state.log.some((entry) => entry.message.includes("Algorithm Improvement")),
-    false
+    false,
   );
 });
 

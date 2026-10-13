@@ -8,6 +8,7 @@ import {
 } from "../../js/effect-system.js";
 import { calculateProduction } from "../../js/formulas.js";
 import { createInitialState } from "../../js/state.js";
+import { assertBigEqual } from "./assertions.js";
 
 const config = JSON.parse(
   await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
@@ -21,7 +22,7 @@ test("production effects reproduce the current production formula", () => {
 
   const effects = getProductionEffects(state, config);
 
-  assert.equal(
+  assertBigEqual(
     applyProductionEffects(effects),
     calculateProduction(state, config)
   );

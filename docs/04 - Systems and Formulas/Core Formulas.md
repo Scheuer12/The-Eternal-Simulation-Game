@@ -45,6 +45,8 @@ powerModuleMultiplier = 1.35^powerModules
 stableCapacity = 1 J * powerCells * powerModuleMultiplier
 ```
 
+Com o perk Power Modules Scaling, o expoente total cresce ligeiramente por modulo adicional. Energy perks de producao aplicam os multiplicadores desbloqueados: `processorBonus^0.15`, `totalScienceEarned` e `1.005^crcCount`.
+
 Power Modules nao consomem Power Cells. O custo representa energia para ativar circuitos de captacao e conducao:
 
 ```text
@@ -133,9 +135,9 @@ Efeito:
 - dobra producao do CRC;
 - reseta Algorithm Improvements;
 - quando manual, completa instantaneamente;
-- quando uma automacao futura iniciar diretamente A. Upgrades, usa o tempo de pesquisa abaixo e seus multiplicadores aplicaveis.
+- quando o perk `50G Calculator` automatiza A. Upgrades, usa o tempo de execucao crescente abaixo.
 
-Tempo reservado para automacao direta de A. Upgrades:
+Tempo de execucao da automacao de A. Upgrades:
 
 ```text
 t = 10 * (1 + 0.16 * algorithmUpgrades^1.1)
@@ -188,7 +190,8 @@ Offline progress reaproveita as formulas e o engine em steps acelerados. Isso pr
 ```text
 particleLabDoorOpen = peakEnergy >= 100 J
 sciencePointCost(S) = 10^(11 + 0.9*S + 0.055*S^2)
-particleSynthesizerActivationCost = sciencePointCost(totalScienceEarned)
+particleSynthesizerActivationCost = 100e9
+sciencePointAward = energyAtSynthesis >= sciencePointCost(totalScienceEarned) ? 1 : 0
 particleSynthesizerProgress = energy / particleSynthesizerActivationCost
 ```
 
@@ -202,16 +205,35 @@ Science Points usam o total historico ja adquirido, nao o saldo disponivel:
 SP Cost(S) = 10^(11 + 0.9*S + 0.055*S^2)
 ```
 
+O Particle Synthesizer sempre gasta `100e9 J`. O custo acima e um requisito separado para receber o proximo SP; abaixo dele, a ativacao ainda ocorre, mas concede `0 SP`.
+
 Quarks gerados por sintese:
 
 ```text
 quarksGenerated = floor(energyAtSynthesis / 100e9)
 ```
 
-Quarks possuem capacidade segura inicial de `1`. Quarks Cage aumenta a capacidade segura e e resetado por Particle Synthesis:
+Quantum Calculation Principles (com `Total Quarks Earned`, nao quarks disponiveis):
 
 ```text
-quarkCapacity = 2^(quarkCages + 1) - 1
+raw = 0.015 * log10(1 + totalQuarksEarned)
+bonus = raw <= 0.15 ? raw : 0.15 + 0.25 * (raw - 0.15)
+algorithmUpgradeSpeed = 1 + min(0.30, bonus)
+```
+
+Quantum Superposition uses a capped logarithmic fraction of newly earned Improvement progress:
+
+```text
+retention = min(0.10, 0.01 * log10(1 + totalQuarksEarned))
+nextMultiplier = exp(previouslyPreservedLog + newlyEarnedLog * retention)
+```
+
+Previously preserved log progress remains unchanged, so later Algorithm Upgrades do not reapply retention to old carryover.
+
+Quarks possuem capacidade segura de `1` antes da primeira sintese. Apos a primeira Particle Synthesis, o jogador comeca com uma Quarks Cage que guarda `10` quarks. Cada cage adicional aumenta a capacidade em mais `10`; cages adicionais sao resetadas por Particle Synthesis:
+
+```text
+quarkCapacity = quarkCages > 0 ? 10 * quarkCages : 1
 quarkCageCost = 10^(11 + quarkCages) J
 ```
 

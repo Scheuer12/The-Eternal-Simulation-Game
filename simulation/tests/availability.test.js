@@ -4,13 +4,17 @@ import test from "node:test";
 
 import {
   buildAvailabilitySnapshot,
-  evaluateComponent
+  evaluateComponent,
 } from "../../js/availability.js";
 import { calculateAutoCalculatorCost } from "../../js/formulas.js";
 import { createInitialState } from "../../js/state.js";
+import { assertBigEqual } from "./assertions.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
+  await readFile(
+    new URL("../../config/game-config.json", import.meta.url),
+    "utf8",
+  ),
 );
 
 test("component availability exposes cost, enabled state, and blocked reason", () => {
@@ -19,7 +23,7 @@ test("component availability exposes cost, enabled state, and blocked reason", (
 
   assert.equal(locked.visible, true);
   assert.equal(locked.enabled, false);
-  assert.equal(locked.cost, calculateAutoCalculatorCost(0, config));
+  assertBigEqual(locked.cost, calculateAutoCalculatorCost(0, config));
   assert.match(locked.reason, /Needs/);
 
   state.energy = locked.cost;
@@ -43,7 +47,10 @@ test("availability snapshot evaluates all registered components", () => {
 
 test("T2 Soft Display is visible after Soft Display and costs stored energy", () => {
   const state = createInitialState(config);
-  assert.equal(evaluateComponent("t2SoftDataDisplay", state, config).visible, false);
+  assert.equal(
+    evaluateComponent("t2SoftDataDisplay", state, config).visible,
+    false,
+  );
 
   state.devices.softDataDisplay = true;
   const locked = evaluateComponent("t2SoftDataDisplay", state, config);
@@ -52,7 +59,10 @@ test("T2 Soft Display is visible after Soft Display and costs stored energy", ()
   assert.equal(locked.cost, config.t2SoftDataDisplay.cost);
 
   state.energy = config.t2SoftDataDisplay.cost;
-  assert.equal(evaluateComponent("t2SoftDataDisplay", state, config).enabled, true);
+  assert.equal(
+    evaluateComponent("t2SoftDataDisplay", state, config).enabled,
+    true,
+  );
 });
 
 test("Power Cell visibility unlocks after Soft Display and three Algorithm Upgrades", () => {
@@ -103,7 +113,10 @@ test("Power Module visibility scales by each full group of one hundred Power Cel
 test("Particle Synthesizer appears after the laboratory door threshold", () => {
   const state = createInitialState(config);
   state.peakEnergy = config.particleLab.doorEnergyRequired - 1;
-  assert.equal(evaluateComponent("particleSynthesizer", state, config).visible, false);
+  assert.equal(
+    evaluateComponent("particleSynthesizer", state, config).visible,
+    false,
+  );
 
   state.peakEnergy = config.particleLab.doorEnergyRequired;
   const visible = evaluateComponent("particleSynthesizer", state, config);
@@ -111,9 +124,11 @@ test("Particle Synthesizer appears after the laboratory door threshold", () => {
   assert.equal(visible.enabled, false);
 
   state.energy = visible.cost;
-  assert.equal(evaluateComponent("particleSynthesizer", state, config).enabled, true);
+  assert.equal(
+    evaluateComponent("particleSynthesizer", state, config).enabled,
+    true,
+  );
 });
-
 
 test("Quarks Cage appears after first synthesis and costs Stored Energy", () => {
   const state = createInitialState(config);
@@ -127,21 +142,4 @@ test("Quarks Cage appears after first synthesis and costs Stored Energy", () => 
 
   state.energy = available.cost;
   assert.equal(evaluateComponent("quarkCage", state, config).enabled, true);
-});
-
-test("Matrix Mechanics appears when Science Points exist and costs SP", () => {
-  const state = createInitialState(config);
-  assert.equal(evaluateComponent("matrixMechanics", state, config).visible, false);
-
-  state.sciencePoints = 1;
-  const available = evaluateComponent("matrixMechanics", state, config);
-  assert.equal(available.visible, true);
-  assert.equal(available.enabled, true);
-  assert.equal(available.cost, config.science.matrixMechanics.cost);
-
-  state.sciencePoints = 0;
-  state.science.matrixMechanics = true;
-  const owned = evaluateComponent("matrixMechanics", state, config);
-  assert.equal(owned.visible, true);
-  assert.equal(owned.completed, true);
 });

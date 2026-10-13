@@ -13,7 +13,7 @@
     "maxSteps": 120000
   },
   "energy": {
-    "baseProductionPerSecond": 1E-12,
+    "baseProductionPerSecond": 1e-12,
     "powerCellCapacity": 1,
     "initialPowerCells": 1,
     "initialCrcCount": 1,
@@ -39,9 +39,36 @@
     "synthesizerEnergyRequired": 100000000000
   },
   "science": {
-    "matrixMechanics": {
-      "cost": 1,
-      "improvementSpeedBonusPerUpgradePerImprovement": 0.0025
+    "redundancyElimination": {
+      "researchSpeedBonusPerUpgradePerCycle": 0.005,
+      "softcapStartsAtImprovements": 50,
+      "postSoftcapCycleRate": 0.08,
+      "postSoftcapMaximumExtraCycles": 4,
+      "hardcapStartsAtImprovements": 100
+    },
+    "energyPerks": {
+      "powerModuleScalingPerOwnedModule": 0.0085,
+      "crcExponentialProductionPerCrc": 1.005,
+      "processorBonusExponentForCrc": 0.15
+    },
+    "quantumPerks": {
+      "calculationSpeedLogCoefficient": 0.015,
+      "calculationSpeedSoftcapRaw": 0.15,
+      "calculationSpeedPostSoftcapSlope": 0.25,
+      "calculationSpeedMaximumBonus": 0.3,
+      "superpositionRetentionLogCoefficient": 0.01,
+      "superpositionMaximumRetention": 0.1,
+      "revealAtAllocatedSciencePoints": 3,
+      "particleGeneratorStoredEnergyRequired": 1e62
+    },
+    "studyPerks": {
+      "processorBonusImprovementSpeedExponent": 1.07
+    },
+    "automationPerks": {
+      "motherboardModuleStoredEnergyRequired": 1e23
+    },
+    "fiftyGCalculator": {
+      "cost": 1
     },
     "sciencePointCost": {
       "baseExponent": 11,
@@ -56,7 +83,8 @@
     "quarkCage": {
       "baseCostExponent": 11,
       "costExponentGrowth": 1,
-      "capacityBase": 2
+      "capacityPerCage": 10,
+      "startingCagesAfterSynthesis": 1
     }
   },
   "study": {
@@ -85,7 +113,7 @@
     "productionMultiplier": 2
   },
   "softDataDisplay": {
-    "cost": 1E-08
+    "cost": 1e-8
   },
   "t2SoftDataDisplay": {
     "cost": 2

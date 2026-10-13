@@ -1,5 +1,6 @@
 import { GameEngine } from "./engine.js";
 import { formatDuration, formatEnergy } from "./formulas.js";
+import { big } from "./numeric.js";
 
 const DEFAULT_MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 const DEFAULT_STEP_SECONDS = 0.25;
@@ -10,11 +11,11 @@ function createSummary(offlineSeconds, simulatedSeconds, capped) {
     offlineSeconds,
     simulatedSeconds,
     capped,
-    energyProduced: 0,
-    energyDecayed: 0,
-    overclockerEnergySpent: 0,
-    quarksDecayed: 0,
-    netEnergy: 0,
+    energyProduced: big(0),
+    energyDecayed: big(0),
+    overclockerEnergySpent: big(0),
+    quarksDecayed: big(0),
+    netEnergy: big(0),
     algorithmImprovementsCompleted: 0,
     algorithmUpgradesCompleted: 0,
     blueprintResearchCompleted: 0,
@@ -29,19 +30,21 @@ function collectEvents(summary, events) {
 
   for (const event of events) {
     if (event.type === "energy-collected") {
-      summary.energyProduced += event.amount;
+      summary.energyProduced = summary.energyProduced.add(event.amount);
     }
 
     if (event.type === "energy-decayed") {
-      summary.energyDecayed += event.amount;
+      summary.energyDecayed = summary.energyDecayed.add(event.amount);
     }
 
     if (event.type === "overclocker-drained") {
-      summary.overclockerEnergySpent += event.amount;
+      summary.overclockerEnergySpent = summary.overclockerEnergySpent.add(
+        event.amount,
+      );
     }
 
     if (event.type === "quarks-decayed") {
-      summary.quarksDecayed += event.amount;
+      summary.quarksDecayed = summary.quarksDecayed.add(event.amount);
     }
 
     if (event.type === "algorithm-improvement-completed") {
@@ -72,15 +75,9 @@ function collectEvents(summary, events) {
 }
 
 function applyCurrentOfflineAutomation(engine) {
-  // Continuous systems belong in GameEngine.tick whenever possible. This hook is
-  // where future unlocked automations should be mirrored for offline progress.
-  if (
-    engine.state.devices.autoCalculators > 0 &&
-    !engine.state.study.active &&
-    engine.state.introState === "active"
-  ) {
-    engine.startStudy(true);
-  }
+  // Keep the same task selection policy online and offline, including Science
+  // perks that extend the Calculator to additional study types.
+  engine.startNextAutomatedStudy();
 }
 
 function writeOfflineLog(state, summary) {
@@ -103,8 +100,8 @@ function writeOfflineLog(state, summary) {
     parts.push("Blueprint reconstructed");
   }
 
-  if (summary.quarksDecayed > 0) {
-    parts.push(`${Number(summary.quarksDecayed.toFixed(3)).toString()} quarks decayed`);
+  if (summary.quarksDecayed.gt(0)) {
+    parts.push(`${formatEnergy(summary.quarksDecayed).replace(" J", "")} quarks decayed`);
   }
 
   if (summary.constructionsCompleted > 0) {
@@ -172,7 +169,7 @@ export function simulateOfflineProgress(
   }
 
   summary.simulatedSeconds -= remaining;
-  summary.netEnergy = state.energy - startEnergy;
+  summary.netEnergy = big(state.energy).sub(startEnergy);
   state.lastSavedAt = now;
   writeOfflineLog(state, summary);
 

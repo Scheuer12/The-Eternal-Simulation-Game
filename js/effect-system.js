@@ -1,4 +1,5 @@
 import { getDevelopmentProductionMultiplier } from "./formulas.js";
+import { big } from "./numeric.js";
 
 export function getProductionEffects(state, config, developmentMode = false) {
   const effects = [
@@ -28,7 +29,9 @@ export function getProductionEffects(state, config, developmentMode = false) {
       label: "Algorithm Upgrades",
       target: "crc.production",
       operation: "multiply",
-      value: config.algorithmUpgrade.productionMultiplier ** state.upgrades
+      value: big(config.algorithmUpgrade.productionMultiplier).pow(
+        state.upgrades,
+      )
     }
   ];
 
@@ -49,5 +52,5 @@ export function applyProductionEffects(effects) {
   const base = effects.find((effect) => effect.operation === "base")?.value ?? 0;
   return effects
     .filter((effect) => effect.operation === "multiply")
-    .reduce((value, effect) => value * effect.value, base);
+    .reduce((value, effect) => value.mul(effect.value), big(base));
 }

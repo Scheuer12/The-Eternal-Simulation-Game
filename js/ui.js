@@ -1,4 +1,5 @@
 import { TEXT } from "../content/texts.js";
+import { big, bigMax, formatEngineering } from "./numeric.js";
 import {
   calculateAlgorithmUpgradeDuration,
   calculateAlgorithmUpgradeRequirement,
@@ -11,12 +12,13 @@ import {
   calculateEffectiveProduction,
   calculateEnergyOverflowDecay,
   calculateImprovementBonus,
-  calculateMatrixMechanicsSpeedMultiplier,
   calculateOverclockerDrainPerSecond,
   calculateOverclockerSpeedMultiplier,
-  calculateParticleSynthesizerCost,
   calculateParticleSynthesizerProgress,
+  calculateParticleSynthesizerCost,
   calculateQuarksGenerated,
+  calculateSciencePointCost,
+  calculateSciencePointReward,
   calculateQuarkCapacity,
   calculateQuarkDecay,
   calculatePowerModuleCapacityMultiplier,
@@ -31,20 +33,31 @@ import {
   formatDuration,
   formatEnergy,
   formatPercent,
-  formatRate
+  formatRate,
 } from "./formulas.js";
 import {
   buildAvailabilitySnapshot,
-  evaluateComponent
+  evaluateComponent,
 } from "./availability.js";
 import { COMPONENT_REGISTRY } from "./component-registry.js";
+import {
+  evaluateSciencePerk,
+  getSciencePerk,
+  SCIENCE_PERK_BRANCHES,
+} from "./science-perks.js";
+import {
+  hasUnlockedAutomations,
+  isAutoCalculatorAutomationActive,
+  isAutomationEnabled,
+  listUnlockedAutomations,
+} from "./automations.js";
 
 function button(label, action, options = {}) {
   const {
     disabled = false,
     variant = "primary",
     detail = "",
-    className = ""
+    className = "",
   } = options;
 
   return `
@@ -83,7 +96,7 @@ function headingAction(label, action, options = {}) {
     costLabel = cost !== null ? formatEnergy(cost) : "",
     count = null,
     disabled = false,
-    variant = "primary"
+    variant = "primary",
   } = options;
   const countLabel = count === null ? "" : ` (${count})`;
 
@@ -93,7 +106,7 @@ function headingAction(label, action, options = {}) {
       ${button(`${label}${countLabel}`, action, {
         disabled,
         variant,
-        className: "button--compact"
+        className: "button--compact",
       })}
     </div>
   `;
@@ -106,23 +119,39 @@ function statusPill(text, tone = "") {
 const TAB_DEFINITIONS = [
   { id: "devices", label: "Devices" },
   { id: "studies", label: "Studies" },
-  { id: "measure", label: "Measure", visible: (state) => state.devices.t2SoftDataDisplay },
-  { id: "science", label: "Science", visible: (state, config) => canAccessParticleLab(state, config) || state.sciencePoints > 0 || state.science?.syntheses > 0 },
+  {
+    id: "science",
+    label: "Science",
+    visible: (state, config) =>
+      canAccessParticleLab(state, config) ||
+      state.sciencePoints > 0 ||
+      state.science?.syntheses > 0,
+  },
+  {
+    id: "automations",
+    label: "Automations",
+    visible: (state) => hasUnlockedAutomations(state),
+  },
+  {
+    id: "measure",
+    label: "Measure",
+    visible: (state) => state.devices.t2SoftDataDisplay,
+  },
   { id: "statistics", label: "Statistics" },
-  { id: "save", label: "Save" }
+  { id: "save", label: "Save" },
 ];
 
 const DEVICE_GROUPS = [
   {
     id: "energy",
     label: "Energy Devices",
-    note: "Hardware that collects, stores, routes, or spends Stored Energy."
+    note: "Hardware that collects, stores, routes, or spends Stored Energy.",
   },
   {
     id: "computational",
     label: "Computational Devices",
-    note: "Hardware that exposes information or accelerates study systems."
-  }
+    note: "Hardware that exposes information or accelerates study systems.",
+  },
 ];
 
 function isTabVisible(tab, state, config) {
@@ -132,7 +161,7 @@ function isTabVisible(tab, state, config) {
 function getActiveTab(state, config) {
   const requested = state.ui?.activeTab ?? "devices";
   return TAB_DEFINITIONS.some(
-    (tab) => tab.id === requested && isTabVisible(tab, state, config)
+    (tab) => tab.id === requested && isTabVisible(tab, state, config),
   )
     ? requested
     : "devices";
@@ -153,7 +182,11 @@ export function markTabComponentsSeen(state, config, tabId = null) {
   if (!state.ui) return;
 
   const seen = { ...state.ui.seenComponents };
-  for (const componentId of getVisibleComponentIdsForTab(activeTab, state, config)) {
+  for (const componentId of getVisibleComponentIdsForTab(
+    activeTab,
+    state,
+    config,
+  )) {
     seen[componentId] = true;
   }
   state.ui.seenComponents = seen;
@@ -162,12 +195,15 @@ export function markTabComponentsSeen(state, config, tabId = null) {
 function getTabIndicators(tabId, state, config) {
   const seen = state.ui?.seenComponents ?? {};
   const availability = getComponentsForTab(tabId).map((spec) =>
-    evaluateComponent(spec.id, state, config)
+    evaluateComponent(spec.id, state, config),
   );
 
   return {
-    ready: availability.filter((item) => item.visible && item.enabled && !item.completed).length,
-    newlyVisible: availability.filter((item) => item.visible && !seen[item.id]).length
+    ready: availability.filter(
+      (item) => item.visible && item.enabled && !item.completed,
+    ).length,
+    newlyVisible: availability.filter((item) => item.visible && !seen[item.id])
+      .length,
   };
 }
 
@@ -176,8 +212,7 @@ function renderTabBar(state, config) {
 
   return `
     <nav class="tabbar" aria-label="Facility sections">
-      ${TAB_DEFINITIONS
-        .filter((tab) => isTabVisible(tab, state, config))
+      ${TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
         .map((tab) => {
           const indicators = getTabIndicators(tab.id, state, config);
           return `
@@ -234,18 +269,15 @@ function renderTelemetry(state, config, developmentMode) {
   const netProduction = calculateEffectiveProduction(
     state,
     config,
-    developmentMode
+    developmentMode,
   );
   const capacity = calculateStableEnergyCapacity(state, config);
   const overflowDecay = calculateEnergyOverflowDecay(state, config);
-  const remainingCapacity = Math.max(
-    0,
-    capacity - state.energy
-  );
+  const remainingCapacity = bigMax(0, capacity.sub(state.energy));
   const fillTime =
-    production > 0 && remainingCapacity > 0
-      ? formatDuration(remainingCapacity / Math.max(production, Number.EPSILON))
-      : state.energy > capacity
+    production.gt(0) && remainingCapacity.gt(0)
+      ? formatDuration(remainingCapacity.div(production))
+      : big(state.energy).gt(capacity)
         ? "EQUILIBRATING"
         : "FULL";
 
@@ -355,7 +387,7 @@ function formatSaveTime(timestamp) {
     month: "short",
     day: "2-digit",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 }
 
@@ -378,7 +410,7 @@ function renderSaveManagement(saveSlots, developmentMode) {
                 <span>${slot.label}</span>
                 <strong>${formatSaveTime(slot.lastSavedAt)}</strong>
               </div>
-            `
+            `,
           )
           .join("")}
       </div>
@@ -409,13 +441,13 @@ function renderEnergy(state, config, developmentMode) {
   const netProduction = calculateEffectiveProduction(
     state,
     config,
-    developmentMode
+    developmentMode,
   );
   const capacity = calculateStableEnergyCapacity(state, config);
   const overflowDecay = calculateEnergyOverflowDecay(state, config);
-  const capacityProgress = state.energy / capacity;
+  const capacityProgress = big(state.energy).div(capacity).toNumber();
   const displayTelemetry = state.devices.softDataDisplay;
-  const overflowing = state.energy > capacity;
+  const overflowing = big(state.energy).gt(capacity);
 
   return `
     <article class="panel energy-panel">
@@ -489,9 +521,12 @@ function renderPowerCellArray(state, config) {
   const capacity = calculateStableEnergyCapacity(state, config);
   const nextCapacity = calculateStableEnergyCapacity(
     { ...state, powerCells: state.powerCells + 1 },
-    config
+    config,
   );
-  const moduleMultiplier = calculatePowerModuleCapacityMultiplier(state, config);
+  const moduleMultiplier = calculatePowerModuleCapacityMultiplier(
+    state,
+    config,
+  );
 
   return `
     <article class="panel device-card power-cell-card">
@@ -506,11 +541,11 @@ function renderPowerCellArray(state, config) {
             cost,
             count: state.powerCells,
             disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost"
+            variant: availability.enabled ? "primary" : "ghost",
           })}
           ${headingAction("Buy Max", "buy-max-power-cells", {
             disabled: !availability.enabled,
-            variant: availability.enabled ? "secondary" : "ghost"
+            variant: availability.enabled ? "secondary" : "ghost",
           })}
         </div>
       </div>
@@ -525,7 +560,7 @@ function renderPowerCellArray(state, config) {
       </div>
       <div class="metric-row">
         <span>Module routing</span>
-        <strong>${state.powerModules} / x${moduleMultiplier.toFixed(2)}</strong>
+        <strong>${state.powerModules} / x${formatEngineering(moduleMultiplier)}</strong>
       </div>
     </article>
   `;
@@ -536,10 +571,13 @@ function renderPowerModule(state, config) {
   if (!availability.visible) return "";
 
   const requirement = availability.requirement;
-  const currentMultiplier = calculatePowerModuleCapacityMultiplier(state, config);
+  const currentMultiplier = calculatePowerModuleCapacityMultiplier(
+    state,
+    config,
+  );
   const nextMultiplier = calculatePowerModuleCapacityMultiplier(
     { ...state, powerModules: state.powerModules + 1 },
-    config
+    config,
   );
 
   return `
@@ -554,7 +592,7 @@ function renderPowerModule(state, config) {
           cost: availability.cost,
           count: state.powerModules,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">Activates capture and conduction circuits that organize Power Cells into a stronger storage route.</p>
@@ -564,7 +602,7 @@ function renderPowerModule(state, config) {
       </div>
       <div class="metric-row">
         <span>Capacity route</span>
-        <strong>x${currentMultiplier.toFixed(2)} -> x${nextMultiplier.toFixed(2)}</strong>
+        <strong>x${formatEngineering(currentMultiplier)} -> x${formatEngineering(nextMultiplier)}</strong>
       </div>
     </article>
   `;
@@ -587,7 +625,7 @@ function renderSoftDataDisplay(state, config) {
             : headingAction("Restore", "buy-soft-display", {
                 cost: availability.cost,
                 disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost"
+                variant: availability.enabled ? "primary" : "ghost",
               })
         }
       </div>
@@ -623,7 +661,7 @@ function renderT2SoftDataDisplay(state, config) {
             : headingAction("Restore", "buy-t2-soft-display", {
                 cost: availability.cost,
                 disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost"
+                variant: availability.enabled ? "primary" : "ghost",
               })
         }
       </div>
@@ -645,12 +683,12 @@ function renderStudy(state, config, developmentMode) {
   const nextBonus = calculateImprovementBonus(
     state.improvements,
     config,
-    state.calculationMethods
+    state.calculationMethods,
   );
   const previewDuration = calculateStudyDuration(
     state,
     config,
-    developmentMode
+    developmentMode,
   );
   const studyProgress = state.study.active
     ? state.study.elapsed / state.study.duration
@@ -669,9 +707,12 @@ function renderStudy(state, config, developmentMode) {
           "start-study",
           {
             count: state.improvements,
-            disabled: state.study.active || state.devices.autoCalculators > 0,
-            variant: state.devices.autoCalculators > 0 ? "ghost" : "primary"
-          }
+            disabled:
+              state.study.active || isAutoCalculatorAutomationActive(state),
+            variant: isAutoCalculatorAutomationActive(state)
+              ? "ghost"
+              : "primary",
+          },
         )}
       </div>
       <p class="muted">Improves how the CRC converts background radiation into Stored Energy.</p>
@@ -688,25 +729,20 @@ function renderStudy(state, config, developmentMode) {
   `;
 }
 
-function renderAlgorithmUpgrade(state, config, developmentMode) {
+function renderAlgorithmUpgrade(state, config) {
   const requirement = calculateAlgorithmUpgradeRequirement(state, config);
   const visible = state.upgrades > 0 || state.improvements >= requirement;
   if (!visible) return "";
 
   const ready = state.improvements >= requirement;
   const availability = evaluateComponent("algorithmUpgrade", state, config);
-  const duration = calculateAlgorithmUpgradeDuration(
-    state,
-    config,
-    developmentMode
-  );
   const progress = state.algorithmUpgradeStudy.active
     ? state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
     : state.improvements / requirement;
 
   return `
     <article class="panel study-panel">
-      ${helpNote("Algorithm Upgrades double CRC production. Completing one resets Algorithm Improvements, and the next Upgrade requires more Improvements.")}
+      ${helpNote("Manual Algorithm Upgrades complete instantly. Calculator automation uses a timed execution that grows with each Upgrade.")}
       <div class="panel__heading">
         <div>
           <p class="panel__label">STUDY</p>
@@ -718,8 +754,8 @@ function renderAlgorithmUpgrade(state, config, developmentMode) {
           {
             count: state.upgrades,
             disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost"
-          }
+            variant: availability.enabled ? "primary" : "ghost",
+          },
         )}
       </div>
       <p class="muted">Rebuild the Theseus algorithm into a stronger version.</p>
@@ -729,13 +765,19 @@ function renderAlgorithmUpgrade(state, config, developmentMode) {
           state.algorithmUpgradeStudy.active
             ? "UPGRADE STUDY"
             : ready
-              ? "READY"
+              ? "READY // MANUAL EXECUTION IS INSTANT"
               : `${state.improvements} / ${requirement} Improvements`
         }</span>
         <span data-field="algorithm-upgrade-remaining">${
           state.algorithmUpgradeStudy.active
-            ? formatDuration(Math.max(0, state.algorithmUpgradeStudy.duration - state.algorithmUpgradeStudy.elapsed))
-            : formatDuration(duration)
+            ? formatDuration(
+                Math.max(
+                  0,
+                  state.algorithmUpgradeStudy.duration -
+                    state.algorithmUpgradeStudy.elapsed,
+                ),
+              )
+            : "INSTANT"
         }</span>
       </div>
     </article>
@@ -751,13 +793,13 @@ function renderStudyOverclockControl(state, config) {
   const stableCapacity = calculateStableEnergyCapacity(state, config);
   const canToggleOverclock =
     overclockActive ||
-    (state.devices.autoCalculators > 0 && state.energy > stableCapacity);
+    (state.devices.autoCalculators > 0 && big(state.energy).gt(stableCapacity));
   const previewState = {
     ...state,
     overclocker: {
       ...state.overclocker,
-      active: true
-    }
+      active: true,
+    },
   };
   const speed = calculateOverclockerSpeedMultiplier(previewState, config);
   const drain = calculateOverclockerDrainPerSecond(previewState, config);
@@ -808,7 +850,7 @@ function renderAutoCalculator(state, config) {
           cost,
           count: owned,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">${
@@ -816,7 +858,15 @@ function renderAutoCalculator(state, config) {
           ? "Glows softly while automatically calculating better condensing methods."
           : "Fadingly glows and then goes dark every time the CRC collects energy."
       }</p>
-      ${owned > 0 ? `<p class="effect-line">AUTOMATION ACTIVE // STUDY SPEED x${speedMultiplier.toFixed(2)}</p>` : ""}
+      ${
+        owned > 0
+          ? `<p class="effect-line">${
+              isAutoCalculatorAutomationActive(state)
+                ? "AUTOMATION ACTIVE"
+                : "AUTOMATION PAUSED"
+            } // STUDY SPEED x${speedMultiplier.toFixed(2)}</p>`
+          : ""
+      }
     </article>
   `;
 }
@@ -832,34 +882,33 @@ function renderOverclocker(state, config) {
     ...state,
     devices: {
       ...state.devices,
-      overclockers: Math.max(1, owned)
+      overclockers: Math.max(1, owned),
     },
-    overclocker: { ...state.overclocker, active: true }
+    overclocker: { ...state.overclocker, active: true },
   };
-  const speedMultiplier = owned > 0
-    ? calculateOverclockerSpeedMultiplier(previewState, config)
-    : config.overclocker.baseCalculatorSpeedMultiplier;
-  const drain = owned > 0
-    ? calculateOverclockerDrainPerSecond(
-        previewState,
-        config
-      )
-    : config.overclocker.baseEnergyDrainPerSecond;
+  const speedMultiplier =
+    owned > 0
+      ? calculateOverclockerSpeedMultiplier(previewState, config)
+      : config.overclocker.baseCalculatorSpeedMultiplier;
+  const drain =
+    owned > 0
+      ? calculateOverclockerDrainPerSecond(previewState, config)
+      : config.overclocker.baseEnergyDrainPerSecond;
   const nextSpeed = calculateOverclockerSpeedMultiplier(
     {
       ...state,
       devices: { ...state.devices, overclockers: owned + 1 },
-      overclocker: { ...state.overclocker, active: true }
+      overclocker: { ...state.overclocker, active: true },
     },
-    config
+    config,
   );
   const nextDrain = calculateOverclockerDrainPerSecond(
     {
       ...state,
       devices: { ...state.devices, overclockers: owned + 1 },
-      overclocker: { ...state.overclocker, active: true }
+      overclocker: { ...state.overclocker, active: true },
     },
-    config
+    config,
   );
 
   return `
@@ -874,7 +923,7 @@ function renderOverclocker(state, config) {
           cost: availability.cost,
           count: owned,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">${
@@ -907,20 +956,24 @@ function renderOverclocker(state, config) {
 
 function renderBlueprint(state, config, developmentMode) {
   const available = canResearchBlueprint(state, config);
-  if (!state.discoveries.crcBlueprint && !available && !state.blueprintStudy.active) {
+  if (
+    !state.discoveries.crcBlueprint &&
+    !available &&
+    !state.blueprintStudy.active
+  ) {
     return "";
   }
 
   const researchDuration = calculateBlueprintResearchDuration(
     state,
     config,
-    developmentMode
+    developmentMode,
   );
   const progress = state.blueprintStudy.active
-      ? state.blueprintStudy.elapsed / state.blueprintStudy.duration
-      : state.discoveries.crcBlueprint
-        ? 1
-        : 0;
+    ? state.blueprintStudy.elapsed / state.blueprintStudy.duration
+    : state.discoveries.crcBlueprint
+      ? 1
+      : 0;
   const researchAvailability = evaluateComponent("crcBlueprint", state, config);
 
   return `
@@ -937,7 +990,7 @@ function renderBlueprint(state, config, developmentMode) {
             : headingAction("Research", "start-blueprint-research", {
                 count: 0,
                 disabled: !researchAvailability.enabled,
-                variant: researchAvailability.enabled ? "primary" : "ghost"
+                variant: researchAvailability.enabled ? "primary" : "ghost",
               })
         }
       </div>
@@ -948,15 +1001,20 @@ function renderBlueprint(state, config, developmentMode) {
           state.blueprintStudy.active
             ? "BLUEPRINT RESEARCH"
             : state.discoveries.crcBlueprint
-                ? "FABRICATION READY"
-                : "RESEARCH READY"
+              ? "FABRICATION READY"
+              : "RESEARCH READY"
         }</span>
         <span data-field="blueprint-remaining">${
           state.blueprintStudy.active
-            ? formatDuration(Math.max(0, state.blueprintStudy.duration - state.blueprintStudy.elapsed))
+            ? formatDuration(
+                Math.max(
+                  0,
+                  state.blueprintStudy.duration - state.blueprintStudy.elapsed,
+                ),
+              )
             : state.discoveries.crcBlueprint
-                ? "Device fabrication unlocked"
-                : formatDuration(researchDuration)
+              ? "Device fabrication unlocked"
+              : formatDuration(researchDuration)
         }</span>
       </div>
     </article>
@@ -986,8 +1044,8 @@ function renderCrcConstruction(state, config) {
             cost: availability.cost,
             count: state.crcCount,
             disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost"
-          }
+            variant: availability.enabled ? "primary" : "ghost",
+          },
         )}
       </div>
       <p class="muted">Uses the recovered condenser plan to add another passive radiation collection point.</p>
@@ -996,7 +1054,12 @@ function renderCrcConstruction(state, config) {
         <span data-field="construction-status">${state.construction.active ? "CRC CONSTRUCTION" : "FABRICATION READY"}</span>
         <span data-field="construction-remaining">${
           state.construction.active
-            ? formatDuration(Math.max(0, state.construction.duration - state.construction.elapsed))
+            ? formatDuration(
+                Math.max(
+                  0,
+                  state.construction.duration - state.construction.elapsed,
+                ),
+              )
             : `Cost: ${formatEnergy(availability.cost)}`
         }</span>
       </div>
@@ -1007,21 +1070,26 @@ function renderProcessor(state, config) {
   const owned = state.devices.processors;
   const availability = evaluateComponent("processor", state, config);
   const cost = availability.cost;
-  const efficiencyMultiplier = calculateDeviceEfficiencyMultiplier(state, config);
+  const efficiencyMultiplier = calculateDeviceEfficiencyMultiplier(
+    state,
+    config,
+  );
   const overclockers = state.devices.overclockers;
   const overclockActive = overclockers > 0 && state.overclocker.active;
   const stableCapacity = calculateStableEnergyCapacity(state, config);
   const canToggleOverclock =
     overclockers > 0 &&
     (overclockActive ||
-      (state.devices.autoCalculators > 0 && state.energy > stableCapacity));
+      (state.devices.autoCalculators > 0 &&
+        big(state.energy).gt(stableCapacity)));
   const overclockSpeed = calculateOverclockerSpeedMultiplier(state, config);
-  const overclockDrain = overclockers > 0
-    ? calculateOverclockerDrainPerSecond(
-        { ...state, overclocker: { ...state.overclocker, active: true } },
-        config
-      )
-    : 0;
+  const overclockDrain =
+    overclockers > 0
+      ? calculateOverclockerDrainPerSecond(
+          { ...state, overclocker: { ...state.overclocker, active: true } },
+          config,
+        )
+      : 0;
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
@@ -1035,7 +1103,7 @@ function renderProcessor(state, config) {
           cost,
           count: owned,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">${
@@ -1043,15 +1111,19 @@ function renderProcessor(state, config) {
           ? "Improves calculator throughput and fabrication control with transistor-based processment."
           : "Seems like a better technology for devices control."
       }</p>
-      ${owned > 0 ? `<p class="effect-line">COMPUTE / FABRICATION EFFICIENCY x${efficiencyMultiplier.toFixed(2)}</p>` : ""}
+      ${owned > 0 ? `<p class="effect-line">COMPUTE / FABRICATION EFFICIENCY x${formatEngineering(efficiencyMultiplier)}</p>` : ""}
       ${
         overclockers > 0
           ? `<div class="device-inline-actions">
-              ${button(overclockActive ? "Stop Overclock" : "Overclock", "toggle-overclocker", {
-                disabled: !canToggleOverclock,
-                variant: overclockActive ? "ghost" : "primary",
-                className: "button--compact"
-              })}
+              ${button(
+                overclockActive ? "Stop Overclock" : "Overclock",
+                "toggle-overclocker",
+                {
+                  disabled: !canToggleOverclock,
+                  variant: overclockActive ? "ghost" : "primary",
+                  className: "button--compact",
+                },
+              )}
               <span data-field="overclock-inline">${overclockActive ? `x${overclockSpeed.toFixed(2)} active` : `x${calculateOverclockerSpeedMultiplier({ ...state, overclocker: { ...state.overclocker, active: true } }, config).toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"}`} // ${formatRate(overclockDrain)}</span>
             </div>`
           : ""
@@ -1066,7 +1138,11 @@ function renderCalculationMethod(state, config) {
 
   const required = calculateCalculationMethodRequirement(state, config);
   const ready = state.upgrades >= required;
-  const availability = evaluateComponent("calculationMethodUpgrade", state, config);
+  const availability = evaluateComponent(
+    "calculationMethodUpgrade",
+    state,
+    config,
+  );
   const progress = state.upgrades / required;
   const penaltyScale =
     config.study.effectPenaltyMultiplierPerMethod ** state.calculationMethods;
@@ -1082,7 +1158,7 @@ function renderCalculationMethod(state, config) {
         ${headingAction("Upgrade", "claim-method", {
           count: state.calculationMethods,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">A whole new method. Starts studies over, but improves future Improvement effects.</p>
@@ -1096,7 +1172,10 @@ function renderCalculationMethod(state, config) {
 }
 
 function renderSetupOptimization(state, config) {
-  const visible = state.upgrades > 0 || state.calculationMethods > 0 || state.setupOptimizations > 0;
+  const visible =
+    state.upgrades > 0 ||
+    state.calculationMethods > 0 ||
+    state.setupOptimizations > 0;
   if (!visible) return "";
 
   const required = calculateSetupOptimizationRequirement(state, config);
@@ -1118,7 +1197,7 @@ function renderSetupOptimization(state, config) {
         ${headingAction("Optimize", "claim-setup", {
           count: state.setupOptimizations,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">A whole new setup. Discards most hardware, but improves research time scaling.</p>
@@ -1135,10 +1214,27 @@ function renderDoor(state, config) {
   const labOpen = canAccessParticleLab(state, config);
 
   if (labOpen) {
-    const availability = evaluateComponent("particleSynthesizer", state, config);
+    if ((state.science?.syntheses ?? 0) > 0) {
+      return `
+        <article class="ambient-door ambient-door--open">
+          <p class="panel__label">PARTICLE LABORATORY</p>
+          <div class="ambient-door__heading">
+            <h2>Particle Sintetizer</h2>
+            <strong class="door-status">CONTROLS RELOCATED</strong>
+          </div>
+          <p class="muted">The laboratory remains open. Further synthesis controls are now available under Science Devices.</p>
+        </article>
+      `;
+    }
+
+    const availability = evaluateComponent(
+      "particleSynthesizer",
+      state,
+      config,
+    );
     const synthesizerProgress = calculateParticleSynthesizerProgress(
       state,
-      config
+      config,
     );
 
     return `
@@ -1154,12 +1250,12 @@ function renderDoor(state, config) {
         <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(availability.cost)}.</p>
         ${headingAction(
           state.particleSynthesizer.activated ? "Activated" : "Activate",
-          "activate-particle-synthesizer",
+          "open-particle-synthesis",
           {
             cost: availability.cost,
             disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost"
-          }
+            variant: availability.enabled ? "primary" : "ghost",
+          },
         )}
       </article>
     `;
@@ -1185,8 +1281,15 @@ function renderDoor(state, config) {
 
 function renderParticleLabDetails(state, config) {
   const progress = calculateParticleSynthesizerProgress(state, config);
-  const nextCost = calculateParticleSynthesizerCost(state, config);
-  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
+  const sciencePointCost = calculateSciencePointCost(
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const projectedSciencePoints = calculateSciencePointReward(
+    state.energy,
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
 
   return `
     <article class="panel science-panel">
@@ -1198,27 +1301,62 @@ function renderParticleLabDetails(state, config) {
         </div>
         ${statusPill(state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT", state.particleSynthesizer.activated ? "online" : "locked")}
       </div>
-      <p class="muted">The central panel shows an immense structure. Most lines are still dark; the next Science Point asks for ${formatEnergy(nextCost)}.</p>
+      <p class="muted">The central panel shows an immense structure. Most lines are still dark, waiting for a complete activation charge.</p>
       <div class="metric-row">
-        <span>Activation charge</span>
+        <span>Activation charge (fixed)</span>
         <strong>${formatPercent(progress)}</strong>
       </div>
       <div class="metric-row">
+        <span>Next Science Point threshold</span>
+        <strong><span data-field="science-point-cost">${formatEnergy(sciencePointCost)}</span> · projected <span data-field="science-sp-on-synthesis">${projectedSciencePoints}</span> SP</strong>
+      </div>
+      ${progressBar(big(state.energy).div(sciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
+      <div class="metric-row">
         <span>Stored Energy</span>
         <strong>${formatEnergy(state.energy)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Projected quarks</span>
-        <strong>${projectedQuarks}</strong>
       </div>
     </article>
   `;
 }
 
 function renderScienceStatus(state, config) {
+  const hasSynthesized = (state.science?.syntheses ?? 0) > 0;
+  const availableQuarks = formatEngineering(state.quarks?.available ?? 0);
+
+  if (!hasSynthesized) {
+    return `
+      <article class="panel science-panel">
+        <div class="panel__heading">
+          <div>
+            <p class="panel__label">SCIENCE</p>
+            <h2>Preserved Knowledge</h2>
+          </div>
+          ${statusPill(`${state.sciencePoints} SP`, "locked")}
+        </div>
+        <div class="metric-row">
+          <span>Science Points</span>
+          <strong>${state.sciencePoints}</strong>
+        </div>
+        <div class="metric-row">
+          <span>Total Quarks</span>
+          <strong>${availableQuarks}</strong>
+        </div>
+      </article>
+    `;
+  }
+
   const quarkCapacity = calculateQuarkCapacity(state, config);
   const quarkDecay = calculateQuarkDecay(state, config);
-  const nextSpCost = calculateParticleSynthesizerCost(state, config);
+  const quarksOnSynthesis = calculateQuarksGenerated(state.energy, config);
+  const sciencePointsOnSynthesis = calculateSciencePointReward(
+    state.energy,
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const nextSciencePointCost = calculateSciencePointCost(
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
 
   return `
     <article class="panel science-panel">
@@ -1234,16 +1372,20 @@ function renderScienceStatus(state, config) {
         <strong>${state.sciencePoints}</strong>
       </div>
       <div class="metric-row">
-        <span>Particle Sintetizations</span>
-        <strong>${state.science?.syntheses ?? 0}</strong>
+        <span>Total Quarks</span>
+        <strong>${availableQuarks} / ${formatEngineering(quarkCapacity)} stable</strong>
       </div>
       <div class="metric-row">
-        <span>Next SP energy</span>
-        <strong>${formatEnergy(nextSpCost)}</strong>
+        <span>SP gained on Sintetization</span>
+        <strong data-field="science-sp-on-synthesis">${sciencePointsOnSynthesis}</strong>
       </div>
       <div class="metric-row">
-        <span>Available Quarks</span>
-        <strong>${Number((state.quarks?.available ?? 0).toFixed(3)).toString()} / ${quarkCapacity}</strong>
+        <span>Energy threshold for next SP</span>
+        <strong data-field="science-point-cost">${formatEnergy(nextSciencePointCost)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Quarks gained on Sintetization</span>
+        <strong data-field="science-quarks-on-synthesis">${quarksOnSynthesis}</strong>
       </div>
       <div class="metric-row">
         <span>Total Quarks Earned</span>
@@ -1251,9 +1393,259 @@ function renderScienceStatus(state, config) {
       </div>
       <div class="metric-row">
         <span>Quark decay</span>
-        <strong>${Number(quarkDecay.toFixed(3)).toString()} q/s</strong>
+        <strong>${formatEngineering(quarkDecay)} q/s</strong>
       </div>
     </article>
+  `;
+}
+
+function renderScienceTreeNode(id, state, config, tone, extraClass = "") {
+  const perk = getSciencePerk(id);
+  const evaluation = evaluateSciencePerk(id, state, config);
+  const revealed = evaluation.revealed;
+  const visibleName = revealed ? perk.name : "???";
+  const visibleSummary = revealed ? perk.summary : "???";
+  const effect = perk.effect;
+  const prerequisiteNames = revealed
+    ? perk.requires.map((prerequisiteId) => getSciencePerk(prerequisiteId).name)
+    : [];
+  const status = !revealed
+    ? "UNDISCOVERED"
+    : evaluation.owned
+      ? "ACQUIRED"
+      : evaluation.missingPrerequisites.length ||
+          !evaluation.energyRequirementMet
+        ? "LOCKED"
+        : !evaluation.hasEnoughScience
+          ? `Need ${evaluation.cost} SP`
+          : "Ready";
+  const classes = [
+    "science-tree__node-wrap",
+    `science-tree__node-wrap--${tone}`,
+    extraClass,
+    !revealed && "science-tree__node-wrap--hidden",
+    revealed && "science-tree__node-wrap--revealed",
+    evaluation.owned && "science-tree__node-wrap--owned",
+    evaluation.canPurchase && "science-tree__node-wrap--ready",
+    !evaluation.owned &&
+      !evaluation.canPurchase &&
+      "science-tree__node-wrap--locked",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const accessibleLabel = revealed
+    ? `${visibleName}. ${status}. Costs ${evaluation.cost} Science Point${evaluation.cost === 1 ? "" : "s"}. Effect: ${effect}`
+    : "Unknown Science perk. Discovery requirements have not been reached.";
+
+  return `
+    <div class="${classes}" tabindex="0" role="group" aria-label="${accessibleLabel}">
+      <button
+        class="science-tree__node ${evaluation.owned ? "science-tree__node--owned" : ""} ${!evaluation.owned && !evaluation.canPurchase ? "science-tree__node--locked" : ""}"
+        type="button"
+        data-action="buy-science-perk"
+        data-perk-id="${perk.id}"
+        aria-describedby="science-tooltip-${perk.id}"
+        aria-label="${accessibleLabel}"
+        ${evaluation.canPurchase ? "" : "disabled"}
+      >
+        <span class="science-tree__node-name">${visibleName}</span>
+        <span class="science-tree__node-meta">${!revealed ? "???" : evaluation.owned ? "Acquired" : `${evaluation.cost} SP`}</span>
+      </button>
+      <span class="science-tree__tooltip" id="science-tooltip-${perk.id}" role="tooltip">
+        <strong>${visibleName}</strong>
+        <span>${revealed ? effect : (perk.revealHint ?? "Undiscovered principle.")}</span>
+        ${revealed && perk.requirement ? `<small>Unlock condition: ${perk.requirement}</small>` : ""}
+        ${revealed ? `<small>${prerequisiteNames.length ? `Requires: ${prerequisiteNames.join(" + ")} · ` : "No perk prerequisite · "}Cost: ${evaluation.cost} SP</small>` : ""}
+      </span>
+      <span class="science-tree__node-summary">${visibleSummary}</span>
+      <span class="science-tree__node-state">${status}</span>
+    </div>
+  `;
+}
+
+function renderScienceBranch(branch, state, config) {
+  return `
+    <section class="science-tree__branch science-tree__branch--${branch.tone}" aria-label="${branch.title}">
+      <h3 class="science-tree__branch-title">${branch.title}</h3>
+      <div class="science-tree__branch-track" aria-label="${branch.title} perk progression">
+        ${branch.tiers
+          .map(
+            (tier, tierIndex) => `
+          ${tierIndex > 0 ? '<span class="science-tree__connector" aria-hidden="true">↓</span>' : ""}
+          <div class="science-tree__tier">
+            ${tier.map((perkId) => renderScienceTreeNode(perkId, state, config, branch.tone)).join("")}
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderScienceTree(state, config) {
+  const allocatedSciencePoints = Math.max(
+    0,
+    (state.science?.totalScienceEarned ?? 0) - state.sciencePoints,
+  );
+  return `
+    <section class="science-tree" aria-label="Science perks skill tree">
+      <div class="science-tree__heading">
+        <span>Hover a perk to see its effect · Branches grow from Redundancy Elimination</span>
+        <div class="science-tree__heading-actions">
+          <span>${state.sciencePoints} SP available</span>
+          ${button("Reset SP allocation", "reset-science-points", {
+            disabled: allocatedSciencePoints <= 0,
+            variant: "ghost",
+          })}
+        </div>
+      </div>
+      <div class="science-tree__lateral-scroll">
+        <div class="science-tree__lateral" aria-label="Quantum and Layer Perks progression">
+          <svg class="science-tree__lateral-connectors" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M295 110 H370 M370 54 V166 M370 68 H405 M370 152 H405 M675 68 H766 M675 152 H766 M766 68 V152 M766 110 H790 M160 145 V194 H500 V220" />
+          </svg>
+          <div class="science-tree__lateral-root">
+            ${renderScienceTreeNode("redundancyElimination", state, config, "root", "science-tree__node-wrap--root")}
+          </div>
+          <div class="science-tree__quantum-nodes" aria-label="Quark perks">
+            <span class="science-tree__layer-perks-label">QUANTUM PRINCIPLES</span>
+            <div class="science-tree__quantum-node">
+              ${renderScienceTreeNode("quantumCalculationPrinciples", state, config, "quantum")}
+            </div>
+            <div class="science-tree__quantum-node">
+              ${renderScienceTreeNode("quantumSuperposition", state, config, "quantum")}
+            </div>
+          </div>
+          <div class="science-tree__lateral-generator">
+            ${renderScienceTreeNode("particleGenerator", state, config, "layer", "science-tree__node-wrap--root")}
+          </div>
+        </div>
+      </div>
+      <span class="science-tree__trunk" aria-hidden="true"></span>
+      <div class="science-tree__splitter" aria-hidden="true"><span></span><i></i><span></span></div>
+      <div class="science-tree__branches">
+        ${SCIENCE_PERK_BRANCHES.map((branch) => renderScienceBranch(branch, state, config)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderParticleSynthesizerDevice(state, config) {
+  if ((state.science?.syntheses ?? 0) <= 0) return "";
+
+  const availability = evaluateComponent("particleSynthesizer", state, config);
+  const progress = calculateParticleSynthesizerProgress(state, config);
+  const nextSciencePointCost = calculateSciencePointCost(
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const projectedSciencePoints = calculateSciencePointReward(
+    state.energy,
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
+
+  return `
+    <article class="panel science-panel">
+      ${helpNote("Activation always spends 100 GJ. Science Points and quarks are calculated from the Stored Energy held at activation.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">SCIENCE DEVICE</p>
+          <h2>Particle Sintetizer</h2>
+        </div>
+        ${headingAction("Activate", "open-particle-synthesis", {
+          cost: availability.cost,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost",
+        })}
+      </div>
+      <p class="muted">The laboratory control route is stable enough to initiate another full-energy synthesis.</p>
+      ${progressBar(progress, "Particle Sintetizer activation charge", "door", "particle-synthesizer-device")}
+      ${progressBar(big(state.energy).div(nextSciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
+      <div class="metric-row">
+        <span>Fixed activation cost</span>
+        <strong>${formatEnergy(calculateParticleSynthesizerCost(state, config))}</strong>
+      </div>
+      <div class="metric-row">
+        <span>SP gained on Sintetization</span>
+        <strong data-field="science-sp-on-synthesis">${projectedSciencePoints}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Energy threshold for next SP</span>
+        <strong>${formatEnergy(nextSciencePointCost)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Quarks gained on Sintetization</span>
+        <strong data-field="device-quarks-on-synthesis">${projectedQuarks}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderParticleSynthesisModal(state, config) {
+  const modal = state.ui?.particleSynthesisModal;
+  if (!modal) return "";
+
+  if (modal === "narrative") {
+    return `
+      <div class="modal-backdrop">
+        <section class="synthesis-modal" role="dialog" aria-modal="true" aria-labelledby="synthesis-narrative-title">
+          <p class="panel__label">PARTICLE SYNTHESIS // FIRST ACTIVATION</p>
+          <h2 id="synthesis-narrative-title">The structure answers.</h2>
+          <div class="synthesis-modal__narrative">
+            <p>The laboratory rings ignite in sequence. For a fraction of a second, the entire facility feeds one impossible concentration of energy into the central chamber.</p>
+            <p>A new signature appears on the display. Then the Sintetizer overloads. Protection circuits sever every route at once, and the facility falls dark.</p>
+            <p>When the first condenser returns, something survived the collapse: preserved scientific knowledge and the quarks formed during synthesis.</p>
+          </div>
+          <div class="synthesis-modal__era">
+            <h3>Science Era</h3>
+            <p>Science Points survive synthesis and unlock permanent principles in the Science Tree. Quarks are produced from the Stored Energy held at activation; quarks beyond safe Cage capacity decay over time.</p>
+            <p>The Particle Sintetizer is now located in <strong>Science Devices</strong>. Future activations will confirm their rewards before resetting the Energy Era again.</p>
+          </div>
+          <div class="synthesis-modal__actions">
+            ${button("Enter Science Era", "close-particle-synthesis-narrative", { variant: "primary" })}
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  const activationCost = calculateParticleSynthesizerCost(state, config);
+  const scienceGained = calculateSciencePointReward(
+    state.energy,
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const sciencePointCost = calculateSciencePointCost(
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const quarksGained = calculateQuarksGenerated(state.energy, config);
+
+  return `
+    <div class="modal-backdrop">
+      <section class="synthesis-modal" role="dialog" aria-modal="true" aria-labelledby="synthesis-confirm-title">
+        <p class="panel__label">IRREVERSIBLE SYNTHESIS</p>
+        <h2 id="synthesis-confirm-title">Activate Particle Sintetizer?</h2>
+        <p class="muted">This spends ${formatEnergy(activationCost)} and resets all Energy Era progress. Rewards use the Stored Energy held at activation.</p>
+        <div class="synthesis-modal__rewards">
+          <div>
+            <span>Science Points gained (${formatEnergy(sciencePointCost)} threshold)</span>
+            <strong>${scienceGained}</strong>
+          </div>
+          <div>
+            <span>Quarks gained</span>
+            <strong>${quarksGained}</strong>
+          </div>
+        </div>
+        <div class="synthesis-modal__actions">
+          ${button("Cancel", "cancel-particle-synthesis", { variant: "ghost" })}
+          ${button("Activate", "confirm-particle-synthesis", { variant: "primary" })}
+        </div>
+      </section>
+    </div>
   `;
 }
 
@@ -1267,10 +1659,10 @@ function renderQuarkCage(state, config) {
       ...state,
       scienceDevices: {
         ...state.scienceDevices,
-        quarkCages: state.scienceDevices.quarkCages + 1
-      }
+        quarkCages: state.scienceDevices.quarkCages + 1,
+      },
     },
-    config
+    config,
   );
 
   return `
@@ -1285,7 +1677,7 @@ function renderQuarkCage(state, config) {
           cost: availability.cost,
           count: state.scienceDevices.quarkCages,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost"
+          variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">A high-energy containment chamber capable of stabilizing synthesized quarks and preventing their natural decay.</p>
@@ -1295,47 +1687,45 @@ function renderQuarkCage(state, config) {
       </div>
       <div class="metric-row">
         <span>Available Quarks</span>
-        <strong>${Number((state.quarks?.available ?? 0).toFixed(3)).toString()}</strong>
+        <strong>${formatEngineering(state.quarks?.available ?? 0)}</strong>
       </div>
     </article>
   `;
 }
 
-function renderMatrixMechanics(state, config) {
-  const availability = evaluateComponent("matrixMechanics", state, config);
+function renderFiftyGCalculator(state, config) {
+  const availability = evaluateComponent("fiftyGCalculator", state, config);
   if (!availability.visible) return "";
 
-  const bonus =
-    config.science.matrixMechanics.improvementSpeedBonusPerUpgradePerImprovement;
-  const currentSpeed = calculateMatrixMechanicsSpeedMultiplier(state, config);
+  const nextDuration = calculateAlgorithmUpgradeDuration(state, config, false);
 
   return `
-    <article class="panel science-panel ${state.science.matrixMechanics ? "device-card--online" : ""}">
-      ${helpNote("Matrix Mechanics compounds a small calculation speed correction across each Algorithm Improvement cycle. It scales with current Algorithm Upgrades and current Improvements.")}
+    <article class="panel science-panel ${state.science.fiftyGCalculator ? "device-card--online" : ""}">
+      ${helpNote("Extends Auto Calculator routing to Algorithm Upgrades. Manual Upgrades remain instant; automated Upgrades use their growing execution time.")}
       <div class="panel__heading">
         <div>
-          <p class="panel__label">CENTRAL PRINCIPLE</p>
-          <h2>Matrix Mechanics</h2>
+          <p class="panel__label">AUTOMATION & LIFE QUALITY</p>
+          <h2>50G Calculator</h2>
         </div>
         ${
-          state.science.matrixMechanics
+          state.science.fiftyGCalculator
             ? statusPill("ACTIVE", "online")
-            : headingAction("Study", "buy-matrix-mechanics", {
+            : headingAction("Study", "buy-fifty-g-calculator", {
                 cost: availability.cost,
                 costLabel: `${availability.cost} SP`,
                 disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost"
+                variant: availability.enabled ? "primary" : "ghost",
               })
         }
       </div>
-      <p class="muted">Reframes repeated condenser calculations as discrete matrix states.</p>
+      <p class="muted">Routes completed improvement sets into an automated algorithm reconstruction.</p>
       <div class="metric-row">
         <span>Effect</span>
-        <strong>x${(1 + bonus).toFixed(4)}^(A.Upgrades x A.Improvements)</strong>
+        <strong>Automates A. Upgrades with growing execution time</strong>
       </div>
       <div class="metric-row">
-        <span>Current study speed</span>
-        <strong>x${currentSpeed.toFixed(2)}</strong>
+        <span>Current automated duration</span>
+        <strong>${formatDuration(nextDuration)}</strong>
       </div>
     </article>
   `;
@@ -1351,7 +1741,7 @@ function renderLog(state) {
               <time>${formatDuration(entry.at)}</time>
               <span>${entry.message}</span>
             </li>
-          `
+          `,
         )
         .join("")
     : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
@@ -1475,7 +1865,7 @@ function renderDevicesTab(state, config, developmentMode) {
 function renderStudiesTab(state, config, developmentMode) {
   const studyCards = `
     ${renderStudy(state, config, developmentMode)}
-    ${renderAlgorithmUpgrade(state, config, developmentMode)}
+    ${renderAlgorithmUpgrade(state, config)}
     ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
   `;
   const resetCards = `
@@ -1533,19 +1923,20 @@ function renderScienceTab(state, config) {
     </div>
     <div class="section-stack">
       ${renderScienceStatus(state, config)}
-      ${renderComponent("matrixMechanics", state, config, () => renderMatrixMechanics(state, config))}
+      ${renderScienceTree(state, config)}
     </div>
   `;
   const devicesContent = `
     <div class="device-group__heading">
       <div>
         <p class="panel__label">SCIENCE DEVICES</p>
-        <h2>Containment Hardware</h2>
+        <h2>Laboratory Hardware</h2>
       </div>
-      <p>Run hardware that converts Stored Energy into safer quark containment.</p>
+      <p>Hardware for particle synthesis and safe quark containment.</p>
     </div>
     <div class="section-stack">
       ${renderScienceStatus(state, config)}
+      ${renderParticleSynthesizerDevice(state, config)}
       ${renderComponent("quarkCage", state, config, () => renderQuarkCage(state, config)) || '<p class="empty-note">No science device is readable yet.</p>'}
     </div>
   `;
@@ -1553,10 +1944,16 @@ function renderScienceTab(state, config) {
   return `
     ${renderTabTools(state)}
     ${renderScienceSubtabs(state)}
+    ${
+      activeSubtab === "tree"
+        ? `
+      <div class="tab-grid tab-grid--single science-tree-layout">
+        <section class="tab-main-column">${treeContent}</section>
+      </div>
+    `
+        : `
     <div class="tab-grid">
-      <section class="tab-main-column">
-        ${activeSubtab === "devices" ? devicesContent : treeContent}
-      </section>
+      <section class="tab-main-column">${devicesContent}</section>
       <aside class="tab-side-column">
         <div class="device-group__heading">
           <div>
@@ -1566,10 +1963,20 @@ function renderScienceTab(state, config) {
           <p>The central panel remains the bridge into the next reset.</p>
         </div>
         <div class="section-stack">
-          ${labReadable ? renderComponent("particleSynthesizer", state, config, () => renderParticleLabDetails(state, config)) : '<p class="empty-note">Particle Laboratory signal is not readable in this run yet.</p>'}
+          ${
+            !labReadable
+              ? '<p class="empty-note">Particle Laboratory signal is not readable in this run yet.</p>'
+              : (state.science?.syntheses ?? 0) > 0
+                ? '<p class="empty-note">The laboratory remains open. Particle Sintetizer controls have moved to Science Devices.</p>'
+                : renderComponent("particleSynthesizer", state, config, () =>
+                    renderParticleLabDetails(state, config),
+                  )
+          }
         </div>
       </aside>
     </div>
+    `
+    }
   `;
 }
 
@@ -1605,9 +2012,75 @@ function renderStatisticsTab(state) {
   `;
 }
 
+function renderAutomationsTab(state) {
+  const rows = listUnlockedAutomations(state);
+
+  return `
+    <div class="tab-grid tab-grid--single">
+      <section class="tab-main-column">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">AUTOMATIONS</p>
+            <h2>Active Routing Controls</h2>
+          </div>
+          <p>Pause or resume every automation this run has enabled. Unlocks stay listed after prestige resets.</p>
+        </div>
+        <article class="panel automations-panel">
+          ${helpNote("These switches only stop automatic actions. Owned devices and purchased Science perks keep their other bonuses.")}
+          <div class="panel__heading">
+            <div>
+              <p class="panel__label">CONTROL LOOP</p>
+              <h2>Automation Toggles</h2>
+            </div>
+            ${statusPill(`${rows.length} UNLOCKED`, "online")}
+          </div>
+          <div class="automation-list">
+            ${rows
+              .map((automation) => {
+                const enabled = isAutomationEnabled(state, automation.id);
+                const acquired = automation.isAcquired(state);
+                return `
+                  <div class="automation-row ${enabled ? "automation-row--on" : ""}">
+                    <div>
+                      <strong>${automation.name}</strong>
+                      <p class="muted">${automation.description}</p>
+                      <small>${
+                        acquired
+                          ? enabled
+                            ? "ONLINE"
+                            : "PAUSED"
+                          : "UNLOCKED // CURRENTLY OFFLINE"
+                      }</small>
+                    </div>
+                    <button
+                      class="toggle-control ${enabled ? "toggle-control--on" : ""}"
+                      data-action="toggle-automation"
+                      data-automation-id="${automation.id}"
+                      type="button"
+                      role="switch"
+                      aria-checked="${enabled}"
+                    >
+                      <span aria-hidden="true"></span>
+                      <strong>${enabled ? "Enabled" : "Disabled"}</strong>
+                    </button>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </article>
+      </section>
+    </div>
+  `;
+}
+
 function renderMeasureTab(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
-  const breakdown = calculateProductionBreakdown(state, config, developmentMode);
+  const breakdown = calculateProductionBreakdown(
+    state,
+    config,
+    developmentMode,
+  );
 
   return `
     <div class="tab-grid tab-grid--single">
@@ -1630,17 +2103,23 @@ function renderMeasureTab(state, config, developmentMode) {
           </div>
           <div class="measure-table" role="table" aria-label="Energy production composition">
             <div class="measure-table__row measure-table__row--head" role="row">
-              <span>Component</span>
-              <span>Contribution</span>
+              <span>Factor</span>
+              <span>Multiplier</span>
+              <span>Added output</span>
+              <span>Running output</span>
               <span>Share</span>
             </div>
             ${breakdown
               .map((row) => {
-                const share = production > 0 ? row.value / production : 0;
+                const share = production.gt(0)
+                  ? row.value.div(production).toNumber()
+                  : 0;
                 return `
                   <div class="measure-table__row" role="row">
-                    <span>${row.label}</span>
+                    <span><strong>${row.label}</strong><small>${row.detail}</small></span>
+                    <strong>${row.multiplierLabel}</strong>
                     <strong>${formatRate(row.value)}</strong>
+                    <strong>${formatRate(row.output)}</strong>
                     <strong>${formatPercent(share)}</strong>
                   </div>
                 `;
@@ -1665,9 +2144,18 @@ function renderSaveTab(saveSlots, developmentMode) {
   `;
 }
 
-function renderTabContent(activeTab, state, config, developmentMode, saveSlots) {
-  if (activeTab === "studies") return renderStudiesTab(state, config, developmentMode);
-  if (activeTab === "measure") return renderMeasureTab(state, config, developmentMode);
+function renderTabContent(
+  activeTab,
+  state,
+  config,
+  developmentMode,
+  saveSlots,
+) {
+  if (activeTab === "studies")
+    return renderStudiesTab(state, config, developmentMode);
+  if (activeTab === "automations") return renderAutomationsTab(state);
+  if (activeTab === "measure")
+    return renderMeasureTab(state, config, developmentMode);
   if (activeTab === "science") return renderScienceTab(state, config);
   if (activeTab === "statistics") return renderStatisticsTab(state);
   if (activeTab === "save") return renderSaveTab(saveSlots, developmentMode);
@@ -1675,9 +2163,8 @@ function renderTabContent(activeTab, state, config, developmentMode, saveSlots) 
 }
 
 function setField(app, key, value) {
-  const element = app.querySelector(`[data-field="${key}"]`);
-  if (element && element.textContent !== value) {
-    element.textContent = value;
+  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
+    if (element.textContent !== value) element.textContent = value;
   }
 }
 
@@ -1697,7 +2184,7 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     return JSON.stringify({
       introState: state.introState,
       developmentMode,
-      saveSlots
+      saveSlots,
     });
   }
 
@@ -1722,7 +2209,12 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     lastQuarks: state.quarks?.lastSynthesis ?? 0,
     quarkCages: state.scienceDevices?.quarkCages ?? 0,
     scienceSubtab: state.ui?.activeScienceSubtab ?? "tree",
-    matrixMechanics: state.science?.matrixMechanics ?? false,
+    particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
+    redundancyElimination: state.science?.perks ?? {},
+    revealedPerks: state.science?.revealedPerks ?? {},
+    preservedImprovementLog: state.preservedImprovementLog ?? 0,
+    fiftyGCalculator: state.science?.fiftyGCalculator ?? false,
+    automations: state.automations ?? {},
     syntheses: state.science?.syntheses ?? 0,
     particleSynthesizerActivated: state.particleSynthesizer.activated,
     calculationMethods: state.calculationMethods,
@@ -1732,7 +2224,7 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     overclockers: state.devices.overclockers,
     overclockerActive: state.overclocker.active,
     availability,
-    overflowingEnergy: state.energy > stableCapacity,
+    overflowingEnergy: big(state.energy).gt(stableCapacity),
     autoCalculators: state.devices.autoCalculators,
     processors: state.devices.processors,
     crcBlueprint: state.discoveries.crcBlueprint,
@@ -1746,7 +2238,7 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
     saveSlots,
-    latestLogId: state.log[0]?.id ?? ""
+    latestLogId: state.log[0]?.id ?? "",
   });
 }
 
@@ -1755,13 +2247,43 @@ function updateDynamicFields(app, state, config, developmentMode) {
 
   const stableCapacity = calculateStableEnergyCapacity(state, config);
   setField(app, "energy", formatEnergy(state.energy));
-  setProgress(app, "energy", state.energy / stableCapacity);
+  setProgress(app, "energy", big(state.energy).div(stableCapacity).toNumber());
   if (canAccessParticleLab(state, config)) {
     setProgress(
       app,
       "particle-synthesizer",
-      calculateParticleSynthesizerProgress(state, config)
+      calculateParticleSynthesizerProgress(state, config),
     );
+    setProgress(
+      app,
+      "particle-synthesizer-device",
+      calculateParticleSynthesizerProgress(state, config),
+    );
+    const nextSciencePointCost = calculateSciencePointCost(
+      state.science?.totalScienceEarned ?? 0,
+      config,
+    );
+    setProgress(
+      app,
+      "science-point",
+      big(state.energy).div(nextSciencePointCost).toNumber(),
+    );
+    setField(
+      app,
+      "science-sp-on-synthesis",
+      calculateSciencePointReward(
+        state.energy,
+        state.science?.totalScienceEarned ?? 0,
+        config,
+      ).toString(),
+    );
+    setField(app, "science-point-cost", formatEnergy(nextSciencePointCost));
+    const projectedQuarks = calculateQuarksGenerated(
+      state.energy,
+      config,
+    ).toString();
+    setField(app, "science-quarks-on-synthesis", projectedQuarks);
+    setField(app, "device-quarks-on-synthesis", projectedQuarks);
   } else {
     setProgress(app, "door", calculateDoorProgress(state, config));
   }
@@ -1771,17 +2293,17 @@ function updateDynamicFields(app, state, config, developmentMode) {
     const netProduction = calculateEffectiveProduction(
       state,
       config,
-      developmentMode
+      developmentMode,
     );
     const overflowDecay = calculateEnergyOverflowDecay(state, config);
-    const remainingCapacity = Math.max(
+    const remainingCapacity = bigMax(
       0,
-      stableCapacity - state.energy
+      stableCapacity.sub(state.energy),
     );
     const fillTime =
-      production > 0 && remainingCapacity > 0
-        ? formatDuration(remainingCapacity / Math.max(production, Number.EPSILON))
-        : state.energy > stableCapacity
+      production.gt(0) && remainingCapacity.gt(0)
+        ? formatDuration(remainingCapacity.div(production))
+        : big(state.energy).gt(stableCapacity)
           ? "EQUILIBRATING"
           : "FULL";
 
@@ -1791,7 +2313,11 @@ function updateDynamicFields(app, state, config, developmentMode) {
     setField(app, "energy-retention-main", formatRate(overflowDecay));
     setField(app, "fill-time", fillTime);
     setField(app, "energy-retention", formatRate(overflowDecay));
-    setField(app, "total-energy", formatEnergy(state.stats.totalEnergyCollected));
+    setField(
+      app,
+      "total-energy",
+      formatEnergy(state.stats.totalEnergyCollected),
+    );
   }
 
   if (state.devices.overclockers > 0) {
@@ -1799,8 +2325,8 @@ function updateDynamicFields(app, state, config, developmentMode) {
       ...state,
       overclocker: {
         ...state.overclocker,
-        active: true
-      }
+        active: true,
+      },
     };
     const speed = calculateOverclockerSpeedMultiplier(activePreview, config);
     const drain = calculateOverclockerDrainPerSecond(activePreview, config);
@@ -1808,8 +2334,16 @@ function updateDynamicFields(app, state, config, developmentMode) {
       ? `x${speed.toFixed(2)} active // ${formatRate(drain)}`
       : `x${speed.toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"} // ${formatRate(drain)}`;
     setField(app, "overclock-inline", status);
-    setField(app, "study-overclock-button-detail", `x${speed.toFixed(2)} // ${formatRate(drain)}`);
-    setField(app, "overclock-current", `x${speed.toFixed(2)} / ${formatRate(drain)}`);
+    setField(
+      app,
+      "study-overclock-button-detail",
+      `x${speed.toFixed(2)} // ${formatRate(drain)}`,
+    );
+    setField(
+      app,
+      "overclock-current",
+      `x${speed.toFixed(2)} / ${formatRate(drain)}`,
+    );
     setField(
       app,
       "study-overclock-status",
@@ -1817,7 +2351,7 @@ function updateDynamicFields(app, state, config, developmentMode) {
         ? "The calculator route is running hot."
         : state.overclocker.activeSeconds > 0
           ? "Cooling. Re-engaging now resumes from the current thermal load."
-          : "Available while Auto Calculator is online and excess Stored Energy exists."
+          : "Available while Auto Calculator is online and excess Stored Energy exists.",
     );
     setField(
       app,
@@ -1826,7 +2360,7 @@ function updateDynamicFields(app, state, config, developmentMode) {
         ? "OVERCLOCK ACTIVE"
         : state.overclocker.activeSeconds > 0
           ? "COOLING"
-          : "OVERCLOCK ROUTE EXPANDED"
+          : "OVERCLOCK ROUTE EXPANDED",
     );
     setField(
       app,
@@ -1835,7 +2369,7 @@ function updateDynamicFields(app, state, config, developmentMode) {
         ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
         : state.overclocker.activeSeconds > 0
           ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
-          : "STANDBY"
+          : "STANDBY",
     );
   }
 
@@ -1844,7 +2378,7 @@ function updateDynamicFields(app, state, config, developmentMode) {
     setField(
       app,
       "study-remaining",
-      formatDuration(Math.max(0, state.study.duration - state.study.elapsed))
+      formatDuration(Math.max(0, state.study.duration - state.study.elapsed)),
     );
   }
 
@@ -1852,7 +2386,8 @@ function updateDynamicFields(app, state, config, developmentMode) {
     setProgress(
       app,
       "algorithm-upgrade",
-      state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
+      state.algorithmUpgradeStudy.elapsed /
+        state.algorithmUpgradeStudy.duration,
     );
     setField(
       app,
@@ -1861,9 +2396,9 @@ function updateDynamicFields(app, state, config, developmentMode) {
         Math.max(
           0,
           state.algorithmUpgradeStudy.duration -
-            state.algorithmUpgradeStudy.elapsed
-        )
-      )
+            state.algorithmUpgradeStudy.elapsed,
+        ),
+      ),
     );
   }
 
@@ -1871,23 +2406,32 @@ function updateDynamicFields(app, state, config, developmentMode) {
     setProgress(
       app,
       "blueprint",
-      state.blueprintStudy.elapsed / state.blueprintStudy.duration
+      state.blueprintStudy.elapsed / state.blueprintStudy.duration,
     );
-    setField(app, "blueprint-remaining", formatDuration(Math.max(0, state.blueprintStudy.duration - state.blueprintStudy.elapsed)));
+    setField(
+      app,
+      "blueprint-remaining",
+      formatDuration(
+        Math.max(
+          0,
+          state.blueprintStudy.duration - state.blueprintStudy.elapsed,
+        ),
+      ),
+    );
   }
 
   if (state.construction.active) {
     setProgress(
       app,
       "construction",
-      state.construction.elapsed / state.construction.duration
+      state.construction.elapsed / state.construction.duration,
     );
     setField(
       app,
       "construction-remaining",
       formatDuration(
-        Math.max(0, state.construction.duration - state.construction.elapsed)
-      )
+        Math.max(0, state.construction.duration - state.construction.elapsed),
+      ),
     );
   }
 }
@@ -1909,11 +2453,39 @@ function renderGame(state, config, developmentMode, saveSlots) {
       ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
       ${developmentMode ? renderDevelopmentPanel(state) : ""}
     </section>
+    ${renderParticleSynthesisModal(state, config)}
   `;
 }
 
-export function createRenderer(app, config, developmentMode, getSaveSlots = () => []) {
+export function createRenderer(
+  app,
+  config,
+  developmentMode,
+  getSaveSlots = () => [],
+) {
   let lastRenderSignature = "";
+  let pointerIsDown = false;
+  let deferredRender = false;
+
+  app.addEventListener(
+    "pointerdown",
+    () => {
+      pointerIsDown = true;
+    },
+    true,
+  );
+
+  const finishPointerInteraction = () => {
+    pointerIsDown = false;
+    if (!deferredRender) return;
+
+    window.setTimeout(() => {
+      if (!pointerIsDown && deferredRender) render(deferredRender.state);
+    }, 120);
+  };
+
+  app.addEventListener("pointerup", finishPointerInteraction, true);
+  app.addEventListener("pointercancel", finishPointerInteraction, true);
 
   return function render(state) {
     const saveSlots = getSaveSlots();
@@ -1921,7 +2493,7 @@ export function createRenderer(app, config, developmentMode, getSaveSlots = () =
       state,
       config,
       developmentMode,
-      saveSlots
+      saveSlots,
     );
 
     if (signature === lastRenderSignature) {
@@ -1929,7 +2501,14 @@ export function createRenderer(app, config, developmentMode, getSaveSlots = () =
       return;
     }
 
+    if (pointerIsDown) {
+      deferredRender = { state };
+      updateDynamicFields(app, state, config, developmentMode);
+      return;
+    }
+
     lastRenderSignature = signature;
+    deferredRender = false;
 
     if (state.introState === "choice") {
       app.innerHTML = renderIntro();

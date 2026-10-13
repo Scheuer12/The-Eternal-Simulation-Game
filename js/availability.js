@@ -1,4 +1,5 @@
 import { COMPONENT_REGISTRY } from "./component-registry.js";
+import { big } from "./numeric.js";
 import {
   calculateAlgorithmUpgradeRequirement,
   calculateAutoCalculatorCost,
@@ -86,7 +87,7 @@ function evaluateRule(rule, spec, state, config, cost, requirement) {
 
   if (rule.kind === "resourceAtLeastCost") {
     const resource = readPath(state, rule.resource);
-    return resource >= cost;
+    return big(resource).gte(cost);
   }
 
   if (rule.kind === "stateAtLeast") {
@@ -140,7 +141,7 @@ export function evaluateComponent(componentId, state, config) {
     action: spec.action,
     visible,
     enabled: visible && !blockedRule,
-    affordable: cost === 0 || resourceValue >= cost,
+    affordable: big(cost).eq(0) || big(resourceValue).gte(cost),
     cost,
     requirement,
     owned: getOwnedCount(spec, state),

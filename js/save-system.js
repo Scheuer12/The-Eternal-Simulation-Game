@@ -1,11 +1,12 @@
 import { normalizeState, SAVE_VERSION } from "./state.js";
+import { isValidBig } from "./numeric.js";
 
 const NORMAL_SAVE_PREFIX = "the-eternal-simulation.save";
 const DEVELOPMENT_SAVE_PREFIX = "the-eternal-simulation.development";
 
 const SAVE_MODES = [
   { id: "normal", label: "Normal", developmentMode: false },
-  { id: "development", label: "Development", developmentMode: true }
+  { id: "development", label: "Development", developmentMode: true },
 ];
 
 function getSavePrefix(developmentMode) {
@@ -14,6 +15,10 @@ function getSavePrefix(developmentMode) {
 
 export function getSaveKey(developmentMode) {
   return `${getSavePrefix(developmentMode)}.v${SAVE_VERSION}`;
+}
+
+export function getSaveBackupKey(developmentMode) {
+  return `${getSaveKey(developmentMode)}.backup`;
 }
 
 function getSaveKeysForMode(developmentMode) {
@@ -29,11 +34,62 @@ function getSaveKeysForMode(developmentMode) {
 }
 
 export function loadState(config, developmentMode) {
+  const saveKey = getSaveKey(developmentMode);
   try {
-    const raw = localStorage.getItem(getSaveKey(developmentMode));
-    return normalizeState(raw ? JSON.parse(raw) : null, config);
+    const primaryRaw = localStorage.getItem(saveKey);
+    const backupRaw = localStorage.getItem(getSaveBackupKey(developmentMode));
+    let primaryCandidate = null;
+    try {
+      primaryCandidate = primaryRaw ? JSON.parse(primaryRaw) : null;
+    } catch {
+      // The backup is tried first when the primary JSON cannot be parsed.
+    }
+    const primaryNeedsRecovery =
+      primaryCandidate?.saveVersion === SAVE_VERSION &&
+      (!isValidBig(primaryCandidate.energy) ||
+        !isValidBig(primaryCandidate.improvementMultiplier, {
+          positive: true,
+        }) ||
+        !isValidBig(primaryCandidate.stats?.totalEnergyCollected));
+    const candidates = primaryNeedsRecovery
+      ? [
+          [backupRaw, true],
+          [primaryRaw, false],
+        ]
+      : [
+          [primaryRaw, false],
+          [backupRaw, true],
+        ];
+
+    for (const [raw, isBackup] of candidates) {
+      if (!raw) continue;
+
+      try {
+        const candidate = JSON.parse(raw);
+        if (candidate?.saveVersion !== SAVE_VERSION) continue;
+
+        const state = normalizeState(candidate, config);
+        if (isBackup) {
+          // Restore the known-good snapshot before any later autosave can run.
+          localStorage.setItem(saveKey, JSON.stringify(state));
+        }
+        if (candidate?.science?.matrixMechanics) {
+          saveState(state, developmentMode);
+        }
+        return state;
+      } catch (error) {
+        console.warn(
+          isBackup
+            ? "The backup save could not be loaded."
+            : "The save could not be loaded; trying its backup.",
+          error,
+        );
+      }
+    }
+
+    return normalizeState(null, config);
   } catch (error) {
-    console.warn("The save could not be loaded.", error);
+    console.warn("The save could not be accessed.", error);
     return normalizeState(null, config);
   }
 }
@@ -41,7 +97,17 @@ export function loadState(config, developmentMode) {
 export function saveState(state, developmentMode) {
   try {
     state.lastSavedAt = Date.now();
-    localStorage.setItem(getSaveKey(developmentMode), JSON.stringify(state));
+    const saveKey = getSaveKey(developmentMode);
+    const serialized = JSON.stringify(state);
+    const previous = localStorage.getItem(saveKey);
+    if (previous) {
+      try {
+        localStorage.setItem(getSaveBackupKey(developmentMode), previous);
+      } catch (error) {
+        console.warn("The previous save could not be backed up.", error);
+      }
+    }
+    localStorage.setItem(saveKey, serialized);
   } catch (error) {
     console.warn("The save could not be written.", error);
   }
@@ -81,7 +147,7 @@ export function listSaveSlots() {
       exists: Boolean(raw),
       lastSavedAt: parsed?.lastSavedAt ?? null,
       totalPlayTime: parsed?.stats?.totalPlayTime ?? null,
-      energy: parsed?.energy ?? null
+      energy: parsed?.energy ?? null,
     };
   });
 }

@@ -83,7 +83,7 @@ O custo escala sem teto de multiplicador: as primeiras celulas devem ser alcanca
 
 A cada grupo completo de `100 Power Cells`, a facility pode instalar um `Power Module`. As celulas nao sao consumidas; o modulo ativa circuitos de captacao e conducao ao redor do conjunto, aumentando a capacidade estavel efetiva das Power Cells.
 
-Efeito inicial de balance: capacidade estavel `x1.35` por Power Module.
+Efeito inicial de balance: capacidade estavel `x1.35` por Power Module. O perk Energy `Power Modules Scaling` aumenta ligeiramente a intensidade total conforme a quantidade de modulos.
 
 Requisito do proximo modulo: `(powerModules + 1) * 100 Power Cells`.
 
@@ -103,7 +103,7 @@ Melhora produtividade do CRC. Primeiras conclusoes tem impacto pesado; depois o 
 
 ### Algorithm Upgrade
 
-Dobra produtividade do CRC e reseta Algorithm Improvements. Quando iniciado manualmente, completa instantaneamente. Se uma automacao futura iniciar Algorithm Upgrades diretamente, a rota automatizada usa o tempo de pesquisa configurado e seus multiplicadores aplicaveis.
+Dobra produtividade do CRC e reseta Algorithm Improvements. Quando iniciado manualmente, completa instantaneamente. Com o perk `50G Calculator`, a rota automatizada usa o tempo de execucao configurado, que cresce a cada Upgrade.
 
 Requisito inicial: `10 Algorithm Improvements`; sobe `+5` por conclusao.
 
@@ -115,7 +115,7 @@ Requisito inicial: `5 Algorithm Upgrades`; sobe `+5` por conclusao.
 
 ### Setup Optimization
 
-Substitui o antigo Compression Protocol. Reduz a carga efetiva usada dentro da formula exponencial de tempo dos Algorithm Improvements e reseta energia, estudos e hardware, exceto Power Cells. A UI mostra o impacto na curva de penalidade, nao um multiplicador simples aplicado ao tempo final.
+Substitui o antigo Compression Protocol. Reduz a carga efetiva usada dentro da formula exponencial de tempo dos Algorithm Improvements e reseta energia, estudos e hardware, exceto Power Cells. Com o perk `Stored Energy Preservation`, Stored Energy tambem sobrevive a esse reset. A UI mostra o impacto na curva de penalidade, nao um multiplicador simples aplicado ao tempo final.
 
 Requisito inicial: `2 Calculation Method Upgrades`; sobe `+2` por conclusao.
 
@@ -125,9 +125,9 @@ A porta do `Particle Laboratory` abre quando `peakEnergy >= 100 J`. A porta nao 
 
 Dentro do laboratorio, um painel central fraco mostra `Particle Sintetizer` e uma barra `Activate Particle Sintetizer`.
 
-A primeira meta de ativacao e `100 GJ = 100e9 J`. Depois disso, o custo do proximo Science Point segue a formula da Science Era.
+Cada ativacao sempre custa `100 GJ = 100e9 J`. Separadamente, o requisito de energia para receber o proximo Science Point cresce conforme a formula da Science Era; sintetizar abaixo desse requisito ainda ativa o reset, mas nao concede SP.
 
-Ativar o sintetizador executa o prestige para a Science Era: gera `1 Science Point`, gera quarks proporcionais a energia disponivel no ato (`1 quark / 100e9 J`) e reseta a Energy Era preservando os recursos persistentes definidos na Science Era.
+Ativar o sintetizador abre primeiro uma confirmacao com os Science Points e quarks que serao ganhos. A ativacao sempre gasta `100e9 J`; concede `1 Science Point` somente se a energia total no ato atingir o requisito crescente do proximo SP. Tambem gera quarks proporcionais a energia disponivel no ato (`1 quark / 100e9 J`) e reseta a Energy Era, preservando os recursos persistentes definidos na Science Era. Na primeira ativacao, uma narrativa apresenta a Science Era; depois disso, o controle do sintetizador fica em `Science > Science Devices`.
 
 ## Foreshadowing
 

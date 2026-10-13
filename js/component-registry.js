@@ -13,8 +13,8 @@ export const COMPONENT_REGISTRY = {
     visibleWhen: [],
     enabledWhen: [
       { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "energy" }
-    ]
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   t2SoftDataDisplay: {
     id: "t2SoftDataDisplay",
@@ -30,8 +30,8 @@ export const COMPONENT_REGISTRY = {
     visibleWhen: [{ kind: "truthy", path: "devices.softDataDisplay" }],
     enabledWhen: [
       { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "energy" }
-    ]
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   autoCalculator: {
     id: "autoCalculator",
@@ -44,7 +44,7 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "autoCalculatorCost" },
     visibleWhen: [],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
   },
   processor: {
     id: "processor",
@@ -57,7 +57,7 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "processorCost" },
     visibleWhen: [],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
   },
   overclocker: {
     id: "overclocker",
@@ -70,10 +70,18 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "overclockerCost" },
     visibleWhen: [
-      { kind: "stateAtLeast", path: "devices.processors", configPath: "overclocker.processorsRequired" },
-      { kind: "stateAtLeast", path: "powerCells", configPath: "overclocker.powerCellsRequired" }
+      {
+        kind: "stateAtLeast",
+        path: "devices.processors",
+        configPath: "overclocker.processorsRequired",
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
+      },
     ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
   },
   powerCell: {
     id: "powerCell",
@@ -87,9 +95,13 @@ export const COMPONENT_REGISTRY = {
     cost: { kind: "formula", name: "powerCellCost" },
     visibleWhen: [
       { kind: "truthy", path: "devices.softDataDisplay" },
-      { kind: "stateAtLeast", path: "upgrades", configPath: "powerCell.algorithmUpgradesRequired" }
+      {
+        kind: "stateAtLeast",
+        path: "upgrades",
+        configPath: "powerCell.algorithmUpgradesRequired",
+      },
     ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
   },
   powerModule: {
     id: "powerModule",
@@ -102,13 +114,11 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "powerModuleCost" },
     requirement: { kind: "formula", name: "powerModuleRequirement" },
-    visibleWhen: [
-      { kind: "stateAtLeastRequirement", path: "powerCells" }
-    ],
+    visibleWhen: [{ kind: "stateAtLeastRequirement", path: "powerCells" }],
     enabledWhen: [
       { kind: "stateAtLeastRequirement", path: "powerCells" },
-      { kind: "resourceAtLeastCost", resource: "energy" }
-    ]
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   particleSynthesizer: {
     id: "particleSynthesizer",
@@ -116,18 +126,28 @@ export const COMPONENT_REGISTRY = {
     tab: "science",
     subcategory: "energy",
     label: "Particle Sintetizer",
-    action: "activate-particle-synthesizer",
+    action: "open-particle-synthesis",
     ownedPath: "particleSynthesizer.activated",
     ownedMode: "boolean",
     completedWhenOwned: true,
     cost: { kind: "formula", name: "particleSynthesizerCost" },
     visibleWhen: [
-      { kind: "stateAtLeast", path: "peakEnergy", configPath: "particleLab.doorEnergyRequired" }
+      {
+        kind: "any",
+        rules: [
+          {
+            kind: "stateAtLeast",
+            path: "peakEnergy",
+            configPath: "particleLab.doorEnergyRequired",
+          },
+          { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
+        ],
+      },
     ],
     enabledWhen: [
       { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "energy" }
-    ]
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   quarkCage: {
     id: "quarkCage",
@@ -140,34 +160,45 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "quarkCageCost" },
     visibleWhen: [
-      { kind: "any", rules: [
-        { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
-        { kind: "stateAtLeast", path: "quarks.totalEarned", value: 1 },
-        { kind: "stateAtLeast", path: "scienceDevices.quarkCages", value: 1 }
-      ] }
+      {
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
+          { kind: "stateAtLeast", path: "quarks.totalEarned", value: 1 },
+          { kind: "stateAtLeast", path: "scienceDevices.quarkCages", value: 1 },
+        ],
+      },
     ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
   },
-  matrixMechanics: {
-    id: "matrixMechanics",
+  fiftyGCalculator: {
+    id: "fiftyGCalculator",
     type: "science",
     tab: "science",
-    label: "Matrix Mechanics",
-    action: "buy-matrix-mechanics",
-    ownedPath: "science.matrixMechanics",
+    label: "50G Calculator",
+    action: "buy-fifty-g-calculator",
+    ownedPath: "science.fiftyGCalculator",
     ownedMode: "boolean",
     completedWhenOwned: true,
-    cost: { kind: "config", path: "science.matrixMechanics.cost", resource: "sciencePoints" },
+    cost: {
+      kind: "config",
+      path: "science.fiftyGCalculator.cost",
+      resource: "sciencePoints",
+    },
     visibleWhen: [
-      { kind: "any", rules: [
-        { kind: "stateAtLeast", path: "sciencePoints", value: 1 },
-        { kind: "truthy", path: "science.matrixMechanics" }
-      ] }
+      {
+        kind: "any",
+        rules: [
+          { kind: "truthy", path: "science.perks.redundancyElimination" },
+          { kind: "truthy", path: "science.fiftyGCalculator" },
+        ],
+      },
     ],
     enabledWhen: [
       { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "sciencePoints" }
-    ]
+      { kind: "truthy", path: "science.perks.redundancyElimination" },
+      { kind: "resourceAtLeastCost", resource: "sciencePoints" },
+    ],
   },
   crcBlueprint: {
     id: "crcBlueprint",
@@ -180,17 +211,28 @@ export const COMPONENT_REGISTRY = {
     completedWhenOwned: true,
     cost: { kind: "none" },
     visibleWhen: [
-      { kind: "any", rules: [
-        { kind: "truthy", path: "discoveries.crcBlueprint" },
-        { kind: "truthy", path: "blueprintStudy.active" },
-        { kind: "stateAtLeast", path: "peakEnergy", configPath: "blueprint.revealAtPeakEnergy" }
-      ] }
+      {
+        kind: "any",
+        rules: [
+          { kind: "truthy", path: "discoveries.crcBlueprint" },
+          { kind: "truthy", path: "blueprintStudy.active" },
+          {
+            kind: "stateAtLeast",
+            path: "peakEnergy",
+            configPath: "blueprint.revealAtPeakEnergy",
+          },
+        ],
+      },
     ],
     enabledWhen: [
       { kind: "falsy", path: "discoveries.crcBlueprint" },
       { kind: "falsy", path: "blueprintStudy.active" },
-      { kind: "stateAtLeast", path: "peakEnergy", configPath: "blueprint.revealAtPeakEnergy" }
-    ]
+      {
+        kind: "stateAtLeast",
+        path: "peakEnergy",
+        configPath: "blueprint.revealAtPeakEnergy",
+      },
+    ],
   },
   crcConstruction: {
     id: "crcConstruction",
@@ -205,8 +247,8 @@ export const COMPONENT_REGISTRY = {
     visibleWhen: [{ kind: "truthy", path: "discoveries.crcBlueprint" }],
     enabledWhen: [
       { kind: "falsy", path: "construction.active" },
-      { kind: "resourceAtLeastCost", resource: "energy" }
-    ]
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   algorithmUpgrade: {
     id: "algorithmUpgrade",
@@ -219,15 +261,18 @@ export const COMPONENT_REGISTRY = {
     cost: { kind: "none" },
     requirement: { kind: "formula", name: "algorithmUpgradeRequirement" },
     visibleWhen: [
-      { kind: "any", rules: [
-        { kind: "stateAtLeast", path: "upgrades", value: 1 },
-        { kind: "stateAtLeastRequirement", path: "improvements" }
-      ] }
+      {
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "upgrades", value: 1 },
+          { kind: "stateAtLeastRequirement", path: "improvements" },
+        ],
+      },
     ],
     enabledWhen: [
       { kind: "falsy", path: "algorithmUpgradeStudy.active" },
-      { kind: "stateAtLeastRequirement", path: "improvements" }
-    ]
+      { kind: "stateAtLeastRequirement", path: "improvements" },
+    ],
   },
   calculationMethodUpgrade: {
     id: "calculationMethodUpgrade",
@@ -240,12 +285,15 @@ export const COMPONENT_REGISTRY = {
     cost: { kind: "none" },
     requirement: { kind: "formula", name: "calculationMethodRequirement" },
     visibleWhen: [
-      { kind: "any", rules: [
-        { kind: "stateAtLeast", path: "upgrades", value: 1 },
-        { kind: "stateAtLeast", path: "calculationMethods", value: 1 }
-      ] }
+      {
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "upgrades", value: 1 },
+          { kind: "stateAtLeast", path: "calculationMethods", value: 1 },
+        ],
+      },
     ],
-    enabledWhen: [{ kind: "stateAtLeastRequirement", path: "upgrades" }]
+    enabledWhen: [{ kind: "stateAtLeastRequirement", path: "upgrades" }],
   },
   setupOptimization: {
     id: "setupOptimization",
@@ -259,12 +307,17 @@ export const COMPONENT_REGISTRY = {
     cost: { kind: "none" },
     requirement: { kind: "formula", name: "setupOptimizationRequirement" },
     visibleWhen: [
-      { kind: "any", rules: [
-        { kind: "stateAtLeast", path: "upgrades", value: 1 },
-        { kind: "stateAtLeast", path: "calculationMethods", value: 1 },
-        { kind: "stateAtLeast", path: "setupOptimizations", value: 1 }
-      ] }
+      {
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "upgrades", value: 1 },
+          { kind: "stateAtLeast", path: "calculationMethods", value: 1 },
+          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
+        ],
+      },
     ],
-    enabledWhen: [{ kind: "stateAtLeastRequirement", path: "calculationMethods" }]
-  }
+    enabledWhen: [
+      { kind: "stateAtLeastRequirement", path: "calculationMethods" },
+    ],
+  },
 };

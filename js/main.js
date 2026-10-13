@@ -4,7 +4,7 @@ import {
   deleteState,
   listSaveSlots,
   loadState,
-  saveState
+  saveState,
 } from "./save-system.js";
 import { simulateOfflineProgress } from "./offline-progress.js";
 import { createRenderer, markTabComponentsSeen } from "./ui.js";
@@ -20,6 +20,21 @@ async function loadConfig() {
 }
 
 function bindActions(app, engine, saveActions, config) {
+  app.addEventListener(
+    "pointerdown",
+    (event) => {
+      const target = event.target.closest?.('[data-action="set-tab"]');
+      if (!target || target.disabled) return;
+
+      // Change sections at pointer-down: auto-studies may trigger a structural
+      // redraw before the browser dispatches click on the released button.
+      engine.state.ui.activeTab = target.dataset.tab || "devices";
+      markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
+      engine.notify();
+    },
+    true,
+  );
+
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
@@ -39,12 +54,27 @@ function bindActions(app, engine, saveActions, config) {
       "buy-t2-soft-display": () => engine.purchaseT2SoftDataDisplay(),
       "buy-overclocker": () => engine.purchaseOverclocker(),
       "toggle-overclocker": () => engine.toggleOverclocker(),
+      "toggle-automation": () =>
+        engine.toggleAutomation(target.dataset.automationId),
       "buy-auto": () => engine.purchaseAutoCalculator(),
       "construct-crc": () => engine.startCrcConstruction(),
       "buy-processor": () => engine.purchaseProcessor(),
-      "activate-particle-synthesizer": () => engine.activateParticleSynthesizer(),
+      "open-particle-synthesis": () =>
+        engine.openParticleSynthesisConfirmation(),
+      "cancel-particle-synthesis": () => engine.closeParticleSynthesisModal(),
+      "confirm-particle-synthesis": () => engine.confirmParticleSynthesis(),
+      "close-particle-synthesis-narrative": () =>
+        engine.closeParticleSynthesisModal(),
       "buy-quark-cage": () => engine.purchaseQuarkCage(),
-      "buy-matrix-mechanics": () => engine.purchaseMatrixMechanics(),
+      "buy-fifty-g-calculator": () => engine.purchaseFiftyGCalculator(),
+      "buy-science-perk": () =>
+        engine.purchaseSciencePerk(target.dataset.perkId),
+      "reset-science-points": () => {
+        const confirmed = window.confirm(
+          "Return every allocated Science Point and clear all purchased Science perks?",
+        );
+        if (confirmed) engine.resetSciencePointAllocation();
+      },
       "claim-method": () => engine.claimCalculationMethodUpgrade(),
       "claim-setup": () => engine.claimSetupOptimization(),
       "set-tab": () => {
@@ -53,7 +83,8 @@ function bindActions(app, engine, saveActions, config) {
         engine.notify();
       },
       "set-science-subtab": () => {
-        engine.state.ui.activeScienceSubtab = target.dataset.scienceSubtab || "tree";
+        engine.state.ui.activeScienceSubtab =
+          target.dataset.scienceSubtab || "tree";
         markTabComponentsSeen(engine.state, config, "science");
         engine.notify();
       },
@@ -75,16 +106,18 @@ function bindActions(app, engine, saveActions, config) {
       "dev-add-energy": () => engine.developmentAddEnergy(),
       "dev-add-large-energy": () => engine.developmentAddLargeEnergy(),
       "dev-complete-study": () => engine.developmentCompleteStudy(),
-      "dev-complete-upgrade": () => engine.developmentCompleteAlgorithmUpgrade(),
+      "dev-complete-upgrade": () =>
+        engine.developmentCompleteAlgorithmUpgrade(),
       "dev-force-blueprint": () => engine.developmentForceBlueprint(),
-      "dev-cycle-production": () => engine.developmentCycleProductionMultiplier(),
+      "dev-cycle-production": () =>
+        engine.developmentCycleProductionMultiplier(),
       "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
       "save-now": () => saveActions.saveNow(),
       "reset-save": () => saveActions.resetCurrent(),
       "reset-current-save": () => saveActions.resetCurrent(),
       "reset-normal-save": () => saveActions.resetMode(false),
       "reset-development-save": () => saveActions.resetMode(true),
-      "reset-all-saves": () => saveActions.resetAll()
+      "reset-all-saves": () => saveActions.resetAll(),
     };
 
     actions[target.dataset.action]?.();
@@ -114,7 +147,7 @@ async function start() {
     const resetMode = (mode) => {
       const label = mode ? "development" : "normal";
       const confirmed = window.confirm(
-        `Delete ${label} mode progress? This cannot be undone.`
+        `Delete ${label} mode progress? This cannot be undone.`,
       );
       if (!confirmed) return;
       deleteState(mode);
@@ -127,7 +160,7 @@ async function start() {
 
     const resetAll = () => {
       const confirmed = window.confirm(
-        "Delete normal and development progress? This cannot be undone."
+        "Delete normal and development progress? This cannot be undone.",
       );
       if (!confirmed) return;
       deleteAllStates();
@@ -139,19 +172,24 @@ async function start() {
       saveState(state, developmentMode);
       engine.addLog(
         "Simulation memory saved. Offline recovery anchor updated.",
-        "device"
+        "device",
       );
       engine.notify();
     };
 
     markTabComponentsSeen(state, config);
 
-    bindActions(app, engine, {
-      saveNow,
-      resetCurrent: () => resetMode(developmentMode),
-      resetMode,
-      resetAll
-    }, config);
+    bindActions(
+      app,
+      engine,
+      {
+        saveNow,
+        resetCurrent: () => resetMode(developmentMode),
+        resetMode,
+        resetAll,
+      },
+      config,
+    );
     engine.subscribe(render);
     render(state);
 
