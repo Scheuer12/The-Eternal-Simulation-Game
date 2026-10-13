@@ -82,10 +82,14 @@ export function calculateCrcCost(state, config) {
 export function calculatePowerCellCost(ownedPowerCells, config) {
   const owned = Math.max(1, ownedPowerCells);
   const currentCapacity = config.energy.powerCellCapacity * owned;
+  const completedArrays = Math.floor(owned / config.powerModule.cellsPerModule);
+  const arrayPressure =
+    (config.powerCell.arrayCostGrowthMultiplier ?? 1) ** completedArrays;
   const multiplier =
     config.powerCell.baseCapacityCostMultiplier *
     (1 + (owned - 1) / config.powerCell.costGrowthScale) **
-      config.powerCell.costGrowthPower;
+      config.powerCell.costGrowthPower *
+    arrayPressure;
 
   return (
     currentCapacity *
@@ -263,8 +267,60 @@ export function canAccessParticleLab(state, config) {
   return state.peakEnergy >= config.particleLab.doorEnergyRequired;
 }
 
+export function calculateSciencePointCost(totalScienceEarned, config) {
+  const settings = config.science?.sciencePointCost ?? {};
+  const earned = Math.max(0, totalScienceEarned ?? 0);
+  const exponent =
+    (settings.baseExponent ?? 11) +
+    (settings.linearExponentGrowth ?? 0.9) * earned +
+    (settings.quadraticExponentGrowth ?? 0.055) * earned ** 2;
+
+  return 10 ** exponent;
+}
+
+export function calculateParticleSynthesizerCost(state, config) {
+  return calculateSciencePointCost(state.science?.totalScienceEarned ?? 0, config);
+}
+
 export function calculateParticleSynthesizerProgress(state, config) {
-  return state.energy / config.particleLab.synthesizerEnergyRequired;
+  return state.energy / calculateParticleSynthesizerCost(state, config);
+}
+
+export function calculateQuarksGenerated(energy, config) {
+  const unit = config.science?.quarks?.energyPerQuark ?? 100000000000;
+  if (!Number.isFinite(energy) || energy < unit) return 0;
+  return Math.floor(energy / unit);
+}
+
+export function calculateQuarkCageCapacity(ownedCages, config) {
+  const capacityBase = config.science?.quarkCage?.capacityBase ?? 2;
+  const owned = Math.max(0, ownedCages ?? 0);
+  return capacityBase ** (owned + 1) - 1;
+}
+
+export function calculateQuarkCapacity(state, config) {
+  return calculateQuarkCageCapacity(state.scienceDevices?.quarkCages ?? 0, config);
+}
+
+export function calculateQuarkCageCost(ownedCages, config) {
+  const settings = config.science?.quarkCage ?? {};
+  const baseExponent = settings.baseCostExponent ?? 11;
+  const exponentGrowth = settings.costExponentGrowth ?? 1;
+  return 10 ** (baseExponent + exponentGrowth * Math.max(0, ownedCages ?? 0));
+}
+
+export function calculateQuarkDecay(state, config) {
+  const available = state.quarks?.available ?? 0;
+  const capacity = calculateQuarkCapacity(state, config);
+  if (capacity <= 0 || available <= capacity) return 0;
+
+  const settings = config.science?.quarks ?? {};
+  const overflowRatio = (available - capacity) / capacity;
+  return (
+    (settings.decayRate ?? 0.12) *
+    capacity *
+    overflowRatio ** (settings.decayPower ?? 1.7)
+  );
 }
 
 export function getDevelopmentDurationMultiplier(state, config) {

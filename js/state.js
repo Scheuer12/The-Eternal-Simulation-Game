@@ -15,7 +15,16 @@ export function createInitialState(config) {
     sciencePoints: 0,
     science: {
       matrixMechanics: false,
-      syntheses: 0
+      syntheses: 0,
+      totalScienceEarned: 0
+    },
+    quarks: {
+      available: 0,
+      totalEarned: 0,
+      lastSynthesis: 0
+    },
+    scienceDevices: {
+      quarkCages: 0
     },
     crcCount: config.energy.initialCrcCount,
     powerModules: 0,
@@ -24,6 +33,7 @@ export function createInitialState(config) {
     },
     ui: {
       activeTab: "devices",
+      activeScienceSubtab: "tree",
       hideCompletedPurchases: false,
       seenComponents: {}
     },
@@ -130,7 +140,21 @@ export function normalizeState(candidate, config) {
       Number.isFinite(candidate.sciencePoints) ? candidate.sciencePoints : 0,
     science: {
       ...initial.science,
-      ...candidate.science
+      ...candidate.science,
+      totalScienceEarned:
+        Number.isFinite(candidate.science?.totalScienceEarned)
+          ? candidate.science.totalScienceEarned
+          : Number.isFinite(candidate.sciencePoints)
+            ? candidate.sciencePoints
+            : 0
+    },
+    quarks: {
+      ...initial.quarks,
+      ...candidate.quarks
+    },
+    scienceDevices: {
+      ...initial.scienceDevices,
+      ...candidate.scienceDevices
     },
     devices,
     discoveries: { ...initial.discoveries, ...candidate.discoveries },

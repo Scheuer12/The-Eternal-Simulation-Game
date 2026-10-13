@@ -5,10 +5,12 @@ import {
   calculateCalculationMethodRequirement,
   calculateCrcCost,
   calculateOverclockerCost,
+  calculateParticleSynthesizerCost,
   calculatePowerCellCost,
   calculatePowerModuleCost,
   calculatePowerModuleRequirement,
   calculateProcessorCost,
+  calculateQuarkCageCost,
   calculateSetupOptimizationRequirement,
   formatEnergy
 } from "./formulas.js";
@@ -56,7 +58,9 @@ export function calculateComponentCost(componentId, state, config) {
       calculateOverclockerCost(state.devices.overclockers, config),
     powerCellCost: () => calculatePowerCellCost(state.powerCells, config),
     powerModuleCost: () => calculatePowerModuleCost(state.powerModules, config),
-    crcCost: () => calculateCrcCost(state, config)
+    crcCost: () => calculateCrcCost(state, config),
+    particleSynthesizerCost: () => calculateParticleSynthesizerCost(state, config),
+    quarkCageCost: () => calculateQuarkCageCost(state.scienceDevices?.quarkCages ?? 0, config)
   };
 
   return formulas[spec.cost.name]?.() ?? 0;
@@ -81,7 +85,8 @@ function evaluateRule(rule, spec, state, config, cost, requirement) {
   if (rule.kind === "notOwned") return getOwnedCount(spec, state) <= 0;
 
   if (rule.kind === "resourceAtLeastCost") {
-    return readPath(state, rule.resource) >= cost;
+    const resource = readPath(state, rule.resource);
+    return resource >= cost;
   }
 
   if (rule.kind === "stateAtLeast") {
@@ -126,6 +131,8 @@ export function evaluateComponent(componentId, state, config) {
     (rule) => !evaluateRule(rule, spec, state, config, cost, requirement)
   );
 
+  const resourceValue = spec.cost?.resource ? readPath(state, spec.cost.resource) : state.energy;
+
   return {
     id: spec.id,
     label: spec.label,
@@ -133,7 +140,7 @@ export function evaluateComponent(componentId, state, config) {
     action: spec.action,
     visible,
     enabled: visible && !blockedRule,
-    affordable: cost === 0 || state.energy >= cost,
+    affordable: cost === 0 || resourceValue >= cost,
     cost,
     requirement,
     owned: getOwnedCount(spec, state),

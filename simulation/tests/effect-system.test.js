@@ -5,12 +5,12 @@ import test from "node:test";
 import {
   applyProductionEffects,
   getProductionEffects
-} from "../js/effect-system.js";
-import { calculateProduction } from "../js/formulas.js";
-import { createInitialState } from "../js/state.js";
+} from "../../js/effect-system.js";
+import { calculateProduction } from "../../js/formulas.js";
+import { createInitialState } from "../../js/state.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../config/game-config.json", import.meta.url), "utf8")
+  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
 );
 
 test("production effects reproduce the current production formula", () => {

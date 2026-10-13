@@ -120,7 +120,7 @@ export const COMPONENT_REGISTRY = {
     ownedPath: "particleSynthesizer.activated",
     ownedMode: "boolean",
     completedWhenOwned: true,
-    cost: { kind: "config", path: "particleLab.synthesizerEnergyRequired" },
+    cost: { kind: "formula", name: "particleSynthesizerCost" },
     visibleWhen: [
       { kind: "stateAtLeast", path: "peakEnergy", configPath: "particleLab.doorEnergyRequired" }
     ],
@@ -128,6 +128,25 @@ export const COMPONENT_REGISTRY = {
       { kind: "notOwned" },
       { kind: "resourceAtLeastCost", resource: "energy" }
     ]
+  },
+  quarkCage: {
+    id: "quarkCage",
+    type: "device",
+    tab: "science",
+    subcategory: "science-device",
+    label: "Quarks Cage",
+    action: "buy-quark-cage",
+    ownedPath: "scienceDevices.quarkCages",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "quarkCageCost" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
+        { kind: "stateAtLeast", path: "quarks.totalEarned", value: 1 },
+        { kind: "stateAtLeast", path: "scienceDevices.quarkCages", value: 1 }
+      ] }
+    ],
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
   },
   matrixMechanics: {
     id: "matrixMechanics",
@@ -138,7 +157,7 @@ export const COMPONENT_REGISTRY = {
     ownedPath: "science.matrixMechanics",
     ownedMode: "boolean",
     completedWhenOwned: true,
-    cost: { kind: "config", path: "science.matrixMechanics.cost" },
+    cost: { kind: "config", path: "science.matrixMechanics.cost", resource: "sciencePoints" },
     visibleWhen: [
       { kind: "any", rules: [
         { kind: "stateAtLeast", path: "sciencePoints", value: 1 },

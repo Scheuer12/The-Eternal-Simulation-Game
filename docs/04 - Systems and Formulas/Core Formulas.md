@@ -58,7 +58,7 @@ if energy <= stableCapacity:
   overflowDecayPerSecond = 0
 else:
   overflowRatio = (energy - stableCapacity) / stableCapacity
-  overflowDecayPerSecond = stableCapacity * 0.006 * overflowRatio^1.35
+  overflowDecayPerSecond = stableCapacity * 0.009 * overflowRatio^1.35
 ```
 
 A producao entra cheia. Energia acima da capacidade estavel fica utilizavel, mas perde energia por segundo. Se a producao parar, o saldo cai ate no minimo `stableCapacity`. Se a producao continuar, o excesso tende a um ponto de equilibrio onde producao e decaimento quase se igualam.
@@ -67,11 +67,13 @@ Power Cell cost:
 
 ```text
 owned = max(1, powerCells)
-multiplier = 1.5 * (1 + (owned - 1) / 4)^1.25
+completedArrays = floor(owned / 100)
+arrayPressure = 1.04^completedArrays
+multiplier = 1.5 * (1 + (owned - 1) / 4)^1.25 * arrayPressure
 cost = stableCapacity * multiplier
 ```
 
-O custo nao tem teto de multiplicador. Power Cells comuns seguem ficando mais caras indefinidamente, deixando espaco para features futuras que expandam muito a capacidade ou alterem a regra de armazenamento.
+O custo nao tem teto de multiplicador. Power Cells comuns seguem ficando mais caras indefinidamente, e cada array completo de `100` celulas aumenta levemente a pressao de custo das proximas compras. Isso deixa espaco para features futuras que expandam muito a capacidade ou alterem a regra de armazenamento.
 
 ## Algorithm Improvement
 
@@ -130,7 +132,14 @@ Efeito:
 
 - dobra producao do CRC;
 - reseta Algorithm Improvements;
-- e manual, com tempo proprio.
+- quando manual, completa instantaneamente;
+- quando uma automacao futura iniciar diretamente A. Upgrades, usa o tempo de pesquisa abaixo e seus multiplicadores aplicaveis.
+
+Tempo reservado para automacao direta de A. Upgrades:
+
+```text
+t = 10 * (1 + 0.16 * algorithmUpgrades^1.1)
+```
 
 ## Calculation Method Upgrade
 
@@ -178,8 +187,40 @@ Offline progress reaproveita as formulas e o engine em steps acelerados. Isso pr
 
 ```text
 particleLabDoorOpen = peakEnergy >= 100 J
-particleSynthesizerProgress = energy / 100e9
-particleSynthesizerActivationCost = 100e9 J
+sciencePointCost(S) = 10^(11 + 0.9*S + 0.055*S^2)
+particleSynthesizerActivationCost = sciencePointCost(totalScienceEarned)
+particleSynthesizerProgress = energy / particleSynthesizerActivationCost
 ```
 
 `100e9 J` equivale a `100 GJ`. A porta usa energia de pico; o sintetizador usa energia atual.
+
+## Science Era
+
+Science Points usam o total historico ja adquirido, nao o saldo disponivel:
+
+```text
+SP Cost(S) = 10^(11 + 0.9*S + 0.055*S^2)
+```
+
+Quarks gerados por sintese:
+
+```text
+quarksGenerated = floor(energyAtSynthesis / 100e9)
+```
+
+Quarks possuem capacidade segura inicial de `1`. Quarks Cage aumenta a capacidade segura e e resetado por Particle Synthesis:
+
+```text
+quarkCapacity = 2^(quarkCages + 1) - 1
+quarkCageCost = 10^(11 + quarkCages) J
+```
+
+Quark decay so afeta `Available Quarks`, nao `Total Quarks Earned`:
+
+```text
+if availableQuarks <= quarkCapacity:
+  quarkDecay = 0
+else:
+  overflowRatio = (availableQuarks - quarkCapacity) / quarkCapacity
+  quarkDecay = 0.12 * quarkCapacity * overflowRatio^1.7
+```

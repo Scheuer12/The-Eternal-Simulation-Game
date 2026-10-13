@@ -13,7 +13,7 @@
     "maxSteps": 120000
   },
   "energy": {
-    "baseProductionPerSecond": 1e-12,
+    "baseProductionPerSecond": 1E-12,
     "powerCellCapacity": 1,
     "initialPowerCells": 1,
     "initialCrcCount": 1,
@@ -24,7 +24,8 @@
     "algorithmUpgradesRequired": 3,
     "baseCapacityCostMultiplier": 1.5,
     "costGrowthScale": 4,
-    "costGrowthPower": 1.25
+    "costGrowthPower": 1.25,
+    "arrayCostGrowthMultiplier": 1.04
   },
   "powerModule": {
     "cellsPerModule": 100,
@@ -41,12 +42,27 @@
     "matrixMechanics": {
       "cost": 1,
       "improvementSpeedBonusPerUpgradePerImprovement": 0.0025
+    },
+    "sciencePointCost": {
+      "baseExponent": 11,
+      "linearExponentGrowth": 0.9,
+      "quadraticExponentGrowth": 0.055
+    },
+    "quarks": {
+      "energyPerQuark": 100000000000,
+      "decayRate": 0.12,
+      "decayPower": 1.7
+    },
+    "quarkCage": {
+      "baseCostExponent": 11,
+      "costExponentGrowth": 1,
+      "capacityBase": 2
     }
   },
   "study": {
-    "baseDurationSeconds": 5,
+    "baseDurationSeconds": 1.5,
     "durationGrowthCoefficient": 0.1315,
-    "durationGrowthPower": 2.2,
+    "durationGrowthPower": 2,
     "durationEarlyLoadMultiplier": 0.7,
     "durationEarlyLoadUntil": 10,
     "durationFullLoadAt": 15,
@@ -61,15 +77,15 @@
     "effectPenaltyMultiplierPerMethod": 0.9
   },
   "algorithmUpgrade": {
-    "baseDurationSeconds": 30,
-    "durationGrowthCoefficient": 0.2,
-    "durationGrowthPower": 1.35,
+    "baseDurationSeconds": 10,
+    "durationGrowthCoefficient": 0.16,
+    "durationGrowthPower": 1.1,
     "initialImprovementsRequired": 10,
     "improvementsRequiredGrowth": 5,
     "productionMultiplier": 2
   },
   "softDataDisplay": {
-    "cost": 1e-8
+    "cost": 1E-08
   },
   "t2SoftDataDisplay": {
     "cost": 2

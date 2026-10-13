@@ -43,12 +43,18 @@ function bindActions(app, engine, saveActions, config) {
       "construct-crc": () => engine.startCrcConstruction(),
       "buy-processor": () => engine.purchaseProcessor(),
       "activate-particle-synthesizer": () => engine.activateParticleSynthesizer(),
+      "buy-quark-cage": () => engine.purchaseQuarkCage(),
       "buy-matrix-mechanics": () => engine.purchaseMatrixMechanics(),
       "claim-method": () => engine.claimCalculationMethodUpgrade(),
       "claim-setup": () => engine.claimSetupOptimization(),
       "set-tab": () => {
         engine.state.ui.activeTab = target.dataset.tab || "devices";
         markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
+        engine.notify();
+      },
+      "set-science-subtab": () => {
+        engine.state.ui.activeScienceSubtab = target.dataset.scienceSubtab || "tree";
+        markTabComponentsSeen(engine.state, config, "science");
         engine.notify();
       },
       "toggle-hide-completed": () => {

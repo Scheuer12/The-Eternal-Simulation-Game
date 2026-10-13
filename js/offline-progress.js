@@ -13,6 +13,7 @@ function createSummary(offlineSeconds, simulatedSeconds, capped) {
     energyProduced: 0,
     energyDecayed: 0,
     overclockerEnergySpent: 0,
+    quarksDecayed: 0,
     netEnergy: 0,
     algorithmImprovementsCompleted: 0,
     algorithmUpgradesCompleted: 0,
@@ -37,6 +38,10 @@ function collectEvents(summary, events) {
 
     if (event.type === "overclocker-drained") {
       summary.overclockerEnergySpent += event.amount;
+    }
+
+    if (event.type === "quarks-decayed") {
+      summary.quarksDecayed += event.amount;
     }
 
     if (event.type === "algorithm-improvement-completed") {
@@ -96,6 +101,10 @@ function writeOfflineLog(state, summary) {
 
   if (summary.blueprintResearchCompleted > 0) {
     parts.push("Blueprint reconstructed");
+  }
+
+  if (summary.quarksDecayed > 0) {
+    parts.push(`${Number(summary.quarksDecayed.toFixed(3)).toString()} quarks decayed`);
   }
 
   if (summary.constructionsCompleted > 0) {

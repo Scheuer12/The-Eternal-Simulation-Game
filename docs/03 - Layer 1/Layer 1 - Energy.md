@@ -20,7 +20,7 @@ Power Cells nao sao hard cap. Elas definem capacidade estavel. Energia acima des
 3. Executar `Algorithm Improvements`.
 4. Reativar o `Auto Calculator`.
 5. Restaurar `T2 Soft Display` para decompor a producao atual.
-6. Completar `Algorithm Upgrades` manualmente quando houver Improvements suficientes.
+6. Completar `Algorithm Upgrades` manualmente, instantaneamente, quando houver Improvements suficientes.
 7. Completar `Calculation Method Upgrades` depois de varios Algorithm Upgrades.
 8. Desbloquear `Power Cells` depois de `Soft Display + 3 Algorithm Upgrades`.
 9. Completar `Setup Optimizations` depois de varios Method Upgrades.
@@ -103,7 +103,7 @@ Melhora produtividade do CRC. Primeiras conclusoes tem impacto pesado; depois o 
 
 ### Algorithm Upgrade
 
-Dobra produtividade do CRC e reseta Algorithm Improvements.
+Dobra produtividade do CRC e reseta Algorithm Improvements. Quando iniciado manualmente, completa instantaneamente. Se uma automacao futura iniciar Algorithm Upgrades diretamente, a rota automatizada usa o tempo de pesquisa configurado e seus multiplicadores aplicaveis.
 
 Requisito inicial: `10 Algorithm Improvements`; sobe `+5` por conclusao.
 
@@ -125,9 +125,9 @@ A porta do `Particle Laboratory` abre quando `peakEnergy >= 100 J`. A porta nao 
 
 Dentro do laboratorio, um painel central fraco mostra `Particle Sintetizer` e uma barra `Activate Particle Sintetizer`.
 
-Meta de ativacao: `100 GJ = 100e9 J`.
+A primeira meta de ativacao e `100 GJ = 100e9 J`. Depois disso, o custo do proximo Science Point segue a formula da Science Era.
 
-Na versao atual, ativar o sintetizador consome `100 GJ` de Stored Energy e marca o equipamento como ativo, preparando a transicao futura para a proxima layer.
+Ativar o sintetizador executa o prestige para a Science Era: gera `1 Science Point`, gera quarks proporcionais a energia disponivel no ato (`1 quark / 100e9 J`) e reseta a Energy Era preservando os recursos persistentes definidos na Science Era.
 
 ## Foreshadowing
 

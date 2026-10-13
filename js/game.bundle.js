@@ -27,7 +27,8 @@
     "algorithmUpgradesRequired": 3,
     "baseCapacityCostMultiplier": 1.5,
     "costGrowthScale": 4,
-    "costGrowthPower": 1.25
+    "costGrowthPower": 1.25,
+    "arrayCostGrowthMultiplier": 1.04
   },
   "powerModule": {
     "cellsPerModule": 100,
@@ -44,12 +45,27 @@
     "matrixMechanics": {
       "cost": 1,
       "improvementSpeedBonusPerUpgradePerImprovement": 0.0025
+    },
+    "sciencePointCost": {
+      "baseExponent": 11,
+      "linearExponentGrowth": 0.9,
+      "quadraticExponentGrowth": 0.055
+    },
+    "quarks": {
+      "energyPerQuark": 100000000000,
+      "decayRate": 0.12,
+      "decayPower": 1.7
+    },
+    "quarkCage": {
+      "baseCostExponent": 11,
+      "costExponentGrowth": 1,
+      "capacityBase": 2
     }
   },
   "study": {
-    "baseDurationSeconds": 5,
+    "baseDurationSeconds": 1.5,
     "durationGrowthCoefficient": 0.1315,
-    "durationGrowthPower": 2.2,
+    "durationGrowthPower": 2,
     "durationEarlyLoadMultiplier": 0.7,
     "durationEarlyLoadUntil": 10,
     "durationFullLoadAt": 15,
@@ -64,9 +80,9 @@
     "effectPenaltyMultiplierPerMethod": 0.9
   },
   "algorithmUpgrade": {
-    "baseDurationSeconds": 30,
-    "durationGrowthCoefficient": 0.2,
-    "durationGrowthPower": 1.35,
+    "baseDurationSeconds": 10,
+    "durationGrowthCoefficient": 0.16,
+    "durationGrowthPower": 1.1,
     "initialImprovementsRequired": 10,
     "improvementsRequiredGrowth": 5,
     "productionMultiplier": 2
@@ -248,10 +264,14 @@ function calculateCrcCost(state, config) {
 function calculatePowerCellCost(ownedPowerCells, config) {
   const owned = Math.max(1, ownedPowerCells);
   const currentCapacity = config.energy.powerCellCapacity * owned;
+  const completedArrays = Math.floor(owned / config.powerModule.cellsPerModule);
+  const arrayPressure =
+    (config.powerCell.arrayCostGrowthMultiplier ?? 1) ** completedArrays;
   const multiplier =
     config.powerCell.baseCapacityCostMultiplier *
     (1 + (owned - 1) / config.powerCell.costGrowthScale) **
-      config.powerCell.costGrowthPower;
+      config.powerCell.costGrowthPower *
+    arrayPressure;
 
   return (
     currentCapacity *
@@ -429,8 +449,60 @@ function canAccessParticleLab(state, config) {
   return state.peakEnergy >= config.particleLab.doorEnergyRequired;
 }
 
+function calculateSciencePointCost(totalScienceEarned, config) {
+  const settings = config.science?.sciencePointCost ?? {};
+  const earned = Math.max(0, totalScienceEarned ?? 0);
+  const exponent =
+    (settings.baseExponent ?? 11) +
+    (settings.linearExponentGrowth ?? 0.9) * earned +
+    (settings.quadraticExponentGrowth ?? 0.055) * earned ** 2;
+
+  return 10 ** exponent;
+}
+
+function calculateParticleSynthesizerCost(state, config) {
+  return calculateSciencePointCost(state.science?.totalScienceEarned ?? 0, config);
+}
+
 function calculateParticleSynthesizerProgress(state, config) {
-  return state.energy / config.particleLab.synthesizerEnergyRequired;
+  return state.energy / calculateParticleSynthesizerCost(state, config);
+}
+
+function calculateQuarksGenerated(energy, config) {
+  const unit = config.science?.quarks?.energyPerQuark ?? 100000000000;
+  if (!Number.isFinite(energy) || energy < unit) return 0;
+  return Math.floor(energy / unit);
+}
+
+function calculateQuarkCageCapacity(ownedCages, config) {
+  const capacityBase = config.science?.quarkCage?.capacityBase ?? 2;
+  const owned = Math.max(0, ownedCages ?? 0);
+  return capacityBase ** (owned + 1) - 1;
+}
+
+function calculateQuarkCapacity(state, config) {
+  return calculateQuarkCageCapacity(state.scienceDevices?.quarkCages ?? 0, config);
+}
+
+function calculateQuarkCageCost(ownedCages, config) {
+  const settings = config.science?.quarkCage ?? {};
+  const baseExponent = settings.baseCostExponent ?? 11;
+  const exponentGrowth = settings.costExponentGrowth ?? 1;
+  return 10 ** (baseExponent + exponentGrowth * Math.max(0, ownedCages ?? 0));
+}
+
+function calculateQuarkDecay(state, config) {
+  const available = state.quarks?.available ?? 0;
+  const capacity = calculateQuarkCapacity(state, config);
+  if (capacity <= 0 || available <= capacity) return 0;
+
+  const settings = config.science?.quarks ?? {};
+  const overflowRatio = (available - capacity) / capacity;
+  return (
+    (settings.decayRate ?? 0.12) *
+    capacity *
+    overflowRatio ** (settings.decayPower ?? 1.7)
+  );
 }
 
 function getDevelopmentDurationMultiplier(state, config) {
@@ -585,6 +657,7 @@ function formatDuration(seconds) {
   const remainder = Math.round(seconds % 60);
   return `${minutes}m ${remainder}s`;
 }
+
 
 
 // ---- js/effect-system.js ----
@@ -765,7 +838,7 @@ const COMPONENT_REGISTRY = {
     ownedPath: "particleSynthesizer.activated",
     ownedMode: "boolean",
     completedWhenOwned: true,
-    cost: { kind: "config", path: "particleLab.synthesizerEnergyRequired" },
+    cost: { kind: "formula", name: "particleSynthesizerCost" },
     visibleWhen: [
       { kind: "stateAtLeast", path: "peakEnergy", configPath: "particleLab.doorEnergyRequired" }
     ],
@@ -773,6 +846,25 @@ const COMPONENT_REGISTRY = {
       { kind: "notOwned" },
       { kind: "resourceAtLeastCost", resource: "energy" }
     ]
+  },
+  quarkCage: {
+    id: "quarkCage",
+    type: "device",
+    tab: "science",
+    subcategory: "science-device",
+    label: "Quarks Cage",
+    action: "buy-quark-cage",
+    ownedPath: "scienceDevices.quarkCages",
+    ownedMode: "count",
+    cost: { kind: "formula", name: "quarkCageCost" },
+    visibleWhen: [
+      { kind: "any", rules: [
+        { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
+        { kind: "stateAtLeast", path: "quarks.totalEarned", value: 1 },
+        { kind: "stateAtLeast", path: "scienceDevices.quarkCages", value: 1 }
+      ] }
+    ],
+    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }]
   },
   matrixMechanics: {
     id: "matrixMechanics",
@@ -783,7 +875,7 @@ const COMPONENT_REGISTRY = {
     ownedPath: "science.matrixMechanics",
     ownedMode: "boolean",
     completedWhenOwned: true,
-    cost: { kind: "config", path: "science.matrixMechanics.cost" },
+    cost: { kind: "config", path: "science.matrixMechanics.cost", resource: "sciencePoints" },
     visibleWhen: [
       { kind: "any", rules: [
         { kind: "stateAtLeast", path: "sciencePoints", value: 1 },
@@ -896,6 +988,8 @@ const COMPONENT_REGISTRY = {
 };
 
 
+
+
 // ---- js/availability.js ----
 
 function readPath(source, path) {
@@ -941,7 +1035,9 @@ function calculateComponentCost(componentId, state, config) {
       calculateOverclockerCost(state.devices.overclockers, config),
     powerCellCost: () => calculatePowerCellCost(state.powerCells, config),
     powerModuleCost: () => calculatePowerModuleCost(state.powerModules, config),
-    crcCost: () => calculateCrcCost(state, config)
+    crcCost: () => calculateCrcCost(state, config),
+    particleSynthesizerCost: () => calculateParticleSynthesizerCost(state, config),
+    quarkCageCost: () => calculateQuarkCageCost(state.scienceDevices?.quarkCages ?? 0, config)
   };
 
   return formulas[spec.cost.name]?.() ?? 0;
@@ -966,7 +1062,8 @@ function evaluateRule(rule, spec, state, config, cost, requirement) {
   if (rule.kind === "notOwned") return getOwnedCount(spec, state) <= 0;
 
   if (rule.kind === "resourceAtLeastCost") {
-    return readPath(state, rule.resource) >= cost;
+    const resource = readPath(state, rule.resource);
+    return resource >= cost;
   }
 
   if (rule.kind === "stateAtLeast") {
@@ -1011,6 +1108,8 @@ function evaluateComponent(componentId, state, config) {
     (rule) => !evaluateRule(rule, spec, state, config, cost, requirement)
   );
 
+  const resourceValue = spec.cost?.resource ? readPath(state, spec.cost.resource) : state.energy;
+
   return {
     id: spec.id,
     label: spec.label,
@@ -1018,7 +1117,7 @@ function evaluateComponent(componentId, state, config) {
     action: spec.action,
     visible,
     enabled: visible && !blockedRule,
-    affordable: cost === 0 || state.energy >= cost,
+    affordable: cost === 0 || resourceValue >= cost,
     cost,
     requirement,
     owned: getOwnedCount(spec, state),
@@ -1039,6 +1138,7 @@ function buildAvailabilitySnapshot(state, config) {
 }
 
 
+
 // ---- js/state.js ----
 const SAVE_VERSION = 2;
 
@@ -1057,7 +1157,16 @@ function createInitialState(config) {
     sciencePoints: 0,
     science: {
       matrixMechanics: false,
-      syntheses: 0
+      syntheses: 0,
+      totalScienceEarned: 0
+    },
+    quarks: {
+      available: 0,
+      totalEarned: 0,
+      lastSynthesis: 0
+    },
+    scienceDevices: {
+      quarkCages: 0
     },
     crcCount: config.energy.initialCrcCount,
     powerModules: 0,
@@ -1066,6 +1175,7 @@ function createInitialState(config) {
     },
     ui: {
       activeTab: "devices",
+      activeScienceSubtab: "tree",
       hideCompletedPurchases: false,
       seenComponents: {}
     },
@@ -1172,7 +1282,21 @@ function normalizeState(candidate, config) {
       Number.isFinite(candidate.sciencePoints) ? candidate.sciencePoints : 0,
     science: {
       ...initial.science,
-      ...candidate.science
+      ...candidate.science,
+      totalScienceEarned:
+        Number.isFinite(candidate.science?.totalScienceEarned)
+          ? candidate.science.totalScienceEarned
+          : Number.isFinite(candidate.sciencePoints)
+            ? candidate.sciencePoints
+            : 0
+    },
+    quarks: {
+      ...initial.quarks,
+      ...candidate.quarks
+    },
+    scienceDevices: {
+      ...initial.scienceDevices,
+      ...candidate.scienceDevices
     },
     devices,
     discoveries: { ...initial.discoveries, ...candidate.discoveries },
@@ -1189,6 +1313,7 @@ function normalizeState(candidate, config) {
     log: Array.isArray(candidate.log) ? candidate.log.slice(0, 60) : []
   };
 }
+
 
 
 // ---- js/save-system.js ----
@@ -1382,6 +1507,7 @@ class GameEngine {
     );
     this.addEnergy(production * delta, false);
     this.decayOverflowEnergy(delta, false);
+    this.decayQuarks(delta, false);
     this.drainOverclocker(delta, false);
     this.coolOverclocker(delta, false);
 
@@ -1424,6 +1550,23 @@ class GameEngine {
     }
     if (notify) this.notify();
     return decay;
+  }
+
+  decayQuarks(delta, notify = true) {
+    const decayPerSecond = calculateQuarkDecay(this.state, this.config);
+    if (decayPerSecond <= 0) return 0;
+
+    const decayed = Math.min(
+      this.state.quarks.available,
+      decayPerSecond * delta
+    );
+
+    this.state.quarks.available = Math.max(0, this.state.quarks.available - decayed);
+    if (decayed > 0) {
+      this.emitEvent("quarks-decayed", { amount: decayed });
+    }
+    if (notify) this.notify();
+    return decayed;
   }
 
   drainOverclocker(delta, notify = true) {
@@ -1931,8 +2074,15 @@ class GameEngine {
     return evaluateComponent("algorithmUpgrade", this.state, this.config).enabled;
   }
 
-  startAlgorithmUpgradeStudy() {
+  startAlgorithmUpgradeStudy(options = {}) {
+    const automated = typeof options === "boolean" ? options : Boolean(options.automated);
     if (!this.canStartAlgorithmUpgradeStudy()) return false;
+
+    if (!automated) {
+      this.completeAlgorithmUpgrade("manual");
+      return true;
+    }
+
     this.state.algorithmUpgradeStudy.active = true;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.algorithmUpgradeStudy.duration =
@@ -1941,7 +2091,7 @@ class GameEngine {
         this.config,
         this.developmentMode
       );
-    this.addLog("Algorithm Upgrade study started.", "device");
+    this.addLog("Automated Algorithm Upgrade study started.", "device");
     this.notify();
     return true;
   }
@@ -1959,7 +2109,7 @@ class GameEngine {
     this.completeAlgorithmUpgrade();
   }
 
-  completeAlgorithmUpgrade() {
+  completeAlgorithmUpgrade(source = "automated") {
     this.state.algorithmUpgradeStudy.active = false;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.upgrades += 1;
@@ -2005,19 +2155,50 @@ class GameEngine {
 
   activateParticleSynthesizer() {
     if (!this.canActivateParticleSynthesizer()) return false;
-    const cost = evaluateComponent("particleSynthesizer", this.state, this.config).cost;
+    const cost = calculateParticleSynthesizerCost(this.state, this.config);
+    const energyAtSynthesis = this.state.energy;
+    const quarksGenerated = calculateQuarksGenerated(energyAtSynthesis, this.config);
 
     this.state.energy -= cost;
     this.state.sciencePoints += 1;
     this.state.science.syntheses += 1;
+    this.state.science.totalScienceEarned += 1;
+    this.state.quarks.available += quarksGenerated;
+    this.state.quarks.totalEarned += quarksGenerated;
+    this.state.quarks.lastSynthesis = quarksGenerated;
     this.emitEvent("particle-synthesizer-activated", {
       cost,
-      sciencePoints: 1
+      energyAtSynthesis,
+      sciencePoints: 1,
+      quarksGenerated
     });
     this.resetEnergyLayerForSynthesis();
     this.addLog(
-      "Particle Synthesizer activated. One Science Point preserved through a full Energy Layer reset.",
+      `Particle Synthesizer activated. One Science Point and ${quarksGenerated} quarks preserved through a full Energy Layer reset.`,
       "milestone"
+    );
+    this.notify();
+    return true;
+  }
+
+  canPurchaseQuarkCage() {
+    return evaluateComponent("quarkCage", this.state, this.config).enabled;
+  }
+
+  purchaseQuarkCage() {
+    if (!this.canPurchaseQuarkCage()) return false;
+    const cost = evaluateComponent("quarkCage", this.state, this.config).cost;
+
+    this.state.energy -= cost;
+    this.state.scienceDevices.quarkCages += 1;
+    this.emitEvent("device-purchased", {
+      device: "quarkCage",
+      count: this.state.scienceDevices.quarkCages,
+      cost
+    });
+    this.addLog(
+      `Quarks Cage ${this.state.scienceDevices.quarkCages} stabilized. Safe quark containment increased.`,
+      "device"
     );
     this.notify();
     return true;
@@ -2141,6 +2322,7 @@ class GameEngine {
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
     this.state.particleSynthesizer.activated = false;
+    this.state.scienceDevices.quarkCages = 0;
     this.state.prototypeComplete = false;
     this.state.stats.runPlayTime = 0;
     this.state.ui.activeTab = "science";
@@ -2209,6 +2391,7 @@ class GameEngine {
 }
 
 
+
 // ---- js/offline-progress.js ----
 
 const DEFAULT_MAX_OFFLINE_SECONDS = 8 * 60 * 60;
@@ -2223,6 +2406,7 @@ function createSummary(offlineSeconds, simulatedSeconds, capped) {
     energyProduced: 0,
     energyDecayed: 0,
     overclockerEnergySpent: 0,
+    quarksDecayed: 0,
     netEnergy: 0,
     algorithmImprovementsCompleted: 0,
     algorithmUpgradesCompleted: 0,
@@ -2247,6 +2431,10 @@ function collectEvents(summary, events) {
 
     if (event.type === "overclocker-drained") {
       summary.overclockerEnergySpent += event.amount;
+    }
+
+    if (event.type === "quarks-decayed") {
+      summary.quarksDecayed += event.amount;
     }
 
     if (event.type === "algorithm-improvement-completed") {
@@ -2306,6 +2494,10 @@ function writeOfflineLog(state, summary) {
 
   if (summary.blueprintResearchCompleted > 0) {
     parts.push("Blueprint reconstructed");
+  }
+
+  if (summary.quarksDecayed > 0) {
+    parts.push(`${Number(summary.quarksDecayed.toFixed(3)).toString()} quarks decayed`);
   }
 
   if (summary.constructionsCompleted > 0) {
@@ -3495,7 +3687,7 @@ function renderDoor(state, config) {
           }</strong>
         </div>
         ${progressBar(synthesizerProgress, "Activate Particle Sintetizer", "door", "particle-synthesizer")}
-        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.</p>
+        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(availability.cost)}.</p>
         ${headingAction(
           state.particleSynthesizer.activated ? "Activated" : "Activate",
           "activate-particle-synthesizer",
@@ -3529,6 +3721,8 @@ function renderDoor(state, config) {
 
 function renderParticleLabDetails(state, config) {
   const progress = calculateParticleSynthesizerProgress(state, config);
+  const nextCost = calculateParticleSynthesizerCost(state, config);
+  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
 
   return `
     <article class="panel science-panel">
@@ -3540,7 +3734,7 @@ function renderParticleLabDetails(state, config) {
         </div>
         ${statusPill(state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT", state.particleSynthesizer.activated ? "online" : "locked")}
       </div>
-      <p class="muted">The central panel shows an immense structure. Most lines are still dark; the readable route asks for ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.</p>
+      <p class="muted">The central panel shows an immense structure. Most lines are still dark; the next Science Point asks for ${formatEnergy(nextCost)}.</p>
       <div class="metric-row">
         <span>Activation charge</span>
         <strong>${formatPercent(progress)}</strong>
@@ -3549,11 +3743,19 @@ function renderParticleLabDetails(state, config) {
         <span>Stored Energy</span>
         <strong>${formatEnergy(state.energy)}</strong>
       </div>
+      <div class="metric-row">
+        <span>Projected quarks</span>
+        <strong>${projectedQuarks}</strong>
+      </div>
     </article>
   `;
 }
 
-function renderScienceStatus(state) {
+function renderScienceStatus(state, config) {
+  const quarkCapacity = calculateQuarkCapacity(state, config);
+  const quarkDecay = calculateQuarkDecay(state, config);
+  const nextSpCost = calculateParticleSynthesizerCost(state, config);
+
   return `
     <article class="panel science-panel">
       <div class="panel__heading">
@@ -3570,6 +3772,66 @@ function renderScienceStatus(state) {
       <div class="metric-row">
         <span>Particle Sintetizations</span>
         <strong>${state.science?.syntheses ?? 0}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Next SP energy</span>
+        <strong>${formatEnergy(nextSpCost)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Available Quarks</span>
+        <strong>${Number((state.quarks?.available ?? 0).toFixed(3)).toString()} / ${quarkCapacity}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Total Quarks Earned</span>
+        <strong>${state.quarks?.totalEarned ?? 0}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Quark decay</span>
+        <strong>${Number(quarkDecay.toFixed(3)).toString()} q/s</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderQuarkCage(state, config) {
+  const availability = evaluateComponent("quarkCage", state, config);
+  if (!availability.visible) return "";
+
+  const currentCapacity = calculateQuarkCapacity(state, config);
+  const nextCapacity = calculateQuarkCapacity(
+    {
+      ...state,
+      scienceDevices: {
+        ...state.scienceDevices,
+        quarkCages: state.scienceDevices.quarkCages + 1
+      }
+    },
+    config
+  );
+
+  return `
+    <article class="panel science-panel">
+      ${helpNote("Quarks outside safe containment decay continuously. Quarks Cages are run hardware: synthesis resets cages, but the base containment of 1 quark remains.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">SCIENCE DEVICE</p>
+          <h2>Quarks Cage</h2>
+        </div>
+        ${headingAction("Install", "buy-quark-cage", {
+          cost: availability.cost,
+          count: state.scienceDevices.quarkCages,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
+      </div>
+      <p class="muted">A high-energy containment chamber capable of stabilizing synthesized quarks and preventing their natural decay.</p>
+      <div class="metric-row">
+        <span>Safe containment</span>
+        <strong>${currentCapacity} -> ${nextCapacity} quarks</strong>
+      </div>
+      <div class="metric-row">
+        <span>Available Quarks</span>
+        <strong>${Number((state.quarks?.available ?? 0).toFixed(3)).toString()}</strong>
       </div>
     </article>
   `;
@@ -3784,24 +4046,52 @@ function renderStudiesTab(state, config, developmentMode) {
   `;
 }
 
+function renderScienceSubtabs(state) {
+  const active = state.ui?.activeScienceSubtab ?? "tree";
+  return `
+    <nav class="tabbar tabbar--nested" aria-label="Science sections">
+      <button class="tabbar__button ${active === "tree" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="tree" type="button">Science Tree</button>
+      <button class="tabbar__button ${active === "devices" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="devices" type="button">Science Devices</button>
+    </nav>
+  `;
+}
+
 function renderScienceTab(state, config) {
   const labReadable = canAccessParticleLab(state, config);
+  const activeSubtab = state.ui?.activeScienceSubtab ?? "tree";
+  const treeContent = `
+    <div class="device-group__heading">
+      <div>
+        <p class="panel__label">SCIENCE</p>
+        <h2>Science Tree</h2>
+      </div>
+      <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
+    </div>
+    <div class="section-stack">
+      ${renderScienceStatus(state, config)}
+      ${renderComponent("matrixMechanics", state, config, () => renderMatrixMechanics(state, config))}
+    </div>
+  `;
+  const devicesContent = `
+    <div class="device-group__heading">
+      <div>
+        <p class="panel__label">SCIENCE DEVICES</p>
+        <h2>Containment Hardware</h2>
+      </div>
+      <p>Run hardware that converts Stored Energy into safer quark containment.</p>
+    </div>
+    <div class="section-stack">
+      ${renderScienceStatus(state, config)}
+      ${renderComponent("quarkCage", state, config, () => renderQuarkCage(state, config)) || '<p class="empty-note">No science device is readable yet.</p>'}
+    </div>
+  `;
 
   return `
     ${renderTabTools(state)}
+    ${renderScienceSubtabs(state)}
     <div class="tab-grid">
       <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">SCIENCE</p>
-            <h2>Science Tree</h2>
-          </div>
-          <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
-        </div>
-        <div class="section-stack">
-          ${renderScienceStatus(state)}
-          ${renderComponent("matrixMechanics", state, config, () => renderMatrixMechanics(state, config))}
-        </div>
+        ${activeSubtab === "devices" ? devicesContent : treeContent}
       </section>
       <aside class="tab-side-column">
         <div class="device-group__heading">
@@ -3962,6 +4252,12 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     powerCells: state.powerCells,
     powerModules: state.powerModules,
     sciencePoints: state.sciencePoints,
+    totalScienceEarned: state.science?.totalScienceEarned ?? 0,
+    availableQuarks: state.quarks?.available ?? 0,
+    totalQuarksEarned: state.quarks?.totalEarned ?? 0,
+    lastQuarks: state.quarks?.lastSynthesis ?? 0,
+    quarkCages: state.scienceDevices?.quarkCages ?? 0,
+    scienceSubtab: state.ui?.activeScienceSubtab ?? "tree",
     matrixMechanics: state.science?.matrixMechanics ?? false,
     syntheses: state.science?.syntheses ?? 0,
     particleSynthesizerActivated: state.particleSynthesizer.activated,
@@ -4228,12 +4524,18 @@ function bindActions(app, engine, saveActions, config) {
       "construct-crc": () => engine.startCrcConstruction(),
       "buy-processor": () => engine.purchaseProcessor(),
       "activate-particle-synthesizer": () => engine.activateParticleSynthesizer(),
+      "buy-quark-cage": () => engine.purchaseQuarkCage(),
       "buy-matrix-mechanics": () => engine.purchaseMatrixMechanics(),
       "claim-method": () => engine.claimCalculationMethodUpgrade(),
       "claim-setup": () => engine.claimSetupOptimization(),
       "set-tab": () => {
         engine.state.ui.activeTab = target.dataset.tab || "devices";
         markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
+        engine.notify();
+      },
+      "set-science-subtab": () => {
+        engine.state.ui.activeScienceSubtab = target.dataset.scienceSubtab || "tree";
+        markTabComponentsSeen(engine.state, config, "science");
         engine.notify();
       },
       "toggle-hide-completed": () => {

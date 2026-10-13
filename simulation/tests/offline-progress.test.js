@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { GameEngine } from "../js/engine.js";
-import { calculateAlgorithmUpgradeRequirement } from "../js/formulas.js";
-import { simulateOfflineProgress } from "../js/offline-progress.js";
-import { createInitialState } from "../js/state.js";
+import { GameEngine } from "../../js/engine.js";
+import { calculateAlgorithmUpgradeRequirement } from "../../js/formulas.js";
+import { simulateOfflineProgress } from "../../js/offline-progress.js";
+import { createInitialState } from "../../js/state.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../config/game-config.json", import.meta.url), "utf8")
+  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
 );
 
 function createActiveState() {
@@ -40,7 +40,7 @@ test("offline progress completes active Algorithm Upgrade studies", () => {
   const engine = new GameEngine({ state, config });
   state.improvements = calculateAlgorithmUpgradeRequirement(state, config);
 
-  assert.equal(engine.startAlgorithmUpgradeStudy(), true);
+  assert.equal(engine.startAlgorithmUpgradeStudy({ automated: true }), true);
   state.lastSavedAt = now - 60000;
 
   const summary = simulateOfflineProgress(state, config, { now });
@@ -64,4 +64,17 @@ test("offline progress summarizes overflow decay and suppresses event spam logs"
     state.log.some((entry) => entry.message.includes("Algorithm Improvement")),
     false
   );
+});
+
+test("offline progress applies quark overflow decay", () => {
+  const now = Date.now();
+  const state = createActiveState();
+  state.quarks.available = 3;
+  state.quarks.totalEarned = 3;
+  state.lastSavedAt = now - 10000;
+
+  const summary = simulateOfflineProgress(state, config, { now });
+
+  assert.ok(summary.quarksDecayed > 0);
+  assert.ok(state.quarks.available < 3);
 });

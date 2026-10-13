@@ -7,8 +7,8 @@ import {
   getSaveKey,
   listSaveSlots,
   saveState
-} from "../js/save-system.js";
-import { SAVE_VERSION } from "../js/state.js";
+} from "../../js/save-system.js";
+import { SAVE_VERSION } from "../../js/state.js";
 
 function createLocalStorageMock() {
   const store = new Map();

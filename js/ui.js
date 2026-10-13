@@ -14,7 +14,11 @@ import {
   calculateMatrixMechanicsSpeedMultiplier,
   calculateOverclockerDrainPerSecond,
   calculateOverclockerSpeedMultiplier,
+  calculateParticleSynthesizerCost,
   calculateParticleSynthesizerProgress,
+  calculateQuarksGenerated,
+  calculateQuarkCapacity,
+  calculateQuarkDecay,
   calculatePowerModuleCapacityMultiplier,
   calculateProductionBreakdown,
   calculateProduction,
@@ -1147,7 +1151,7 @@ function renderDoor(state, config) {
           }</strong>
         </div>
         ${progressBar(synthesizerProgress, "Activate Particle Sintetizer", "door", "particle-synthesizer")}
-        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.</p>
+        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(availability.cost)}.</p>
         ${headingAction(
           state.particleSynthesizer.activated ? "Activated" : "Activate",
           "activate-particle-synthesizer",
@@ -1181,6 +1185,8 @@ function renderDoor(state, config) {
 
 function renderParticleLabDetails(state, config) {
   const progress = calculateParticleSynthesizerProgress(state, config);
+  const nextCost = calculateParticleSynthesizerCost(state, config);
+  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
 
   return `
     <article class="panel science-panel">
@@ -1192,7 +1198,7 @@ function renderParticleLabDetails(state, config) {
         </div>
         ${statusPill(state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT", state.particleSynthesizer.activated ? "online" : "locked")}
       </div>
-      <p class="muted">The central panel shows an immense structure. Most lines are still dark; the readable route asks for ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.</p>
+      <p class="muted">The central panel shows an immense structure. Most lines are still dark; the next Science Point asks for ${formatEnergy(nextCost)}.</p>
       <div class="metric-row">
         <span>Activation charge</span>
         <strong>${formatPercent(progress)}</strong>
@@ -1201,11 +1207,19 @@ function renderParticleLabDetails(state, config) {
         <span>Stored Energy</span>
         <strong>${formatEnergy(state.energy)}</strong>
       </div>
+      <div class="metric-row">
+        <span>Projected quarks</span>
+        <strong>${projectedQuarks}</strong>
+      </div>
     </article>
   `;
 }
 
-function renderScienceStatus(state) {
+function renderScienceStatus(state, config) {
+  const quarkCapacity = calculateQuarkCapacity(state, config);
+  const quarkDecay = calculateQuarkDecay(state, config);
+  const nextSpCost = calculateParticleSynthesizerCost(state, config);
+
   return `
     <article class="panel science-panel">
       <div class="panel__heading">
@@ -1222,6 +1236,66 @@ function renderScienceStatus(state) {
       <div class="metric-row">
         <span>Particle Sintetizations</span>
         <strong>${state.science?.syntheses ?? 0}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Next SP energy</span>
+        <strong>${formatEnergy(nextSpCost)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Available Quarks</span>
+        <strong>${Number((state.quarks?.available ?? 0).toFixed(3)).toString()} / ${quarkCapacity}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Total Quarks Earned</span>
+        <strong>${state.quarks?.totalEarned ?? 0}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Quark decay</span>
+        <strong>${Number(quarkDecay.toFixed(3)).toString()} q/s</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderQuarkCage(state, config) {
+  const availability = evaluateComponent("quarkCage", state, config);
+  if (!availability.visible) return "";
+
+  const currentCapacity = calculateQuarkCapacity(state, config);
+  const nextCapacity = calculateQuarkCapacity(
+    {
+      ...state,
+      scienceDevices: {
+        ...state.scienceDevices,
+        quarkCages: state.scienceDevices.quarkCages + 1
+      }
+    },
+    config
+  );
+
+  return `
+    <article class="panel science-panel">
+      ${helpNote("Quarks outside safe containment decay continuously. Quarks Cages are run hardware: synthesis resets cages, but the base containment of 1 quark remains.")}
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">SCIENCE DEVICE</p>
+          <h2>Quarks Cage</h2>
+        </div>
+        ${headingAction("Install", "buy-quark-cage", {
+          cost: availability.cost,
+          count: state.scienceDevices.quarkCages,
+          disabled: !availability.enabled,
+          variant: availability.enabled ? "primary" : "ghost"
+        })}
+      </div>
+      <p class="muted">A high-energy containment chamber capable of stabilizing synthesized quarks and preventing their natural decay.</p>
+      <div class="metric-row">
+        <span>Safe containment</span>
+        <strong>${currentCapacity} -> ${nextCapacity} quarks</strong>
+      </div>
+      <div class="metric-row">
+        <span>Available Quarks</span>
+        <strong>${Number((state.quarks?.available ?? 0).toFixed(3)).toString()}</strong>
       </div>
     </article>
   `;
@@ -1436,24 +1510,52 @@ function renderStudiesTab(state, config, developmentMode) {
   `;
 }
 
+function renderScienceSubtabs(state) {
+  const active = state.ui?.activeScienceSubtab ?? "tree";
+  return `
+    <nav class="tabbar tabbar--nested" aria-label="Science sections">
+      <button class="tabbar__button ${active === "tree" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="tree" type="button">Science Tree</button>
+      <button class="tabbar__button ${active === "devices" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="devices" type="button">Science Devices</button>
+    </nav>
+  `;
+}
+
 function renderScienceTab(state, config) {
   const labReadable = canAccessParticleLab(state, config);
+  const activeSubtab = state.ui?.activeScienceSubtab ?? "tree";
+  const treeContent = `
+    <div class="device-group__heading">
+      <div>
+        <p class="panel__label">SCIENCE</p>
+        <h2>Science Tree</h2>
+      </div>
+      <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
+    </div>
+    <div class="section-stack">
+      ${renderScienceStatus(state, config)}
+      ${renderComponent("matrixMechanics", state, config, () => renderMatrixMechanics(state, config))}
+    </div>
+  `;
+  const devicesContent = `
+    <div class="device-group__heading">
+      <div>
+        <p class="panel__label">SCIENCE DEVICES</p>
+        <h2>Containment Hardware</h2>
+      </div>
+      <p>Run hardware that converts Stored Energy into safer quark containment.</p>
+    </div>
+    <div class="section-stack">
+      ${renderScienceStatus(state, config)}
+      ${renderComponent("quarkCage", state, config, () => renderQuarkCage(state, config)) || '<p class="empty-note">No science device is readable yet.</p>'}
+    </div>
+  `;
 
   return `
     ${renderTabTools(state)}
+    ${renderScienceSubtabs(state)}
     <div class="tab-grid">
       <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">SCIENCE</p>
-            <h2>Science Tree</h2>
-          </div>
-          <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
-        </div>
-        <div class="section-stack">
-          ${renderScienceStatus(state)}
-          ${renderComponent("matrixMechanics", state, config, () => renderMatrixMechanics(state, config))}
-        </div>
+        ${activeSubtab === "devices" ? devicesContent : treeContent}
       </section>
       <aside class="tab-side-column">
         <div class="device-group__heading">
@@ -1614,6 +1716,12 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     powerCells: state.powerCells,
     powerModules: state.powerModules,
     sciencePoints: state.sciencePoints,
+    totalScienceEarned: state.science?.totalScienceEarned ?? 0,
+    availableQuarks: state.quarks?.available ?? 0,
+    totalQuarksEarned: state.quarks?.totalEarned ?? 0,
+    lastQuarks: state.quarks?.lastSynthesis ?? 0,
+    quarkCages: state.scienceDevices?.quarkCages ?? 0,
+    scienceSubtab: state.ui?.activeScienceSubtab ?? "tree",
     matrixMechanics: state.science?.matrixMechanics ?? false,
     syntheses: state.science?.syntheses ?? 0,
     particleSynthesizerActivated: state.particleSynthesizer.activated,

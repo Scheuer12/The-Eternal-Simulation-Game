@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
+  calculateAlgorithmUpgradeDuration,
   calculateAlgorithmUpgradeRequirement,
   calculateAutoCalculatorCost,
   calculateAutoCalculatorSpeedMultiplier,
@@ -18,7 +19,12 @@ import {
   calculateOverclockerCost,
   calculateOverclockerDrainPerSecond,
   calculateOverclockerSpeedMultiplier,
+  calculateParticleSynthesizerCost,
   calculateParticleSynthesizerProgress,
+  calculateQuarksGenerated,
+  calculateQuarkCapacity,
+  calculateQuarkCageCost,
+  calculateQuarkDecay,
   calculatePowerCellCost,
   calculatePowerModuleCapacityMultiplier,
   calculatePowerModuleCost,
@@ -31,11 +37,11 @@ import {
   calculateStudyDuration,
   canAccessParticleLab,
   formatEnergy
-} from "../js/formulas.js";
-import { createInitialState } from "../js/state.js";
+} from "../../js/formulas.js";
+import { createInitialState } from "../../js/state.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../config/game-config.json", import.meta.url), "utf8")
+  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
 );
 
 test("the onboarding curve reaches the 5% baseline at Improvement 16", () => {
@@ -67,6 +73,11 @@ test("Algorithm Upgrade requirement starts at 10 and rises by 5", () => {
   assert.equal(calculateAlgorithmUpgradeRequirement(state, config), 10);
   state.upgrades = 3;
   assert.equal(calculateAlgorithmUpgradeRequirement(state, config), 25);
+});
+
+test("first Algorithm Upgrade duration is the configured base duration", () => {
+  const state = createInitialState(config);
+  assert.equal(calculateAlgorithmUpgradeDuration(state, config), 10);
 });
 
 test("reset layer requirements rise linearly by their configured increments", () => {
@@ -239,7 +250,7 @@ test("Power Modules multiply effective Power Cell capacity without consuming cel
   );
 });
 
-test("Particle Laboratory opens at 100 J peak and Synthesizer targets 100 GJ", () => {
+test("Particle Laboratory opens at 100 J peak and Synthesizer targets the next Science Point cost", () => {
   const state = createInitialState(config);
   state.peakEnergy = config.particleLab.doorEnergyRequired - 1;
   assert.equal(canAccessParticleLab(state, config), false);
@@ -247,8 +258,29 @@ test("Particle Laboratory opens at 100 J peak and Synthesizer targets 100 GJ", (
   state.peakEnergy = config.particleLab.doorEnergyRequired;
   assert.equal(canAccessParticleLab(state, config), true);
 
-  state.energy = config.particleLab.synthesizerEnergyRequired / 4;
+  assert.equal(calculateParticleSynthesizerCost(state, config), config.particleLab.synthesizerEnergyRequired);
+  state.energy = calculateParticleSynthesizerCost(state, config) / 4;
   assert.equal(calculateParticleSynthesizerProgress(state, config), 0.25);
+
+  state.science.totalScienceEarned = 1;
+  assert.ok(calculateParticleSynthesizerCost(state, config) > config.particleLab.synthesizerEnergyRequired);
+});
+
+
+test("Science Era quark formulas use synthesis energy, safe capacity, and overflow decay", () => {
+  const state = createInitialState(config);
+
+  assert.equal(calculateQuarksGenerated(100e9, config), 1);
+  assert.equal(calculateQuarksGenerated(250e9, config), 2);
+  assert.equal(calculateQuarkCapacity(state, config), 1);
+  assert.equal(calculateQuarkCageCost(0, config), 100e9);
+
+  state.quarks.available = 2;
+  assert.ok(calculateQuarkDecay(state, config) > 0);
+
+  state.scienceDevices.quarkCages = 2;
+  assert.equal(calculateQuarkCapacity(state, config), 7);
+  assert.equal(calculateQuarkDecay(state, config), 0);
 });
 
 test("CRC Blueprint research is a short reconstruction pass", () => {
@@ -285,6 +317,25 @@ test("Power Cell cost scaling stays finite, monotonic, and uncapped", () => {
     calculatePowerCellCost(100, config) /
     (config.energy.powerCellCapacity * 100);
   assert.ok(lateMultiplier > previousMultiplier);
+});
+
+test("Power Cell cost becomes slightly more aggressive after each full cell array", () => {
+  const preArrayCost = calculatePowerCellCost(config.powerModule.cellsPerModule - 1, config);
+  const firstArrayCost = calculatePowerCellCost(config.powerModule.cellsPerModule, config);
+  const secondArrayCost = calculatePowerCellCost(config.powerModule.cellsPerModule * 2, config);
+
+  const preArrayMultiplier =
+    preArrayCost /
+    (config.energy.powerCellCapacity * (config.powerModule.cellsPerModule - 1));
+  const firstArrayMultiplier =
+    firstArrayCost /
+    (config.energy.powerCellCapacity * config.powerModule.cellsPerModule);
+  const secondArrayMultiplier =
+    secondArrayCost /
+    (config.energy.powerCellCapacity * config.powerModule.cellsPerModule * 2);
+
+  assert.ok(firstArrayMultiplier > preArrayMultiplier);
+  assert.ok(secondArrayMultiplier > firstArrayMultiplier);
 });
 
 test("energy overflow uses progressive retention instead of a hard cap", () => {

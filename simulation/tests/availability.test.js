@@ -5,12 +5,12 @@ import test from "node:test";
 import {
   buildAvailabilitySnapshot,
   evaluateComponent
-} from "../js/availability.js";
-import { calculateAutoCalculatorCost } from "../js/formulas.js";
-import { createInitialState } from "../js/state.js";
+} from "../../js/availability.js";
+import { calculateAutoCalculatorCost } from "../../js/formulas.js";
+import { createInitialState } from "../../js/state.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../config/game-config.json", import.meta.url), "utf8")
+  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
 );
 
 test("component availability exposes cost, enabled state, and blocked reason", () => {
@@ -36,6 +36,7 @@ test("availability snapshot evaluates all registered components", () => {
   assert.ok(snapshot.autoCalculator);
   assert.ok(snapshot.processor);
   assert.ok(snapshot.overclocker);
+  assert.ok(snapshot.quarkCage);
   assert.equal(snapshot.powerCell.visible, false);
   assert.equal(snapshot.overclocker.visible, false);
 });
@@ -109,8 +110,23 @@ test("Particle Synthesizer appears after the laboratory door threshold", () => {
   assert.equal(visible.visible, true);
   assert.equal(visible.enabled, false);
 
-  state.energy = config.particleLab.synthesizerEnergyRequired;
+  state.energy = visible.cost;
   assert.equal(evaluateComponent("particleSynthesizer", state, config).enabled, true);
+});
+
+
+test("Quarks Cage appears after first synthesis and costs Stored Energy", () => {
+  const state = createInitialState(config);
+  assert.equal(evaluateComponent("quarkCage", state, config).visible, false);
+
+  state.science.syntheses = 1;
+  state.quarks.totalEarned = 1;
+  const available = evaluateComponent("quarkCage", state, config);
+  assert.equal(available.visible, true);
+  assert.equal(available.enabled, false);
+
+  state.energy = available.cost;
+  assert.equal(evaluateComponent("quarkCage", state, config).enabled, true);
 });
 
 test("Matrix Mechanics appears when Science Points exist and costs SP", () => {

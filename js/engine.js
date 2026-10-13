@@ -8,7 +8,10 @@ import {
   calculateEffectiveEnergyGain,
   calculateImprovementBonus,
   calculateOverclockerDrainPerSecond,
+  calculateParticleSynthesizerCost,
   calculateProduction,
+  calculateQuarksGenerated,
+  calculateQuarkDecay,
   calculateStableEnergyCapacity,
   calculateStudyDuration,
   canResearchBlueprint,
@@ -115,6 +118,7 @@ export class GameEngine {
     );
     this.addEnergy(production * delta, false);
     this.decayOverflowEnergy(delta, false);
+    this.decayQuarks(delta, false);
     this.drainOverclocker(delta, false);
     this.coolOverclocker(delta, false);
 
@@ -157,6 +161,23 @@ export class GameEngine {
     }
     if (notify) this.notify();
     return decay;
+  }
+
+  decayQuarks(delta, notify = true) {
+    const decayPerSecond = calculateQuarkDecay(this.state, this.config);
+    if (decayPerSecond <= 0) return 0;
+
+    const decayed = Math.min(
+      this.state.quarks.available,
+      decayPerSecond * delta
+    );
+
+    this.state.quarks.available = Math.max(0, this.state.quarks.available - decayed);
+    if (decayed > 0) {
+      this.emitEvent("quarks-decayed", { amount: decayed });
+    }
+    if (notify) this.notify();
+    return decayed;
   }
 
   drainOverclocker(delta, notify = true) {
@@ -664,8 +685,15 @@ export class GameEngine {
     return evaluateComponent("algorithmUpgrade", this.state, this.config).enabled;
   }
 
-  startAlgorithmUpgradeStudy() {
+  startAlgorithmUpgradeStudy(options = {}) {
+    const automated = typeof options === "boolean" ? options : Boolean(options.automated);
     if (!this.canStartAlgorithmUpgradeStudy()) return false;
+
+    if (!automated) {
+      this.completeAlgorithmUpgrade("manual");
+      return true;
+    }
+
     this.state.algorithmUpgradeStudy.active = true;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.algorithmUpgradeStudy.duration =
@@ -674,7 +702,7 @@ export class GameEngine {
         this.config,
         this.developmentMode
       );
-    this.addLog("Algorithm Upgrade study started.", "device");
+    this.addLog("Automated Algorithm Upgrade study started.", "device");
     this.notify();
     return true;
   }
@@ -692,7 +720,7 @@ export class GameEngine {
     this.completeAlgorithmUpgrade();
   }
 
-  completeAlgorithmUpgrade() {
+  completeAlgorithmUpgrade(source = "automated") {
     this.state.algorithmUpgradeStudy.active = false;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.upgrades += 1;
@@ -738,19 +766,50 @@ export class GameEngine {
 
   activateParticleSynthesizer() {
     if (!this.canActivateParticleSynthesizer()) return false;
-    const cost = evaluateComponent("particleSynthesizer", this.state, this.config).cost;
+    const cost = calculateParticleSynthesizerCost(this.state, this.config);
+    const energyAtSynthesis = this.state.energy;
+    const quarksGenerated = calculateQuarksGenerated(energyAtSynthesis, this.config);
 
     this.state.energy -= cost;
     this.state.sciencePoints += 1;
     this.state.science.syntheses += 1;
+    this.state.science.totalScienceEarned += 1;
+    this.state.quarks.available += quarksGenerated;
+    this.state.quarks.totalEarned += quarksGenerated;
+    this.state.quarks.lastSynthesis = quarksGenerated;
     this.emitEvent("particle-synthesizer-activated", {
       cost,
-      sciencePoints: 1
+      energyAtSynthesis,
+      sciencePoints: 1,
+      quarksGenerated
     });
     this.resetEnergyLayerForSynthesis();
     this.addLog(
-      "Particle Synthesizer activated. One Science Point preserved through a full Energy Layer reset.",
+      `Particle Synthesizer activated. One Science Point and ${quarksGenerated} quarks preserved through a full Energy Layer reset.`,
       "milestone"
+    );
+    this.notify();
+    return true;
+  }
+
+  canPurchaseQuarkCage() {
+    return evaluateComponent("quarkCage", this.state, this.config).enabled;
+  }
+
+  purchaseQuarkCage() {
+    if (!this.canPurchaseQuarkCage()) return false;
+    const cost = evaluateComponent("quarkCage", this.state, this.config).cost;
+
+    this.state.energy -= cost;
+    this.state.scienceDevices.quarkCages += 1;
+    this.emitEvent("device-purchased", {
+      device: "quarkCage",
+      count: this.state.scienceDevices.quarkCages,
+      cost
+    });
+    this.addLog(
+      `Quarks Cage ${this.state.scienceDevices.quarkCages} stabilized. Safe quark containment increased.`,
+      "device"
     );
     this.notify();
     return true;
@@ -874,6 +933,7 @@ export class GameEngine {
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
     this.state.particleSynthesizer.activated = false;
+    this.state.scienceDevices.quarkCages = 0;
     this.state.prototypeComplete = false;
     this.state.stats.runPlayTime = 0;
     this.state.ui.activeTab = "science";

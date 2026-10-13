@@ -2,21 +2,23 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { GameEngine } from "../js/engine.js";
+import { GameEngine } from "../../js/engine.js";
 import {
   calculateAlgorithmUpgradeRequirement,
   calculateAutoCalculatorCost,
   calculateCalculationMethodRequirement,
   calculatePowerCellCost,
   calculateProcessorCost,
+  calculateQuarkCageCost,
+  calculateQuarkCapacity,
   calculateStableEnergyCapacity,
   calculateStudyDuration,
   calculateSetupOptimizationRequirement
-} from "../js/formulas.js";
-import { createInitialState } from "../js/state.js";
+} from "../../js/formulas.js";
+import { createInitialState } from "../../js/state.js";
 
 const config = JSON.parse(
-  await readFile(new URL("../config/game-config.json", import.meta.url), "utf8")
+  await readFile(new URL("../../config/game-config.json", import.meta.url), "utf8")
 );
 
 function createEngine() {
@@ -101,6 +103,10 @@ test("Particle Synthesizer grants Science and resets the Energy Layer", () => {
   assert.equal(engine.activateParticleSynthesizer(), true);
   assert.equal(engine.state.sciencePoints, 1);
   assert.equal(engine.state.science.syntheses, 1);
+  assert.equal(engine.state.science.totalScienceEarned, 1);
+  assert.equal(engine.state.quarks.available, 1);
+  assert.equal(engine.state.quarks.totalEarned, 1);
+  assert.equal(engine.state.quarks.lastSynthesis, 1);
   assert.equal(engine.state.particleSynthesizer.activated, false);
   assert.equal(engine.state.energy, 0);
   assert.equal(engine.state.peakEnergy, 0);
@@ -285,10 +291,36 @@ test("Algorithm Upgrade is manual and resets Improvements", () => {
   engine.state.improvementMultiplier = 100;
 
   assert.equal(engine.startAlgorithmUpgradeStudy(), true);
-  engine.completeAlgorithmUpgrade();
+  assert.equal(engine.state.algorithmUpgradeStudy.active, false);
   assert.equal(engine.state.upgrades, 1);
   assert.equal(engine.state.improvements, 0);
   assert.equal(engine.state.improvementMultiplier, 1);
+});
+
+
+test("automated Algorithm Upgrade keeps its research duration", () => {
+  const engine = createEngine();
+  engine.state.improvements = calculateAlgorithmUpgradeRequirement(
+    engine.state,
+    config
+  );
+
+  assert.equal(engine.startAlgorithmUpgradeStudy({ automated: true }), true);
+  assert.equal(engine.state.algorithmUpgradeStudy.active, true);
+  assert.ok(engine.state.algorithmUpgradeStudy.duration > 0);
+});
+
+test("Quarks Cage uses Stored Energy and increases safe containment", () => {
+  const engine = createEngine();
+  engine.state.science.syntheses = 1;
+  engine.state.quarks.available = 2;
+  engine.state.quarks.totalEarned = 2;
+  engine.state.energy = calculateQuarkCageCost(0, config);
+  const before = calculateQuarkCapacity(engine.state, config);
+
+  assert.equal(engine.purchaseQuarkCage(), true);
+  assert.equal(engine.state.scienceDevices.quarkCages, 1);
+  assert.ok(calculateQuarkCapacity(engine.state, config) > before);
 });
 
 test("Calculation Method Upgrade requires Algorithm Upgrades and resets studies", () => {
