@@ -50,6 +50,22 @@ function bindActions(app, engine, saveActions, config) {
     true,
   );
 
+  app.addEventListener("mouseover", (event) => {
+    if (event.target.closest?.(".news-section")) {
+      engine.setNewsHovered(true);
+    }
+  });
+
+  app.addEventListener("mouseout", (event) => {
+    const section = event.target.closest?.(".news-section");
+    if (
+      section &&
+      (!event.relatedTarget || !section.contains(event.relatedTarget))
+    ) {
+      engine.setNewsHovered(false);
+    }
+  });
+
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;

@@ -914,12 +914,12 @@ function renderCrcDevice(state, config, developmentMode) {
         </div>
         <div>
           <span>Algorithm Multiplier (1 + I)</span>
-          <strong>x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
+          <strong data-field="crc-algorithm-multiplier">x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
         </div>
       </div>
       <div class="metric-row">
         <span>Current total output</span>
-        <strong>${
+        <strong data-field="crc-total-output">${
           isSoftUnlocked ? formatRate(production) : "UNREADABLE"
         }</strong>
       </div>
@@ -1148,8 +1148,8 @@ function renderStudy(state, config, developmentMode) {
       </div>
       <p class="muted">Refines the Theseus algorithm. Each cycle adds +1 base production to every CRC via the (1 + I) multiplier.</p>
       <div class="study-metrics">
-        <div><span>Algorithm Multiplier (1 + I)</span><strong>x${currentFactor} (+1.0 / cycle)</strong></div>
-        <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong>${rateDisplay}</strong></div>
+        <div><span>Algorithm Multiplier (1 + I)</span><strong data-field="study-algorithm-factor">x${currentFactor} (+1.0 / cycle)</strong></div>
+        <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong data-field="study-rate-display">${rateDisplay}</strong></div>
       </div>
       ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
       <div class="progress-caption">
@@ -2421,7 +2421,7 @@ function renderLog(state) {
   return `
     <article class="panel log-panel">
       <p class="panel__label">FACILITY LOG</p>
-      <ol class="log-list">${entries}</ol>
+      <ol class="log-list" data-latest-id="${state.log[0]?.id ?? ""}">${entries}</ol>
     </article>
   `;
 }
@@ -2464,11 +2464,21 @@ export function renderNewsSection(state, newsList = DEFAULT_NEWS) {
   const rarityClass = getRarityClass(rarityNum);
   const showRarityBadge = rarityNum >= 2;
 
+  const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
+  const circumference = 37.7;
+  const initialOffset = (circumference * (1 - timerFraction)).toFixed(2);
+
   return `
     <aside class="news-section" role="region" aria-label="News Section">
       <div class="news-section__badge">
         <span class="news-section__pulse" aria-hidden="true"></span>
         <span>NEWS FEED</span>
+      </div>
+      <div class="news-section__timer" title="Time to next dispatch (6s - pauses on hover)">
+        <svg class="news-timer-ring" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle class="news-timer-ring__bg" cx="8" cy="8" r="6" />
+          <circle class="news-timer-ring__fill" data-progress="news-timer" cx="8" cy="8" r="6" style="stroke-dashoffset: ${initialOffset};" />
+        </svg>
       </div>
       <span class="news-section__category" data-field="news-category">${currentItem?.category || "TELEMETRY"}</span>
       <span class="news-section__rarity ${rarityClass}" data-field="news-rarity" style="${showRarityBadge ? "" : "display: none;"}">${showRarityBadge ? rarityLabel : ""}</span>
@@ -2567,7 +2577,7 @@ function renderEnergyTab(state, config, developmentMode) {
         <div class="cascade-conduit__node">
           <span class="cascade-conduit__icon">▼</span>
           <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-          <span class="cascade-conduit__sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
+          <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
         </div>
         <div class="cascade-conduit__line"></div>
       </div>
@@ -2782,15 +2792,15 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
         <p class="panel__label">RUN DATA</p>
         <div class="metric-row">
           <span>Total play time</span>
-          <strong>${formatDuration(state.stats.totalPlayTime)}</strong>
+          <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
         </div>
         <div class="metric-row">
           <span>Current run time</span>
-          <strong>${formatDuration(state.stats.runPlayTime)}</strong>
+          <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
         </div>
         <div class="metric-row">
           <span>Total condensed</span>
-          <strong>${formatEnergy(state.stats.totalEnergyCollected)}</strong>
+          <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
         </div>
         <div class="metric-row">
           <span>Peak stored</span>
@@ -3054,15 +3064,15 @@ function renderStatisticsTab(state) {
           <p class="panel__label">RUN DATA</p>
           <div class="metric-row">
             <span>Total play time</span>
-            <strong>${formatDuration(state.stats.totalPlayTime)}</strong>
+            <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
           </div>
           <div class="metric-row">
             <span>Current run time</span>
-            <strong>${formatDuration(state.stats.runPlayTime)}</strong>
+            <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
           </div>
           <div class="metric-row">
             <span>Total condensed</span>
-            <strong>${formatEnergy(state.stats.totalEnergyCollected)}</strong>
+            <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
           </div>
           <div class="metric-row">
             <span>Peak stored</span>
@@ -3337,7 +3347,23 @@ function renderHistoryReadingModal(state) {
 
 function setField(app, key, value) {
   for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
-    if (element.textContent !== value) element.textContent = value;
+    if (element.textContent !== value) {
+      element.textContent = value;
+      if (key === "news-text") {
+        const ticker = element.closest(".news-section__ticker");
+        if (ticker) {
+          ticker.classList.remove("news-fade-in");
+          void ticker.offsetWidth;
+          ticker.classList.add("news-fade-in");
+        }
+      }
+    }
+  }
+}
+
+function setHtmlField(app, key, value) {
+  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
+    if (element.innerHTML !== value) element.innerHTML = value;
   }
 }
 
@@ -3352,6 +3378,125 @@ function setProgress(app, key, value) {
   fill.style.width = `${percentage}%`;
 }
 
+function updateLogList(app, state) {
+  const logLists = app.querySelectorAll(".log-list");
+  if (!logLists.length) return;
+  const currentLatestId = state.log[0]?.id ?? "";
+  for (const logList of logLists) {
+    if (logList.dataset.latestId === currentLatestId) continue;
+    logList.dataset.latestId = currentLatestId;
+    const entries = state.log.length
+      ? state.log
+          .slice(0, 12)
+          .map(
+            (entry) => `
+              <li class="log-entry log-entry--${entry.tone}">
+                <time>${formatDuration(entry.at)}</time>
+                <span>${entry.message}</span>
+              </li>
+            `,
+          )
+          .join("")
+      : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
+    logList.innerHTML = entries;
+  }
+}
+
+function updateInteractiveElements(app, state, config) {
+  for (const [componentId, spec] of Object.entries(COMPONENT_REGISTRY)) {
+    if (!spec.action) continue;
+    const button = app.querySelector(`[data-action="${spec.action}"]`);
+    if (!button) continue;
+    const evalResult = evaluateComponent(componentId, state, config);
+    const shouldBeDisabled = !evalResult.enabled;
+    if (button.disabled !== shouldBeDisabled) {
+      button.disabled = shouldBeDisabled;
+      if (shouldBeDisabled) {
+        button.classList.remove("button--primary", "button--danger");
+        button.classList.add("button--ghost");
+      } else {
+        button.classList.remove("button--ghost");
+        if (spec.action === "claim-setup") {
+          button.classList.add("button--danger");
+        } else {
+          button.classList.add("button--primary");
+        }
+      }
+    }
+  }
+
+  // Study button
+  const studyBtn = app.querySelector('[data-action="start-study"]');
+  if (studyBtn) {
+    const isAutoActive = isAutoCalculatorAutomationActive(state);
+    const shouldBeDisabled = Boolean(state.study.active || isAutoActive);
+    if (studyBtn.disabled !== shouldBeDisabled) {
+      studyBtn.disabled = shouldBeDisabled;
+      if (shouldBeDisabled) {
+        studyBtn.classList.remove("button--primary");
+        studyBtn.classList.add("button--ghost");
+      } else {
+        studyBtn.classList.remove("button--ghost");
+        studyBtn.classList.add("button--primary");
+      }
+    }
+    const span = studyBtn.querySelector("span");
+    const label = state.study.active ? "Running" : "Start Study";
+    const fullText = `${label} (${state.improvements})`;
+    if (span && span.textContent !== fullText) span.textContent = fullText;
+  }
+
+  // Algorithm Upgrade Panel & Button
+  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
+  const upgradeReady = state.improvements >= reqUpgrade;
+  const upgradePanel = app.querySelector(".panel--upgrade");
+  if (upgradePanel) {
+    upgradePanel.classList.toggle("panel--upgrade-ready", upgradeReady);
+  }
+  const upgradeBtn = app.querySelector('[data-action="start-algorithm-upgrade"]');
+  if (upgradeBtn) {
+    const shouldBeDisabled = !upgradeReady || state.algorithmUpgradeStudy.active;
+    if (upgradeBtn.disabled !== shouldBeDisabled) {
+      upgradeBtn.disabled = shouldBeDisabled;
+      if (shouldBeDisabled) {
+        upgradeBtn.classList.remove("button--primary");
+        upgradeBtn.classList.add("button--ghost");
+      } else {
+        upgradeBtn.classList.remove("button--ghost");
+        upgradeBtn.classList.add("button--primary");
+      }
+    }
+  }
+
+  // Overclocker Toggle Button
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const overclockActive = state.overclocker?.active ?? false;
+  const canToggleOverclock =
+    overclockActive ||
+    (state.devices.overclockers > 0 &&
+      state.devices.autoCalculators > 0 &&
+      big(state.energy).gt(stableCapacity));
+  const overclockerToggleBtn = app.querySelector('[data-action="toggle-overclocker"]');
+  if (overclockerToggleBtn) {
+    overclockerToggleBtn.disabled = !canToggleOverclock;
+  }
+
+  // Method & Setup Cards ready class
+  const reqMethod = calculateCalculationMethodRequirement(state, config);
+  const methodReady = state.upgrades >= reqMethod;
+  const methodCard = app.querySelector(".method-card:not(.panel--hard-reset)");
+  if (methodCard) {
+    methodCard.classList.toggle("method-card--ready", methodReady);
+  }
+
+  const reqSetup = calculateSetupOptimizationRequirement(state, config);
+  const setupReady = state.calculationMethods >= reqSetup;
+  const setupCard = app.querySelector(".panel--hard-reset");
+  if (setupCard) {
+    setupCard.classList.toggle("method-card--ready", setupReady);
+  }
+}
+
 function createRenderSignature(state, config, developmentMode, saveSlots = []) {
   if (state.introState !== "active") {
     return JSON.stringify({
@@ -3361,8 +3506,12 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     });
   }
 
-  const availability = buildAvailabilitySnapshot(state, config);
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const componentVisibility = Object.fromEntries(
+    Object.keys(COMPONENT_REGISTRY).map((componentId) => [
+      componentId,
+      evaluateComponent(componentId, state, config).visible,
+    ]),
+  );
 
   return JSON.stringify({
     introState: state.introState,
@@ -3377,7 +3526,6 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     historyLength: state.history?.length ?? 0,
     treeZoom: state.ui?.treeZoom ?? 1.0,
     selectedSciencePerkId: state.ui?.selectedSciencePerkId ?? null,
-    improvements: state.improvements,
     upgrades: state.upgrades,
     crcCount: state.crcCount,
     powerCells: state.powerCells,
@@ -3403,25 +3551,22 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
     overclockers: state.devices.overclockers,
     overclockerActive: state.overclocker.active,
-    availability,
-    overflowingEnergy: big(state.energy).gt(stableCapacity),
+    componentVisibility,
     autoCalculators: state.devices.autoCalculators,
     processors: state.devices.processors,
     crcBlueprint: state.discoveries.crcBlueprint,
+    overclockerBlueprint: state.discoveries.overclockerBlueprint,
     blueprintResearchAvailable: canResearchBlueprint(state, config),
-    studyActive: state.study.active,
-    studyAutomated: state.study.automated,
     algorithmUpgradeActive: state.algorithmUpgradeStudy.active,
     blueprintStudyActive: state.blueprintStudy.active,
+    overclockerBlueprintStudyActive: state.overclockerBlueprintStudy?.active ?? false,
     constructionActive: state.construction.active,
     prototypeComplete: state.prototypeComplete,
     newsDismissed: state.ui?.newsDismissed ?? false,
-    currentNewsId: state.ui?.currentNewsId ?? null,
     devShowNews: state.ui?.devShowNews ?? false,
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
     saveSlots,
-    latestLogId: state.log[0]?.id ?? "",
   });
 }
 
@@ -3649,6 +3794,113 @@ function updateDynamicFields(
       }
     }
   }
+
+  const timerFill = app.querySelector('[data-progress="news-timer"]');
+  if (timerFill) {
+    const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
+    const circumference = 37.7;
+    const offset = (circumference * (1 - timerFraction)).toFixed(2);
+    timerFill.style.strokeDashoffset = `${offset}`;
+  }
+
+  const algorithmFactor = 1 + (state.improvements ?? 0);
+  setHtmlField(
+    app,
+    "crc-algorithm-multiplier",
+    `x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small>`,
+  );
+
+  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
+  const production = calculateProduction(state, config, developmentMode);
+  setField(
+    app,
+    "crc-total-output",
+    isSoftUnlocked ? formatRate(production) : "UNREADABLE",
+  );
+
+  const impRate =
+    state.devices.autoCalculators > 0
+      ? calculateImprovementRatePerSecond(state, config, developmentMode)
+      : 0;
+  const currentDuration = calculateStudyDuration(state, config, false);
+  const previewDuration = calculateStudyDuration(
+    state,
+    config,
+    developmentMode,
+  );
+  const rate =
+    state.devices.autoCalculators > 0 ? impRate : 1 / currentDuration;
+  const rateDisplay =
+    rate >= 10
+      ? `${rate.toFixed(1)} Improvements/s`
+      : formatDuration(previewDuration);
+
+  setField(
+    app,
+    "study-algorithm-factor",
+    `x${algorithmFactor} (+1.0 / cycle)`,
+  );
+  setField(app, "study-rate-display", rateDisplay);
+  setField(
+    app,
+    "study-status",
+    state.study.active
+      ? state.study.automated
+        ? "AUTO CALCULATION"
+        : "CALCULATION IN PROGRESS"
+      : "READY",
+  );
+
+  setField(
+    app,
+    "cascade-algorithm-sub",
+    `Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${algorithmFactor})`,
+  );
+
+  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
+  const upgradeReady = state.improvements >= reqUpgrade;
+  if (!state.algorithmUpgradeStudy.active) {
+    setProgress(app, "algorithm-upgrade", state.improvements / reqUpgrade);
+    setField(
+      app,
+      "algorithm-upgrade-status",
+      upgradeReady
+        ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
+        : `${state.improvements} / ${reqUpgrade} Improvements`,
+    );
+    setField(app, "algorithm-upgrade-remaining", "INSTANT");
+  }
+
+  if (state.overclockerBlueprintStudy?.active) {
+    setProgress(
+      app,
+      "overclocker-blueprint",
+      state.overclockerBlueprintStudy.elapsed /
+        state.overclockerBlueprintStudy.duration,
+    );
+    setField(
+      app,
+      "overclocker-blueprint-remaining",
+      formatDuration(
+        Math.max(
+          0,
+          state.overclockerBlueprintStudy.duration -
+            state.overclockerBlueprintStudy.elapsed,
+        ),
+      ),
+    );
+  }
+
+  setField(app, "total-play-time", formatDuration(state.stats.totalPlayTime));
+  setField(app, "run-play-time", formatDuration(state.stats.runPlayTime));
+  setField(
+    app,
+    "total-condensed",
+    formatEnergy(state.stats.totalEnergyCollected),
+  );
+
+  updateLogList(app, state);
+  updateInteractiveElements(app, state, config);
 }
 
 function renderGame(

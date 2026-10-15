@@ -5,6 +5,7 @@ import { GameEngine } from "../../js/engine.js";
 import { createInitialState } from "../../js/state.js";
 import { createRenderer } from "../../js/ui.js";
 import { calculateCalculationMethodRequirement } from "../../js/formulas.js";
+import { big } from "../../js/numeric.js";
 
 const config = JSON.parse(
   readFileSync(new URL("../../config/game-config.json", import.meta.url), "utf8"),
@@ -278,4 +279,41 @@ test("UI: CRC device card displays base output per CRC, algorithm multiplier log
     "Upgrade card should display Active Upgrade Multiplier",
   );
 });
+
+test("UI: Render signature remains stable across ticks to eliminate full-page flicker", () => {
+  const state = createInitialState(config);
+  state.introState = "active";
+  state.energy = big(100);
+  state.improvements = 5;
+
+  const container = new MockElement("div");
+  const renderer = createRenderer(container, config, false);
+  renderer(state);
+
+  const initialHtml = container.innerHTML;
+  assert.ok(initialHtml.length > 0);
+
+  // Simulate tick updates: energy increments, improvements increase, logs are added, news timer ticks
+  state.energy = big(150);
+  state.improvements = 6;
+  state.stats.runPlayTime += 1;
+  state.ui.newsTimer = 2.5;
+  state.log.unshift({
+    id: "log_test_event",
+    at: 10,
+    message: "Test event logged",
+    tone: "info",
+  });
+
+  // Call render again
+  renderer(state);
+
+  // Since signature is stable across normal gameplay ticks, container.innerHTML was NOT wiped and re-created
+  assert.strictEqual(
+    container.innerHTML,
+    initialHtml,
+    "container.innerHTML must remain mounted (not re-parsed/re-rendered) on tick updates",
+  );
+});
+
 

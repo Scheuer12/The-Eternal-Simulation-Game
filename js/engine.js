@@ -120,6 +120,12 @@ export class GameEngine {
     }
   }
 
+  setNewsHovered(isHovered) {
+    if (this.state.ui) {
+      this.state.ui.newsHovered = Boolean(isHovered);
+    }
+  }
+
   subscribe(listener) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -294,10 +300,13 @@ export class GameEngine {
     this.state.stats.runPlayTime += delta;
 
     if (this.state.ui) {
-      this.state.ui.newsTimer = (this.state.ui.newsTimer || 0) + delta;
-      if (this.state.ui.newsTimer >= 10) {
-        this.state.ui.newsTimer = 0;
-        this.cycleNews(false);
+      if (!this.state.ui.newsHovered) {
+        this.state.ui.newsTimer = (this.state.ui.newsTimer || 0) + delta;
+        const cycleInterval = 6;
+        if (this.state.ui.newsTimer >= cycleInterval) {
+          this.state.ui.newsTimer = 0;
+          this.cycleNews(false);
+        }
       }
     }
 

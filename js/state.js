@@ -64,6 +64,7 @@ export function createInitialState(config) {
       newsDismissed: false,
       currentNewsId: null,
       newsTimer: 0,
+      newsHovered: false,
     },
     devices: {
       softDataDisplay: false,
@@ -319,6 +320,7 @@ export function normalizeState(candidate, config) {
         typeof candidate.ui?.newsTimer === "number"
           ? candidate.ui.newsTimer
           : 0,
+      newsHovered: false,
     },
     setupOptimizations:
       candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,

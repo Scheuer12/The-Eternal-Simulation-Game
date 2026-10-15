@@ -165,3 +165,37 @@ test("News: UI renders News Section when prototypeComplete is true and hides whe
   assert.ok(!container.innerHTML.includes('class="news-section"'), "News section should NOT be rendered when dismissed");
   assert.ok(container.innerHTML.includes('data-action="restore-news-section"'), "Restore News Feed button should be present in topbar");
 });
+
+test("News: auto-advances every 6 seconds and pauses while hovered", () => {
+  const state = createInitialState(config);
+  state.introState = "active";
+  state.prototypeComplete = true;
+  const engine = new GameEngine({ state, config, news: newsData });
+
+  const initialId = state.ui.currentNewsId;
+  assert.equal(state.ui.newsTimer, 0);
+
+  // Tick 3 seconds unhovered (1s each tick due to maximumTickSeconds)
+  for (let i = 0; i < 3; i++) engine.tick(1);
+  assert.equal(state.ui.newsTimer, 3);
+  assert.equal(state.ui.currentNewsId, initialId);
+
+  // Hover over news section
+  engine.setNewsHovered(true);
+  assert.equal(state.ui.newsHovered, true);
+
+  // Tick 5 seconds while hovered - timer must pause
+  for (let i = 0; i < 5; i++) engine.tick(1);
+  assert.equal(state.ui.newsTimer, 3, "Timer should remain paused while hovered");
+  assert.equal(state.ui.currentNewsId, initialId, "Headline should not change while hovered");
+
+  // Unhover
+  engine.setNewsHovered(false);
+  assert.equal(state.ui.newsHovered, false);
+
+  // Tick 3 more seconds to reach 6s cycle threshold
+  for (let i = 0; i < 3; i++) engine.tick(1);
+  assert.notEqual(state.ui.currentNewsId, initialId, "Headline should cycle after 6s of unhovered playback");
+  assert.ok(state.ui.newsTimer < 1, "Timer should reset after cycling");
+});
+
