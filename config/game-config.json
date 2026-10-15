@@ -98,10 +98,9 @@
     "onboardingImprovements": 15,
     "onboardingInitialBonus": 9,
     "baselineBonus": 0.05,
-    "minimumBonus": 0.025,
     "onboardingDecayShape": 1.55,
-    "lateDecayScale": 40,
-    "lateDecayPower": 0.65,
+    "bonusCurveSmoothing": 0.001,
+    "bonusDecayRate": 0.0062,
     "effectPenaltyMultiplierPerMethod": 0.9
   },
   "algorithmUpgrade": {
@@ -165,5 +164,48 @@
   "development": {
     "durationMultiplier": 0.05,
     "productionMultiplier": 1000
+  },
+  "economyV2": {
+    "crc": {
+      "baseProductionPerSecond": 1e-12,
+      "improvementLinearBonus": 1
+    },
+    "improvements": {
+      "baseDurationSeconds": 0.5,
+      "durationGrowthCoefficient": 0.015,
+      "durationGrowthPower": 2
+    },
+    "algorithmUpgrades": {
+      "productionMultiplierPerUpgrade": 2,
+      "initialRequiredImprovements": 10,
+      "linearRequirementGrowth": 5,
+      "quadraticRequirementCoefficient": 0.25,
+      "automatedBaseDurationSeconds": 10,
+      "automatedDurationGrowthCoefficient": 0.16,
+      "automatedDurationGrowthPower": 1.1
+    },
+    "autoCalculators": {
+      "perUnitSpeedBonus": 0.5
+    },
+    "processors": {
+      "perUnitBonus": 0.15
+    },
+    "calculationMethods": {
+      "processorBonusMultiplierPerCMU": 1.2
+    },
+    "setupOptimizations": {
+      "devicePerformanceLogCoefficient": 2
+    },
+    "overclockers": {
+      "firstProcessorBonusMultiplier": 5,
+      "additionalProcessorBonusMultiplier": 1.5,
+      "blueprintResearchBaseDurationSeconds": 45
+    },
+    "scienceRebalance": {
+      "calculatorUpgradeResearchLogCoefficient": 0.2,
+      "calculatorEnhancedBonus": 0.7,
+      "quantumSuperpositionLogCoefficient": 0.02,
+      "powerCellResonanceLogCoefficient": 0.02
+    }
   }
 }

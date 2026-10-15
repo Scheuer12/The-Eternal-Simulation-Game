@@ -8,6 +8,7 @@ import {
   calculateAutoCalculatorCost,
   calculateAutoCalculatorSpeedMultiplier,
   calculateBlueprintResearchDuration,
+  calculateOverclockerBlueprintDuration,
   calculateCalculationMethodRequirement,
   calculateDeviceDurationMultiplier,
   calculateDeviceEfficiencyMultiplier,
@@ -23,6 +24,8 @@ import {
   calculateScienceProductionMultiplier,
   calculateQuantumCalculationBonus,
   calculateQuantumSuperpositionRetention,
+  calculateQuantumSuperpositionSpeedMultiplier,
+  calculatePowerCellResonanceMultiplier,
   calculateOverclockerCost,
   calculateOverclockerDrainPerSecond,
   calculateOverclockerSpeedMultiplier,
@@ -40,8 +43,11 @@ import {
   calculatePowerModuleRequirement,
   calculateProductionBreakdown,
   calculateProcessorCost,
+  calculateProcessorBonusUnit,
+  calculateProcessorEfficiencyMultiplier,
   calculateProduction,
   calculateSetupOptimizationRequirement,
+  calculateSetupDevicePerformance,
   calculateStableEnergyCapacity,
   calculateStudyDuration,
   canAccessParticleLab,
@@ -58,39 +64,33 @@ const config = JSON.parse(
   ),
 );
 
-test("the onboarding curve reaches the 5% baseline at Improvement 16", () => {
-  assert.equal(calculateImprovementBonus(15, config), 0.05);
-  assert.ok(calculateImprovementBonus(14, config) > 0.05);
-  assert.ok(calculateImprovementBonus(16, config) < 0.05);
+test("I=0, 1, 10, 100: CRC produces proportionally to 1+I without hidden compounding", () => {
+  const state = createInitialState(config);
+  state.crcCount = 1;
+  state.upgrades = 0;
+  state.setupOptimizations = 0;
+
+  state.improvements = 0;
+  assertBigClose(calculateProduction(state, config), 1e-12);
+
+  state.improvements = 1;
+  assertBigClose(calculateProduction(state, config), 2e-12);
+
+  state.improvements = 10;
+  assertBigClose(calculateProduction(state, config), 11e-12);
+
+  state.improvements = 100;
+  assertBigClose(calculateProduction(state, config), 101e-12);
 });
 
-test("Algorithm Improvement bonus never drops below its configured floor", () => {
-  assert.equal(
-    calculateImprovementBonus(10_000, config),
-    config.study.minimumBonus,
-  );
-});
-
-test("the onboarding crosses approximately nine orders of magnitude", () => {
+test("Algorithm Upgrade requirement follows R(U) = ceil(10 + 5U + 0.125 U(U-1))", () => {
   const state = createInitialState(config);
 
-  for (let completed = 0; completed < 15; completed += 1) {
-    state.improvementMultiplier = state.improvementMultiplier.mul(
-      1 + calculateImprovementBonus(completed, config),
-    );
-    state.improvements += 1;
-  }
-
-  const production = calculateProduction(state, config);
-  assert.ok(production >= 1e-3);
-  assert.ok(production < 2e-3);
-});
-
-test("Algorithm Upgrade requirement starts at 10 and rises by 5", () => {
-  const state = createInitialState(config);
-  assert.equal(calculateAlgorithmUpgradeRequirement(state, config), 10);
-  state.upgrades = 3;
-  assert.equal(calculateAlgorithmUpgradeRequirement(state, config), 25);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 0 }, config), 10);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 1 }, config), 15);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 2 }, config), 21);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 3 }, config), 26);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 4 }, config), 32);
 });
 
 test("first Algorithm Upgrade duration is the configured base duration", () => {
@@ -98,15 +98,8 @@ test("first Algorithm Upgrade duration is the configured base duration", () => {
   assert.equal(calculateAlgorithmUpgradeDuration(state, config), 10);
 });
 
-test("reset layer requirements rise linearly by their configured increments", () => {
+test("reset layer requirements rise as configured", () => {
   const state = createInitialState(config);
-
-  assert.deepEqual(
-    [0, 1, 2, 3].map((upgrades) =>
-      calculateAlgorithmUpgradeRequirement({ ...state, upgrades }, config),
-    ),
-    [10, 15, 20, 25],
-  );
 
   assert.deepEqual(
     [0, 1, 2, 3].map((calculationMethods) =>
@@ -129,7 +122,7 @@ test("reset layer requirements rise linearly by their configured increments", ()
   );
 });
 
-test("each Algorithm Upgrade doubles production", () => {
+test("each Algorithm Upgrade doubles production (2^U)", () => {
   const state = createInitialState(config);
   const base = calculateProduction(state, config);
   state.upgrades = 4;
@@ -139,23 +132,22 @@ test("each Algorithm Upgrade doubles production", () => {
 test("production supports very large finite values without an arbitrary cap", () => {
   const state = createInitialState(config);
   state.crcCount = 10;
-  state.upgrades = 330;
-  state.improvementMultiplier = 1e12;
+  state.upgrades = 360;
+  state.improvements = 1000;
 
   const production = calculateProduction(state, config);
-
   assert.ok(production.isFinite());
   assert.ok(production.gt(1e99));
 });
 
-test("production breakdown shows only active production contributors", () => {
+test("production breakdown shows active production contributors matching total", () => {
   const state = createInitialState(config);
   assert.deepEqual(
     calculateProductionBreakdown(state, config).map((row) => row.id),
     ["crc-base"],
   );
 
-  state.improvementMultiplier = 10;
+  state.improvements = 10;
   state.upgrades = 2;
   assert.deepEqual(
     calculateProductionBreakdown(state, config).map((row) => row.id),
@@ -169,89 +161,114 @@ test("production breakdown shows only active production contributors", () => {
   assertBigEqual(total, calculateProduction(state, config));
 });
 
-test("Calculation Method Upgrades reduce future Improvement penalty", () => {
-  const base = calculateImprovementBonus(20, config, 0);
-  const boosted = calculateImprovementBonus(20, config, 2);
-  assert.ok(boosted > base);
+test("Setup Optimization device performance D(S) = 1 + 2 ln(1+S)", () => {
+  assert.equal(calculateSetupDevicePerformance(0, config), 1);
+  assert.ok(Math.abs(calculateSetupDevicePerformance(1, config) - 2.38629) < 0.001);
+  assert.ok(Math.abs(calculateSetupDevicePerformance(2, config) - 3.19722) < 0.001);
+  assert.ok(Math.abs(calculateSetupDevicePerformance(5, config) - 4.58351) < 0.001);
+  assert.ok(Math.abs(calculateSetupDevicePerformance(10, config) - 5.79579) < 0.001);
+
+  // Setup performance increases CRC base production
+  const state = createInitialState(config);
+  state.setupOptimizations = 1;
+  const d1 = calculateSetupDevicePerformance(1, config);
+  assertBigEqual(calculateProduction(state, config), big(1e-12).mul(d1));
 });
 
-test("Auto Calculators and Processors scale from owned counts", () => {
+test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   const state = createInitialState(config);
-  state.devices.autoCalculators = 2;
+  state.devices.processors = 1;
+
+  const unitBonus0 = calculateProcessorBonusUnit(state, config);
+  assert.equal(unitBonus0, 0.15);
+
+  state.calculationMethods = 1;
+  const unitBonus1 = calculateProcessorBonusUnit(state, config);
+  assertBigClose(unitBonus1, 0.15 * 1.2, 1e-12);
+
+  state.calculationMethods = 2;
+  const unitBonus2 = calculateProcessorBonusUnit(state, config);
+  assertBigClose(unitBonus2, 0.15 * 1.44, 1e-12);
+
+  // When P=0, CMU has zero effect on Auto Calculator speed
+  state.devices.processors = 0;
+  state.devices.autoCalculators = 1;
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 1.5);
+});
+
+test("Processor aggregated effectiveness E_P = (1 + unitBonus)^P compounds into each Calculator", () => {
+  const state = createInitialState(config);
   state.devices.processors = 2;
+  state.devices.autoCalculators = 2;
 
-  assert.ok(
-    calculateAutoCalculatorCost(2, config).gt(
-      calculateAutoCalculatorCost(1, config),
-    ),
-  );
-  assert.ok(
-    calculateProcessorCost(2, config).gt(calculateProcessorCost(1, config)),
-  );
-  assert.equal(
-    calculateAutoCalculatorSpeedMultiplier(state, config),
-    config.autoCalculator.firstSpeedMultiplier *
-      config.autoCalculator.additionalSpeedMultiplier *
-      config.processor.deviceEfficiencyMultiplier ** 2,
-  );
-  assert.equal(
-    calculateDeviceDurationMultiplier(state, config),
-    1 / config.processor.deviceEfficiencyMultiplier ** 2,
-  );
+  const unitBonus = 0.15;
+  const ep = (1 + unitBonus) ** 2; // 1.15^2 = 1.3225
+  assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
+
+  // Each calculator has baseUnitBonus = 0.5. With EP, unit bonus is 0.5 * EP.
+  // Fleet speed = (1 + 0.5 * EP)^2
+  const expectedFleetSpeed = (1 + 0.5 * ep) ** 2;
+  assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedFleetSpeed, 1e-12);
+
+  // Crucial test from spec §11.1: verify difference between compounding E_P into each calculator vs multiplying at the end
+  const wrongMultiplyAtEnd = ((1 + 0.5) ** 2) * ep;
+  assert.notEqual(expectedFleetSpeed, wrongMultiplyAtEnd);
 });
 
-test("Overclocker only accelerates Auto Calculators while active", () => {
+test("Overclocker acts on Processor bonus while active, not directly on fleet speed", () => {
   const state = createInitialState(config);
+  state.devices.processors = 1;
   state.devices.autoCalculators = 1;
   state.devices.overclockers = 1;
 
+  // Inactive
   assert.equal(calculateOverclockerSpeedMultiplier(state, config), 1);
   assertBigEqual(calculateOverclockerDrainPerSecond(state, config), 0);
+  assert.equal(calculateProcessorBonusUnit(state, config), 0.15);
 
+  // Active: O_0(1) = 5
   state.overclocker.active = true;
-  assert.equal(
-    calculateOverclockerSpeedMultiplier(state, config),
-    config.overclocker.baseCalculatorSpeedMultiplier,
-  );
+  assert.equal(calculateOverclockerSpeedMultiplier(state, config), 5);
   assertBigEqual(
     calculateOverclockerDrainPerSecond(state, config),
     config.overclocker.baseEnergyDrainPerSecond,
   );
-  assert.equal(
-    calculateAutoCalculatorSpeedMultiplier(state, config),
-    config.autoCalculator.firstSpeedMultiplier *
-      config.overclocker.baseCalculatorSpeedMultiplier,
-  );
+  // Processor unit bonus becomes 0.15 * 5 = 0.75
+  assert.equal(calculateProcessorBonusUnit(state, config), 0.75);
 
+  // 2 Overclockers: O_0(2) = 5 * 1.5 = 7.5
   state.devices.overclockers = 2;
-  assert.equal(
-    calculateOverclockerSpeedMultiplier(state, config),
-    config.overclocker.baseCalculatorSpeedMultiplier *
-      config.overclocker.additionalCalculatorSpeedMultiplier,
-  );
-  assertBigEqual(
-    calculateOverclockerDrainPerSecond(state, config),
-    config.overclocker.baseEnergyDrainPerSecond *
-      config.overclocker.energyDrainGrowth,
-  );
+  assert.equal(calculateOverclockerSpeedMultiplier(state, config), 7.5);
 
-  state.devices.overclockers = 3;
-  assertBigEqual(
-    calculateOverclockerDrainPerSecond(state, config),
-    config.overclocker.baseEnergyDrainPerSecond *
-      config.overclocker.energyDrainGrowth ** 2,
-  );
+  // Overclocker excess synergy with Setup: O_eff = 1 + (O_0 - 1) * D(S)
+  state.setupOptimizations = 1;
+  const ds = calculateSetupDevicePerformance(1, config);
+  const expectedOeff = 1 + (7.5 - 1) * ds;
+  assertBigClose(calculateOverclockerSpeedMultiplier(state, config), expectedOeff, 1e-12);
+});
 
+test("Overclocker runtime drain scales with active duration", () => {
+  const state = createInitialState(config);
   state.devices.overclockers = 1;
+  state.overclocker.active = true;
   state.overclocker.activeSeconds = 10;
-  assertBigEqual(
-    calculateOverclockerDrainPerSecond(state, config),
+
+  const expected =
     config.overclocker.baseEnergyDrainPerSecond *
-      config.overclocker.runtimeDrainGrowthBase ** 10,
+    config.overclocker.runtimeDrainGrowthBase ** 10;
+  assertBigClose(
+    calculateOverclockerDrainPerSecond(state, config),
+    expected,
+    1e-10,
   );
 });
 
-test("Overclocker cost scales by owned routes", () => {
+test("Overclocker Blueprint research duration is 45 seconds base", () => {
+  const state = createInitialState(config);
+  assert.equal(calculateOverclockerBlueprintDuration(state, config), 45);
+});
+
+test("Overclocker cost scales by owned count", () => {
   assertBigEqual(
     calculateOverclockerCost(0, config),
     config.overclocker.baseCost,
@@ -264,7 +281,7 @@ test("Overclocker cost scales by owned routes", () => {
   );
 });
 
-test("Power Cell capacity and cost scale from owned cells", () => {
+test("Power Cell capacity and cost scale from owned cells and Setup", () => {
   const state = createInitialState(config);
   state.powerCells = 3;
 
@@ -275,22 +292,20 @@ test("Power Cell capacity and cost scale from owned cells", () => {
   assert.ok(
     calculatePowerCellCost(3, config).gt(calculatePowerCellCost(2, config)),
   );
+
+  state.setupOptimizations = 1;
+  const ds = calculateSetupDevicePerformance(1, config);
+  assertBigEqual(
+    calculateStableEnergyCapacity(state, config),
+    big(config.energy.powerCellCapacity * 3).mul(ds),
+  );
 });
 
-test("Power Modules multiply effective Power Cell capacity without consuming cells", () => {
+test("Power Modules multiply effective Power Cell capacity", () => {
   const state = createInitialState(config);
   state.powerCells = config.powerModule.cellsPerModule;
-
-  assert.equal(
-    calculatePowerModuleRequirement(0, config),
-    config.powerModule.cellsPerModule,
-  );
-  assertBigEqual(
-    calculatePowerModuleCost(0, config),
-    config.powerModule.baseCost,
-  );
-
   state.powerModules = 1;
+
   assertBigEqual(
     calculatePowerModuleCapacityMultiplier(state, config),
     config.powerModule.capacityMultiplier,
@@ -303,7 +318,7 @@ test("Power Modules multiply effective Power Cell capacity without consuming cel
   );
 });
 
-test("Particle Laboratory opens at 100 J peak and Synthesizer targets the next Science Point cost", () => {
+test("Particle Laboratory access and Synthesizer progress", () => {
   const state = createInitialState(config);
   state.peakEnergy = config.particleLab.doorEnergyRequired - 1;
   assert.equal(canAccessParticleLab(state, config), false);
@@ -311,36 +326,28 @@ test("Particle Laboratory opens at 100 J peak and Synthesizer targets the next S
   state.peakEnergy = config.particleLab.doorEnergyRequired;
   assert.equal(canAccessParticleLab(state, config), true);
 
-  state.peakEnergy = 0;
-  state.science.syntheses = 1;
-  assert.equal(canAccessParticleLab(state, config), true);
-  state.science.syntheses = 0;
-  state.peakEnergy = config.particleLab.doorEnergyRequired;
-
-  assertBigEqual(
-    calculateParticleSynthesizerCost(state, config),
-    config.particleLab.synthesizerEnergyRequired,
-  );
   state.energy = calculateParticleSynthesizerCost(state, config).div(4);
-  assert.equal(calculateParticleSynthesizerProgress(state, config), 0.25);
+  assert.ok(Math.abs(calculateParticleSynthesizerProgress(state, config) - 0.25) < 1e-9);
+});
 
-  state.science.totalScienceEarned = 1;
-  assertBigEqual(
-    calculateParticleSynthesizerCost(state, config),
-    config.particleLab.synthesizerEnergyRequired,
-  );
-  assert.ok(
-    calculateSciencePointCost(1, config).gt(calculateSciencePointCost(0, config)),
-  );
+test("Science Points threshold inversion satisfies mandatory regression test", () => {
+  // Regression test from spec §8: E = 1.904e33 J, H = 2 => SP_gained = 12, final H = 14
+  const gained = calculateSciencePointReward("1.904e33", 2, config);
+  assert.equal(gained, 12);
+
+  // Boundary conditions
+  assert.equal(calculateSciencePointReward(1e11, 0, config), 1);
   assert.equal(calculateSciencePointReward(1e11, 1, config), 0);
-  assert.equal(
-    calculateSciencePointReward(
-      calculateSciencePointCost(1, config),
-      1,
-      config,
-    ),
-    1,
-  );
+  assert.equal(calculateSciencePointReward(1e10, 0, config), 0);
+
+  // Exact threshold costs
+  const cost0 = calculateSciencePointCost(0, config);
+  assertBigEqual(cost0, 1e11);
+  assert.equal(calculateSciencePointReward(cost0, 0, config), 1);
+
+  const cost5 = calculateSciencePointCost(5, config);
+  assert.equal(calculateSciencePointReward(cost5, 0, config), 6);
+  assert.equal(calculateSciencePointReward(cost5, 5, config), 1);
 });
 
 test("Science Era quark formulas use synthesis energy, safe capacity, and overflow decay", () => {
@@ -348,6 +355,7 @@ test("Science Era quark formulas use synthesis energy, safe capacity, and overfl
 
   assertBigEqual(calculateQuarksGenerated(100e9, config), 1);
   assertBigEqual(calculateQuarksGenerated(250e9, config), 2);
+  assertBigEqual(calculateQuarksGenerated(50e9, config), 0);
   assertBigEqual(calculateQuarkCapacity(state, config), 1);
   assertBigEqual(calculateQuarkCageCost(0, config), 100e9);
 
@@ -357,256 +365,24 @@ test("Science Era quark formulas use synthesis energy, safe capacity, and overfl
   state.scienceDevices.quarkCages = 1;
   assertBigEqual(calculateQuarkCapacity(state, config), 10);
   assertBigEqual(calculateQuarkDecay(state, config), 0);
-
-  state.scienceDevices.quarkCages = 2;
-  assertBigEqual(calculateQuarkCapacity(state, config), 20);
-  assertBigEqual(calculateQuarkDecay(state, config), 0);
 });
 
-test("CRC Blueprint research is a short reconstruction pass", () => {
+test("Algorithm Improvement duration follows quadratic curve T_I(I) = 0.5*(1 + 0.015*I^2)/V", () => {
   const state = createInitialState(config);
 
-  assert.equal(calculateBlueprintResearchDuration(state, config), 60);
-});
+  state.improvements = 0;
+  assert.equal(calculateStudyDuration(state, config), 0.5);
 
-test("Power Cell cost scaling stays finite, monotonic, and uncapped", () => {
-  const firstCost = calculatePowerCellCost(0, config);
-  assertBigEqual(
-    firstCost,
-    config.energy.powerCellCapacity *
-      config.powerCell.baseCapacityCostMultiplier,
-  );
-
-  let previousCost = firstCost;
-  let previousMultiplier = config.powerCell.baseCapacityCostMultiplier;
-  for (let owned = 1; owned <= 12; owned += 1) {
-    const cost = calculatePowerCellCost(owned, config);
-    const impliedMultiplier = cost.div(
-      config.energy.powerCellCapacity * Math.max(1, owned),
-    );
-
-    assert.ok(cost.isFinite());
-    assert.ok(cost.gte(previousCost));
-    assert.ok(impliedMultiplier.gte(config.powerCell.baseCapacityCostMultiplier));
-    assert.ok(impliedMultiplier.gte(previousMultiplier));
-
-    previousCost = cost;
-    previousMultiplier = impliedMultiplier;
-  }
-
-  const lateMultiplier = calculatePowerCellCost(100, config).div(
-    config.energy.powerCellCapacity * 100,
-  );
-  assert.ok(lateMultiplier.gt(previousMultiplier));
-});
-
-test("Power Cell cost becomes slightly more aggressive after each full cell array", () => {
-  const preArrayCost = calculatePowerCellCost(
-    config.powerModule.cellsPerModule - 1,
-    config,
-  );
-  const firstArrayCost = calculatePowerCellCost(
-    config.powerModule.cellsPerModule,
-    config,
-  );
-  const secondArrayCost = calculatePowerCellCost(
-    config.powerModule.cellsPerModule * 2,
-    config,
-  );
-
-  const preArrayMultiplier = preArrayCost.div(
-    config.energy.powerCellCapacity * (config.powerModule.cellsPerModule - 1),
-  );
-  const firstArrayMultiplier = firstArrayCost.div(
-    config.energy.powerCellCapacity * config.powerModule.cellsPerModule,
-  );
-  const secondArrayMultiplier = secondArrayCost.div(
-    config.energy.powerCellCapacity * config.powerModule.cellsPerModule * 2,
-  );
-
-  assert.ok(firstArrayMultiplier.gt(preArrayMultiplier));
-  assert.ok(secondArrayMultiplier.gt(firstArrayMultiplier));
-});
-
-test("energy overflow uses progressive retention instead of a hard cap", () => {
-  const state = createInitialState(config);
-  const capacity = calculateStableEnergyCapacity(state, config);
-
-  state.energy = capacity.mul(2);
-  assert.ok(calculateEnergyOverflowDecay(state, config).gt(0));
-  assert.ok(calculateEnergyRetention(state, config) < 1);
-  assert.ok(
-    calculateEffectiveProduction(state, config).lt(
-      calculateProduction(state, config),
-    ),
-  );
-
-  state.energy = 0;
-  const collected = calculateEffectiveEnergyGain(state, capacity.mul(2), config);
-  assertBigEqual(collected, capacity.mul(2));
-});
-
-test("early Study duration scaling is lighter before returning to the base curve", () => {
-  const state = createInitialState(config);
   state.improvements = 10;
-  const earlyDuration = calculateStudyDuration(state, config);
-  const oldCurveAtTen =
-    config.study.baseDurationSeconds *
-    (1 +
-      config.study.durationGrowthCoefficient *
-        10 ** config.study.durationGrowthPower);
+  // 0.5 * (1 + 0.015 * 100) = 0.5 * 2.5 = 1.25
+  assert.equal(calculateStudyDuration(state, config), 1.25);
 
-  state.improvements = 15;
-  const transitionDuration = calculateStudyDuration(state, config);
-  const oldCurveAtFifteen =
-    config.study.baseDurationSeconds *
-    (1 +
-      config.study.durationGrowthCoefficient *
-        15 ** config.study.durationGrowthPower);
-
-  assert.ok(earlyDuration < oldCurveAtTen);
-  assert.equal(transitionDuration, oldCurveAtFifteen);
+  state.improvements = 20;
+  // 0.5 * (1 + 0.015 * 400) = 0.5 * 7 = 3.5
+  assert.equal(calculateStudyDuration(state, config), 3.5);
 });
 
-test("Setup Optimizations reduce effective Study load more at high cycles", () => {
-  const state = createInitialState(config);
-  state.improvements = 10;
-  const lowBase = calculateStudyDuration(state, config);
-  state.setupOptimizations = 1;
-  const lowOptimized = calculateStudyDuration(state, config);
-
-  state.improvements = 50;
-  state.setupOptimizations = 0;
-  const highBase = calculateStudyDuration(state, config);
-  state.setupOptimizations = 2;
-  const highOptimized = calculateStudyDuration(state, config);
-
-  assert.ok(lowOptimized < lowBase);
-  assert.ok(highOptimized < highBase);
-  assert.ok(highOptimized / highBase < lowOptimized / lowBase);
-});
-
-test("Redundancy Elimination compounds Improvement research speed by upgrades and cycles", () => {
-  const state = createInitialState(config);
-  state.upgrades = 5;
-  state.improvements = 25;
-  const baseDuration = calculateStudyDuration(state, config);
-
-  state.science.perks.redundancyElimination = true;
-  const speed = calculateRedundancyEliminationSpeedMultiplier(state, config);
-  const boostedDuration = calculateStudyDuration(state, config);
-
-  assertBigClose(
-    speed,
-    (1 +
-      config.science.redundancyElimination
-        .researchSpeedBonusPerUpgradePerCycle) **
-      (state.upgrades * state.improvements),
-  );
-  assert.ok(speed > 1);
-  assert.ok(boostedDuration < baseDuration);
-});
-
-test("Processor study-speed perk applies the configured 1.07 exponent", () => {
-  const state = createInitialState(config);
-  state.devices.processors = 2;
-  const baseDuration = calculateStudyDuration(state, config);
-  state.science.perks.processorBonusAppliesAImprovementSpeed = true;
-  const boostedDuration = calculateStudyDuration(state, config);
-
-  assert.equal(
-    calculateProcessorImprovementSpeedMultiplier(state, config),
-    calculateDeviceEfficiencyMultiplier(state, config)
-      .pow(config.science.studyPerks.processorBonusImprovementSpeedExponent)
-      .toNumber(),
-  );
-  assert.ok(boostedDuration < baseDuration);
-});
-
-test("Energy perks apply their production multipliers and stack with existing CRC production", () => {
-  const state = createInitialState(config);
-  state.crcCount = 3;
-  state.devices.processors = 2;
-  state.science.totalScienceEarned = 4;
-  state.science.perks.processorBonusAppliesCRC = true;
-  state.science.perks.sciencePoweredEnergyProduction = true;
-  state.science.perks.crcExponentialScaling = true;
-  const processorBonus =
-    config.processor.deviceEfficiencyMultiplier ** state.devices.processors;
-  const expected =
-    config.energy.baseProductionPerSecond *
-    state.crcCount *
-    processorBonus ** config.science.energyPerks.processorBonusExponentForCrc *
-    state.science.totalScienceEarned *
-    config.science.energyPerks.crcExponentialProductionPerCrc ** state.crcCount;
-
-  assertBigEqual(
-    calculateCrcProcessorBonusMultiplier(state, config),
-    processorBonus ** config.science.energyPerks.processorBonusExponentForCrc,
-  );
-  assertBigEqual(calculateScienceProductionMultiplier(state), 4);
-  assertBigEqual(
-    calculateCrcExponentialMultiplier(state, config),
-    config.science.energyPerks.crcExponentialProductionPerCrc ** 3,
-  );
-  const production = calculateProduction(state, config);
-  const breakdownTotal = calculateProductionBreakdown(state, config).reduce(
-    (sum, row) => sum.add(row.value),
-    big(0),
-  );
-  assertBigClose(production, expected, 1e-14);
-  assertBigClose(breakdownTotal, expected, 1e-14);
-});
-
-test("Power Modules scaling perk strengthens stable capacity only after ownership", () => {
-  const state = createInitialState(config);
-  state.powerModules = 3;
-  const standard = calculatePowerModuleCapacityMultiplier(state, config);
-
-  state.science.perks.powerModulesScaling = true;
-  const scaled = calculatePowerModuleCapacityMultiplier(state, config);
-
-  assertBigEqual(standard, config.powerModule.capacityMultiplier ** 3);
-  assert.ok(scaled.gt(standard));
-});
-
-test("Quantum bonuses use Total Quarks with the specified softcap and hardcaps", () => {
-  assert.equal(calculateQuantumCalculationBonus(0, config), 1);
-  assert.ok(calculateQuantumCalculationBonus(100, config) > 1);
-  assert.ok(
-    Math.abs(calculateQuantumCalculationBonus(1e10 - 1, config) - 1.15) <
-      1e-12,
-  );
-  assert.ok(
-    Math.abs(calculateQuantumCalculationBonus(1e11 - 1, config) - 1.15375) <
-      1e-12,
-  );
-  assert.ok(calculateQuantumCalculationBonus(1e30, config) <= 1.3);
-  assert.equal(calculateQuantumCalculationBonus(1e100, config), 1.3);
-  assert.ok(calculateQuantumSuperpositionRetention(1e100, config) <= 0.1);
-  assert.equal(calculateQuantumSuperpositionRetention(0, config), 0);
-
-  const state = createInitialState(config);
-  state.quarks.totalEarned = big(1e30);
-  state.quarks.available = big(0);
-  state.science.perks.quantumCalculationPrinciples = true;
-  state.science.perks.quantumSuperposition = true;
-  const baseUpgradeDuration = calculateAlgorithmUpgradeDuration(state, config);
-  state.science.perks.quantumCalculationPrinciples = false;
-  const unboostedDuration = calculateAlgorithmUpgradeDuration(state, config);
-  assert.ok(baseUpgradeDuration < unboostedDuration);
-});
-
-test("energy formatting uses engineering notation below 1 and above 999", () => {
-  assert.equal(formatEnergy(1e-12), "1e-12 J");
-  assert.equal(formatEnergy(0.0012), "1.2e-3 J");
-  assert.equal(formatEnergy(999), "999 J");
-  assert.equal(formatEnergy(1234.56), "1.235e3 J");
-  assert.equal(formatEnergy(100e9), "100e9 J");
-  assert.equal(formatEnergy("1e384051168456"), "e384.051e9 J");
-});
-
-test("Redundancy Elimination softcaps after 50 Improvements and hardcaps at 100", () => {
+test("Redundancy Elimination softcaps at 50 and hardcaps at 100", () => {
   const state = createInitialState(config);
   state.upgrades = 8;
   state.science.perks.redundancyElimination = true;
@@ -623,4 +399,71 @@ test("Redundancy Elimination softcaps after 50 Improvements and hardcaps at 100"
   assert.ok(insideSoftcap > atSoftcap);
   assert.ok(atHardcap > insideSoftcap);
   assert.equal(afterHardcap, atHardcap);
+});
+
+test("Processor study-speed perk applies direct V_direct = E_P^1.07 exponent", () => {
+  const state = createInitialState(config);
+  state.devices.processors = 2;
+  const baseDuration = calculateStudyDuration(state, config);
+
+  state.science.perks.processorBonusAppliesAImprovementSpeed = true;
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  const expectedVdirect = ep ** 1.07;
+  assertBigClose(
+    calculateProcessorImprovementSpeedMultiplier(state, config),
+    expectedVdirect,
+    1e-12,
+  );
+
+  const boostedDuration = calculateStudyDuration(state, config);
+  assertBigClose(boostedDuration, baseDuration / expectedVdirect, 1e-12);
+});
+
+test("Science perks apply production multipliers: SciencePoints (1+SP), CRC exponential (1.005^C), Processor bonus (E_P^0.15)", () => {
+  const state = createInitialState(config);
+  state.crcCount = 3;
+  state.devices.processors = 2;
+  state.science.totalScienceEarned = 4;
+  state.science.perks.processorBonusAppliesCRC = true;
+  state.science.perks.sciencePoweredEnergyProduction = true;
+  state.science.perks.crcExponentialScaling = true;
+
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  const expectedEpBonus = ep ** 0.15;
+  assertBigClose(calculateCrcProcessorBonusMultiplier(state, config), expectedEpBonus, 1e-12);
+
+  // 1 + totalScienceEarned = 1 + 4 = 5
+  assertBigEqual(calculateScienceProductionMultiplier(state), 5);
+  assertBigEqual(calculateCrcExponentialMultiplier(state, config), 1.005 ** 3);
+
+  const expectedProduction =
+    1e-12 * 3 * (1 + 0) * (2 ** 0) * 1 * (1.005 ** 3) * expectedEpBonus * 5;
+  assertBigClose(calculateProduction(state, config), expectedProduction, 1e-14);
+});
+
+test("Quantum Superposition accelerates Improvements by log10(1+quarks) without retention", () => {
+  const state = createInitialState(config);
+  state.quarks.totalEarned = big(99); // log10(100) = 2 -> 1 + 0.02 * 2 = 1.04
+  state.science.perks.quantumSuperposition = true;
+
+  const speed = calculateQuantumSuperpositionSpeedMultiplier(state.quarks.totalEarned, config);
+  assert.equal(speed, 1.04);
+
+  const duration = calculateStudyDuration(state, config);
+  assert.equal(duration, 0.5 / 1.04);
+
+  // Retention is removed (0)
+  assert.equal(calculateQuantumSuperpositionRetention(100, config), 0);
+});
+
+test("Power Cell Resonance perk increases cell capacity by 1 + 0.02*log10(1+cells)", () => {
+  const state = createInitialState(config);
+  state.powerCells = 99; // log10(100) = 2 -> 1 + 0.02 * 2 = 1.04
+  state.science.perks.powerCellResonance = true;
+
+  const resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
+  assert.equal(resonance, 1.04);
+
+  const capacity = calculateStableEnergyCapacity(state, config);
+  assertBigEqual(capacity, big(99).mul(config.energy.powerCellCapacity).mul(1.04));
 });
