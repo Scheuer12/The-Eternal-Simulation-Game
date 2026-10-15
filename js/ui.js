@@ -710,8 +710,7 @@ function renderCrcBriefing() {
 }
 
 function renderHeader(state, developmentMode) {
-  const showRestoreNews =
-    (state.prototypeComplete || developmentMode) && state.ui?.newsDismissed;
+  const showRestoreNews = Boolean(state.ui?.newsDismissed);
 
   return `
     <header class="topbar">
@@ -1114,8 +1113,12 @@ function renderStudy(state, config, developmentMode) {
     developmentMode,
   );
   const studyProgress = state.study.active
-    ? state.study.elapsed / state.study.duration
-    : 0;
+    ? state.study.duration > 0
+      ? clamp(state.study.elapsed / state.study.duration, 0, 1)
+      : 0
+    : state.study.completedAt && Date.now() - state.study.completedAt < 400
+      ? 1
+      : 0;
   const rate = previewDuration > 0 ? 1 / previewDuration : 0;
   const rateDisplay =
     rate >= 10
@@ -3374,8 +3377,20 @@ function setProgress(app, key, value) {
 
   if (!progress || !fill) return;
 
+  const prev = parseFloat(progress.getAttribute("aria-valuenow") || "0");
+  if (percentage < prev) {
+    if (fill.style) {
+      fill.style.transition = "none";
+      fill.style.width = `${percentage}%`;
+      void fill.offsetWidth;
+      fill.style.transition = "";
+    } else {
+      fill.style.width = `${percentage}%`;
+    }
+  } else {
+    fill.style.width = `${percentage}%`;
+  }
   progress.setAttribute("aria-valuenow", percentage.toFixed(1));
-  fill.style.width = `${percentage}%`;
 }
 
 function updateLogList(app, state) {
@@ -3729,12 +3744,25 @@ function updateDynamicFields(
   }
 
   if (state.study.active) {
-    setProgress(app, "study", state.study.elapsed / state.study.duration);
+    const fraction =
+      state.study.duration > 0
+        ? clamp(state.study.elapsed / state.study.duration, 0, 1)
+        : 0;
+    setProgress(app, "study", fraction);
     setField(
       app,
       "study-remaining",
       formatDuration(Math.max(0, state.study.duration - state.study.elapsed)),
     );
+  } else if (
+    state.study.completedAt &&
+    Date.now() - state.study.completedAt < 400
+  ) {
+    setProgress(app, "study", 1);
+    setField(app, "study-remaining", "");
+  } else {
+    setProgress(app, "study", 0);
+    setField(app, "study-remaining", "");
   }
 
   if (state.algorithmUpgradeStudy.active) {
@@ -3773,6 +3801,9 @@ function updateDynamicFields(
         ),
       ),
     );
+  } else {
+    setProgress(app, "blueprint", 0);
+    setField(app, "blueprint-remaining", "");
   }
 
   if (state.construction.active) {
@@ -3788,6 +3819,9 @@ function updateDynamicFields(
         Math.max(0, state.construction.duration - state.construction.elapsed),
       ),
     );
+  } else {
+    setProgress(app, "construction", 0);
+    setField(app, "construction-remaining", "");
   }
 
   if (state.ui?.currentNewsId) {
@@ -3801,17 +3835,17 @@ function updateDynamicFields(
         if (rarityNum >= 2) {
           rarityEl.textContent = getRarityLabel(rarityNum);
           rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
-          rarityEl.style.display = "";
+          if (rarityEl.style) rarityEl.style.display = "";
         } else {
           rarityEl.textContent = "";
-          rarityEl.style.display = "none";
+          if (rarityEl.style) rarityEl.style.display = "none";
         }
       }
     }
   }
 
   const timerFill = app.querySelector('[data-progress="news-timer"]');
-  if (timerFill) {
+  if (timerFill && timerFill.style) {
     const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
     const circumference = 37.7;
     const offset = (circumference * (1 - timerFraction)).toFixed(2);
@@ -3926,9 +3960,7 @@ function renderGame(
   newsList = DEFAULT_NEWS,
 ) {
   const activeTab = getActiveTab(state, config);
-  const showNews =
-    (state.prototypeComplete || (developmentMode && state.ui?.devShowNews)) &&
-    !state.ui?.newsDismissed;
+  const showNews = !state.ui?.newsDismissed;
 
   return `
     ${renderHeader(state, developmentMode)}

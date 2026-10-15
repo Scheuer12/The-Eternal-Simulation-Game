@@ -88,6 +88,7 @@ export function createInitialState(config) {
       elapsed: 0,
       duration: 0,
       automated: false,
+      completedAt: null,
     },
     algorithmUpgradeStudy: {
       active: false,

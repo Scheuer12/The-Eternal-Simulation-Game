@@ -5888,142 +5888,212 @@
     "weight": 80
   },
   {
-    "id": "solar_wind_shift",
-    "text": "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
-    "category": "TELEMETRY",
+    "id": "jupiter_mass_energy",
+    "text": "Jupiter contains roughly 1.7e44 J of rest energy. Matter in the observable universe? Around 1e70 J. Good luck charging that battery.",
+    "category": "ASTROPHYSICS",
     "rarity": 1,
     "weight": 100
   },
   {
-    "id": "thermal_equilibrium",
-    "text": "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
-    "category": "SYSTEM",
+    "id": "sunlight_is_old_news",
+    "text": "Sunlight takes about 8 minutes and 20 seconds to reach Earth. Every sunny day is technically old news.",
+    "category": "ASTROPHYSICS",
     "rarity": 1,
-    "weight": 90
+    "weight": 100
   },
   {
-    "id": "subspace_resonance",
-    "text": "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
-    "category": "ENERGY",
+    "id": "universe_expanding_rent",
+    "text": "The universe is expanding. Your apartment isn't. Cosmology continues to disappoint renters everywhere.",
+    "category": "COSMOLOGY",
     "rarity": 1,
-    "weight": 85
+    "weight": 100
   },
   {
-    "id": "buffer_clearing",
-    "text": "Automated diagnostic routine cleared 4,096 unreferenced telemetry buffers.",
-    "category": "MAINTENANCE",
+    "id": "quantum_observer",
+    "text": "In quantum physics, 'observation' means physical interaction. Staring at an electron dramatically does not count.",
+    "category": "QUANTUM",
     "rarity": 1,
-    "weight": 80
+    "weight": 100
   },
   {
-    "id": "particle_flux_nominal",
-    "text": "Atmospheric sensor array reports cosmic ray flux at 1.42 particles/cm²/s.",
-    "category": "SENSORS",
+    "id": "black_holes_not_vacuums",
+    "text": "Black holes aren't cosmic vacuum cleaners. Replace the Sun with one of equal mass and Earth's orbit stays nearly the same. The weather won't.",
+    "category": "RELATIVITY",
     "rarity": 1,
-    "weight": 75
+    "weight": 100
   },
   {
-    "id": "clock_sync",
-    "text": "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
-    "category": "CHRONO",
-    "rarity": 2,
-    "weight": 50
+    "id": "neutron_star_teaspoon",
+    "text": "A teaspoon of neutron-star material could weigh around a billion tonnes. Please use a reinforced mug.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
   },
   {
-    "id": "packet_echo",
-    "text": "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
-    "category": "NETWORK",
+    "id": "entanglement_no_texting",
+    "text": "Quantum entanglement produces extraordinary correlations. It still can't deliver your messages faster than light.",
+    "category": "QUANTUM",
     "rarity": 2,
     "weight": 45
   },
   {
-    "id": "algorithm_divergence",
-    "text": "Algorithm optimization branch pruned: 1,024 redundant iterations collapsed.",
-    "category": "COMPUTE",
+    "id": "cosmic_baby_picture",
+    "text": "The cosmic microwave background is the universe's baby picture: about 2.7 K, 13.8 billion years old, and very pixelated.",
+    "category": "COSMOLOGY",
     "rarity": 2,
-    "weight": 40
+    "weight": 45
   },
   {
-    "id": "vacuum_fluctuation",
-    "text": "Transient energy spike observed at quantum boundary. Flux collapsed to zero.",
-    "category": "SENSORS",
+    "id": "neutrinos_no_hello",
+    "text": "Trillions of solar neutrinos pass through you every second. Not one has stopped to say hello.",
+    "category": "PARTICLE PHYSICS",
     "rarity": 2,
-    "weight": 35
+    "weight": 45
   },
   {
-    "id": "magnetic_reversal",
-    "text": "Local field coil micro-fluctuation compensated by primary dampener circuits.",
-    "category": "SYSTEM",
+    "id": "space_no_soundtrack",
+    "text": "In a vacuum, nobody can hear you scream. Not because space is scary: sound needs a medium.",
+    "category": "ASTROPHYSICS",
     "rarity": 2,
-    "weight": 30
+    "weight": 45
   },
   {
-    "id": "stray_signal",
-    "text": "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
-    "category": "ANOMALY",
+    "id": "moon_slow_breakup",
+    "text": "The Moon drifts about 3.8 cm farther from Earth each year. The slowest breakup in recorded history.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "gps_needs_einstein",
+    "text": "GPS satellites need relativity corrections. Without Einstein, your navigation would drift. 'Turn left at the black hole.'",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "electrons_not_planets",
+    "text": "Electrons aren't tiny planets orbiting tiny suns. Quantum mechanics retired that model decades ago.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "chess_atoms_and_games",
+    "text": "Legal chess positions: about 4.8e44. Atoms in the observable universe: about 1e80. Estimated possible games: 1e120. Checkmate, intuition.",
+    "category": "MATHEMATICS",
     "rarity": 3,
     "weight": 20
   },
   {
-    "id": "memory_ghost",
-    "text": "Recovered corrupted memory partition from prior cycle: '...do not turn off the...' .",
-    "category": "ARCHIVE",
+    "id": "earth_black_hole_size",
+    "text": "Compress Earth into a black hole and its event-horizon radius would be about 9 mm. Pocket-sized catastrophe.",
+    "category": "RELATIVITY",
     "rarity": 3,
-    "weight": 18
+    "weight": 20
   },
   {
-    "id": "micro_singularity",
-    "text": "Gravimetric sensor registers micro-distortion near the particle manifold.",
-    "category": "GRAVIMETRY",
+    "id": "free_neutron_clock",
+    "text": "A free neutron survives about 15 minutes on average before decaying. Inside a stable nucleus? Different employment contract.",
+    "category": "PARTICLE PHYSICS",
     "rarity": 3,
-    "weight": 15
+    "weight": 20
   },
   {
-    "id": "quantum_entanglement_noise",
-    "text": "Entanglement pair correlation dropped to 99.4%. Re-calibrating spin detectors.",
+    "id": "sun_mass_to_energy",
+    "text": "The Sun converts roughly 4 million tonnes of mass into energy every second. Still hasn't sent anyone a power bill.",
+    "category": "ENERGY",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "old_but_huge_universe",
+    "text": "The universe is about 13.8 billion years old, yet the observable part is about 92 billion light-years across. Expansion is cheating.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "white_dwarf_crystal",
+    "text": "Some white dwarfs crystallize as they cool. Turns out the galaxy makes its own enormous, extremely inconvenient diamonds.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "quantum_tunneling_door",
+    "text": "Quantum tunneling lets particles cross barriers they couldn't clear classically. Sadly, it won't unlock your front door.",
     "category": "QUANTUM",
     "rarity": 3,
-    "weight": 12
+    "weight": 20
   },
   {
-    "id": "temporal_leak",
-    "text": "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
-    "category": "ANOMALY",
+    "id": "vacuum_is_busy",
+    "text": "Even the lowest-energy quantum vacuum has fluctuations. Apparently, 'nothing' is a full-time job.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "pauli_personal_space",
+    "text": "Two identical electrons can't occupy the same quantum state. The Pauli exclusion principle invented personal space.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "winter_is_going",
+    "text": "The universe is expanding. Does that mean winter is... 'going'? No. Cosmic expansion doesn't stretch Earth's seasons. Nice try.",
+    "category": "COSMOLOGY",
     "rarity": 4,
     "weight": 6
   },
   {
-    "id": "facility_architect",
-    "text": "Decrypted supervisor log: 'Iteration #14,082 was our best hope. Continue the run.'",
-    "category": "CLASSIFIED",
+    "id": "atoms_vs_browser_tabs",
+    "text": "There are roughly 1e80 atoms in the observable universe. That's also how many browser tabs you think you left open.",
+    "category": "COSMOLOGY",
     "rarity": 4,
-    "weight": 4
+    "weight": 6
   },
   {
-    "id": "sub_zero_quantum_spin",
-    "text": "Sensor reports negative thermodynamic entropy in dormant containment cell C-12.",
-    "category": "DEEP VOID",
+    "id": "almost_flat_universe",
+    "text": "The observable universe is remarkably close to spatially flat. This is a geometry result, not an invitation to start a conspiracy.",
+    "category": "COSMOLOGY",
     "rarity": 4,
-    "weight": 3
+    "weight": 6
   },
   {
-    "id": "simulation_breach",
-    "text": "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
-    "category": "SYSTEM FAULT",
-    "rarity": 5,
-    "weight": 2
+    "id": "hawking_evaporation_wait",
+    "text": "Hawking radiation predicts that black holes slowly evaporate. For a stellar black hole, don't wait up.",
+    "category": "ASTROPHYSICS",
+    "rarity": 4,
+    "weight": 6
   },
   {
-    "id": "cosmic_whisper",
-    "text": "The universe is not expanding. It is just making room for the next calculation.",
-    "category": "TRANSMISSION",
+    "id": "spooky_peer_review",
+    "text": "Einstein called entanglement 'spooky action at a distance.' The spooky part survived decades of experiments.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "gravitational_time_management",
+    "text": "Time runs slower deeper in a gravitational field. Finally, a scientifically valid excuse for being late. Sort of.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "fellowship_of_the_energy",
+    "text": "Welcome to the Fellowship of the Energy. One CRC to rule them all, one Algorithm Upgrade to reset them.",
+    "category": "EASTER EGG",
     "rarity": 5,
     "weight": 1
   },
   {
-    "id": "ouroboros",
-    "text": "Simulation state matches initial conditions of universe #1. We have been here before.",
-    "category": "DEEP LORE",
+    "id": "answer_forty_two",
+    "text": "THE ANSWER IS 42. The question was unfortunately lost during the last cosmic reboot.",
+    "category": "EASTER EGG",
     "rarity": 5,
     "weight": 1
   }
@@ -8662,6 +8732,7 @@ function createInitialState(config) {
       elapsed: 0,
       duration: 0,
       automated: false,
+      completedAt: null,
     },
     algorithmUpgradeStudy: {
       active: false,
@@ -9847,6 +9918,7 @@ class GameEngine {
 
     this.state.study.active = true;
     this.state.study.elapsed = 0;
+    this.state.study.completedAt = null;
     this.state.study.duration = calculateStudyDuration(
       this.state,
       this.config,
@@ -9879,7 +9951,8 @@ class GameEngine {
     this.state.improvements += 1;
     this.state.improvementMultiplier = big(1 + this.state.improvements);
     this.state.study.active = false;
-    this.state.study.elapsed = 0;
+    this.state.study.elapsed = this.state.study.duration;
+    this.state.study.completedAt = Date.now();
     this.emitEvent("algorithm-improvement-completed", {
       count: this.state.improvements,
       bonus,
@@ -11988,8 +12061,7 @@ function renderCrcBriefing() {
 }
 
 function renderHeader(state, developmentMode) {
-  const showRestoreNews =
-    (state.prototypeComplete || developmentMode) && state.ui?.newsDismissed;
+  const showRestoreNews = Boolean(state.ui?.newsDismissed);
 
   return `
     <header class="topbar">
@@ -12392,8 +12464,12 @@ function renderStudy(state, config, developmentMode) {
     developmentMode,
   );
   const studyProgress = state.study.active
-    ? state.study.elapsed / state.study.duration
-    : 0;
+    ? state.study.duration > 0
+      ? clamp(state.study.elapsed / state.study.duration, 0, 1)
+      : 0
+    : state.study.completedAt && Date.now() - state.study.completedAt < 400
+      ? 1
+      : 0;
   const rate = previewDuration > 0 ? 1 / previewDuration : 0;
   const rateDisplay =
     rate >= 10
@@ -14652,8 +14728,20 @@ function setProgress(app, key, value) {
 
   if (!progress || !fill) return;
 
+  const prev = parseFloat(progress.getAttribute("aria-valuenow") || "0");
+  if (percentage < prev) {
+    if (fill.style) {
+      fill.style.transition = "none";
+      fill.style.width = `${percentage}%`;
+      void fill.offsetWidth;
+      fill.style.transition = "";
+    } else {
+      fill.style.width = `${percentage}%`;
+    }
+  } else {
+    fill.style.width = `${percentage}%`;
+  }
   progress.setAttribute("aria-valuenow", percentage.toFixed(1));
-  fill.style.width = `${percentage}%`;
 }
 
 function updateLogList(app, state) {
@@ -15007,12 +15095,25 @@ function updateDynamicFields(
   }
 
   if (state.study.active) {
-    setProgress(app, "study", state.study.elapsed / state.study.duration);
+    const fraction =
+      state.study.duration > 0
+        ? clamp(state.study.elapsed / state.study.duration, 0, 1)
+        : 0;
+    setProgress(app, "study", fraction);
     setField(
       app,
       "study-remaining",
       formatDuration(Math.max(0, state.study.duration - state.study.elapsed)),
     );
+  } else if (
+    state.study.completedAt &&
+    Date.now() - state.study.completedAt < 400
+  ) {
+    setProgress(app, "study", 1);
+    setField(app, "study-remaining", "");
+  } else {
+    setProgress(app, "study", 0);
+    setField(app, "study-remaining", "");
   }
 
   if (state.algorithmUpgradeStudy.active) {
@@ -15051,6 +15152,9 @@ function updateDynamicFields(
         ),
       ),
     );
+  } else {
+    setProgress(app, "blueprint", 0);
+    setField(app, "blueprint-remaining", "");
   }
 
   if (state.construction.active) {
@@ -15066,6 +15170,9 @@ function updateDynamicFields(
         Math.max(0, state.construction.duration - state.construction.elapsed),
       ),
     );
+  } else {
+    setProgress(app, "construction", 0);
+    setField(app, "construction-remaining", "");
   }
 
   if (state.ui?.currentNewsId) {
@@ -15079,17 +15186,17 @@ function updateDynamicFields(
         if (rarityNum >= 2) {
           rarityEl.textContent = getRarityLabel(rarityNum);
           rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
-          rarityEl.style.display = "";
+          if (rarityEl.style) rarityEl.style.display = "";
         } else {
           rarityEl.textContent = "";
-          rarityEl.style.display = "none";
+          if (rarityEl.style) rarityEl.style.display = "none";
         }
       }
     }
   }
 
   const timerFill = app.querySelector('[data-progress="news-timer"]');
-  if (timerFill) {
+  if (timerFill && timerFill.style) {
     const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
     const circumference = 37.7;
     const offset = (circumference * (1 - timerFraction)).toFixed(2);
@@ -15204,9 +15311,7 @@ function renderGame(
   newsList = DEFAULT_NEWS,
 ) {
   const activeTab = getActiveTab(state, config);
-  const showNews =
-    (state.prototypeComplete || (developmentMode && state.ui?.devShowNews)) &&
-    !state.ui?.newsDismissed;
+  const showNews = !state.ui?.newsDismissed;
 
   return `
     ${renderHeader(state, developmentMode)}

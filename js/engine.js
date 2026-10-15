@@ -720,6 +720,7 @@ export class GameEngine {
 
     this.state.study.active = true;
     this.state.study.elapsed = 0;
+    this.state.study.completedAt = null;
     this.state.study.duration = calculateStudyDuration(
       this.state,
       this.config,
@@ -752,7 +753,8 @@ export class GameEngine {
     this.state.improvements += 1;
     this.state.improvementMultiplier = big(1 + this.state.improvements);
     this.state.study.active = false;
-    this.state.study.elapsed = 0;
+    this.state.study.elapsed = this.state.study.duration;
+    this.state.study.completedAt = Date.now();
     this.emitEvent("algorithm-improvement-completed", {
       count: this.state.improvements,
       bonus,
