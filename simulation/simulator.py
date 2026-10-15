@@ -1,8 +1,8 @@
-"""Deterministic balance runner for the current Energy Layer.
+"""Deterministic balance runner for Economy V2 in The Eternal Simulation.
 
 The browser is the canonical game runtime. This standard-library simulator mirrors
-the core formulas so rough pacing can be explored without rendering UI. It uses a
-simple eager strategy and is not a target-duration assertion.
+the core V2 mathematical formulas so progression, pacing, and pacing comparisons
+can be verified headlessly.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -25,24 +25,65 @@ def load_config() -> dict:
 def escalating_cost(base: float, growth: float, exponent: float, owned: int) -> float:
     if owned <= 0:
         return base
-    return base * growth ** (owned ** exponent)
+    return base * (growth ** (owned ** exponent))
 
 
-def improvement_bonus(completed: int, config: dict, method_upgrades: int = 0) -> float:
-    study = config["study"]
-    effective = completed * study["effectPenaltyMultiplierPerMethod"] ** method_upgrades
-    onboarding = study["onboardingImprovements"]
+@dataclass
+class RunState:
+    energy: float = 0.0
+    peak_energy: float = 0.0
+    power_cells: int = 1
+    power_modules: int = 0
+    crc_count: int = 1
+    improvements: int = 0
+    upgrades: int = 0
+    method_upgrades: int = 0  # CMU
+    setup_optimizations: int = 0  # Setup
+    auto_calculators: int = 0
+    processors: int = 0
+    overclockers: int = 0
+    overclocker_active: bool = False
+    overclocker_heat: float = 0.0
 
-    if effective < onboarding:
-        remaining = 1 - effective / onboarding
-        return study["baselineBonus"] + (
-            study["onboardingInitialBonus"] - study["baselineBonus"]
-        ) * remaining ** study["onboardingDecayShape"]
+    # Discoveries & displays
+    soft_data_display: bool = False
+    t2_soft_data_display: bool = False
+    crc_blueprint: bool = False
+    overclocker_blueprint: bool = False
 
-    late = effective - onboarding
-    return study["baselineBonus"] / (
-        1 + late / study["lateDecayScale"]
-    ) ** study["lateDecayPower"]
+    # Science Era / Perks
+    science_points: int = 0
+    quarks: float = 0.0
+    perks: dict[str, bool] = field(default_factory=dict)
+
+    # Telemetry
+    elapsed: float = 0.0
+    study_remaining: float | None = None
+    milestones: dict[str, float] = field(default_factory=dict)
+
+
+def device_performance_setup(run: RunState) -> float:
+    return 1.0 + 2.0 * math.log(1.0 + run.setup_optimizations)
+
+
+def stable_energy_capacity(run: RunState, config: dict) -> float:
+    base_cap = config["energy"]["powerCellCapacity"]
+    setup_mult = 1.0 + 0.5 * math.log(1.0 + run.setup_optimizations)
+    module_mult = 1.0 + 0.5 * run.power_modules
+    cell_cap = base_cap * run.power_cells * setup_mult
+    if run.perks.get("powerCellResonance"):
+        cell_cap *= 1.0 + 0.02 * math.log10(1.0 + max(1, run.power_cells))
+    return cell_cap * module_mult
+
+
+def power_cell_cost(run: RunState, config: dict) -> float:
+    settings = config["powerCell"]
+    cap = stable_energy_capacity(run, config)
+    owned = max(1, run.power_cells)
+    multiplier = settings["baseCapacityCostMultiplier"] * (
+        1.0 + (owned - 1.0) / settings["costGrowthScale"]
+    ) ** settings["costGrowthPower"]
+    return cap * multiplier
 
 
 def auto_calculator_cost(owned: int, config: dict) -> float:
@@ -65,186 +106,320 @@ def processor_cost(owned: int, config: dict) -> float:
     )
 
 
-def stable_energy_capacity(run: "Run", config: dict) -> float:
-    return config["energy"]["powerCellCapacity"] * run.power_cells
+def overclocker_cost(owned: int, config: dict) -> float:
+    settings = config["overclocker"]
+    return settings["baseCost"] * (settings["costGrowth"] ** owned)
 
 
-def power_cell_cost(run: "Run", config: dict) -> float:
-    settings = config["powerCell"]
-    current_capacity = stable_energy_capacity(run, config)
-    owned = max(1, run.power_cells)
-    multiplier = settings["baseCapacityCostMultiplier"] * (
-        1 + (owned - 1) / settings["costGrowthScale"]
-    ) ** settings["costGrowthPower"]
-    return current_capacity * multiplier
+def crc_cost(owned: int, config: dict) -> float:
+    settings = config["crcConstruction"]
+    return escalating_cost(
+        settings["baseCost"],
+        settings["costGrowth"],
+        settings["costGrowthExponent"],
+        max(0, owned - 1),
+    )
 
 
-def energy_overflow_decay(run: "Run", config: dict) -> float:
+def processor_effectiveness(run: RunState) -> float:
+    if run.processors <= 0:
+        return 0.0
+    cmu_mult = 1.2 ** run.method_upgrades
+    overclock_mult = 1.5 if run.overclocker_active else 1.0
+    d_s = device_performance_setup(run)
+    unit_bonus = 0.15 * cmu_mult * overclock_mult * d_s
+    return ((1.0 + unit_bonus) ** run.processors) - 1.0
+
+
+def auto_calculator_speed_multiplier(run: RunState, config: dict) -> float:
+    if run.auto_calculators <= 0:
+        return 1.0
+    settings = config["autoCalculator"]
+    e_p = processor_effectiveness(run)
+    bonus_per_calc = 1.0 + 0.5 * e_p
+    base_speed = (
+        settings["firstSpeedMultiplier"]
+        * (settings["additionalSpeedMultiplier"] ** (run.auto_calculators - 1))
+    )
+    return base_speed * (bonus_per_calc ** run.auto_calculators)
+
+
+def algorithm_improvement_speed(run: RunState, config: dict) -> float:
+    va = auto_calculator_speed_multiplier(run, config)
+    vr = 1.0
+    if run.perks.get("redundancyElimination"):
+        # Capped at 50 nominal improvements
+        eff_i = min(50, run.improvements)
+        vr = 1.0 + 0.05 * eff_i
+
+    v_direct = 1.0
+    if run.perks.get("processorBonusAppliesAImprovementSpeed"):
+        e_p = processor_effectiveness(run)
+        v_direct = max(1.0, e_p ** 1.07)
+
+    v_quantum = 1.0
+    if run.perks.get("quantumSuperposition") and run.quarks > 0:
+        v_quantum = 1.0 + 0.02 * math.log10(1.0 + run.quarks)
+
+    return va * vr * v_direct * v_quantum
+
+
+def study_duration(run: RunState, config: dict) -> float:
+    base_sec = config["economyV2"]["improvements"]["baseDurationSeconds"]
+    coeff = config["economyV2"]["improvements"]["durationGrowthCoefficient"]
+    power = config["economyV2"]["improvements"]["durationGrowthPower"]
+    base_curve = base_sec * (1.0 + coeff * (run.improvements ** power))
+    speed = algorithm_improvement_speed(run, config)
+    return base_curve / max(1e-9, speed)
+
+
+def production(run: RunState, config: dict) -> float:
+    base = config["energy"]["baseProductionPerSecond"]
+    # Linear (1 + I) * 2^U * CRCs
+    crc_mult = run.crc_count
+    if run.perks.get("crcCountExponential"):
+        crc_mult *= 1.005 ** run.crc_count
+
+    i_mult = 1.0 + run.improvements
+    u_mult = 2.0 ** run.upgrades
+    d_s = device_performance_setup(run)
+    prod = base * crc_mult * i_mult * u_mult * d_s
+
+    if run.perks.get("sciencePointsMultiplier") and run.science_points > 0:
+        prod *= 1.0 + run.science_points
+    if run.perks.get("processorBonusAppliesProduction"):
+        e_p = processor_effectiveness(run)
+        prod *= max(1.0, e_p ** 0.15)
+    if run.perks.get("quantumSuperposition") and run.quarks > 0:
+        prod *= 1.0 + 0.05 * math.log10(1.0 + run.quarks)
+
+    return prod
+
+
+def energy_overflow_decay(run: RunState, config: dict) -> float:
     capacity = stable_energy_capacity(run, config)
     if run.energy <= capacity:
-        return 0
-
+        return 0.0
     overflow_ratio = (run.energy - capacity) / capacity
     return (
         capacity
         * config["energy"]["overflowDecayRate"]
-        * overflow_ratio ** config["energy"]["overflowDecayPower"]
+        * (overflow_ratio ** config["energy"]["overflowDecayPower"])
     )
 
 
-def effective_energy_gain(run: "Run", raw_gain: float, config: dict) -> float:
-    return max(0, raw_gain)
+def algorithm_upgrade_requirement(run: RunState, config: dict) -> int:
+    u = run.upgrades
+    initial = config["economyV2"]["algorithmUpgrades"]["initialRequiredImprovements"]
+    linear = config["economyV2"]["algorithmUpgrades"]["linearRequirementGrowth"]
+    quad = config["economyV2"]["algorithmUpgrades"]["quadraticRequirementCoefficient"]
+    return math.ceil(initial + linear * u + (quad / 2.0) * u * (u - 1))
 
 
-def device_efficiency(run: "Run", config: dict) -> float:
-    return config["processor"]["deviceEfficiencyMultiplier"] ** run.processors
+def cmu_requirement(run: RunState, config: dict) -> int:
+    initial = config["calculationMethodUpgrade"]["initialAlgorithmUpgradesRequired"]
+    growth = config["calculationMethodUpgrade"]["algorithmUpgradesRequiredGrowth"]
+    return initial + run.method_upgrades * growth
 
 
-def auto_calculator_speed(run: "Run", config: dict) -> float:
-    if run.auto_calculators <= 0:
-        return 1
-    settings = config["autoCalculator"]
-    return (
-        settings["firstSpeedMultiplier"]
-        * settings["additionalSpeedMultiplier"] ** (run.auto_calculators - 1)
-        * device_efficiency(run, config)
-    )
+def setup_requirement(run: RunState, config: dict) -> int:
+    initial = config["setupOptimization"]["initialMethodUpgradesRequired"]
+    growth = config["setupOptimization"]["methodUpgradesRequiredGrowth"]
+    return initial + run.setup_optimizations * growth
 
 
-def study_duration(run: "Run", config: dict) -> float:
-    study = config["study"]
-    early_until = study["durationEarlyLoadUntil"]
-    full_at = study["durationFullLoadAt"]
-    early_load = run.improvements * study["durationEarlyLoadMultiplier"]
-    effective_load = run.improvements
-    if run.improvements <= early_until:
-        effective_load = early_load
-    elif run.improvements < full_at:
-        progress = (run.improvements - early_until) / (full_at - early_until)
-        eased = progress * progress * (3 - 2 * progress)
-        effective_load = early_load + (run.improvements - early_load) * eased
-    effective_load *= study["durationLoadMultiplierPerSetup"] ** run.setup_optimizations
-    return (
-        study["baseDurationSeconds"]
-        * (1 + study["durationGrowthCoefficient"] * effective_load ** study["durationGrowthPower"])
-        / auto_calculator_speed(run, config)
-    )
-
-
-def production(run: "Run", config: dict) -> float:
-    return (
-        config["energy"]["baseProductionPerSecond"]
-        * run.crc_count
-        * run.production_multiplier
-        * config["algorithmUpgrade"]["productionMultiplier"] ** run.upgrades
-    )
-
-
-def algorithm_upgrade_requirement(run: "Run", config: dict) -> int:
-    settings = config["algorithmUpgrade"]
-    return settings["initialImprovementsRequired"] + (
-        settings["improvementsRequiredGrowth"] * run.upgrades
-    )
-
-
-@dataclass
-class Run:
-    energy: float = 0
-    power_cells: int = 1
-    production_multiplier: float = 1
-    improvements: int = 0
-    upgrades: int = 0
-    crc_count: int = 1
-    soft_data_display: bool = False
-    auto_calculators: int = 0
-    processors: int = 0
-    method_upgrades: int = 0
-    setup_optimizations: int = 0
-    study_remaining: float | None = None
-    elapsed: float = 0
-
-
-def complete_improvement(run: Run, config: dict) -> None:
-    run.production_multiplier *= 1 + improvement_bonus(
-        run.improvements,
-        config,
-        run.method_upgrades,
-    )
-    run.improvements += 1
-
-
-def complete_algorithm_upgrade(run: Run, config: dict) -> None:
-    run.upgrades += 1
-    run.improvements = 0
-    run.production_multiplier = 1
-    run.study_remaining = None
-
-
-def simulate(config: dict, maximum_seconds: float = 86_400) -> Run:
-    run = Run(
+def simulate_run(
+    config: dict,
+    has_redundancy: bool = False,
+    max_seconds: float = 7200.0,
+    target_energy: float = 100e9,
+) -> RunState:
+    run = RunState(
         crc_count=config["energy"]["initialCrcCount"],
         power_cells=config["energy"]["initialPowerCells"],
     )
-    step = config["timing"]["simulationStepMs"] / 1_000
+    if has_redundancy:
+        run.perks["redundancyElimination"] = True
+        run.science_points = 1
 
-    while run.elapsed < maximum_seconds:
-        run.elapsed += step
-        run.energy += effective_energy_gain(run, production(run, config) * step, config)
-        if run.energy > stable_energy_capacity(run, config):
-            run.energy -= min(
-                run.energy - stable_energy_capacity(run, config),
-                energy_overflow_decay(run, config) * step,
-            )
+    dt = 0.1  # 100ms simulation tick
 
+    while run.elapsed < max_seconds:
+        run.elapsed += dt
+
+        # Production and decay
+        prod = production(run, config)
+        run.energy += prod * dt
+        if run.energy > run.peak_energy:
+            run.peak_energy = run.energy
+
+        cap = stable_energy_capacity(run, config)
+        if run.energy > cap:
+            decay = energy_overflow_decay(run, config)
+            run.energy = max(cap, run.energy - decay * dt)
+
+        # Milestone recordings
+        if "1e-8" not in run.milestones and run.peak_energy >= 1e-8:
+            run.milestones["1e-8"] = run.elapsed
+        if "100_J" not in run.milestones and run.peak_energy >= 100.0:
+            run.milestones["100_J"] = run.elapsed
+        if "1e11_J" not in run.milestones and run.peak_energy >= target_energy:
+            run.milestones["1e11_J"] = run.elapsed
+            break
+
+        # Studies: improvements
         if run.study_remaining is None:
             run.study_remaining = study_duration(run, config)
-        run.study_remaining -= step
+        run.study_remaining -= dt
         if run.study_remaining <= 0:
-            complete_improvement(run, config)
+            run.improvements += 1
+            run.study_remaining = None
 
-        if run.improvements >= algorithm_upgrade_requirement(run, config):
-            complete_algorithm_upgrade(run, config)
+        # Automatic trigger of Algorithm Upgrade when requirement reached
+        req_u = algorithm_upgrade_requirement(run, config)
+        if run.improvements >= req_u:
+            run.upgrades += 1
+            run.improvements = 0
+            run.study_remaining = None
 
+        # CMU Trigger: competent player only resets Studies when Processors are installed
+        # because CMU exclusively amplifies Processor unit bonus (1.2^M)
+        req_cmu = cmu_requirement(run, config)
+        if run.upgrades >= req_cmu and run.processors >= 2 and run.improvements >= 50:
+            run.method_upgrades += 1
+            run.upgrades = 0
+            run.improvements = 0
+            run.study_remaining = None
+
+        # Setup Optimization Trigger: competent player resets when Power Cells are accumulated
+        req_setup = setup_requirement(run, config)
+        if run.method_upgrades >= req_setup and run.power_cells >= 5 and run.peak_energy >= 50.0:
+            run.setup_optimizations += 1
+            run.energy = 0.0
+            run.improvements = 0
+            run.upgrades = 0
+            run.method_upgrades = 0
+            run.auto_calculators = 0
+            run.processors = 0
+            run.overclockers = 0
+            run.crc_count = config["energy"]["initialCrcCount"]
+            run.soft_data_display = False
+            run.t2_soft_data_display = False
+            run.crc_blueprint = False
+            run.overclocker_blueprint = False
+            run.study_remaining = None
+            continue
+
+        # Active player purchase decisions based on availability:
+        # 1. Soft Data Display
         if not run.soft_data_display and run.energy >= config["softDataDisplay"]["cost"]:
             run.energy -= config["softDataDisplay"]["cost"]
             run.soft_data_display = True
 
-        if run.auto_calculators < 1 and run.energy >= auto_calculator_cost(run.auto_calculators, config):
-            run.energy -= auto_calculator_cost(run.auto_calculators, config)
+        # 2. T2 Soft Data Display
+        if (
+            run.soft_data_display
+            and not run.t2_soft_data_display
+            and run.energy >= config["t2SoftDataDisplay"]["cost"]
+        ):
+            run.energy -= config["t2SoftDataDisplay"]["cost"]
+            run.t2_soft_data_display = True
+
+        # 3. Auto Calculator
+        cost_calc = auto_calculator_cost(run.auto_calculators, config)
+        if run.energy >= cost_calc and run.auto_calculators < 10:
+            run.energy -= cost_calc
             run.auto_calculators += 1
             run.study_remaining = None
 
-        if run.energy >= processor_cost(run.processors, config):
-            run.energy -= processor_cost(run.processors, config)
+        # 4. Processor
+        cost_proc = processor_cost(run.processors, config)
+        if run.energy >= cost_proc and run.processors < 12:
+            run.energy -= cost_proc
             run.processors += 1
-            return run
 
-        if (
-            run.soft_data_display
-            and run.upgrades >= config["powerCell"]["algorithmUpgradesRequired"]
-            and run.energy >= power_cell_cost(run, config)
-        ):
-            run.energy -= power_cell_cost(run, config)
+        # 5. Overclocker Blueprint & Overclocker
+        if run.processors >= 3 and not run.overclocker_blueprint:
+            run.overclocker_blueprint = True
+
+        if run.overclocker_blueprint:
+            cost_oc = overclocker_cost(run.overclockers, config)
+            if run.energy >= cost_oc and run.overclockers < 3:
+                run.energy -= cost_oc
+                run.overclockers += 1
+                run.overclocker_active = True
+
+        # 6. CRC Blueprint & Construction
+        if run.peak_energy >= config["blueprint"]["revealAtPeakEnergy"]:
+            run.crc_blueprint = True
+
+        if run.crc_blueprint:
+            cost_crc = crc_cost(run.crc_count, config)
+            if run.energy >= cost_crc and run.crc_count < 8:
+                run.energy -= cost_crc
+                run.crc_count += 1
+
+        # 7. Power Cells (to prevent overflow blocking)
+        cost_cell = power_cell_cost(run, config)
+        if run.soft_data_display and run.energy >= cost_cell and run.energy >= 0.7 * cap:
+            run.energy -= cost_cell
             run.power_cells += 1
 
     return run
 
 
+def run_benchmark() -> None:
+    config = load_config()
+    print("================================================================================")
+    print("THE ETERNAL SIMULATION - ECONOMY V2 BENCHMARK & PROGRESSION VERIFICATION")
+    print("================================================================================\n")
+
+    print("[RUN 1: Fresh Start (0 Science Points, First Particle Synthesis)]")
+    run1 = simulate_run(config, has_redundancy=False, max_seconds=7200.0)
+    print(f"  * Elapsed Time       : {run1.elapsed:.1f} s ({run1.elapsed / 60.0:.2f} min)")
+    print(f"  * Peak Energy        : {run1.peak_energy:.4e} J")
+    print(f"  * Milestone 1e-8 J   : {run1.milestones.get('1e-8', 0):.1f} s")
+    print(f"  * Milestone 100 J    : {run1.milestones.get('100_J', 0):.1f} s")
+    print(f"  * Milestone 100 GJ   : {run1.milestones.get('1e11_J', 0):.1f} s ({run1.milestones.get('1e11_J', 0) / 60.0:.2f} min)")
+    print(f"  * Algorithm Upgrades : {run1.upgrades}")
+    print(f"  * Improvements       : {run1.improvements}")
+    print(f"  * CMUs (Method)      : {run1.method_upgrades}")
+    print(f"  * Setup Optimizations: {run1.setup_optimizations}")
+    print(f"  * Auto Calculators   : {run1.auto_calculators}")
+    print(f"  * Processors         : {run1.processors}")
+    print(f"  * Overclockers       : {run1.overclockers}")
+    print(f"  * Power Cells        : {run1.power_cells}\n")
+
+    print("[RUN 2: Post-Synthesis with Redundancy Elimination Active]")
+    run2 = simulate_run(config, has_redundancy=True, max_seconds=7200.0)
+    print(f"  * Elapsed Time       : {run2.elapsed:.1f} s ({run2.elapsed / 60.0:.2f} min)")
+    print(f"  * Peak Energy        : {run2.peak_energy:.4e} J")
+    print(f"  * Milestone 1e-8 J   : {run2.milestones.get('1e-8', 0):.1f} s")
+    print(f"  * Milestone 100 J    : {run2.milestones.get('100_J', 0):.1f} s")
+    print(f"  * Milestone 100 GJ   : {run2.milestones.get('1e11_J', 0):.1f} s ({run2.milestones.get('1e11_J', 0) / 60.0:.2f} min)")
+    print(f"  * Algorithm Upgrades : {run2.upgrades}")
+    print(f"  * Improvements       : {run2.improvements}")
+    print(f"  * CMUs (Method)      : {run2.method_upgrades}")
+    print(f"  * Setup Optimizations: {run2.setup_optimizations}")
+    print(f"  * Auto Calculators   : {run2.auto_calculators}")
+    print(f"  * Processors         : {run2.processors}")
+    print(f"  * Overclockers       : {run2.overclockers}")
+    print(f"  * Power Cells        : {run2.power_cells}\n")
+
+    time1 = run1.milestones.get("1e11_J", run1.elapsed)
+    time2 = run2.milestones.get("1e11_J", run2.elapsed)
+    speedup = time1 / max(1.0, time2)
+    print(f"Synthesis Acceleration Factor: {speedup:.2f}x faster with Redundancy Elimination")
+    print("================================================================================")
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Simulate current Energy Layer progression.")
-    parser.add_argument("--max-seconds", type=float, default=86_400)
+    parser = argparse.ArgumentParser(description="Simulate Economy V2 Energy Layer progression.")
+    parser.add_argument("--benchmark", action="store_true", help="Run benchmark comparison (Run 1 vs Run 2)")
+    parser.add_argument("--max-seconds", type=float, default=7200.0)
     args = parser.parse_args()
 
-    config = load_config()
-    result = simulate(config, maximum_seconds=args.max_seconds)
-
-    print(f"Elapsed: {result.elapsed / 60:.2f} minutes")
-    print(f"Energy: {result.energy:.6g} J")
-    print(f"Improvements: {result.improvements}")
-    print(f"Algorithm Upgrades: {result.upgrades}")
-    print(f"Processors: {result.processors}")
-    print(f"Auto Calculators: {result.auto_calculators}")
-    print(f"Power Cells: {result.power_cells}")
+    run_benchmark()
 
 
 if __name__ == "__main__":
