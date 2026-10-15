@@ -241,3 +241,34 @@ test("UI: History tab records discoveries and opens read-only modal", () => {
   engine.closeHistoryModal();
   assert.strictEqual(state.ui.historyModalEntry, null);
 });
+
+test("UI: CRC device card displays base output per CRC, algorithm multiplier logic, and cascade conduit", () => {
+  const container = new MockElement("div");
+  const render = createRenderer(container, config, false);
+
+  const state = createInitialState(config);
+  state.introState = "active";
+  state.ui.activeTab = "energy";
+  state.crcCount = 2;
+  state.improvements = 3; // factor should be 1 + 3 = 4
+
+  // With Soft Display active
+  state.devices.softDataDisplay = true;
+  render(state);
+
+  const html = container.innerHTML;
+  assert.ok(html.includes("Base rate per CRC"), "Should display Base rate per CRC");
+  assert.ok(html.includes("Algorithm Multiplier (1 + I)"), "Should display Algorithm Multiplier (1 + I)");
+  assert.ok(html.includes("x4"), "Should display x4 for 3 improvements");
+  assert.ok(html.includes("(+1 base / imp)"), "Should indicate (+1 base / imp) in CRC card");
+  assert.ok(html.includes("ALGORITHM INJECTION"), "Should render ALGORITHM INJECTION conduit");
+  assert.ok(
+    html.includes("Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x4)"),
+    "Conduit should explain +1 base output per CRC",
+  );
+  assert.ok(
+    html.includes("x4 (+1.0 / cycle)"),
+    "Study card should show multiplier and (+1.0 / cycle)",
+  );
+});
+

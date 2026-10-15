@@ -26,6 +26,7 @@ import {
   calculateProcessorEfficiencyMultiplier,
   calculateProductionBreakdown,
   calculateProduction,
+  calculateSetupDevicePerformance,
   calculateSetupOptimizationRequirement,
   calculateStableEnergyCapacity,
   calculateStudyDuration,
@@ -857,24 +858,61 @@ function renderGlobalHUD(state, config, developmentMode) {
 
 function renderCrcDevice(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
+  const baseRate =
+    config?.economyV2?.crc?.baseProductionPerSecond ??
+    config?.energy?.baseProductionPerSecond ??
+    1e-12;
+  const crcCount = Math.max(0, state.crcCount ?? 0);
+  const improvements = Math.max(0, state.improvements ?? 0);
+  const algorithmFactor = 1 + improvements;
+  const upgrades = Math.max(0, state.upgrades ?? 0);
+  const setupOptimizations = Math.max(0, state.setupOptimizations ?? 0);
+  const setupPerformance = calculateSetupDevicePerformance(
+    setupOptimizations,
+    config,
+  );
+  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
+
+  const extraMetrics = [];
+  if (upgrades > 0) {
+    extraMetrics.push(
+      `<div><span>Upgrade Multiplier (2ᵁ)</span><strong>x${2 ** upgrades}</strong></div>`,
+    );
+  }
+  if (setupOptimizations > 0) {
+    extraMetrics.push(
+      `<div><span>Setup Performance D(S)</span><strong>x${setupPerformance.toFixed(2)}</strong></div>`,
+    );
+  }
 
   return `
     <article class="panel device-card condenser-card device-card--online">
-      ${helpNote("Each active condenser adds passive energy production. Improvements and Upgrades modify every CRC at once.")}
+      ${helpNote("Each active condenser collects cosmic radiation at a base rate of 1e-12 J/s. Every Algorithm Improvement cycle adds +1 base output to every active condenser simultaneously via the (1 + I) multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S).")}
       <div class="panel__header-row">
         ${renderCardTags("Device", "Stage 1")}
-        ${statusPill(`${state.crcCount} ONLINE`, "online")}
+        ${statusPill(`${crcCount} ONLINE`, "online")}
       </div>
       <div class="panel__heading">
         <div>
           <h2>Cosmic Radiation Condenser</h2>
         </div>
       </div>
-      <p class="muted">Collects cosmic radiation and condenses it into usable energy.</p>
+      <p class="muted">Collects cosmic radiation at a base rate of ${isSoftUnlocked ? formatRate(baseRate) : "1e-12 J/s"} per CRC. Each Algorithm Improvement adds +1 base production to every active condenser via the (1 + I) multiplier.</p>
+      <div class="study-metrics crc-metrics">
+        <div>
+          <span>Base rate per CRC</span>
+          <strong>${isSoftUnlocked ? formatRate(baseRate) + " / unit" : "UNREADABLE"}</strong>
+        </div>
+        <div>
+          <span>Algorithm Multiplier (1 + I)</span>
+          <strong>x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
+        </div>
+        ${extraMetrics.join("")}
+      </div>
       <div class="metric-row">
-        <span>Current output</span>
+        <span>Current total output</span>
         <strong>${
-          state.devices.softDataDisplay ? formatRate(production) : "UNREADABLE"
+          isSoftUnlocked ? formatRate(production) : "UNREADABLE"
         }</strong>
       </div>
     </article>
@@ -1078,7 +1116,7 @@ function renderStudy(state, config, developmentMode) {
 
   return `
     <article class="panel study-panel">
-      ${helpNote("Algorithm Improvements always complete. Each cycle adds exactly +1.0 nominal units to the CRC multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S). After enough Improvements, an Algorithm Upgrade study can be run manually to double structural production and reset Improvements.")}
+      ${helpNote("Algorithm Improvements always complete. Each cycle adds +1 base production unit to every CRC via the (1 + I) multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S). After enough Improvements, an Algorithm Upgrade study can be run manually to double structural production and reset Improvements.")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Stage 2")}
         <span class="card-subsystem">Continuous Optimization</span>
@@ -1100,9 +1138,9 @@ function renderStudy(state, config, developmentMode) {
           },
         )}
       </div>
-      <p class="muted">Refines the Theseus algorithm. Each cycle adds +1.0 nominal factor to CRC production.</p>
+      <p class="muted">Refines the Theseus algorithm. Each cycle adds +1 base production to every CRC via the (1 + I) multiplier.</p>
       <div class="study-metrics">
-        <div><span>Nominal CRC Factor</span><strong>x${currentFactor} (+1.0 / cycle)</strong></div>
+        <div><span>Algorithm Multiplier (1 + I)</span><strong>x${currentFactor} (+1.0 / cycle)</strong></div>
         <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong>${rateDisplay}</strong></div>
       </div>
       ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
@@ -2471,7 +2509,7 @@ function renderEnergyTab(state, config, developmentMode) {
         <div class="cascade-conduit__node">
           <span class="cascade-conduit__icon">▼</span>
           <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-          <span class="cascade-conduit__sub">Algorithm Improvements refine condenser conversion (+1.0 nominal factor per cycle · x${1 + state.improvements} active factor)</span>
+          <span class="cascade-conduit__sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
         </div>
         <div class="cascade-conduit__line"></div>
       </div>
