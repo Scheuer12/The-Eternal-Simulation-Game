@@ -10984,12 +10984,13 @@ function statusPill(text, tone = "") {
   return `<span class="status ${tone ? `status--${tone}` : ""}">${text}</span>`;
 }
 
-function renderCardTags(type, resetKind = null) {
+function renderCardTags(type, extra = null) {
   const typeLabel = type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
+  const extraClass = extra ? extra.toLowerCase().replace(/\s+/g, "-") : "";
   return `
     <div class="card-tags">
       <span class="card-tag card-tag--${(type || "device").toLowerCase()}">${typeLabel}</span>
-      ${resetKind ? `<span class="card-tag card-tag--reset card-tag--${resetKind.toLowerCase().replace(/\s+/g, "-")}">${resetKind}</span>` : ""}
+      ${extra ? `<span class="card-tag card-tag--${extraClass}">${extra}</span>` : ""}
     </div>
   `;
 }
@@ -11725,14 +11726,15 @@ function renderCrcDevice(state, config, developmentMode) {
 
   return `
     <article class="panel device-card condenser-card device-card--online">
-      ${renderCardTags("Device")}
       ${helpNote("Each active condenser adds passive energy production. Improvements and Upgrades modify every CRC at once.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Stage 1")}
+        ${statusPill(`${state.crcCount} ONLINE`, "online")}
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY DEVICE // ONLINE</p>
           <h2>Cosmic Radiation Condenser</h2>
         </div>
-        ${statusPill(`${state.crcCount} ONLINE`, "online")}
       </div>
       <p class="muted">Collects cosmic radiation and condenses it into usable energy.</p>
       <div class="metric-row">
@@ -11765,11 +11767,13 @@ function renderPowerCellArray(state, config) {
 
   return `
     <article class="panel device-card power-cell-card">
-      ${renderCardTags("Device")}
       ${helpNote("Buying a Power Cell expands stable capacity. It does not increase raw production, but it raises the point where overflow decay starts pushing back against Stored Energy.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Storage")}
+        <span class="card-subsystem">Stable Capacity</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY STORAGE</p>
           <h2>Power Cell Array</h2>
         </div>
         <div class="panel__action-group">
@@ -11815,12 +11819,14 @@ function renderPowerModule(state, config) {
   );
 
   return `
-    <article class="panel device-card">
-      ${renderCardTags("Device")}
+    <article class="panel device-card power-module-card">
       ${helpNote("Power Modules do not consume Power Cells. They activate capture and conduction circuits around each full group of 100 cells, increasing effective stable capacity.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Amplification")}
+        <span class="card-subsystem">Group Multiplier</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY STORAGE</p>
           <h2>Power Module</h2>
         </div>
         ${headingAction(actionLabel, "buy-power-module", {
@@ -11848,11 +11854,13 @@ function renderSoftDataDisplay(state, config) {
 
   return `
     <article class="panel device-card ${state.devices.softDataDisplay ? "device-card--online" : ""}">
-      ${renderCardTags("Device")}
       ${helpNote("Soft Display reveals usable energy production rate, Power Cell capacity, capacity occupation, and the current decay rate of unstable overflow energy.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Display")}
+        <span class="card-subsystem">Telemetry Unit</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Soft Display</h2>
         </div>
         ${
@@ -11885,11 +11893,13 @@ function renderT2SoftDataDisplay(state, config) {
 
   return `
     <article class="panel device-card ${state.devices.t2SoftDataDisplay ? "device-card--online" : ""}">
-      ${renderCardTags("Device")}
       ${helpNote("T2 Soft Display unlocks the Measure tab, separating current output into base condenser signal and active production bonuses. It does not change production by itself.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Spectrometry")}
+        <span class="card-subsystem">Diagnostic Spectrometry</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>T2 Soft Display</h2>
         </div>
         ${
@@ -11938,11 +11948,13 @@ function renderStudy(state, config, developmentMode) {
 
   return `
     <article class="panel study-panel">
-      ${renderCardTags("Study")}
       ${helpNote("Algorithm Improvements always complete. After enough Improvements, an Algorithm Upgrade study can be run manually. It doubles CRC production and resets Improvements.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Stage 2")}
+        <span class="card-subsystem">Continuous Optimization</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY</p>
           <h2>Algorithm Improvement</h2>
         </div>
         ${headingAction(
@@ -11984,12 +11996,14 @@ function renderAlgorithmUpgrade(state, config) {
     : state.improvements / requirement;
 
   return `
-    <article class="panel study-panel">
-      ${renderCardTags("Study")}
+    <article class="panel study-panel panel--upgrade ${ready ? "panel--upgrade-ready" : ""}">
       ${helpNote("Manual Algorithm Upgrades complete instantly and reset Improvements. Calculator automation uses a timed execution that grows with each Upgrade. No confirmation modal is required.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Stage 3")}
+        <span class="card-subsystem text--warning">Resets Improvements</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY</p>
           <h2>Algorithm Upgrade</h2>
         </div>
         ${headingAction(
@@ -12050,11 +12064,13 @@ function renderStudyOverclockControl(state, config) {
 
   return `
     <article class="panel study-panel study-overclock-card ${overclockActive ? "device-card--overclocking" : ""}">
-      ${renderCardTags("Study")}
       ${helpNote("Overclock burns unstable energy above stable Power Cell capacity to accelerate Auto Calculator-driven Algorithm Improvements. The energy draw rises while active.")}
+      <div class="panel__header-row">
+        ${renderCardTags("System", "Control")}
+        <span class="card-subsystem">Thermal Acceleration</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY ACCELERATION</p>
           <h2>Processor Overclock</h2>
         </div>
       </div>
@@ -12087,11 +12103,13 @@ function renderAutoCalculator(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${renderCardTags("Device")}
       ${helpNote("The first Auto Calculator automates Algorithm Improvements and runs them 2x faster than manual runs. Each additional calculator doubles Algorithm Improvement speed again.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Automation")}
+        <span class="card-subsystem">Autonomous Processing</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Auto Calculator</h2>
         </div>
         ${headingAction(actionLabel, "buy-auto", {
@@ -12153,11 +12171,13 @@ function renderOverclocker(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""} ${active ? "device-card--overclocking" : ""}">
-      ${renderCardTags("Device")}
       ${helpNote("The Overclocker expands the Processor control loop. Each unit increases Auto Calculator acceleration, but the energy draw scales faster than the speed gain. Single On/Off switch with no slider or heat gauge.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Acceleration")}
+        <span class="card-subsystem">Thermal Governor</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Overclocker</h2>
         </div>
         <div class="panel__action-group">
@@ -12221,10 +12241,12 @@ function renderOverclockerBlueprint(state, config, developmentMode) {
 
   return `
     <article class="panel discovery-card">
-      ${renderCardTags("Study")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Schematic")}
+        <span class="card-subsystem">${state.discoveries.overclockerBlueprint ? "Technology Recovered" : "Research Signal"}</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">${state.discoveries.overclockerBlueprint ? "TECHNOLOGY RECOVERED" : "RESEARCH SIGNAL"}</p>
           <h2>Overclocker Blueprint</h2>
         </div>
         ${
@@ -12288,11 +12310,13 @@ function renderBlueprint(state, config, developmentMode) {
 
   return `
     <article class="panel discovery-card">
-      ${renderCardTags("Study")}
       ${helpNote("Blueprint research reconstructs the fabrication plan for additional CRCs. Once completed, each new CRC costs Stored Energy and increases base condensation.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Schematic")}
+        <span class="card-subsystem">${state.discoveries.crcBlueprint ? "Technology Recovered" : "Research Signal"}</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">${state.discoveries.crcBlueprint ? "TECHNOLOGY RECOVERED" : "RESEARCH SIGNAL"}</p>
           <h2>CRC Blueprint</h2>
         </div>
         ${
@@ -12342,11 +12366,13 @@ function renderCrcConstruction(state, config) {
 
   return `
     <article class="panel device-card">
-      ${renderCardTags("Device")}
       ${helpNote("CRC fabrication uses the recovered Blueprint to build another Cosmic Radiation Condenser. Each completed condenser adds another base energy source.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Fabrication")}
+        <span class="card-subsystem">Hardware Assembly</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY DEVICE</p>
           <h2>Cosmic Radiation Condenser Fabrication</h2>
         </div>
         ${headingAction(
@@ -12408,11 +12434,13 @@ function renderProcessor(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${renderCardTags("Device")}
       ${helpNote("Each Processor adds multiplicative efficiency to computational and fabrication systems. Amplified by CMU.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Hardware")}
+        <span class="card-subsystem">Processing Core</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Processor</h2>
         </div>
         ${headingAction(actionLabel, "buy-processor", {
@@ -12463,11 +12491,13 @@ function renderCalculationMethod(state, config) {
 
   return `
     <article class="panel method-card ${ready ? "method-card--ready" : ""}">
-      ${renderCardTags("Study", "Soft Reset")}
       ${helpNote("A Calculation Method Upgrade requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and amplifies Processor unit bonus by 1.2^M.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Soft Reset")}
+        <span class="card-subsystem text--amber">Tier 1 Reset</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY RESET // SOFT RESET</p>
           <h2>Calculation Method Upgrade</h2>
         </div>
         ${headingAction("Perform CMU", "claim-method", {
@@ -12501,11 +12531,13 @@ function renderSetupOptimization(state, config) {
 
   return `
     <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${renderCardTags("Study", "Hard Reset")}
       ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, CRCs and hardware except Power Cells. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Hard Reset")}
+        <span class="card-subsystem text--danger">Facility Reconfiguration</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label text--danger">HARD RESET // HIGH IMPACT</p>
           <h2>Setup Optimization</h2>
         </div>
         ${headingAction("Optimize Setup", "claim-setup", {
@@ -12992,9 +13024,12 @@ function renderParticleSynthesizerDevice(state, config) {
   return `
     <article class="panel science-panel">
       ${helpNote("Activation always spends 100 GJ. Science Points and quarks are calculated from the Stored Energy held at activation.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Science", "Hardware")}
+        <span class="card-subsystem">Synthesis Core</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">SCIENCE DEVICE</p>
           <h2>Particle Sintetizer</h2>
         </div>
         ${headingAction("Activate", "open-particle-synthesis", {
@@ -13110,9 +13145,12 @@ function renderQuarkCage(state, config) {
   return `
     <article class="panel science-panel">
       ${helpNote("Quarks outside safe containment decay continuously. Quarks Cages are run hardware: synthesis resets cages, but the base containment of 1 quark remains.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Science", "Hardware")}
+        <span class="card-subsystem">Containment Unit</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">SCIENCE DEVICE</p>
           <h2>Quarks Cage</h2>
         </div>
         ${headingAction("Install", "buy-quark-cage", {
@@ -13144,9 +13182,12 @@ function renderFiftyGCalculator(state, config) {
   return `
     <article class="panel science-panel ${state.science.fiftyGCalculator ? "device-card--online" : ""}">
       ${helpNote("Extends Auto Calculator routing to Algorithm Upgrades. Manual Upgrades remain instant; automated Upgrades use their growing execution time.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Science", "Automation")}
+        <span class="card-subsystem">Upgrade Pipeline</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">AUTOMATION & LIFE QUALITY</p>
           <h2>50G Calculator</h2>
         </div>
         ${
@@ -13272,24 +13313,62 @@ function renderEnergyTab(state, config, developmentMode) {
         <span class="muted">Expand facility capacity to avoid overflow decay.</span>
         ${renderBuyModeSelector(state)}
       </div>
-      ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
-      ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
+      <div class="energy-storage-grid">
+        ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
+        ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
+      </div>
     </div>
   `;
 
+  const upgradeRendered = renderAlgorithmUpgrade(state, config);
+  const currentBonus = calculateImprovementBonus(
+    state.improvements,
+    config,
+    state.calculationMethods,
+  );
+  const upgradeBonus = 2 ** state.upgrades;
+
   const cascadeContent = `
     <div class="cascade-flow">
-      ${renderCrcDevice(state, config, developmentMode)}
-      ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
-      ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
-      <div class="cascade-flow__connector" aria-hidden="true">
-        <span>▲ Algorithm Improvements refine CRC condensation</span>
+      <div class="cascade-stage cascade-stage--crc">
+        ${renderCrcDevice(state, config, developmentMode)}
+        ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
+        ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
       </div>
-      ${renderStudy(state, config, developmentMode)}
-      <div class="cascade-flow__connector" aria-hidden="true">
-        <span>▲ Algorithm Upgrades rebuild Algorithm architecture</span>
+
+      <div class="cascade-conduit" aria-hidden="true">
+        <div class="cascade-conduit__line"></div>
+        <div class="cascade-conduit__node">
+          <span class="cascade-conduit__icon">▼</span>
+          <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
+          <span class="cascade-conduit__sub">Algorithm Improvements refine condenser conversion (+${formatPercent(currentBonus)} active bonus)</span>
+        </div>
+        <div class="cascade-conduit__line"></div>
       </div>
-      ${renderAlgorithmUpgrade(state, config)}
+
+      <div class="cascade-stage cascade-stage--study">
+        ${renderStudy(state, config, developmentMode)}
+      </div>
+
+      ${
+        upgradeRendered.trim()
+          ? `
+        <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
+          <div class="cascade-conduit__line"></div>
+          <div class="cascade-conduit__node">
+            <span class="cascade-conduit__icon">▼</span>
+            <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
+            <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
+          </div>
+          <div class="cascade-conduit__line"></div>
+        </div>
+
+        <div class="cascade-stage cascade-stage--upgrade">
+          ${upgradeRendered}
+        </div>
+      `
+          : ""
+      }
     </div>
   `;
 
