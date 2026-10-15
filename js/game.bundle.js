@@ -11321,17 +11321,6 @@ function calculateNextMilestone(state, config) {
     };
   }
 
-  if (!state.devices.t2SoftDataDisplay && state.peakEnergy >= 50) {
-    const cost = config.t2SoftDataDisplay.cost;
-    return {
-      title: "Restore T2 Soft Display",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
   if (state.devices.processors === 0) {
     const cost = config.processor.baseCost;
     return {
@@ -11351,6 +11340,27 @@ function calculateNextMilestone(state, config) {
       progress: clamp(state.upgrades / reqCMU, 0, 1),
       tab: "energy",
       tabLabel: "Energy",
+    };
+  }
+
+  if (state.calculationMethods < 2) {
+    return {
+      title: "Calculation Method Upgrade 2",
+      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
+      progress: clamp(state.upgrades / reqCMU, 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (!state.devices.t2SoftDataDisplay) {
+    const cost = config.t2SoftDataDisplay.cost;
+    return {
+      title: "Restore T2 Soft Display",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "automation",
+      tabLabel: "Automation",
     };
   }
 
@@ -11760,29 +11770,11 @@ function renderCrcDevice(state, config, developmentMode) {
   const crcCount = Math.max(0, state.crcCount ?? 0);
   const improvements = Math.max(0, state.improvements ?? 0);
   const algorithmFactor = 1 + improvements;
-  const upgrades = Math.max(0, state.upgrades ?? 0);
-  const setupOptimizations = Math.max(0, state.setupOptimizations ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    setupOptimizations,
-    config,
-  );
   const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
-
-  const extraMetrics = [];
-  if (upgrades > 0) {
-    extraMetrics.push(
-      `<div><span>Upgrade Multiplier (2ᵁ)</span><strong>x${2 ** upgrades}</strong></div>`,
-    );
-  }
-  if (setupOptimizations > 0) {
-    extraMetrics.push(
-      `<div><span>Setup Performance D(S)</span><strong>x${setupPerformance.toFixed(2)}</strong></div>`,
-    );
-  }
 
   return `
     <article class="panel device-card condenser-card device-card--online">
-      ${helpNote("Each active condenser collects cosmic radiation at a base rate of 1e-12 J/s. Every Algorithm Improvement cycle adds +1 base output to every active condenser simultaneously via the (1 + I) multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S).")}
+      ${helpNote("Each active condenser collects cosmic radiation at a base rate of 1e-12 J/s. Each completed Algorithm Improvement adds +1 base output to every active condenser simultaneously.")}
       <div class="panel__header-row">
         ${renderCardTags("Device", "Stage 1")}
         ${statusPill(`${crcCount} ONLINE`, "online")}
@@ -11802,7 +11794,6 @@ function renderCrcDevice(state, config, developmentMode) {
           <span>Algorithm Multiplier (1 + I)</span>
           <strong>x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
         </div>
-        ${extraMetrics.join("")}
       </div>
       <div class="metric-row">
         <span>Current total output</span>
@@ -12058,9 +12049,12 @@ function renderAlgorithmUpgrade(state, config) {
     ? state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
     : state.improvements / requirement;
 
+  const currentMultiplier = 2 ** state.upgrades;
+  const nextMultiplier = 2 ** (state.upgrades + 1);
+
   return `
     <article class="panel study-panel panel--upgrade ${ready ? "panel--upgrade-ready" : ""}">
-      ${helpNote("Manual Algorithm Upgrades complete instantly and reset Improvements. Calculator automation uses a timed execution that grows with each Upgrade. No confirmation modal is required.")}
+      ${helpNote("Manual Algorithm Upgrades complete instantly and reset Improvements. Each completed Upgrade permanently doubles production (x2 multiplier).")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Stage 3")}
         <span class="card-subsystem text--warning">Resets Improvements</span>
@@ -12079,7 +12073,17 @@ function renderAlgorithmUpgrade(state, config) {
           },
         )}
       </div>
-      <p class="muted">Rebuild the Theseus algorithm into a stronger version. <strong class="text--warning">Resets Improvements.</strong></p>
+      <p class="muted">Rebuild the Theseus algorithm into a stronger version. Each completed upgrade doubles production. <strong class="text--warning">Resets Improvements.</strong></p>
+      <div class="study-metrics">
+        <div>
+          <span>Active Upgrade Multiplier</span>
+          <strong>x${currentMultiplier}</strong>
+        </div>
+        <div>
+          <span>Next Upgrade Multiplier</span>
+          <strong>x${nextMultiplier} (2x)</strong>
+        </div>
+      </div>
       ${progressBar(progress, "Algorithm Upgrade readiness", "discovery", "algorithm-upgrade")}
       <div class="progress-caption">
         <span data-field="algorithm-upgrade-status">${

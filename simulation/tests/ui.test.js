@@ -252,6 +252,7 @@ test("UI: CRC device card displays base output per CRC, algorithm multiplier log
   state.ui.activeTab = "energy";
   state.crcCount = 2;
   state.improvements = 3; // factor should be 1 + 3 = 4
+  state.upgrades = 2;     // 2^2 = 4
 
   // With Soft Display active
   state.devices.softDataDisplay = true;
@@ -262,6 +263,7 @@ test("UI: CRC device card displays base output per CRC, algorithm multiplier log
   assert.ok(html.includes("Algorithm Multiplier (1 + I)"), "Should display Algorithm Multiplier (1 + I)");
   assert.ok(html.includes("x4"), "Should display x4 for 3 improvements");
   assert.ok(html.includes("(+1 base / imp)"), "Should indicate (+1 base / imp) in CRC card");
+  assert.ok(!html.includes("Upgrade Multiplier (2ᵁ)"), "CRC card should NOT contain Upgrade Multiplier spoiler");
   assert.ok(html.includes("ALGORITHM INJECTION"), "Should render ALGORITHM INJECTION conduit");
   assert.ok(
     html.includes("Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x4)"),
@@ -270,6 +272,10 @@ test("UI: CRC device card displays base output per CRC, algorithm multiplier log
   assert.ok(
     html.includes("x4 (+1.0 / cycle)"),
     "Study card should show multiplier and (+1.0 / cycle)",
+  );
+  assert.ok(
+    html.includes("Active Upgrade Multiplier"),
+    "Upgrade card should display Active Upgrade Multiplier",
   );
 });
 
