@@ -78,12 +78,26 @@ def stable_energy_capacity(run: RunState, config: dict) -> float:
 
 def power_cell_cost(run: RunState, config: dict) -> float:
     settings = config["powerCell"]
-    cap = stable_energy_capacity(run, config)
     owned = max(1, run.power_cells)
-    multiplier = settings["baseCapacityCostMultiplier"] * (
-        1.0 + (owned - 1.0) / settings["costGrowthScale"]
-    ) ** settings["costGrowthPower"]
-    return cap * multiplier
+    current_capacity = config["energy"]["powerCellCapacity"] * owned
+    completed_arrays = owned // config["powerModule"]["cellsPerModule"]
+    array_pressure = (config["powerCell"].get("arrayCostGrowthMultiplier", 1.0)) ** completed_arrays
+    multiplier = (
+        settings["baseCapacityCostMultiplier"]
+        * (1.0 + (owned - 1.0) / settings["costGrowthScale"]) ** settings["costGrowthPower"]
+        * array_pressure
+    )
+    return current_capacity * multiplier
+
+
+def power_module_cost(owned: int, config: dict) -> float:
+    settings = config["powerModule"]
+    return escalating_cost(
+        settings["baseCost"],
+        settings["costGrowth"],
+        settings["costGrowthExponent"],
+        owned,
+    )
 
 
 def auto_calculator_cost(owned: int, config: dict) -> float:
@@ -354,6 +368,14 @@ def simulate_run(
             run.energy -= cost_cell
             run.power_cells += 1
 
+        # 3b. Power Modules (expand Power Cell arrays)
+        req_cells = (run.power_modules + 1) * config["powerModule"]["cellsPerModule"]
+        if run.power_cells >= req_cells:
+            cost_mod = power_module_cost(run.power_modules, config)
+            if run.energy >= cost_mod and run.power_modules < 50:
+                run.energy -= cost_mod
+                run.power_modules += 1
+
         # 4. Auto Calculator
         cost_calc = auto_calculator_cost(run.auto_calculators, config)
         if run.energy >= cost_calc and run.auto_calculators < 15:
@@ -422,7 +444,8 @@ def run_benchmark() -> None:
     print(f"  * Auto Calculators   : {run1.auto_calculators}")
     print(f"  * Processors         : {run1.processors}")
     print(f"  * Overclockers       : {run1.overclockers}")
-    print(f"  * Power Cells        : {run1.power_cells}\n")
+    print(f"  * Power Cells        : {run1.power_cells}")
+    print(f"  * Power Modules      : {run1.power_modules}\n")
 
     print("[RUN 2: Post-Synthesis with Redundancy Elimination Active]")
     run2 = simulate_run(config, has_redundancy=True, max_seconds=7200.0)
@@ -445,7 +468,8 @@ def run_benchmark() -> None:
     print(f"  * Auto Calculators   : {run2.auto_calculators}")
     print(f"  * Processors         : {run2.processors}")
     print(f"  * Overclockers       : {run2.overclockers}")
-    print(f"  * Power Cells        : {run2.power_cells}\n")
+    print(f"  * Power Cells        : {run2.power_cells}")
+    print(f"  * Power Modules      : {run2.power_modules}\n")
 
     speedup = time1 / max(1.0, time2)
     print(f"Synthesis Acceleration Factor: {speedup:.2f}x faster with Redundancy Elimination")

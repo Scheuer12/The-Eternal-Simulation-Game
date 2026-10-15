@@ -293,7 +293,7 @@ export function calculateProcessorBonusUnit(state, config) {
     config.economyV2?.processors?.perUnitBonus ??
     (config.processor?.deviceEfficiencyMultiplier
       ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.15);
+      : 0.08);
   return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
 }
 
@@ -715,7 +715,7 @@ export function calculateStudyDuration(state, config, developmentMode = false) {
   const i = Math.max(0, state.improvements ?? 0);
   const baseSec = config.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
   const coeff =
-    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
   const power = config.economyV2?.improvements?.durationGrowthPower ?? 2;
 
   const baseCurve = baseSec * (1 + coeff * (i ** power));
@@ -781,7 +781,7 @@ export function sumOfCubes(x) {
 export function calculateBatchDuration(j, n, V, config) {
   if (n <= 0) return big(0);
   const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
   const bn = big(n);
   const end = big(j).add(bn).sub(1);
   const start = big(j).sub(1);
@@ -793,7 +793,7 @@ export function calculateBatchDuration(j, n, V, config) {
 export function calculateBatchEnergy(j, n, V, Q, config) {
   if (n <= 0) return big(0);
   const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
   const bn = big(n);
   const end = big(j).add(bn).sub(1);
   const start = big(j).sub(1);

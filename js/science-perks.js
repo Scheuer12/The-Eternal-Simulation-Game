@@ -24,7 +24,7 @@ export const SCIENCE_PERKS = [
     ],
     effect:
       "Unlocks the Particle Generator and begins the transition to the Particles Era, with new particle manipulation systems.",
-    revealHint: "Reach 100e60 J Stored Energy to reveal this technology.",
+    revealHint: "Reach 1e36 J Stored Energy to reveal this technology.",
     storedEnergyRequiredConfigPath:
       "science.quantumPerks.particleGeneratorStoredEnergyRequired",
     summary: "Opens particle generation and the Particles Era.",

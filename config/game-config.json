@@ -59,7 +59,7 @@
       "superpositionRetentionLogCoefficient": 0.01,
       "superpositionMaximumRetention": 0.1,
       "revealAtAllocatedSciencePoints": 3,
-      "particleGeneratorStoredEnergyRequired": 1e62
+      "particleGeneratorStoredEnergyRequired": 1e36
     },
     "studyPerks": {
       "processorBonusImprovementSpeedExponent": 1.07
@@ -112,13 +112,13 @@
     "productionMultiplier": 2
   },
   "softDataDisplay": {
-    "cost": 2e-9
+    "cost": 1e-9
   },
   "t2SoftDataDisplay": {
     "cost": 2e-3
   },
   "autoCalculator": {
-    "baseCost": 8e-8,
+    "baseCost": 1.2e-7,
     "costGrowth": 60,
     "costGrowthExponent": 1.25,
     "firstSpeedMultiplier": 2,
@@ -135,10 +135,10 @@
     "durationSeconds": 20
   },
   "processor": {
-    "baseCost": 1e-6,
+    "baseCost": 6e-7,
     "costGrowth": 6,
     "costGrowthExponent": 1.2,
-    "deviceEfficiencyMultiplier": 1.15
+    "deviceEfficiencyMultiplier": 1.08
   },
   "overclocker": {
     "baseCost": 2,
@@ -154,8 +154,8 @@
     "coolingDurationMultiplier": 2
   },
   "calculationMethodUpgrade": {
-    "initialAlgorithmUpgradesRequired": 12,
-    "algorithmUpgradesRequiredGrowth": 6
+    "initialAlgorithmUpgradesRequired": 15,
+    "algorithmUpgradesRequiredGrowth": 8
   },
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
@@ -172,7 +172,7 @@
     },
     "improvements": {
       "baseDurationSeconds": 0.5,
-      "durationGrowthCoefficient": 0.001,
+      "durationGrowthCoefficient": 0.0012,
       "durationGrowthPower": 2
     },
     "algorithmUpgrades": {
@@ -188,7 +188,7 @@
       "perUnitSpeedBonus": 0.5
     },
     "processors": {
-      "perUnitBonus": 0.15
+      "perUnitBonus": 0.08
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2

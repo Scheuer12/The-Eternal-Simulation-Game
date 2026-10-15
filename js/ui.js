@@ -847,9 +847,9 @@ function renderGlobalHUD(state, config, developmentMode) {
                 displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
               }</strong>
             </div>
-            <div>
+            <div class="hud-telemetry-row__status">
               <span>Status:</span>
-              <strong class="${overflowing ? "text--warning" : "text--online"}">${
+              <strong data-field="hud-status" class="${overflowing ? "text--warning" : "text--online"}">${
                 overflowing
                   ? displayTelemetry
                     ? `EXCESS DECAY (${formatRate(overflowDecay)})`
@@ -3658,6 +3658,21 @@ function updateDynamicFields(
       "total-energy",
       formatEnergy(state.stats.totalEnergyCollected),
     );
+    setField(app, "stable-capacity", formatEnergy(stableCapacity));
+  }
+
+  const overflowing = big(state.energy).gt(stableCapacity);
+  const statusEl = app.querySelector('[data-field="hud-status"]');
+  if (statusEl) {
+    if (state.devices?.softDataDisplay) {
+      const overflowDecay = calculateEnergyOverflowDecay(state, config);
+      statusEl.textContent = overflowing
+        ? `EXCESS DECAY (${formatRate(overflowDecay)})`
+        : "CELL STABLE";
+    } else {
+      statusEl.textContent = overflowing ? "EXCESS UNSTABLE" : "CELL STABLE";
+    }
+    statusEl.className = overflowing ? "text--warning" : "text--online";
   }
 
   if (state.devices.overclockers > 0) {

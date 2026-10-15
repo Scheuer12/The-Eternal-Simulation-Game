@@ -5729,7 +5729,7 @@
       "superpositionRetentionLogCoefficient": 0.01,
       "superpositionMaximumRetention": 0.1,
       "revealAtAllocatedSciencePoints": 3,
-      "particleGeneratorStoredEnergyRequired": 1e+62
+      "particleGeneratorStoredEnergyRequired": 1e+36
     },
     "studyPerks": {
       "processorBonusImprovementSpeedExponent": 1.07
@@ -5782,13 +5782,13 @@
     "productionMultiplier": 2
   },
   "softDataDisplay": {
-    "cost": 2e-9
+    "cost": 1e-9
   },
   "t2SoftDataDisplay": {
     "cost": 0.002
   },
   "autoCalculator": {
-    "baseCost": 8e-8,
+    "baseCost": 1.2e-7,
     "costGrowth": 60,
     "costGrowthExponent": 1.25,
     "firstSpeedMultiplier": 2,
@@ -5805,10 +5805,10 @@
     "durationSeconds": 20
   },
   "processor": {
-    "baseCost": 0.000001,
+    "baseCost": 6e-7,
     "costGrowth": 6,
     "costGrowthExponent": 1.2,
-    "deviceEfficiencyMultiplier": 1.15
+    "deviceEfficiencyMultiplier": 1.08
   },
   "overclocker": {
     "baseCost": 2,
@@ -5824,8 +5824,8 @@
     "coolingDurationMultiplier": 2
   },
   "calculationMethodUpgrade": {
-    "initialAlgorithmUpgradesRequired": 12,
-    "algorithmUpgradesRequiredGrowth": 6
+    "initialAlgorithmUpgradesRequired": 15,
+    "algorithmUpgradesRequiredGrowth": 8
   },
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
@@ -5842,7 +5842,7 @@
     },
     "improvements": {
       "baseDurationSeconds": 0.5,
-      "durationGrowthCoefficient": 0.001,
+      "durationGrowthCoefficient": 0.0012,
       "durationGrowthPower": 2
     },
     "algorithmUpgrades": {
@@ -5858,7 +5858,7 @@
       "perUnitSpeedBonus": 0.5
     },
     "processors": {
-      "perUnitBonus": 0.15
+      "perUnitBonus": 0.08
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
@@ -6496,7 +6496,7 @@ function calculateProcessorBonusUnit(state, config) {
     config.economyV2?.processors?.perUnitBonus ??
     (config.processor?.deviceEfficiencyMultiplier
       ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.15);
+      : 0.08);
   return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
 }
 
@@ -6918,7 +6918,7 @@ function calculateStudyDuration(state, config, developmentMode = false) {
   const i = Math.max(0, state.improvements ?? 0);
   const baseSec = config.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
   const coeff =
-    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
   const power = config.economyV2?.improvements?.durationGrowthPower ?? 2;
 
   const baseCurve = baseSec * (1 + coeff * (i ** power));
@@ -6984,7 +6984,7 @@ function sumOfCubes(x) {
 function calculateBatchDuration(j, n, V, config) {
   if (n <= 0) return big(0);
   const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
   const bn = big(n);
   const end = big(j).add(bn).sub(1);
   const start = big(j).sub(1);
@@ -6996,7 +6996,7 @@ function calculateBatchDuration(j, n, V, config) {
 function calculateBatchEnergy(j, n, V, Q, config) {
   if (n <= 0) return big(0);
   const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
   const bn = big(n);
   const end = big(j).add(bn).sub(1);
   const start = big(j).sub(1);
@@ -7908,7 +7908,7 @@ const SCIENCE_PERKS = [
     ],
     effect:
       "Unlocks the Particle Generator and begins the transition to the Particles Era, with new particle manipulation systems.",
-    revealHint: "Reach 100e60 J Stored Energy to reveal this technology.",
+    revealHint: "Reach 1e36 J Stored Energy to reveal this technology.",
     storedEnergyRequiredConfigPath:
       "science.quantumPerks.particleGeneratorStoredEnergyRequired",
     summary: "Opens particle generation and the Particles Era.",
@@ -12125,9 +12125,9 @@ function renderGlobalHUD(state, config, developmentMode) {
                 displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
               }</strong>
             </div>
-            <div>
+            <div class="hud-telemetry-row__status">
               <span>Status:</span>
-              <strong class="${overflowing ? "text--warning" : "text--online"}">${
+              <strong data-field="hud-status" class="${overflowing ? "text--warning" : "text--online"}">${
                 overflowing
                   ? displayTelemetry
                     ? `EXCESS DECAY (${formatRate(overflowDecay)})`
@@ -14936,6 +14936,21 @@ function updateDynamicFields(
       "total-energy",
       formatEnergy(state.stats.totalEnergyCollected),
     );
+    setField(app, "stable-capacity", formatEnergy(stableCapacity));
+  }
+
+  const overflowing = big(state.energy).gt(stableCapacity);
+  const statusEl = app.querySelector('[data-field="hud-status"]');
+  if (statusEl) {
+    if (state.devices?.softDataDisplay) {
+      const overflowDecay = calculateEnergyOverflowDecay(state, config);
+      statusEl.textContent = overflowing
+        ? `EXCESS DECAY (${formatRate(overflowDecay)})`
+        : "CELL STABLE";
+    } else {
+      statusEl.textContent = overflowing ? "EXCESS UNSTABLE" : "CELL STABLE";
+    }
+    statusEl.className = overflowing ? "text--warning" : "text--online";
   }
 
   if (state.devices.overclockers > 0) {

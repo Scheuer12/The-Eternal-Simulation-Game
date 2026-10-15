@@ -108,7 +108,7 @@ test("reset layer requirements rise as configured", () => {
         config,
       ),
     ),
-    [12, 18, 24, 30],
+    [15, 23, 31, 39],
   );
 
   assert.deepEqual(
@@ -180,15 +180,15 @@ test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   state.devices.processors = 1;
 
   const unitBonus0 = calculateProcessorBonusUnit(state, config);
-  assert.equal(unitBonus0, 0.15);
+  assert.equal(unitBonus0, 0.08);
 
   state.calculationMethods = 1;
   const unitBonus1 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus1, 0.15 * 1.2, 1e-12);
+  assertBigClose(unitBonus1, 0.08 * 1.2, 1e-12);
 
   state.calculationMethods = 2;
   const unitBonus2 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus2, 0.15 * 1.44, 1e-12);
+  assertBigClose(unitBonus2, 0.08 * 1.44, 1e-12);
 
   // When P=0, CMU has zero effect on Auto Calculator speed
   state.devices.processors = 0;
@@ -201,8 +201,8 @@ test("Processor aggregated effectiveness E_P = (1 + unitBonus)^P compounds into 
   state.devices.processors = 2;
   state.devices.autoCalculators = 2;
 
-  const unitBonus = 0.15;
-  const ep = (1 + unitBonus) ** 2; // 1.15^2 = 1.3225
+  const unitBonus = 0.08;
+  const ep = (1 + unitBonus) ** 2; // 1.08^2 = 1.1664
   assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
 
   // Each calculator has baseUnitBonus = 0.5. With EP, unit bonus is 0.5 * EP.
@@ -224,7 +224,7 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
   // Inactive
   assert.equal(calculateOverclockerSpeedMultiplier(state, config), 1);
   assertBigEqual(calculateOverclockerDrainPerSecond(state, config), 0);
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.15);
+  assert.equal(calculateProcessorBonusUnit(state, config), 0.08);
 
   // Active: O_0(1) = 5
   state.overclocker.active = true;
@@ -233,8 +233,8 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
     calculateOverclockerDrainPerSecond(state, config),
     config.overclocker.baseEnergyDrainPerSecond,
   );
-  // Processor unit bonus becomes 0.15 * 5 = 0.75
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.75);
+  // Processor unit bonus becomes 0.08 * 5 = 0.40
+  assert.equal(calculateProcessorBonusUnit(state, config), 0.4);
 
   // 2 Overclockers: O_0(2) = 5 * 1.5 = 7.5
   state.devices.overclockers = 2;
@@ -369,7 +369,7 @@ test("Science Era quark formulas use synthesis energy, safe capacity, and overfl
 
 test("Algorithm Improvement duration follows quadratic curve T_I(I) = 0.5*(1 + b*I^2)/V", () => {
   const state = createInitialState(config);
-  const b = config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.001;
+  const b = config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
 
   state.improvements = 0;
   assert.equal(calculateStudyDuration(state, config), 0.5);

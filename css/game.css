@@ -2194,9 +2194,9 @@ h2 {
 }
 
 .hud-telemetry-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
   margin-top: 14px;
   font-size: 0.82rem;
   color: var(--muted);
@@ -2206,11 +2206,17 @@ h2 {
   display: flex;
   gap: 6px;
   align-items: center;
+  min-width: 0;
+}
+
+.hud-telemetry-row .hud-telemetry-row__status {
+  grid-column: 1 / -1;
 }
 
 .hud-telemetry-row strong {
   color: var(--text);
   font-family: "Cascadia Mono", Consolas, monospace;
+  white-space: nowrap;
 }
 
 .milestone-title {
