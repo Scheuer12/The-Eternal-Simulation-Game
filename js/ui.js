@@ -1061,11 +1061,7 @@ function renderT2SoftDataDisplay(state, config) {
 }
 
 function renderStudy(state, config, developmentMode) {
-  const nextBonus = calculateImprovementBonus(
-    state.improvements,
-    config,
-    state.calculationMethods,
-  );
+  const currentFactor = 1 + (state.improvements ?? 0);
   const previewDuration = calculateStudyDuration(
     state,
     config,
@@ -1082,7 +1078,7 @@ function renderStudy(state, config, developmentMode) {
 
   return `
     <article class="panel study-panel">
-      ${helpNote("Algorithm Improvements always complete. After enough Improvements, an Algorithm Upgrade study can be run manually. It doubles CRC production and resets Improvements.")}
+      ${helpNote("Algorithm Improvements always complete. Each cycle adds exactly +1.0 nominal units to the CRC multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S). After enough Improvements, an Algorithm Upgrade study can be run manually to double structural production and reset Improvements.")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Stage 2")}
         <span class="card-subsystem">Continuous Optimization</span>
@@ -1104,9 +1100,9 @@ function renderStudy(state, config, developmentMode) {
           },
         )}
       </div>
-      <p class="muted">Improves how the CRC converts background radiation into Stored Energy.</p>
+      <p class="muted">Refines the Theseus algorithm. Each cycle adds +1.0 nominal factor to CRC production.</p>
       <div class="study-metrics">
-        <div><span>Next efficiency gain</span><strong>+${formatPercent(nextBonus)}</strong></div>
+        <div><span>Nominal CRC Factor</span><strong>x${currentFactor} (+1.0 / cycle)</strong></div>
         <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong>${rateDisplay}</strong></div>
       </div>
       ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
@@ -2475,7 +2471,7 @@ function renderEnergyTab(state, config, developmentMode) {
         <div class="cascade-conduit__node">
           <span class="cascade-conduit__icon">▼</span>
           <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-          <span class="cascade-conduit__sub">Algorithm Improvements refine condenser conversion (+${formatPercent(currentBonus)} active bonus)</span>
+          <span class="cascade-conduit__sub">Algorithm Improvements refine condenser conversion (+1.0 nominal factor per cycle · x${1 + state.improvements} active factor)</span>
         </div>
         <div class="cascade-conduit__line"></div>
       </div>
