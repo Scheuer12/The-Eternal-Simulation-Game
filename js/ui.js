@@ -258,28 +258,32 @@ function getTabIndicators(tabId, state, config) {
   };
 }
 
-function renderTabBar(state, config) {
+function renderTabBarContent(state, config) {
   const activeTab = getActiveTab(state, config);
 
+  return TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
+    .map((tab) => {
+      const indicators = getTabIndicators(tab.id, state, config);
+      return `
+        <button
+          class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
+          data-action="set-tab"
+          data-tab="${tab.id}"
+          type="button"
+        >
+          <span>${tab.label}</span>
+          ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
+          ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderTabBar(state, config) {
   return `
-    <nav class="tabbar" aria-label="Facility sections">
-      ${TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
-        .map((tab) => {
-          const indicators = getTabIndicators(tab.id, state, config);
-          return `
-            <button
-              class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
-              data-action="set-tab"
-              data-tab="${tab.id}"
-              type="button"
-            >
-              <span>${tab.label}</span>
-              ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
-              ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
-            </button>
-          `;
-        })
-        .join("")}
+    <nav class="tabbar" data-region="tabbar" aria-label="Facility sections">
+      ${renderTabBarContent(state, config)}
     </nav>
   `;
 }
@@ -709,33 +713,39 @@ function renderCrcBriefing() {
   `;
 }
 
-function renderHeader(state, developmentMode) {
+function renderHeaderContent(state, developmentMode) {
   const showRestoreNews = Boolean(state.ui?.newsDismissed);
 
   return `
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">THE ETERNAL SIMULATION</p>
-        <h1>Facility Control</h1>
-      </div>
-      <div class="topbar__actions">
-        ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
-        ${
-          developmentMode
-            ? button("Exit dev", "exit-dev-mode", { variant: "text" })
-            : button("Dev mode", "enter-dev-mode", { variant: "text" })
-        }
-        ${
-          showRestoreNews
-            ? button("News Feed", "restore-news-section", {
-                variant: "text",
-                className: "button--news-toggle",
-              })
-            : ""
-        }
-        ${button("Save now", "save-now", { variant: "text" })}
-        ${button("Reset current", "reset-current-save", { variant: "text" })}
-      </div>
+    <div>
+      <p class="eyebrow">THE ETERNAL SIMULATION</p>
+      <h1>Facility Control</h1>
+    </div>
+    <div class="topbar__actions">
+      ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
+      ${
+        developmentMode
+          ? button("Exit dev", "exit-dev-mode", { variant: "text" })
+          : button("Dev mode", "enter-dev-mode", { variant: "text" })
+      }
+      ${
+        showRestoreNews
+          ? button("News Feed", "restore-news-section", {
+              variant: "text",
+              className: "button--news-toggle",
+            })
+          : ""
+      }
+      ${button("Save now", "save-now", { variant: "text" })}
+      ${button("Reset current", "reset-current-save", { variant: "text" })}
+    </div>
+  `;
+}
+
+function renderHeader(state, developmentMode) {
+  return `
+    <header class="topbar" data-region="header">
+      ${renderHeaderContent(state, developmentMode)}
     </header>
   `;
 }
@@ -2545,99 +2555,94 @@ function renderDeviceGroup(group, content) {
   `;
 }
 
-function renderEnergyTab(state, config, developmentMode) {
-  const storageDevices = `
-    <div class="energy-storage-section">
-      <div class="energy-storage-header">
-        <span class="muted">Expand facility capacity to avoid overflow decay.</span>
-        ${renderBuyModeSelector(state)}
-      </div>
-      <div class="energy-storage-grid">
-        ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
-        ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
-      </div>
+function renderEnergyStorageSection(state, config) {
+  return `
+    <div class="energy-storage-header">
+      <span class="muted">Expand facility capacity to avoid overflow decay.</span>
+      ${renderBuyModeSelector(state)}
+    </div>
+    <div class="energy-storage-grid">
+      ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
+      ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
     </div>
   `;
+}
 
+function renderEnergyCascadeSection(state, config, developmentMode) {
   const upgradeRendered = renderAlgorithmUpgrade(state, config);
-  const currentBonus = calculateImprovementBonus(
-    state.improvements,
-    config,
-    state.calculationMethods,
-  );
   const upgradeBonus = 2 ** state.upgrades;
 
-  const cascadeContent = `
-    <div class="cascade-flow">
-      <div class="cascade-stage cascade-stage--crc">
-        ${renderCrcDevice(state, config, developmentMode)}
-        ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
-        ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
-      </div>
+  return `
+    <div class="cascade-stage cascade-stage--crc">
+      ${renderCrcDevice(state, config, developmentMode)}
+      ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
+      ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
+    </div>
 
-      <div class="cascade-conduit" aria-hidden="true">
+    <div class="cascade-conduit" aria-hidden="true">
+      <div class="cascade-conduit__line"></div>
+      <div class="cascade-conduit__node">
+        <span class="cascade-conduit__icon">▼</span>
+        <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
+        <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
+      </div>
+      <div class="cascade-conduit__line"></div>
+    </div>
+
+    <div class="cascade-stage cascade-stage--study">
+      ${renderStudy(state, config, developmentMode)}
+    </div>
+
+    ${
+      upgradeRendered.trim()
+        ? `
+      <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
         <div class="cascade-conduit__line"></div>
         <div class="cascade-conduit__node">
           <span class="cascade-conduit__icon">▼</span>
-          <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-          <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
+          <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
+          <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
         </div>
         <div class="cascade-conduit__line"></div>
       </div>
 
-      <div class="cascade-stage cascade-stage--study">
-        ${renderStudy(state, config, developmentMode)}
+      <div class="cascade-stage cascade-stage--upgrade">
+        ${upgradeRendered}
       </div>
-
-      ${
-        upgradeRendered.trim()
-          ? `
-        <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
-          <div class="cascade-conduit__line"></div>
-          <div class="cascade-conduit__node">
-            <span class="cascade-conduit__icon">▼</span>
-            <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
-            <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
-          </div>
-          <div class="cascade-conduit__line"></div>
-        </div>
-
-        <div class="cascade-stage cascade-stage--upgrade">
-          ${upgradeRendered}
-        </div>
-      `
-          : ""
-      }
-    </div>
-  `;
-
-  const resetCards = `
-    <div class="reset-routes-grid">
-      ${renderCalculationMethod(state, config)}
-      ${renderSetupOptimization(state, config)}
-    </div>
-  `;
-
-  const labReadable = canAccessParticleLab(state, config);
-  const labContent = labReadable
-    ? `
-      <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">PARTICLE LABORATORY</p>
-            <h2>Laboratory Threshold</h2>
-          </div>
-          <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
-        </div>
-        <div class="section-stack">
-          ${renderParticleLabDetails(state, config)}
-        </div>
-      </section>
     `
-    : "";
+        : ""
+    }
+  `;
+}
 
+function renderEnergyResetsSection(state, config) {
   return `
-    ${renderTabTools(state)}
+    ${renderCalculationMethod(state, config)}
+    ${renderSetupOptimization(state, config)}
+  `;
+}
+
+function renderEnergyLabSection(state, config) {
+  if (!canAccessParticleLab(state, config)) return "";
+  return `
+    <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
+      <div class="device-group__heading">
+        <div>
+          <p class="panel__label">PARTICLE LABORATORY</p>
+          <h2>Laboratory Threshold</h2>
+        </div>
+        <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
+      </div>
+      <div class="section-stack">
+        ${renderParticleLabDetails(state, config)}
+      </div>
+    </section>
+  `;
+}
+
+function renderEnergyTab(state, config, developmentMode) {
+  return `
+    <div data-subregion="energy-tools">${renderTabTools(state)}</div>
     <div class="tab-grid energy-tab-layout">
       <section class="tab-main-column">
         <section class="energy-section" aria-label="Energy Storage">
@@ -2648,7 +2653,11 @@ function renderEnergyTab(state, config, developmentMode) {
             </div>
             <p>Power Cells preserve energy across Setup Optimizations; Power Modules scale bulk capacity.</p>
           </div>
-          <div class="section-stack">${storageDevices}</div>
+          <div class="section-stack">
+            <div class="energy-storage-section" data-subregion="energy-storage">
+              ${renderEnergyStorageSection(state, config)}
+            </div>
+          </div>
         </section>
 
         <section class="energy-section" aria-label="Energy Production Cascade">
@@ -2659,7 +2668,11 @@ function renderEnergyTab(state, config, developmentMode) {
             </div>
             <p>CRCs harvest cosmic radiation, amplified by refined calculation algorithms.</p>
           </div>
-          <div class="section-stack">${cascadeContent}</div>
+          <div class="section-stack">
+            <div class="cascade-flow" data-subregion="energy-cascade">
+              ${renderEnergyCascadeSection(state, config, developmentMode)}
+            </div>
+          </div>
         </section>
 
         <section class="energy-section" aria-label="Breakthroughs and Reset Routes">
@@ -2670,12 +2683,39 @@ function renderEnergyTab(state, config, developmentMode) {
             </div>
             <p>Soft and hard resets that reconfigure facility architecture for long-term growth.</p>
           </div>
-          <div class="section-stack">${resetCards}</div>
+          <div class="section-stack">
+            <div class="reset-routes-grid" data-subregion="energy-resets">
+              ${renderEnergyResetsSection(state, config)}
+            </div>
+          </div>
         </section>
 
-        ${labContent}
+        <div data-subregion="energy-lab">
+          ${renderEnergyLabSection(state, config)}
+        </div>
       </section>
+
+      <aside class="tab-sidebar">
+        ${renderTelemetry(state, config, developmentMode)}
+        ${renderRecord()}
+      </aside>
     </div>
+  `;
+}
+
+function renderComputationalDevicesSection(state, config, developmentMode) {
+  return `
+    ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
+    ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
+    ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
+    ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
+  `;
+}
+
+function renderInstrumentationSection(state, config) {
+  return `
+    ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
+    ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
   `;
 }
 
@@ -2714,22 +2754,6 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
         }</strong>
       </div>
     </article>
-  `;
-
-  const computationalDevices = `
-    <div class="computational-devices-stack">
-      ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
-      ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
-      ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
-      ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
-    </div>
-  `;
-
-  const instrumentationDevices = `
-    <div class="instrumentation-stack">
-      ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
-      ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
-    </div>
   `;
 
   const unlockedAutomations = listUnlockedAutomations(state);
@@ -2811,15 +2835,17 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
         </div>
       </article>
       ${renderLog(state)}
-      ${renderSaveManagement(saveSlots, developmentMode)}
+      <div data-subregion="auto-save">
+        ${renderSaveManagement(saveSlots, developmentMode)}
+      </div>
     </div>
   `;
 
   return `
-    ${renderTabTools(state)}
+    <div data-subregion="auto-tools">${renderTabTools(state)}</div>
     <div class="tab-grid">
       <section class="tab-main-column">
-        ${fleetSummary}
+        <div data-subregion="auto-fleet">${fleetSummary}</div>
         <section class="device-group" aria-label="Computational Devices">
           <div class="device-group__heading">
             <div>
@@ -2828,7 +2854,11 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
             </div>
             <p>Calculators and processors accelerate study throughput and automate routine operations.</p>
           </div>
-          <div class="section-stack">${computationalDevices}</div>
+          <div class="section-stack">
+            <div class="computational-devices-stack" data-subregion="auto-compute">
+              ${renderComputationalDevicesSection(state, config, developmentMode)}
+            </div>
+          </div>
         </section>
 
         <section class="device-group" aria-label="Instrumentation & Displays">
@@ -2839,7 +2869,11 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
             </div>
             <p>Diagnostic modules that unlock purchase controls and detailed energy telemetry.</p>
           </div>
-          <div class="section-stack">${instrumentationDevices}</div>
+          <div class="section-stack">
+            <div class="instrumentation-stack" data-subregion="auto-instrumentation">
+              ${renderInstrumentationSection(state, config)}
+            </div>
+          </div>
         </section>
 
         <section class="device-group" aria-label="Automations">
@@ -2850,7 +2884,9 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
             </div>
             <p>Background routines unlocked through study and scientific advancement.</p>
           </div>
-          <div class="section-stack">${automationsContent}</div>
+          <div class="section-stack">
+            <div data-subregion="auto-routines">${automationsContent}</div>
+          </div>
         </section>
       </section>
 
@@ -3581,7 +3617,7 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     devShowNews: state.ui?.devShowNews ?? false,
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
-    saveSlots,
+    saveSlots: saveSlots?.map((s) => [s.key, s.exists]),
   });
 }
 
@@ -3952,6 +3988,14 @@ function updateDynamicFields(
   updateInteractiveElements(app, state, config);
 }
 
+function renderModalsContent(state, config) {
+  return `
+    ${renderResetConfirmationModal(state, config)}
+    ${renderHistoryReadingModal(state)}
+    ${renderParticleSynthesisModal(state, config)}
+  `;
+}
+
 function renderGame(
   state,
   config,
@@ -3964,22 +4008,214 @@ function renderGame(
 
   return `
     ${renderHeader(state, developmentMode)}
-    ${showNews ? renderNewsSection(state, newsList) : ""}
+    <div class="news-region-slot" data-region="news">
+      ${showNews ? renderNewsSection(state, newsList) : ""}
+    </div>
     ${renderTabBar(state, config)}
-    <section class="operation-focus" aria-label="Power and production focus">
+    <section class="operation-focus" data-region="hud" aria-label="Power and production focus">
       ${renderGlobalHUD(state, config, developmentMode)}
     </section>
-    <section class="tab-content tab-content--${activeTab}" aria-label="${activeTab}">
+    <section class="tab-content tab-content--${activeTab}" data-region="tab-content" aria-label="${activeTab}">
       ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
       ${developmentMode ? renderDevelopmentPanel(state) : ""}
     </section>
-    ${renderResetConfirmationModal(state, config)}
-    ${renderHistoryReadingModal(state)}
-    ${renderParticleSynthesisModal(state, config)}
+    <div class="modals-region-slot" data-region="modals">
+      ${renderModalsContent(state, config)}
+    </div>
   `;
 }
 
 const renderEnergy = renderGlobalHUD;
+
+function getTabContentSignature(
+  activeTab,
+  state,
+  config,
+  developmentMode,
+  saveSlots,
+) {
+  if (activeTab === "energy") {
+    return JSON.stringify({
+      tab: "energy",
+      developmentMode,
+      buyMode: state.ui?.buyMode ?? "1",
+      hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+      powerCells: state.powerCells,
+      powerModules: state.powerModules,
+      crcCount: state.crcCount,
+      upgrades: state.upgrades,
+      calculationMethods: state.calculationMethods,
+      setupOptimizations: state.setupOptimizations,
+      crcBlueprint: state.discoveries.crcBlueprint,
+      blueprintActive: state.blueprintStudy.active,
+      constructionActive: state.construction.active,
+      algUpgradeActive: state.algorithmUpgradeStudy.active,
+      labReadable: canAccessParticleLab(state, config),
+      synthesizerActivated: state.particleSynthesizer.activated,
+      pcVis: evaluateComponent("powerCell", state, config).visible,
+      pmVis: evaluateComponent("powerModule", state, config).visible,
+      crcVis: evaluateComponent("crcBlueprint", state, config).visible,
+      constVis: evaluateComponent("crcConstruction", state, config).visible,
+      upgVis: evaluateComponent("algorithmUpgrade", state, config).visible,
+      cmuVis: evaluateComponent("calculationMethodUpgrade", state, config).visible,
+      setupVis: evaluateComponent("setupOptimization", state, config).visible,
+    });
+  }
+
+  if (activeTab === "automation") {
+    return JSON.stringify({
+      tab: "automation",
+      developmentMode,
+      buyMode: state.ui?.buyMode ?? "1",
+      hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+      autoCalculators: state.devices.autoCalculators,
+      processors: state.devices.processors,
+      overclockers: state.devices.overclockers,
+      overclockerActive: state.overclocker.active,
+      softDataDisplay: state.devices.softDataDisplay,
+      t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
+      overclockerBlueprint: state.discoveries.overclockerBlueprint,
+      overclockerBlueprintActive: state.overclockerBlueprintStudy?.active ?? false,
+      automations: state.automations ?? {},
+      slots: saveSlots?.map((s) => [s.key, s.exists]),
+    });
+  }
+
+  if (activeTab === "science") {
+    return JSON.stringify({
+      tab: "science",
+      sciencePoints: state.sciencePoints,
+      perks: state.science?.perks ?? {},
+      revealed: state.science?.revealedPerks ?? {},
+      subtab: state.ui?.activeScienceSubtab ?? "tree",
+      treeZoom: state.ui?.treeZoom ?? 1.0,
+      selectedPerkId: state.ui?.selectedSciencePerkId ?? null,
+      quarks: state.quarks?.available ?? 0,
+      quarkCages: state.scienceDevices?.quarkCages ?? 0,
+      fiftyG: state.science?.fiftyGCalculator ?? false,
+      syntheses: state.science?.syntheses ?? 0,
+    });
+  }
+
+  if (activeTab === "history") {
+    return JSON.stringify({
+      tab: "history",
+      historyLen: state.history?.length ?? 0,
+      filter: state.ui?.historyFilter ?? "all",
+    });
+  }
+
+  return JSON.stringify({ tab: activeTab, developmentMode });
+}
+
+function updateEnergySubregions(
+  tabContentEl,
+  state,
+  config,
+  devMode,
+  lastSubSigs,
+) {
+  const storageSig = JSON.stringify({
+    buyMode: state.ui?.buyMode ?? "1",
+    powerCells: state.powerCells,
+    powerModules: state.powerModules,
+    pcVis: evaluateComponent("powerCell", state, config).visible,
+    pmVis: evaluateComponent("powerModule", state, config).visible,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+  });
+  if (storageSig !== lastSubSigs.energyStorage) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-storage"]');
+    if (el) el.innerHTML = renderEnergyStorageSection(state, config);
+    lastSubSigs.energyStorage = storageSig;
+  }
+
+  const cascadeSig = JSON.stringify({
+    upgrades: state.upgrades,
+    crcCount: state.crcCount,
+    crcBlueprint: state.discoveries.crcBlueprint,
+    overclockerBlueprint: state.discoveries.overclockerBlueprint,
+    blueprintActive: state.blueprintStudy.active,
+    constructionActive: state.construction.active,
+    algUpgradeActive: state.algorithmUpgradeStudy.active,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+    crcVis: evaluateComponent("crcBlueprint", state, config).visible,
+    constVis: evaluateComponent("crcConstruction", state, config).visible,
+    upgVis: evaluateComponent("algorithmUpgrade", state, config).visible,
+  });
+  if (cascadeSig !== lastSubSigs.energyCascade) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-cascade"]');
+    if (el) el.innerHTML = renderEnergyCascadeSection(state, config, devMode);
+    lastSubSigs.energyCascade = cascadeSig;
+  }
+
+  const resetsSig = JSON.stringify({
+    calculationMethods: state.calculationMethods,
+    setupOptimizations: state.setupOptimizations,
+    upgrades: state.upgrades,
+    cmuVis: evaluateComponent("calculationMethodUpgrade", state, config).visible,
+    setupVis: evaluateComponent("setupOptimization", state, config).visible,
+  });
+  if (resetsSig !== lastSubSigs.energyResets) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-resets"]');
+    if (el) el.innerHTML = renderEnergyResetsSection(state, config);
+    lastSubSigs.energyResets = resetsSig;
+  }
+
+  const labSig = JSON.stringify({
+    labReadable: canAccessParticleLab(state, config),
+    synthesizerActivated: state.particleSynthesizer.activated,
+  });
+  if (labSig !== lastSubSigs.energyLab) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-lab"]');
+    if (el) el.innerHTML = renderEnergyLabSection(state, config);
+    lastSubSigs.energyLab = labSig;
+  }
+}
+
+function updateAutomationSubregions(
+  tabContentEl,
+  state,
+  config,
+  devMode,
+  saveSlots,
+  lastSubSigs,
+) {
+  const computeSig = JSON.stringify({
+    buyMode: state.ui?.buyMode ?? "1",
+    autoCalculators: state.devices.autoCalculators,
+    processors: state.devices.processors,
+    overclockers: state.devices.overclockers,
+    overclockerBlueprint: state.discoveries.overclockerBlueprint,
+    overclockerBlueprintActive: state.overclockerBlueprintStudy?.active ?? false,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+  });
+  if (computeSig !== lastSubSigs.autoCompute) {
+    const el = tabContentEl.querySelector('[data-subregion="auto-compute"]');
+    if (el) el.innerHTML = renderComputationalDevicesSection(state, config, devMode);
+    lastSubSigs.autoCompute = computeSig;
+  }
+
+  const instSig = JSON.stringify({
+    softDataDisplay: state.devices.softDataDisplay,
+    t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+  });
+  if (instSig !== lastSubSigs.autoInstrumentation) {
+    const el = tabContentEl.querySelector('[data-subregion="auto-instrumentation"]');
+    if (el) el.innerHTML = renderInstrumentationSection(state, config);
+    lastSubSigs.autoInstrumentation = instSig;
+  }
+
+  const saveSig = JSON.stringify({
+    slots: saveSlots?.map((s) => [s.key, s.exists]),
+    devMode,
+  });
+  if (saveSig !== lastSubSigs.autoSave) {
+    const el = tabContentEl.querySelector('[data-subregion="auto-save"]');
+    if (el) el.innerHTML = renderSaveManagement(saveSlots, devMode);
+    lastSubSigs.autoSave = saveSig;
+  }
+}
 
 export function createRenderer(
   app,
@@ -3988,9 +4224,35 @@ export function createRenderer(
   getSaveSlots = () => [],
   newsList = DEFAULT_NEWS,
 ) {
-  let lastRenderSignature = "";
   let pointerIsDown = false;
   let deferredRender = false;
+  let lastActiveTab = null;
+
+  const lastSignatures = {
+    header: "",
+    news: "",
+    tabbar: "",
+    hud: "",
+    tabContent: "",
+    modals: "",
+    overall: "",
+  };
+
+  const lastSubSigs = {
+    energyStorage: "",
+    energyCascade: "",
+    energyResets: "",
+    energyLab: "",
+    autoCompute: "",
+    autoInstrumentation: "",
+    autoSave: "",
+  };
+
+  function resetSubSigs() {
+    for (const key of Object.keys(lastSubSigs)) {
+      lastSubSigs[key] = "";
+    }
+  }
 
   app.addEventListener(
     "pointerdown",
@@ -4013,28 +4275,6 @@ export function createRenderer(
   app.addEventListener("pointercancel", finishPointerInteraction, true);
 
   return function render(state) {
-    const saveSlots = getSaveSlots();
-    const signature = createRenderSignature(
-      state,
-      config,
-      developmentMode,
-      saveSlots,
-    );
-
-    if (signature === lastRenderSignature) {
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
-    }
-
-    if (pointerIsDown) {
-      deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
-    }
-
-    lastRenderSignature = signature;
-    deferredRender = false;
-
     if (state.introState === "choice") {
       app.innerHTML = renderIntro();
       return;
@@ -4050,13 +4290,196 @@ export function createRenderer(
       return;
     }
 
-    app.innerHTML = renderGame(
+    const saveSlots = getSaveSlots();
+    const activeTab = getActiveTab(state, config);
+
+    const sigHeader = JSON.stringify({
+      developmentMode,
+      newsDismissed: Boolean(state.ui?.newsDismissed),
+    });
+
+    const showNews = !state.ui?.newsDismissed;
+    const sigNews = JSON.stringify({
+      showNews,
+      currentNewsId: state.ui?.currentNewsId,
+    });
+
+    const sigTabBar = JSON.stringify({
+      activeTab,
+      tabs: TAB_DEFINITIONS.filter((t) => isTabVisible(t, state, config)).map(
+        (t) => [t.id, getTabIndicators(t.id, state, config)],
+      ),
+    });
+
+    const sigHud = JSON.stringify({
+      developmentMode,
+      softDataDisplay: Boolean(state.devices?.softDataDisplay),
+      phase: (state.science?.syntheses ?? 0) > 0,
+      milestoneTab: calculateNextMilestone(state, config).tab,
+    });
+
+    const sigModals = JSON.stringify({
+      resetModal: state.ui?.resetModal ?? null,
+      historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
+      particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
+    });
+
+    const sigTabContent = getTabContentSignature(
+      activeTab,
       state,
       config,
       developmentMode,
       saveSlots,
-      newsList,
     );
+
+    const headerEl = app.querySelector
+      ? app.querySelector('[data-region="header"]')
+      : null;
+    const newsEl = app.querySelector
+      ? app.querySelector('[data-region="news"]')
+      : null;
+    const tabbarEl = app.querySelector
+      ? app.querySelector('[data-region="tabbar"]')
+      : null;
+    const hudEl = app.querySelector
+      ? app.querySelector('[data-region="hud"]')
+      : null;
+    const tabContentEl = app.querySelector
+      ? app.querySelector('[data-region="tab-content"]')
+      : null;
+    const modalsEl = app.querySelector
+      ? app.querySelector('[data-region="modals"]')
+      : null;
+
+    const shellMounted = Boolean(
+      headerEl && newsEl && tabbarEl && hudEl && tabContentEl && modalsEl,
+    );
+
+    if (!shellMounted) {
+      const overallSig = createRenderSignature(
+        state,
+        config,
+        developmentMode,
+        saveSlots,
+      );
+
+      if (overallSig === lastSignatures.overall) {
+        updateDynamicFields(app, state, config, developmentMode, newsList);
+        return;
+      }
+
+      if (pointerIsDown) {
+        deferredRender = { state };
+        updateDynamicFields(app, state, config, developmentMode, newsList);
+        return;
+      }
+
+      lastSignatures.overall = overallSig;
+      lastSignatures.header = sigHeader;
+      lastSignatures.news = sigNews;
+      lastSignatures.tabbar = sigTabBar;
+      lastSignatures.hud = sigHud;
+      lastSignatures.tabContent = sigTabContent;
+      lastSignatures.modals = sigModals;
+      lastActiveTab = activeTab;
+      resetSubSigs();
+      deferredRender = false;
+
+      app.innerHTML = renderGame(
+        state,
+        config,
+        developmentMode,
+        saveSlots,
+        newsList,
+      );
+      updateDynamicFields(app, state, config, developmentMode, newsList);
+      return;
+    }
+
+    if (pointerIsDown) {
+      deferredRender = { state };
+      updateDynamicFields(app, state, config, developmentMode, newsList);
+      return;
+    }
+    deferredRender = false;
+
+    // 1. Header Block (independent refresh)
+    if (sigHeader !== lastSignatures.header) {
+      headerEl.innerHTML = renderHeaderContent(state, developmentMode);
+      lastSignatures.header = sigHeader;
+    }
+
+    // 2. News Block (completely isolated from card updates)
+    if (sigNews !== lastSignatures.news) {
+      newsEl.innerHTML = showNews ? renderNewsSection(state, newsList) : "";
+      lastSignatures.news = sigNews;
+    }
+
+    // 3. TabBar Block
+    if (sigTabBar !== lastSignatures.tabbar) {
+      tabbarEl.innerHTML = renderTabBarContent(state, config);
+      lastSignatures.tabbar = sigTabBar;
+    }
+
+    // 4. HUD Block
+    if (sigHud !== lastSignatures.hud) {
+      hudEl.innerHTML = renderGlobalHUD(state, config, developmentMode);
+      lastSignatures.hud = sigHud;
+    }
+
+    // 5. Tab Content Block (with independent subregions)
+    if (activeTab !== lastActiveTab) {
+      tabContentEl.innerHTML =
+        renderTabContent(
+          activeTab,
+          state,
+          config,
+          developmentMode,
+          saveSlots,
+        ) + (developmentMode ? renderDevelopmentPanel(state) : "");
+      tabContentEl.className = `tab-content tab-content--${activeTab}`;
+      tabContentEl.setAttribute("aria-label", activeTab);
+      lastActiveTab = activeTab;
+      lastSignatures.tabContent = sigTabContent;
+      resetSubSigs();
+    } else if (sigTabContent !== lastSignatures.tabContent) {
+      if (activeTab === "energy") {
+        updateEnergySubregions(
+          tabContentEl,
+          state,
+          config,
+          developmentMode,
+          lastSubSigs,
+        );
+      } else if (activeTab === "automation") {
+        updateAutomationSubregions(
+          tabContentEl,
+          state,
+          config,
+          developmentMode,
+          saveSlots,
+          lastSubSigs,
+        );
+      } else {
+        tabContentEl.innerHTML =
+          renderTabContent(
+            activeTab,
+            state,
+            config,
+            developmentMode,
+            saveSlots,
+          ) + (developmentMode ? renderDevelopmentPanel(state) : "");
+      }
+      lastSignatures.tabContent = sigTabContent;
+    }
+
+    // 6. Modals Block
+    if (sigModals !== lastSignatures.modals) {
+      modalsEl.innerHTML = renderModalsContent(state, config);
+      lastSignatures.modals = sigModals;
+    }
+
+    // 7. Dynamic fields (live counters, progress bar widths, button states)
     updateDynamicFields(app, state, config, developmentMode, newsList);
   };
 }

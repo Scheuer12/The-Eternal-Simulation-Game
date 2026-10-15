@@ -5888,214 +5888,1054 @@
     "weight": 80
   },
   {
-    "id": "jupiter_mass_energy",
-    "text": "Jupiter contains roughly 1.7e44 J of rest energy. Matter in the observable universe? Around 1e70 J. Good luck charging that battery.",
-    "category": "ASTROPHYSICS",
-    "rarity": 1,
-    "weight": 100
+    "id": "muon_lifetime",
+    "text": "A muon at rest lives only about 2.2 microseconds on average before decaying.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
   },
   {
-    "id": "sunlight_is_old_news",
-    "text": "Sunlight takes about 8 minutes and 20 seconds to reach Earth. Every sunny day is technically old news.",
-    "category": "ASTROPHYSICS",
-    "rarity": 1,
-    "weight": 100
-  },
-  {
-    "id": "universe_expanding_rent",
-    "text": "The universe is expanding. Your apartment isn't. Cosmology continues to disappoint renters everywhere.",
+    "id": "universe_apartments",
+    "text": "The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...",
     "category": "COSMOLOGY",
     "rarity": 1,
     "weight": 100
   },
   {
-    "id": "quantum_observer",
-    "text": "In quantum physics, 'observation' means physical interaction. Staring at an electron dramatically does not count.",
-    "category": "QUANTUM",
-    "rarity": 1,
-    "weight": 100
-  },
-  {
-    "id": "black_holes_not_vacuums",
-    "text": "Black holes aren't cosmic vacuum cleaners. Replace the Sun with one of equal mass and Earth's orbit stays nearly the same. The weather won't.",
-    "category": "RELATIVITY",
-    "rarity": 1,
-    "weight": 100
-  },
-  {
-    "id": "neutron_star_teaspoon",
-    "text": "A teaspoon of neutron-star material could weigh around a billion tonnes. Please use a reinforced mug.",
-    "category": "ASTROPHYSICS",
-    "rarity": 1,
-    "weight": 100
-  },
-  {
-    "id": "entanglement_no_texting",
-    "text": "Quantum entanglement produces extraordinary correlations. It still can't deliver your messages faster than light.",
-    "category": "QUANTUM",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "cosmic_baby_picture",
-    "text": "The cosmic microwave background is the universe's baby picture: about 2.7 K, 13.8 billion years old, and very pixelated.",
-    "category": "COSMOLOGY",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "neutrinos_no_hello",
-    "text": "Trillions of solar neutrinos pass through you every second. Not one has stopped to say hello.",
-    "category": "PARTICLE PHYSICS",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "space_no_soundtrack",
-    "text": "In a vacuum, nobody can hear you scream. Not because space is scary: sound needs a medium.",
-    "category": "ASTROPHYSICS",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "moon_slow_breakup",
-    "text": "The Moon drifts about 3.8 cm farther from Earth each year. The slowest breakup in recorded history.",
-    "category": "ASTROPHYSICS",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "gps_needs_einstein",
-    "text": "GPS satellites need relativity corrections. Without Einstein, your navigation would drift. 'Turn left at the black hole.'",
-    "category": "RELATIVITY",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "electrons_not_planets",
-    "text": "Electrons aren't tiny planets orbiting tiny suns. Quantum mechanics retired that model decades ago.",
-    "category": "QUANTUM",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "chess_atoms_and_games",
-    "text": "Legal chess positions: about 4.8e44. Atoms in the observable universe: about 1e80. Estimated possible games: 1e120. Checkmate, intuition.",
-    "category": "MATHEMATICS",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "earth_black_hole_size",
-    "text": "Compress Earth into a black hole and its event-horizon radius would be about 9 mm. Pocket-sized catastrophe.",
-    "category": "RELATIVITY",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "free_neutron_clock",
-    "text": "A free neutron survives about 15 minutes on average before decaying. Inside a stable nucleus? Different employment contract.",
-    "category": "PARTICLE PHYSICS",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "sun_mass_to_energy",
-    "text": "The Sun converts roughly 4 million tonnes of mass into energy every second. Still hasn't sent anyone a power bill.",
+    "id": "jupiter_rest_energy",
+    "text": "Jupiter's mass corresponds to roughly 1.7e44 joules of rest energy, using E = mc².",
     "category": "ENERGY",
-    "rarity": 3,
-    "weight": 20
+    "rarity": 2,
+    "weight": 45
   },
   {
-    "id": "old_but_huge_universe",
-    "text": "The universe is about 13.8 billion years old, yet the observable part is about 92 billion light-years across. Expansion is cheating.",
-    "category": "COSMOLOGY",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "white_dwarf_crystal",
-    "text": "Some white dwarfs crystallize as they cool. Turns out the galaxy makes its own enormous, extremely inconvenient diamonds.",
-    "category": "ASTROPHYSICS",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "quantum_tunneling_door",
-    "text": "Quantum tunneling lets particles cross barriers they couldn't clear classically. Sadly, it won't unlock your front door.",
-    "category": "QUANTUM",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "vacuum_is_busy",
-    "text": "Even the lowest-energy quantum vacuum has fluctuations. Apparently, 'nothing' is a full-time job.",
-    "category": "QUANTUM",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "pauli_personal_space",
-    "text": "Two identical electrons can't occupy the same quantum state. The Pauli exclusion principle invented personal space.",
-    "category": "QUANTUM",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "winter_is_going",
-    "text": "The universe is expanding. Does that mean winter is... 'going'? No. Cosmic expansion doesn't stretch Earth's seasons. Nice try.",
-    "category": "COSMOLOGY",
-    "rarity": 4,
-    "weight": 6
-  },
-  {
-    "id": "atoms_vs_browser_tabs",
-    "text": "There are roughly 1e80 atoms in the observable universe. That's also how many browser tabs you think you left open.",
-    "category": "COSMOLOGY",
-    "rarity": 4,
-    "weight": 6
-  },
-  {
-    "id": "almost_flat_universe",
-    "text": "The observable universe is remarkably close to spatially flat. This is a geometry result, not an invitation to start a conspiracy.",
-    "category": "COSMOLOGY",
-    "rarity": 4,
-    "weight": 6
-  },
-  {
-    "id": "hawking_evaporation_wait",
-    "text": "Hawking radiation predicts that black holes slowly evaporate. For a stellar black hole, don't wait up.",
-    "category": "ASTROPHYSICS",
-    "rarity": 4,
-    "weight": 6
-  },
-  {
-    "id": "spooky_peer_review",
-    "text": "Einstein called entanglement 'spooky action at a distance.' The spooky part survived decades of experiments.",
-    "category": "QUANTUM",
-    "rarity": 4,
-    "weight": 6
-  },
-  {
-    "id": "gravitational_time_management",
-    "text": "Time runs slower deeper in a gravitational field. Finally, a scientifically valid excuse for being late. Sort of.",
+    "id": "gps_microseconds",
+    "text": "Relativistic effects make GPS satellite clocks run about 38 microseconds faster per day than clocks on Earth's surface before corrections.",
     "category": "RELATIVITY",
     "rarity": 4,
     "weight": 6
   },
   {
-    "id": "fellowship_of_the_energy",
+    "id": "cosmic_muons_ground",
+    "text": "Many muons created high in Earth's atmosphere reach the ground because relativistic time dilation extends their journey.",
+    "category": "RELATIVITY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "sunlight_travel_time",
+    "text": "Sunlight takes about 8 minutes and 20 seconds to reach Earth.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "sun_rest_energy",
+    "text": "The Sun's mass corresponds to about 1.8e47 joules of rest energy.",
+    "category": "ENERGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "fellowship_energy",
     "text": "Welcome to the Fellowship of the Energy. One CRC to rule them all, one Algorithm Upgrade to reset them.",
     "category": "EASTER EGG",
     "rarity": 5,
     "weight": 1
   },
   {
-    "id": "answer_forty_two",
-    "text": "THE ANSWER IS 42. The question was unfortunately lost during the last cosmic reboot.",
+    "id": "free_neutron_lifetime",
+    "text": "A free neutron lasts about 15 minutes on average before decaying; bound neutrons can remain stable.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "ligo_precision",
+    "text": "Gravitational waves detected at Earth can change distances by a fractional amount of order 1e-21.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "light_speed_vacuum",
+    "text": "Light travels at exactly 299,792,458 meters per second in a vacuum.",
+    "category": "RELATIVITY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "observable_atoms",
+    "text": "A common order-of-magnitude estimate puts the number of atoms in the observable universe near 1e80.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "top_quark_short_life",
+    "text": "The top quark decays so quickly that it usually never forms a bound hadron.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "tau_lepton_lifetime",
+    "text": "The tau lepton survives for roughly 3e-13 seconds on average.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "moon_moves_away",
+    "text": "The Moon is drifting away from Earth by about 3.8 centimeters per year.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "observable_baryonic_rest_energy",
+    "text": "Ordinary matter in the observable universe contains roughly 1e70 joules of rest energy. That is a lot of batteries.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "gravitational_redshift",
+    "text": "Light climbing out of a gravitational well loses frequency, a phenomenon called gravitational redshift.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "strong_force_confinement",
+    "text": "Quarks are confined inside composite particles under ordinary conditions. Pulling them apart creates new particles instead.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "earth_orbital_speed",
+    "text": "Earth travels around the Sun at roughly 30 kilometers per second.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "chess_positions_and_atoms",
+    "text": "Estimated legal chess positions: roughly 4.8e44. Estimated atoms in the observable universe: about 1e80.",
+    "category": "MATHEMATICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "anti_matter_energy",
+    "text": "Annihilating 1 gram of antimatter with 1 gram of matter would release roughly 1.8e14 joules.",
+    "category": "ENERGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "frame_dragging",
+    "text": "Rotating masses slightly drag spacetime around them. Earth does it too, and the effect has been measured.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "solar_granules",
+    "text": "The Sun's visible surface boils with convection cells called granules, often around a thousand kilometers wide.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "one_light_year",
+    "text": "One light-year is a distance, not a time: about 9.46 trillion kilometers.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "shannon_chess_games",
+    "text": "Possible chess games are often estimated on the order of 1e120, far more than the number of legal board positions.",
+    "category": "MATHEMATICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "solar_corona_hotter",
+    "text": "The Sun's corona reaches millions of kelvin, far hotter than the visible surface below it.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "proxima_distance",
+    "text": "The nearest star beyond the Sun, Proxima Centauri, is about 4.24 light-years away.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "crab_pulsar_spin",
+    "text": "The pulsar inside the Crab Nebula rotates about 30 times per second.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "answer_is_42",
+    "text": "The answer is 42. We are still working on the question.",
     "category": "EASTER EGG",
     "rarity": 5,
     "weight": 1
+  },
+  {
+    "id": "solar_cycle",
+    "text": "Solar magnetic activity follows a cycle averaging roughly 11 years, though individual cycles vary.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "light_deflection_eclipse",
+    "text": "The 1919 solar-eclipse expedition helped make Einstein famous by testing gravitational light deflection.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "magnetar_fields",
+    "text": "Magnetars can have magnetic fields around 1e10 to 1e11 tesla, vastly stronger than Earth's.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "solar_core_heat",
+    "text": "Temperatures at the Sun's core reach roughly 15 million kelvin.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "fastest_pulsar",
+    "text": "One of the fastest known pulsars spins around 716 times each second.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "white_dwarf_crystallization",
+    "text": "As white dwarfs cool, portions of their dense interiors can crystallize.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "space_time_not_universal",
+    "text": "There is no single universal 'now' shared by all observers in special relativity.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "solar_power_output",
+    "text": "The Sun radiates about 3.8e26 joules every second.",
+    "category": "ENERGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "sagittarius_a_mass",
+    "text": "Sagittarius A*, the black hole at our galaxy's center, has a mass of about four million Suns.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "white_dwarf_electron_pressure",
+    "text": "Electron degeneracy pressure helps support white dwarfs against gravity.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "light_carries_momentum",
+    "text": "Photons have no rest mass, yet they carry energy and momentum.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "m87_black_hole_mass",
+    "text": "The black hole imaged in M87 has a mass of roughly 6.5 billion Suns.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "neutron_star_neutron_pressure",
+    "text": "Neutron stars resist collapse through dense-matter physics, including degeneracy pressure and nuclear interactions.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "redshift_lookback",
+    "text": "Looking far into space is looking back in time: the most distant galaxies are seen as they were long ago.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "neutron_star_teaspoon",
+    "text": "A teaspoon of neutron-star-density matter could have a mass of billions of tonnes. The teaspoon would not survive.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_observer_myth",
+    "text": "Quantum measurement is a physical interaction. Consciousness is not a required ingredient.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "black_hole_earth_size",
+    "text": "If Earth's mass formed a non-rotating black hole, its Schwarzschild radius would be about 9 millimeters.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "tidal_disruption",
+    "text": "Stars passing too close to supermassive black holes can be torn apart by tidal forces.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "reionization",
+    "text": "Early ultraviolet starlight helped reionize intergalactic hydrogen during the universe's first billion years.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "electron_clouds",
+    "text": "Electrons in atoms are described by quantum states, not tiny planetary orbits.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "solar_mass_loss",
+    "text": "Solar fusion converts around four million tonnes of mass into emitted energy every second.",
+    "category": "ENERGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "black_hole_accretion",
+    "text": "Glowing matter around some black holes can outshine entire galaxies before crossing the event horizon.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "schrodinger_customer_support",
+    "text": "Schrodinger's cat contacted customer support. Ticket status: OPEN / CLOSED.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "black_hole_ringdown",
+    "text": "After two black holes merge, the remnant can ring in gravitational waves as spacetime settles down.",
+    "category": "RELATIVITY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "pauli_exclusion",
+    "text": "Identical electrons cannot occupy the same quantum state in one system.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "blackbody_sun",
+    "text": "The Sun's visible surface is about 5,800 kelvin, much cooler than its core.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "primordial_hydrogen_helium",
+    "text": "Most primordial helium was produced in the universe's first few minutes, not inside stars.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "supermassive_vs_small_tides",
+    "text": "Tidal forces at an event horizon can be milder for a supermassive black hole than for a stellar-mass one.",
+    "category": "RELATIVITY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "uncertainty_not_bad_tools",
+    "text": "The uncertainty principle is built into quantum mechanics; it is not just a problem with measuring devices.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "lightning_temperature",
+    "text": "A lightning channel can briefly reach temperatures hotter than the Sun's visible surface.",
+    "category": "PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "black_hole_shadow",
+    "text": "The dark region in a black-hole image is larger than the event horizon because gravity bends nearby light.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "primordial_neutrino_background",
+    "text": "The Big Bang predicts a relic neutrino background; its effects are inferred, but individual relic neutrinos remain undetected.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "space_not_empty",
+    "text": "The cosmic voids contain far fewer galaxies than filaments, but they are not perfectly empty.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_tunneling_intro",
+    "text": "Quantum tunneling allows particles to cross barriers that classical physics would forbid.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "solar_neutrinos",
+    "text": "Trillions of neutrinos from the Sun pass through your body every second.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cmb_first_atoms",
+    "text": "The cosmic microwave background was released when the universe became transparent, around 380,000 years after the Big Bang.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "entanglement_no_faster_messages",
+    "text": "Entanglement creates correlations, but it cannot send usable messages faster than light.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "neutrino_flavors",
+    "text": "Neutrinos come in three known flavors: electron, muon, and tau.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cmb_photon_density",
+    "text": "Even now, each cubic centimeter of space contains roughly 400 cosmic microwave background photons.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_evaporation",
+    "text": "Hawking's theory predicts black-hole evaporation, but direct detection of Hawking radiation from astrophysical black holes remains elusive.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "wave_particle_interference",
+    "text": "Even single electrons can build up an interference pattern when sent through a double slit.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "neutrino_oscillation",
+    "text": "Neutrinos can change flavor while traveling. Their oscillations show that neutrinos have mass.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "dark_matter_fraction",
+    "text": "Dark matter accounts for roughly 27% of the universe's energy budget in the standard cosmological model.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "chess_vs_universe",
+    "text": "There may be more possible chess games than atoms in the observable universe. Still no excuse for hanging your queen.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "dark_energy_fraction",
+    "text": "Dark energy accounts for roughly 68% of the universe's energy budget in the standard cosmological model.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "small_black_hole_evaporation",
+    "text": "Smaller black holes should emit Hawking radiation more intensely than larger ones.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "sound_needs_matter",
+    "text": "Sound needs a medium. In the vacuum of space, an ordinary scream makes no sound.",
+    "category": "PHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quarks_fractional_charge",
+    "text": "Quarks carry fractional electric charges, such as +2/3 or -1/3 of the proton's charge.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "dark_matter_lensing",
+    "text": "Astronomers can map dark matter indirectly from the gravitational lensing it produces.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_gravity",
+    "text": "A black hole does not pull from afar more strongly than any other object with the same mass.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "proton_mass_origin",
+    "text": "Most of the proton's mass comes from strong-interaction energy, not directly from the Higgs mechanism.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cosmic_expansion_superluminal",
+    "text": "Space can expand so that very distant galaxies recede faster than light without violating local relativity.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_information",
+    "text": "Whether black-hole evaporation preserves information is one of the deepest questions in quantum gravity.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "cosmic_horizon_not_edge",
+    "text": "The observable universe has a horizon, but that horizon is not necessarily the edge of the entire universe.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_horizon",
+    "text": "An event horizon is a boundary in spacetime, not a solid shell around a black hole.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "higgs_discovery",
+    "text": "The Higgs boson was discovered at CERN in 2012, decades after it was predicted.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "space_flatness",
+    "text": "Observations indicate that the universe is very close to spatially flat on large scales.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "event_horizon_local",
+    "text": "An astronaut crossing a sufficiently large black hole's event horizon need not notice anything special at that exact boundary.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "night_sky_dark",
+    "text": "The night sky is dark partly because the universe has a finite age and cosmic light is redshifted.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quantum_spin",
+    "text": "Electron spin is intrinsic quantum angular momentum, not a tiny sphere literally spinning in space.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cosmic_inflation",
+    "text": "Cosmic inflation is a leading hypothesis for an extremely rapid expansion in the universe's earliest moments.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_hall",
+    "text": "The quantum Hall effect produces extraordinarily precise steps in electrical conductance.",
+    "category": "CONDENSED MATTER",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "cosmic_background_temp",
+    "text": "The cosmic microwave background fills space at a temperature of about 2.725 kelvin.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quantum_teleportation",
+    "text": "Quantum teleportation transfers a quantum state using entanglement and classical communication. It does not teleport matter.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "architect_coffee",
+    "text": "The architect of the simulation requested one coffee. The request spawned twelve additional universes.",
+    "category": "DEEP LORE",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "negative_absolute_temperature",
+    "text": "Special systems with bounded energies can have negative absolute temperatures; they are hotter than any positive temperature.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "casimir_force",
+    "text": "Conducting surfaces placed very close together can experience a measurable Casimir force.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "universe_age",
+    "text": "The universe is approximately 13.8 billion years old.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quantum_decoherence",
+    "text": "Interactions with the environment can suppress quantum interference through decoherence.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "lamb_shift",
+    "text": "Tiny shifts in hydrogen's energy levels helped reveal the importance of quantum electrodynamics.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "boltzmann_entropy",
+    "text": "Boltzmann's equation S = k ln W links thermodynamic entropy to the number of microscopic arrangements.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "earth_age",
+    "text": "Earth formed around 4.54 billion years ago, long after the earliest stars.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "superconductors",
+    "text": "Below a critical temperature, superconductors can carry steady electric current without electrical resistance.",
+    "category": "CONDENSED MATTER",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "quantum_zeno",
+    "text": "Under suitable conditions, repeated quantum measurements can inhibit a system's evolution: the quantum Zeno effect.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_eraser",
+    "text": "Quantum-eraser experiments probe how available which-path information affects interference, without changing the past.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "observable_universe_width",
+    "text": "The observable universe is about 92 billion light-years across, despite being only 13.8 billion years old.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "meissner_effect",
+    "text": "Superconductors expel magnetic fields from their interior in the Meissner effect.",
+    "category": "CONDENSED MATTER",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "bell_inequalities",
+    "text": "Experiments violating Bell inequalities challenge local hidden-variable explanations under Bell's assumptions.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "maxwell_demon",
+    "text": "Maxwell's demon challenges thermodynamics with a sorting trick. Information processing brings the entropy bill back.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "ordinary_matter_fraction",
+    "text": "Ordinary matter makes up only about 5% of the universe's total energy budget.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "helium_superfluid",
+    "text": "Superfluid helium can creep along surfaces in an astonishingly thin film.",
+    "category": "CONDENSED MATTER",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "no_cloning",
+    "text": "The no-cloning theorem says an arbitrary unknown quantum state cannot be copied perfectly.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "spin_half_rotation",
+    "text": "A spin-1/2 state can require a 720-degree rotation to return to its original quantum phase.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "neutron_star_size",
+    "text": "A neutron star can pack more than the Sun's mass into a sphere roughly 20 kilometers across.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "bec_intro",
+    "text": "In a Bose-Einstein condensate, many atoms can occupy the same quantum state.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "landauer_limit",
+    "text": "Erasing one bit of information has a minimum heat cost of kT ln 2 in an idealized irreversible operation.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "cosmic_winter_joke",
+    "text": "The universe is expanding. Does that mean winter is... going?",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "quantum_vacuum",
+    "text": "Even a quantum field's lowest-energy state can have nonzero fluctuations.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "white_dwarf_future",
+    "text": "The Sun is expected to finish its stellar life as a white dwarf.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "first_gravitational_waves",
+    "text": "The first direct gravitational-wave detection came from merging black holes in 2015.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "uncertainty_energy_time",
+    "text": "Energy-time uncertainty is subtler than position-momentum uncertainty: time is usually a parameter, not an operator.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "false_vacuum",
+    "text": "Vacuum metastability is a theoretical possibility in quantum field theory; it is not an observed countdown to catastrophe.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "photon_frequency_energy",
+    "text": "A photon's energy is proportional to its frequency: E = h f.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "stars_blue_hotter",
+    "text": "Blue stars are generally hotter at the surface than red stars.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "gravitational_lens",
+    "text": "Gravity bends light. A massive galaxy can act like a giant lens for objects behind it.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "planck_constant",
+    "text": "The Planck constant is exactly 6.62607015e-34 joule-seconds in the modern SI definition.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "the_moon_rotates",
+    "text": "The Moon rotates once per orbit, which is why nearly the same face points toward Earth.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "mercury_precession",
+    "text": "General relativity explains an extra 43 arcseconds per century in Mercury's orbital precession.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "quantum_fields_all_space",
+    "text": "In quantum field theory, fields extend through spacetime; particles are excitations of those fields.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "elementary_charge",
+    "text": "The magnitude of an electron's charge is exactly 1.602176634e-19 coulombs in the modern SI definition.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "carbon_fourteen",
+    "text": "Carbon-14 has a half-life of about 5,730 years, making it useful for dating once-living material.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "hubble_tension",
+    "text": "Different methods of estimating the universe's expansion rate still give results in tension.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "bohr_radius",
+    "text": "The Bohr radius is about 5.29e-11 meters, a useful atomic length scale despite the limits of the Bohr model.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "entropy_time_arrow",
+    "text": "The thermodynamic arrow of time is tied to the growth of entropy in macroscopic systems.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "hydrogen_spectral_lines",
+    "text": "Hydrogen emits specific spectral lines because its electronic energy levels are quantized.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "absolute_zero",
+    "text": "Absolute zero is 0 kelvin, equivalent to -273.15 degrees Celsius.",
+    "category": "THERMODYNAMICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "cosmic_web",
+    "text": "Galaxies trace a cosmic web of filaments, clusters, and enormous voids.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "entropy_no_refunds",
+    "text": "Entropy always increases. Terms and conditions apply. No refunds.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "nuclear_binding_iron",
+    "text": "Fusion of light nuclei generally releases energy, but fusing nuclei beyond the iron region no longer helps power ordinary stars.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "energy_mass_equivalence",
+    "text": "E = mc² means even a small amount of mass corresponds to an enormous amount of energy.",
+    "category": "RELATIVITY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "rogue_planets",
+    "text": "Some planets drift through the galaxy without orbiting any star.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "nuclear_decay_random",
+    "text": "Radioactive decay is unpredictable for any one nucleus, yet statistically reliable across enormous populations.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "baryogenesis_unknown",
+    "text": "Physics has not yet fully explained why the observable universe contains so much more matter than antimatter.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "neutron_moderation",
+    "text": "Water can slow fast neutrons in certain nuclear reactors, changing how likely they are to trigger fission.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "gps_relativistic",
+    "text": "GPS satellites must correct for relativity or their timing would drift far too quickly.",
+    "category": "RELATIVITY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "exoplanet_transit",
+    "text": "An exoplanet passing in front of its star can cause a tiny, measurable dip in starlight.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "fermi_dirac_vs_bose",
+    "text": "Fermions obey exclusion rules, while bosons can share quantum states in large numbers.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "cosmic_rays_extreme",
+    "text": "The most energetic cosmic rays detected carry particle energies around 1e20 electronvolts.",
+    "category": "ASTROPHYSICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "space_is_expanding",
+    "text": "Cosmic expansion increases distances between many distant galaxies, not the size of atoms or your coffee cup.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "science_clock_height",
+    "text": "A clock at higher altitude ticks slightly faster than a similar clock deeper in Earth's gravitational field.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "quantum_computing_limits",
+    "text": "Quantum computers exploit interference and entanglement; they do not simply try every answer and read out the best one.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
   }
 ];
 
@@ -11609,28 +12449,32 @@ function getTabIndicators(tabId, state, config) {
   };
 }
 
-function renderTabBar(state, config) {
+function renderTabBarContent(state, config) {
   const activeTab = getActiveTab(state, config);
 
+  return TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
+    .map((tab) => {
+      const indicators = getTabIndicators(tab.id, state, config);
+      return `
+        <button
+          class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
+          data-action="set-tab"
+          data-tab="${tab.id}"
+          type="button"
+        >
+          <span>${tab.label}</span>
+          ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
+          ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderTabBar(state, config) {
   return `
-    <nav class="tabbar" aria-label="Facility sections">
-      ${TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
-        .map((tab) => {
-          const indicators = getTabIndicators(tab.id, state, config);
-          return `
-            <button
-              class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
-              data-action="set-tab"
-              data-tab="${tab.id}"
-              type="button"
-            >
-              <span>${tab.label}</span>
-              ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
-              ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
-            </button>
-          `;
-        })
-        .join("")}
+    <nav class="tabbar" data-region="tabbar" aria-label="Facility sections">
+      ${renderTabBarContent(state, config)}
     </nav>
   `;
 }
@@ -12060,33 +12904,39 @@ function renderCrcBriefing() {
   `;
 }
 
-function renderHeader(state, developmentMode) {
+function renderHeaderContent(state, developmentMode) {
   const showRestoreNews = Boolean(state.ui?.newsDismissed);
 
   return `
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">THE ETERNAL SIMULATION</p>
-        <h1>Facility Control</h1>
-      </div>
-      <div class="topbar__actions">
-        ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
-        ${
-          developmentMode
-            ? button("Exit dev", "exit-dev-mode", { variant: "text" })
-            : button("Dev mode", "enter-dev-mode", { variant: "text" })
-        }
-        ${
-          showRestoreNews
-            ? button("News Feed", "restore-news-section", {
-                variant: "text",
-                className: "button--news-toggle",
-              })
-            : ""
-        }
-        ${button("Save now", "save-now", { variant: "text" })}
-        ${button("Reset current", "reset-current-save", { variant: "text" })}
-      </div>
+    <div>
+      <p class="eyebrow">THE ETERNAL SIMULATION</p>
+      <h1>Facility Control</h1>
+    </div>
+    <div class="topbar__actions">
+      ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
+      ${
+        developmentMode
+          ? button("Exit dev", "exit-dev-mode", { variant: "text" })
+          : button("Dev mode", "enter-dev-mode", { variant: "text" })
+      }
+      ${
+        showRestoreNews
+          ? button("News Feed", "restore-news-section", {
+              variant: "text",
+              className: "button--news-toggle",
+            })
+          : ""
+      }
+      ${button("Save now", "save-now", { variant: "text" })}
+      ${button("Reset current", "reset-current-save", { variant: "text" })}
+    </div>
+  `;
+}
+
+function renderHeader(state, developmentMode) {
+  return `
+    <header class="topbar" data-region="header">
+      ${renderHeaderContent(state, developmentMode)}
     </header>
   `;
 }
@@ -13896,99 +14746,94 @@ function renderDeviceGroup(group, content) {
   `;
 }
 
-function renderEnergyTab(state, config, developmentMode) {
-  const storageDevices = `
-    <div class="energy-storage-section">
-      <div class="energy-storage-header">
-        <span class="muted">Expand facility capacity to avoid overflow decay.</span>
-        ${renderBuyModeSelector(state)}
-      </div>
-      <div class="energy-storage-grid">
-        ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
-        ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
-      </div>
+function renderEnergyStorageSection(state, config) {
+  return `
+    <div class="energy-storage-header">
+      <span class="muted">Expand facility capacity to avoid overflow decay.</span>
+      ${renderBuyModeSelector(state)}
+    </div>
+    <div class="energy-storage-grid">
+      ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
+      ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
     </div>
   `;
+}
 
+function renderEnergyCascadeSection(state, config, developmentMode) {
   const upgradeRendered = renderAlgorithmUpgrade(state, config);
-  const currentBonus = calculateImprovementBonus(
-    state.improvements,
-    config,
-    state.calculationMethods,
-  );
   const upgradeBonus = 2 ** state.upgrades;
 
-  const cascadeContent = `
-    <div class="cascade-flow">
-      <div class="cascade-stage cascade-stage--crc">
-        ${renderCrcDevice(state, config, developmentMode)}
-        ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
-        ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
-      </div>
+  return `
+    <div class="cascade-stage cascade-stage--crc">
+      ${renderCrcDevice(state, config, developmentMode)}
+      ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
+      ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
+    </div>
 
-      <div class="cascade-conduit" aria-hidden="true">
+    <div class="cascade-conduit" aria-hidden="true">
+      <div class="cascade-conduit__line"></div>
+      <div class="cascade-conduit__node">
+        <span class="cascade-conduit__icon">▼</span>
+        <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
+        <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
+      </div>
+      <div class="cascade-conduit__line"></div>
+    </div>
+
+    <div class="cascade-stage cascade-stage--study">
+      ${renderStudy(state, config, developmentMode)}
+    </div>
+
+    ${
+      upgradeRendered.trim()
+        ? `
+      <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
         <div class="cascade-conduit__line"></div>
         <div class="cascade-conduit__node">
           <span class="cascade-conduit__icon">▼</span>
-          <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-          <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
+          <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
+          <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
         </div>
         <div class="cascade-conduit__line"></div>
       </div>
 
-      <div class="cascade-stage cascade-stage--study">
-        ${renderStudy(state, config, developmentMode)}
+      <div class="cascade-stage cascade-stage--upgrade">
+        ${upgradeRendered}
       </div>
-
-      ${
-        upgradeRendered.trim()
-          ? `
-        <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
-          <div class="cascade-conduit__line"></div>
-          <div class="cascade-conduit__node">
-            <span class="cascade-conduit__icon">▼</span>
-            <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
-            <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
-          </div>
-          <div class="cascade-conduit__line"></div>
-        </div>
-
-        <div class="cascade-stage cascade-stage--upgrade">
-          ${upgradeRendered}
-        </div>
-      `
-          : ""
-      }
-    </div>
-  `;
-
-  const resetCards = `
-    <div class="reset-routes-grid">
-      ${renderCalculationMethod(state, config)}
-      ${renderSetupOptimization(state, config)}
-    </div>
-  `;
-
-  const labReadable = canAccessParticleLab(state, config);
-  const labContent = labReadable
-    ? `
-      <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">PARTICLE LABORATORY</p>
-            <h2>Laboratory Threshold</h2>
-          </div>
-          <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
-        </div>
-        <div class="section-stack">
-          ${renderParticleLabDetails(state, config)}
-        </div>
-      </section>
     `
-    : "";
+        : ""
+    }
+  `;
+}
 
+function renderEnergyResetsSection(state, config) {
   return `
-    ${renderTabTools(state)}
+    ${renderCalculationMethod(state, config)}
+    ${renderSetupOptimization(state, config)}
+  `;
+}
+
+function renderEnergyLabSection(state, config) {
+  if (!canAccessParticleLab(state, config)) return "";
+  return `
+    <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
+      <div class="device-group__heading">
+        <div>
+          <p class="panel__label">PARTICLE LABORATORY</p>
+          <h2>Laboratory Threshold</h2>
+        </div>
+        <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
+      </div>
+      <div class="section-stack">
+        ${renderParticleLabDetails(state, config)}
+      </div>
+    </section>
+  `;
+}
+
+function renderEnergyTab(state, config, developmentMode) {
+  return `
+    <div data-subregion="energy-tools">${renderTabTools(state)}</div>
     <div class="tab-grid energy-tab-layout">
       <section class="tab-main-column">
         <section class="energy-section" aria-label="Energy Storage">
@@ -13999,7 +14844,11 @@ function renderEnergyTab(state, config, developmentMode) {
             </div>
             <p>Power Cells preserve energy across Setup Optimizations; Power Modules scale bulk capacity.</p>
           </div>
-          <div class="section-stack">${storageDevices}</div>
+          <div class="section-stack">
+            <div class="energy-storage-section" data-subregion="energy-storage">
+              ${renderEnergyStorageSection(state, config)}
+            </div>
+          </div>
         </section>
 
         <section class="energy-section" aria-label="Energy Production Cascade">
@@ -14010,7 +14859,11 @@ function renderEnergyTab(state, config, developmentMode) {
             </div>
             <p>CRCs harvest cosmic radiation, amplified by refined calculation algorithms.</p>
           </div>
-          <div class="section-stack">${cascadeContent}</div>
+          <div class="section-stack">
+            <div class="cascade-flow" data-subregion="energy-cascade">
+              ${renderEnergyCascadeSection(state, config, developmentMode)}
+            </div>
+          </div>
         </section>
 
         <section class="energy-section" aria-label="Breakthroughs and Reset Routes">
@@ -14021,12 +14874,39 @@ function renderEnergyTab(state, config, developmentMode) {
             </div>
             <p>Soft and hard resets that reconfigure facility architecture for long-term growth.</p>
           </div>
-          <div class="section-stack">${resetCards}</div>
+          <div class="section-stack">
+            <div class="reset-routes-grid" data-subregion="energy-resets">
+              ${renderEnergyResetsSection(state, config)}
+            </div>
+          </div>
         </section>
 
-        ${labContent}
+        <div data-subregion="energy-lab">
+          ${renderEnergyLabSection(state, config)}
+        </div>
       </section>
+
+      <aside class="tab-sidebar">
+        ${renderTelemetry(state, config, developmentMode)}
+        ${renderRecord()}
+      </aside>
     </div>
+  `;
+}
+
+function renderComputationalDevicesSection(state, config, developmentMode) {
+  return `
+    ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
+    ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
+    ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
+    ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
+  `;
+}
+
+function renderInstrumentationSection(state, config) {
+  return `
+    ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
+    ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
   `;
 }
 
@@ -14065,22 +14945,6 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
         }</strong>
       </div>
     </article>
-  `;
-
-  const computationalDevices = `
-    <div class="computational-devices-stack">
-      ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
-      ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
-      ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
-      ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
-    </div>
-  `;
-
-  const instrumentationDevices = `
-    <div class="instrumentation-stack">
-      ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
-      ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
-    </div>
   `;
 
   const unlockedAutomations = listUnlockedAutomations(state);
@@ -14162,15 +15026,17 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
         </div>
       </article>
       ${renderLog(state)}
-      ${renderSaveManagement(saveSlots, developmentMode)}
+      <div data-subregion="auto-save">
+        ${renderSaveManagement(saveSlots, developmentMode)}
+      </div>
     </div>
   `;
 
   return `
-    ${renderTabTools(state)}
+    <div data-subregion="auto-tools">${renderTabTools(state)}</div>
     <div class="tab-grid">
       <section class="tab-main-column">
-        ${fleetSummary}
+        <div data-subregion="auto-fleet">${fleetSummary}</div>
         <section class="device-group" aria-label="Computational Devices">
           <div class="device-group__heading">
             <div>
@@ -14179,7 +15045,11 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
             </div>
             <p>Calculators and processors accelerate study throughput and automate routine operations.</p>
           </div>
-          <div class="section-stack">${computationalDevices}</div>
+          <div class="section-stack">
+            <div class="computational-devices-stack" data-subregion="auto-compute">
+              ${renderComputationalDevicesSection(state, config, developmentMode)}
+            </div>
+          </div>
         </section>
 
         <section class="device-group" aria-label="Instrumentation & Displays">
@@ -14190,7 +15060,11 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
             </div>
             <p>Diagnostic modules that unlock purchase controls and detailed energy telemetry.</p>
           </div>
-          <div class="section-stack">${instrumentationDevices}</div>
+          <div class="section-stack">
+            <div class="instrumentation-stack" data-subregion="auto-instrumentation">
+              ${renderInstrumentationSection(state, config)}
+            </div>
+          </div>
         </section>
 
         <section class="device-group" aria-label="Automations">
@@ -14201,7 +15075,9 @@ function renderAutomationTab(state, config, developmentMode, saveSlots) {
             </div>
             <p>Background routines unlocked through study and scientific advancement.</p>
           </div>
-          <div class="section-stack">${automationsContent}</div>
+          <div class="section-stack">
+            <div data-subregion="auto-routines">${automationsContent}</div>
+          </div>
         </section>
       </section>
 
@@ -14932,7 +15808,7 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     devShowNews: state.ui?.devShowNews ?? false,
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
-    saveSlots,
+    saveSlots: saveSlots?.map((s) => [s.key, s.exists]),
   });
 }
 
@@ -15303,6 +16179,14 @@ function updateDynamicFields(
   updateInteractiveElements(app, state, config);
 }
 
+function renderModalsContent(state, config) {
+  return `
+    ${renderResetConfirmationModal(state, config)}
+    ${renderHistoryReadingModal(state)}
+    ${renderParticleSynthesisModal(state, config)}
+  `;
+}
+
 function renderGame(
   state,
   config,
@@ -15315,22 +16199,214 @@ function renderGame(
 
   return `
     ${renderHeader(state, developmentMode)}
-    ${showNews ? renderNewsSection(state, newsList) : ""}
+    <div class="news-region-slot" data-region="news">
+      ${showNews ? renderNewsSection(state, newsList) : ""}
+    </div>
     ${renderTabBar(state, config)}
-    <section class="operation-focus" aria-label="Power and production focus">
+    <section class="operation-focus" data-region="hud" aria-label="Power and production focus">
       ${renderGlobalHUD(state, config, developmentMode)}
     </section>
-    <section class="tab-content tab-content--${activeTab}" aria-label="${activeTab}">
+    <section class="tab-content tab-content--${activeTab}" data-region="tab-content" aria-label="${activeTab}">
       ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
       ${developmentMode ? renderDevelopmentPanel(state) : ""}
     </section>
-    ${renderResetConfirmationModal(state, config)}
-    ${renderHistoryReadingModal(state)}
-    ${renderParticleSynthesisModal(state, config)}
+    <div class="modals-region-slot" data-region="modals">
+      ${renderModalsContent(state, config)}
+    </div>
   `;
 }
 
 const renderEnergy = renderGlobalHUD;
+
+function getTabContentSignature(
+  activeTab,
+  state,
+  config,
+  developmentMode,
+  saveSlots,
+) {
+  if (activeTab === "energy") {
+    return JSON.stringify({
+      tab: "energy",
+      developmentMode,
+      buyMode: state.ui?.buyMode ?? "1",
+      hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+      powerCells: state.powerCells,
+      powerModules: state.powerModules,
+      crcCount: state.crcCount,
+      upgrades: state.upgrades,
+      calculationMethods: state.calculationMethods,
+      setupOptimizations: state.setupOptimizations,
+      crcBlueprint: state.discoveries.crcBlueprint,
+      blueprintActive: state.blueprintStudy.active,
+      constructionActive: state.construction.active,
+      algUpgradeActive: state.algorithmUpgradeStudy.active,
+      labReadable: canAccessParticleLab(state, config),
+      synthesizerActivated: state.particleSynthesizer.activated,
+      pcVis: evaluateComponent("powerCell", state, config).visible,
+      pmVis: evaluateComponent("powerModule", state, config).visible,
+      crcVis: evaluateComponent("crcBlueprint", state, config).visible,
+      constVis: evaluateComponent("crcConstruction", state, config).visible,
+      upgVis: evaluateComponent("algorithmUpgrade", state, config).visible,
+      cmuVis: evaluateComponent("calculationMethodUpgrade", state, config).visible,
+      setupVis: evaluateComponent("setupOptimization", state, config).visible,
+    });
+  }
+
+  if (activeTab === "automation") {
+    return JSON.stringify({
+      tab: "automation",
+      developmentMode,
+      buyMode: state.ui?.buyMode ?? "1",
+      hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+      autoCalculators: state.devices.autoCalculators,
+      processors: state.devices.processors,
+      overclockers: state.devices.overclockers,
+      overclockerActive: state.overclocker.active,
+      softDataDisplay: state.devices.softDataDisplay,
+      t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
+      overclockerBlueprint: state.discoveries.overclockerBlueprint,
+      overclockerBlueprintActive: state.overclockerBlueprintStudy?.active ?? false,
+      automations: state.automations ?? {},
+      slots: saveSlots?.map((s) => [s.key, s.exists]),
+    });
+  }
+
+  if (activeTab === "science") {
+    return JSON.stringify({
+      tab: "science",
+      sciencePoints: state.sciencePoints,
+      perks: state.science?.perks ?? {},
+      revealed: state.science?.revealedPerks ?? {},
+      subtab: state.ui?.activeScienceSubtab ?? "tree",
+      treeZoom: state.ui?.treeZoom ?? 1.0,
+      selectedPerkId: state.ui?.selectedSciencePerkId ?? null,
+      quarks: state.quarks?.available ?? 0,
+      quarkCages: state.scienceDevices?.quarkCages ?? 0,
+      fiftyG: state.science?.fiftyGCalculator ?? false,
+      syntheses: state.science?.syntheses ?? 0,
+    });
+  }
+
+  if (activeTab === "history") {
+    return JSON.stringify({
+      tab: "history",
+      historyLen: state.history?.length ?? 0,
+      filter: state.ui?.historyFilter ?? "all",
+    });
+  }
+
+  return JSON.stringify({ tab: activeTab, developmentMode });
+}
+
+function updateEnergySubregions(
+  tabContentEl,
+  state,
+  config,
+  devMode,
+  lastSubSigs,
+) {
+  const storageSig = JSON.stringify({
+    buyMode: state.ui?.buyMode ?? "1",
+    powerCells: state.powerCells,
+    powerModules: state.powerModules,
+    pcVis: evaluateComponent("powerCell", state, config).visible,
+    pmVis: evaluateComponent("powerModule", state, config).visible,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+  });
+  if (storageSig !== lastSubSigs.energyStorage) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-storage"]');
+    if (el) el.innerHTML = renderEnergyStorageSection(state, config);
+    lastSubSigs.energyStorage = storageSig;
+  }
+
+  const cascadeSig = JSON.stringify({
+    upgrades: state.upgrades,
+    crcCount: state.crcCount,
+    crcBlueprint: state.discoveries.crcBlueprint,
+    overclockerBlueprint: state.discoveries.overclockerBlueprint,
+    blueprintActive: state.blueprintStudy.active,
+    constructionActive: state.construction.active,
+    algUpgradeActive: state.algorithmUpgradeStudy.active,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+    crcVis: evaluateComponent("crcBlueprint", state, config).visible,
+    constVis: evaluateComponent("crcConstruction", state, config).visible,
+    upgVis: evaluateComponent("algorithmUpgrade", state, config).visible,
+  });
+  if (cascadeSig !== lastSubSigs.energyCascade) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-cascade"]');
+    if (el) el.innerHTML = renderEnergyCascadeSection(state, config, devMode);
+    lastSubSigs.energyCascade = cascadeSig;
+  }
+
+  const resetsSig = JSON.stringify({
+    calculationMethods: state.calculationMethods,
+    setupOptimizations: state.setupOptimizations,
+    upgrades: state.upgrades,
+    cmuVis: evaluateComponent("calculationMethodUpgrade", state, config).visible,
+    setupVis: evaluateComponent("setupOptimization", state, config).visible,
+  });
+  if (resetsSig !== lastSubSigs.energyResets) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-resets"]');
+    if (el) el.innerHTML = renderEnergyResetsSection(state, config);
+    lastSubSigs.energyResets = resetsSig;
+  }
+
+  const labSig = JSON.stringify({
+    labReadable: canAccessParticleLab(state, config),
+    synthesizerActivated: state.particleSynthesizer.activated,
+  });
+  if (labSig !== lastSubSigs.energyLab) {
+    const el = tabContentEl.querySelector('[data-subregion="energy-lab"]');
+    if (el) el.innerHTML = renderEnergyLabSection(state, config);
+    lastSubSigs.energyLab = labSig;
+  }
+}
+
+function updateAutomationSubregions(
+  tabContentEl,
+  state,
+  config,
+  devMode,
+  saveSlots,
+  lastSubSigs,
+) {
+  const computeSig = JSON.stringify({
+    buyMode: state.ui?.buyMode ?? "1",
+    autoCalculators: state.devices.autoCalculators,
+    processors: state.devices.processors,
+    overclockers: state.devices.overclockers,
+    overclockerBlueprint: state.discoveries.overclockerBlueprint,
+    overclockerBlueprintActive: state.overclockerBlueprintStudy?.active ?? false,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+  });
+  if (computeSig !== lastSubSigs.autoCompute) {
+    const el = tabContentEl.querySelector('[data-subregion="auto-compute"]');
+    if (el) el.innerHTML = renderComputationalDevicesSection(state, config, devMode);
+    lastSubSigs.autoCompute = computeSig;
+  }
+
+  const instSig = JSON.stringify({
+    softDataDisplay: state.devices.softDataDisplay,
+    t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
+    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
+  });
+  if (instSig !== lastSubSigs.autoInstrumentation) {
+    const el = tabContentEl.querySelector('[data-subregion="auto-instrumentation"]');
+    if (el) el.innerHTML = renderInstrumentationSection(state, config);
+    lastSubSigs.autoInstrumentation = instSig;
+  }
+
+  const saveSig = JSON.stringify({
+    slots: saveSlots?.map((s) => [s.key, s.exists]),
+    devMode,
+  });
+  if (saveSig !== lastSubSigs.autoSave) {
+    const el = tabContentEl.querySelector('[data-subregion="auto-save"]');
+    if (el) el.innerHTML = renderSaveManagement(saveSlots, devMode);
+    lastSubSigs.autoSave = saveSig;
+  }
+}
 
 function createRenderer(
   app,
@@ -15339,9 +16415,35 @@ function createRenderer(
   getSaveSlots = () => [],
   newsList = DEFAULT_NEWS,
 ) {
-  let lastRenderSignature = "";
   let pointerIsDown = false;
   let deferredRender = false;
+  let lastActiveTab = null;
+
+  const lastSignatures = {
+    header: "",
+    news: "",
+    tabbar: "",
+    hud: "",
+    tabContent: "",
+    modals: "",
+    overall: "",
+  };
+
+  const lastSubSigs = {
+    energyStorage: "",
+    energyCascade: "",
+    energyResets: "",
+    energyLab: "",
+    autoCompute: "",
+    autoInstrumentation: "",
+    autoSave: "",
+  };
+
+  function resetSubSigs() {
+    for (const key of Object.keys(lastSubSigs)) {
+      lastSubSigs[key] = "";
+    }
+  }
 
   app.addEventListener(
     "pointerdown",
@@ -15364,28 +16466,6 @@ function createRenderer(
   app.addEventListener("pointercancel", finishPointerInteraction, true);
 
   return function render(state) {
-    const saveSlots = getSaveSlots();
-    const signature = createRenderSignature(
-      state,
-      config,
-      developmentMode,
-      saveSlots,
-    );
-
-    if (signature === lastRenderSignature) {
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
-    }
-
-    if (pointerIsDown) {
-      deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
-    }
-
-    lastRenderSignature = signature;
-    deferredRender = false;
-
     if (state.introState === "choice") {
       app.innerHTML = renderIntro();
       return;
@@ -15401,13 +16481,196 @@ function createRenderer(
       return;
     }
 
-    app.innerHTML = renderGame(
+    const saveSlots = getSaveSlots();
+    const activeTab = getActiveTab(state, config);
+
+    const sigHeader = JSON.stringify({
+      developmentMode,
+      newsDismissed: Boolean(state.ui?.newsDismissed),
+    });
+
+    const showNews = !state.ui?.newsDismissed;
+    const sigNews = JSON.stringify({
+      showNews,
+      currentNewsId: state.ui?.currentNewsId,
+    });
+
+    const sigTabBar = JSON.stringify({
+      activeTab,
+      tabs: TAB_DEFINITIONS.filter((t) => isTabVisible(t, state, config)).map(
+        (t) => [t.id, getTabIndicators(t.id, state, config)],
+      ),
+    });
+
+    const sigHud = JSON.stringify({
+      developmentMode,
+      softDataDisplay: Boolean(state.devices?.softDataDisplay),
+      phase: (state.science?.syntheses ?? 0) > 0,
+      milestoneTab: calculateNextMilestone(state, config).tab,
+    });
+
+    const sigModals = JSON.stringify({
+      resetModal: state.ui?.resetModal ?? null,
+      historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
+      particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
+    });
+
+    const sigTabContent = getTabContentSignature(
+      activeTab,
       state,
       config,
       developmentMode,
       saveSlots,
-      newsList,
     );
+
+    const headerEl = app.querySelector
+      ? app.querySelector('[data-region="header"]')
+      : null;
+    const newsEl = app.querySelector
+      ? app.querySelector('[data-region="news"]')
+      : null;
+    const tabbarEl = app.querySelector
+      ? app.querySelector('[data-region="tabbar"]')
+      : null;
+    const hudEl = app.querySelector
+      ? app.querySelector('[data-region="hud"]')
+      : null;
+    const tabContentEl = app.querySelector
+      ? app.querySelector('[data-region="tab-content"]')
+      : null;
+    const modalsEl = app.querySelector
+      ? app.querySelector('[data-region="modals"]')
+      : null;
+
+    const shellMounted = Boolean(
+      headerEl && newsEl && tabbarEl && hudEl && tabContentEl && modalsEl,
+    );
+
+    if (!shellMounted) {
+      const overallSig = createRenderSignature(
+        state,
+        config,
+        developmentMode,
+        saveSlots,
+      );
+
+      if (overallSig === lastSignatures.overall) {
+        updateDynamicFields(app, state, config, developmentMode, newsList);
+        return;
+      }
+
+      if (pointerIsDown) {
+        deferredRender = { state };
+        updateDynamicFields(app, state, config, developmentMode, newsList);
+        return;
+      }
+
+      lastSignatures.overall = overallSig;
+      lastSignatures.header = sigHeader;
+      lastSignatures.news = sigNews;
+      lastSignatures.tabbar = sigTabBar;
+      lastSignatures.hud = sigHud;
+      lastSignatures.tabContent = sigTabContent;
+      lastSignatures.modals = sigModals;
+      lastActiveTab = activeTab;
+      resetSubSigs();
+      deferredRender = false;
+
+      app.innerHTML = renderGame(
+        state,
+        config,
+        developmentMode,
+        saveSlots,
+        newsList,
+      );
+      updateDynamicFields(app, state, config, developmentMode, newsList);
+      return;
+    }
+
+    if (pointerIsDown) {
+      deferredRender = { state };
+      updateDynamicFields(app, state, config, developmentMode, newsList);
+      return;
+    }
+    deferredRender = false;
+
+    // 1. Header Block (independent refresh)
+    if (sigHeader !== lastSignatures.header) {
+      headerEl.innerHTML = renderHeaderContent(state, developmentMode);
+      lastSignatures.header = sigHeader;
+    }
+
+    // 2. News Block (completely isolated from card updates)
+    if (sigNews !== lastSignatures.news) {
+      newsEl.innerHTML = showNews ? renderNewsSection(state, newsList) : "";
+      lastSignatures.news = sigNews;
+    }
+
+    // 3. TabBar Block
+    if (sigTabBar !== lastSignatures.tabbar) {
+      tabbarEl.innerHTML = renderTabBarContent(state, config);
+      lastSignatures.tabbar = sigTabBar;
+    }
+
+    // 4. HUD Block
+    if (sigHud !== lastSignatures.hud) {
+      hudEl.innerHTML = renderGlobalHUD(state, config, developmentMode);
+      lastSignatures.hud = sigHud;
+    }
+
+    // 5. Tab Content Block (with independent subregions)
+    if (activeTab !== lastActiveTab) {
+      tabContentEl.innerHTML =
+        renderTabContent(
+          activeTab,
+          state,
+          config,
+          developmentMode,
+          saveSlots,
+        ) + (developmentMode ? renderDevelopmentPanel(state) : "");
+      tabContentEl.className = `tab-content tab-content--${activeTab}`;
+      tabContentEl.setAttribute("aria-label", activeTab);
+      lastActiveTab = activeTab;
+      lastSignatures.tabContent = sigTabContent;
+      resetSubSigs();
+    } else if (sigTabContent !== lastSignatures.tabContent) {
+      if (activeTab === "energy") {
+        updateEnergySubregions(
+          tabContentEl,
+          state,
+          config,
+          developmentMode,
+          lastSubSigs,
+        );
+      } else if (activeTab === "automation") {
+        updateAutomationSubregions(
+          tabContentEl,
+          state,
+          config,
+          developmentMode,
+          saveSlots,
+          lastSubSigs,
+        );
+      } else {
+        tabContentEl.innerHTML =
+          renderTabContent(
+            activeTab,
+            state,
+            config,
+            developmentMode,
+            saveSlots,
+          ) + (developmentMode ? renderDevelopmentPanel(state) : "");
+      }
+      lastSignatures.tabContent = sigTabContent;
+    }
+
+    // 6. Modals Block
+    if (sigModals !== lastSignatures.modals) {
+      modalsEl.innerHTML = renderModalsContent(state, config);
+      lastSignatures.modals = sigModals;
+    }
+
+    // 7. Dynamic fields (live counters, progress bar widths, button states)
     updateDynamicFields(app, state, config, developmentMode, newsList);
   };
 }

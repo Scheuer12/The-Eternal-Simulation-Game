@@ -1624,6 +1624,12 @@ h2 {
   letter-spacing: 0.11em;
 }
 
+/* Regional layout slots: transparent wrappers that preserve child flow */
+.news-region-slot,
+.modals-region-slot {
+  display: contents;
+}
+
 /* News Section: slim carousel / marquee ticker */
 .news-section {
   display: flex;
