@@ -66,17 +66,16 @@ export function loadState(config, developmentMode) {
 
       try {
         const candidate = JSON.parse(raw);
-        if (candidate?.saveVersion !== SAVE_VERSION) continue;
-
-        const state = normalizeState(candidate, config);
-        if (isBackup) {
-          // Restore the known-good snapshot before any later autosave can run.
-          localStorage.setItem(saveKey, JSON.stringify(state));
+        if (candidate?.saveVersion === SAVE_VERSION) {
+          const state = normalizeState(candidate, config);
+          if (isBackup) {
+            localStorage.setItem(saveKey, JSON.stringify(state));
+          }
+          if (candidate?.science?.matrixMechanics) {
+            saveState(state, developmentMode);
+          }
+          return state;
         }
-        if (candidate?.science?.matrixMechanics) {
-          saveState(state, developmentMode);
-        }
-        return state;
       } catch (error) {
         console.warn(
           isBackup
@@ -84,6 +83,26 @@ export function loadState(config, developmentMode) {
             : "The save could not be loaded; trying its backup.",
           error,
         );
+      }
+    }
+
+    // Check for previous save versions (v2, v1) and migrate seamlessly
+    for (let v = SAVE_VERSION - 1; v >= 1; v -= 1) {
+      const legacyKey = `${getSavePrefix(developmentMode)}.v${v}`;
+      const legacyBackupKey = `${legacyKey}.backup`;
+      for (const key of [legacyKey, legacyBackupKey]) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const candidate = JSON.parse(raw);
+          if (candidate?.saveVersion && candidate.saveVersion < SAVE_VERSION) {
+            const state = normalizeState(candidate, config);
+            localStorage.setItem(saveKey, JSON.stringify(state));
+            return state;
+          }
+        } catch (error) {
+          console.warn(`Legacy save ${key} could not be parsed.`, error);
+        }
       }
     }
 

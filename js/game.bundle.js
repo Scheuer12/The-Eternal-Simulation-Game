@@ -8213,7 +8213,7 @@ function buildAvailabilitySnapshot(state, config) {
 
 // ---- js/state.js ----
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 function createInitialState(config) {
   return {
@@ -8319,10 +8319,89 @@ function createInitialState(config) {
   };
 }
 
+function migrateSaveV2ToV3(candidate, config) {
+  if (!candidate) return createInitialState(config);
+
+  const initial = createInitialState(config);
+  const migrated = { ...candidate };
+  migrated.saveVersion = SAVE_VERSION;
+
+  // 1. Improvements and linear multiplier
+  const improvements = Math.max(
+    0,
+    Number.isFinite(candidate.improvements) ? candidate.improvements : 0,
+  );
+  migrated.improvements = improvements;
+  migrated.improvementMultiplier = big(1 + improvements);
+  delete migrated.preservedImprovementLog;
+
+  // 2. Science perks: storedEnergyPreservation -> powerCellResonance, matrixMechanics -> redundancyElimination
+  const candidateScience = candidate.science ? { ...candidate.science } : {};
+  const perks = candidateScience.perks ? { ...candidateScience.perks } : {};
+  if (perks.storedEnergyPreservation) {
+    perks.powerCellResonance = true;
+    delete perks.storedEnergyPreservation;
+  }
+  if (candidateScience.matrixMechanics) {
+    perks.redundancyElimination = true;
+    delete candidateScience.matrixMechanics;
+  }
+  candidateScience.perks = perks;
+  migrated.science = candidateScience;
+
+  // 3. Active studies: migrate by percentage completed
+  if (candidate.study?.active && candidate.study?.duration > 0) {
+    const elapsed = Math.max(0, candidate.study.elapsed ?? 0);
+    const pct = Math.min(1, elapsed / candidate.study.duration);
+    const tempState = { ...migrated, ...candidate };
+    const newDuration = calculateStudyDuration(tempState, config);
+    migrated.study = {
+      ...candidate.study,
+      duration: newDuration,
+      elapsed: pct * newDuration,
+    };
+  }
+
+  // 4. Tab mapping
+  const tabMapping = {
+    hardware: "energy",
+    devices: "energy",
+    studies: "automation",
+    automation: "automation",
+    science: "science",
+    history: "history",
+  };
+  const activeTab = candidate.ui?.activeTab;
+  migrated.ui = {
+    ...initial.ui,
+    ...candidate.ui,
+    activeTab: tabMapping[activeTab] ?? "energy",
+  };
+
+  // 5. Discoveries
+  migrated.discoveries = {
+    ...initial.discoveries,
+    ...candidate.discoveries,
+    overclockerBlueprint: Boolean(candidate.discoveries?.overclockerBlueprint),
+  };
+  migrated.overclockerBlueprintStudy = {
+    ...initial.overclockerBlueprintStudy,
+    ...candidate.overclockerBlueprintStudy,
+  };
+
+  return migrated;
+}
+
 function normalizeState(candidate, config) {
   const initial = createInitialState(config);
 
-  if (!candidate || candidate.saveVersion !== SAVE_VERSION) {
+  if (!candidate) {
+    return initial;
+  }
+
+  if (candidate.saveVersion && candidate.saveVersion < SAVE_VERSION) {
+    candidate = migrateSaveV2ToV3(candidate, config);
+  } else if (candidate.saveVersion !== SAVE_VERSION) {
     return initial;
   }
 
@@ -8345,23 +8424,10 @@ function normalizeState(candidate, config) {
 
   let improvementMultiplier = big(candidate.improvementMultiplier);
   if (improvementMultiplier.lte(0)) {
-    const preservedLog = big(candidate.preservedImprovementLog);
     const completedImprovements = Number.isSafeInteger(candidate.improvements)
-      ? Math.min(Math.max(0, candidate.improvements), 100_000)
+      ? Math.max(0, candidate.improvements)
       : 0;
-    let reconstructedMultiplier = preservedLog.exp();
-
-    for (let completed = 0; completed < completedImprovements; completed += 1) {
-      reconstructedMultiplier = reconstructedMultiplier.mul(
-        1 + calculateImprovementBonus(
-          completed,
-          config,
-          candidate.calculationMethods ?? 0,
-        ),
-      );
-    }
-
-    improvementMultiplier = reconstructedMultiplier;
+    improvementMultiplier = big(1 + completedImprovements);
   }
 
   const { matrixMechanics: legacyMatrixMechanics, ...candidateScience } =
@@ -8571,17 +8637,16 @@ function loadState(config, developmentMode) {
 
       try {
         const candidate = JSON.parse(raw);
-        if (candidate?.saveVersion !== SAVE_VERSION) continue;
-
-        const state = normalizeState(candidate, config);
-        if (isBackup) {
-          // Restore the known-good snapshot before any later autosave can run.
-          localStorage.setItem(saveKey, JSON.stringify(state));
+        if (candidate?.saveVersion === SAVE_VERSION) {
+          const state = normalizeState(candidate, config);
+          if (isBackup) {
+            localStorage.setItem(saveKey, JSON.stringify(state));
+          }
+          if (candidate?.science?.matrixMechanics) {
+            saveState(state, developmentMode);
+          }
+          return state;
         }
-        if (candidate?.science?.matrixMechanics) {
-          saveState(state, developmentMode);
-        }
-        return state;
       } catch (error) {
         console.warn(
           isBackup
@@ -8589,6 +8654,26 @@ function loadState(config, developmentMode) {
             : "The save could not be loaded; trying its backup.",
           error,
         );
+      }
+    }
+
+    // Check for previous save versions (v2, v1) and migrate seamlessly
+    for (let v = SAVE_VERSION - 1; v >= 1; v -= 1) {
+      const legacyKey = `${getSavePrefix(developmentMode)}.v${v}`;
+      const legacyBackupKey = `${legacyKey}.backup`;
+      for (const key of [legacyKey, legacyBackupKey]) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const candidate = JSON.parse(raw);
+          if (candidate?.saveVersion && candidate.saveVersion < SAVE_VERSION) {
+            const state = normalizeState(candidate, config);
+            localStorage.setItem(saveKey, JSON.stringify(state));
+            return state;
+          }
+        } catch (error) {
+          console.warn(`Legacy save ${key} could not be parsed.`, error);
+        }
       }
     }
 
