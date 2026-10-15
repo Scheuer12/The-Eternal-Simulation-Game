@@ -121,40 +121,51 @@ def crc_cost(owned: int, config: dict) -> float:
     )
 
 
-def processor_effectiveness(run: RunState) -> float:
+def processor_effectiveness(run: RunState, config: dict) -> float:
     if run.processors <= 0:
-        return 0.0
-    cmu_mult = 1.2 ** run.method_upgrades
-    overclock_mult = 1.5 if run.overclocker_active else 1.0
+        return 1.0
+    cmu_mult = (
+        config["economyV2"]["calculationMethods"]["processorBonusMultiplierPerCMU"]
+        ** run.method_upgrades
+    )
     d_s = device_performance_setup(run)
-    unit_bonus = 0.15 * cmu_mult * overclock_mult * d_s
-    return ((1.0 + unit_bonus) ** run.processors) - 1.0
+    oc_mult = 1.0
+    if run.overclocker_active and run.overclockers > 0:
+        o0 = 5.0 * (1.5 ** (run.overclockers - 1))
+        oc_mult = 1.0 + (o0 - 1.0) * d_s
+    unit_bonus = (
+        config["economyV2"]["processors"]["perUnitBonus"]
+        * cmu_mult
+        * d_s
+        * oc_mult
+    )
+    return (1.0 + unit_bonus) ** run.processors
 
 
 def auto_calculator_speed_multiplier(run: RunState, config: dict) -> float:
     if run.auto_calculators <= 0:
         return 1.0
-    settings = config["autoCalculator"]
-    e_p = processor_effectiveness(run)
-    bonus_per_calc = 1.0 + 0.5 * e_p
-    base_speed = (
-        settings["firstSpeedMultiplier"]
-        * (settings["additionalSpeedMultiplier"] ** (run.auto_calculators - 1))
-    )
-    return base_speed * (bonus_per_calc ** run.auto_calculators)
+    base_bonus = config["economyV2"]["autoCalculators"]["perUnitSpeedBonus"]
+    d_s = device_performance_setup(run)
+    e_p = processor_effectiveness(run, config)
+    unit_bonus = base_bonus * d_s * e_p
+    return (1.0 + unit_bonus) ** run.auto_calculators
 
 
 def algorithm_improvement_speed(run: RunState, config: dict) -> float:
     va = auto_calculator_speed_multiplier(run, config)
     vr = 1.0
     if run.perks.get("redundancyElimination"):
-        # Capped at 50 nominal improvements
-        eff_i = min(50, run.improvements)
-        vr = 1.0 + 0.05 * eff_i
+        eff_i = (
+            run.improvements
+            if run.improvements <= 50
+            else min(54, 50 + (min(run.improvements, 100) - 50) * 0.08)
+        )
+        vr = 1.005 ** (run.upgrades * eff_i)
 
     v_direct = 1.0
     if run.perks.get("processorBonusAppliesAImprovementSpeed"):
-        e_p = processor_effectiveness(run)
+        e_p = processor_effectiveness(run, config)
         v_direct = max(1.0, e_p ** 1.07)
 
     v_quantum = 1.0
@@ -174,7 +185,7 @@ def study_duration(run: RunState, config: dict) -> float:
 
 
 def production(run: RunState, config: dict) -> float:
-    base = config["energy"]["baseProductionPerSecond"]
+    base = config["economyV2"]["crc"]["baseProductionPerSecond"]
     # Linear (1 + I) * 2^U * CRCs
     crc_mult = run.crc_count
     if run.perks.get("crcCountExponential"):
@@ -185,10 +196,12 @@ def production(run: RunState, config: dict) -> float:
     d_s = device_performance_setup(run)
     prod = base * crc_mult * i_mult * u_mult * d_s
 
-    if run.perks.get("sciencePointsMultiplier") and run.science_points > 0:
+    if run.perks.get("sciencePoweredEnergyProduction") and run.science_points > 0:
         prod *= 1.0 + run.science_points
-    if run.perks.get("processorBonusAppliesProduction"):
-        e_p = processor_effectiveness(run)
+    elif run.perks.get("sciencePointsMultiplier") and run.science_points > 0:
+        prod *= 1.0 + run.science_points
+    if run.perks.get("processorBonusAppliesCRC") or run.perks.get("processorBonusAppliesProduction"):
+        e_p = processor_effectiveness(run, config)
         prod *= max(1.0, e_p ** 0.15)
     if run.perks.get("quantumSuperposition") and run.quarks > 0:
         prod *= 1.0 + 0.05 * math.log10(1.0 + run.quarks)
@@ -282,18 +295,17 @@ def simulate_run(
             run.improvements = 0
             run.study_remaining = None
 
-        # CMU Trigger: competent player only resets Studies when Processors are installed
-        # because CMU exclusively amplifies Processor unit bonus (1.2^M)
+        # CMU Trigger: competent player resets studies when processor fleet is large enough to benefit
         req_cmu = cmu_requirement(run, config)
-        if run.upgrades >= req_cmu and run.processors >= 2 and run.improvements >= 50:
+        if run.method_upgrades < 2 and run.upgrades >= req_cmu and run.processors >= 8 and run.improvements >= 80:
             run.method_upgrades += 1
             run.upgrades = 0
             run.improvements = 0
             run.study_remaining = None
 
-        # Setup Optimization Trigger: competent player resets when Power Cells are accumulated
+        # Setup Optimization Trigger: used for deep runs when power cells are well-established
         req_setup = setup_requirement(run, config)
-        if run.method_upgrades >= req_setup and run.power_cells >= 5 and run.peak_energy >= 50.0:
+        if run.method_upgrades >= req_setup and run.power_cells >= 50 and run.peak_energy >= 1e12:
             run.setup_optimizations += 1
             run.energy = 0.0
             run.improvements = 0
@@ -325,45 +337,52 @@ def simulate_run(
             run.energy -= config["t2SoftDataDisplay"]["cost"]
             run.t2_soft_data_display = True
 
-        # 3. Auto Calculator
+        # 3. Power Cells (expand capacity and satisfy Overclocker prerequisite)
+        cost_cell = power_cell_cost(run, config)
+        if (
+            run.soft_data_display
+            and run.energy >= cost_cell
+            and (run.power_cells < 3 or run.energy >= 0.5 * cap)
+            and run.power_cells < 20000
+        ):
+            run.energy -= cost_cell
+            run.power_cells += 1
+
+        # 4. Auto Calculator
         cost_calc = auto_calculator_cost(run.auto_calculators, config)
-        if run.energy >= cost_calc and run.auto_calculators < 10:
+        if run.energy >= cost_calc and run.auto_calculators < 15:
             run.energy -= cost_calc
             run.auto_calculators += 1
             run.study_remaining = None
+            if "first_calc" not in run.milestones:
+                run.milestones["first_calc"] = run.elapsed
 
-        # 4. Processor
+        # 5. Processor
         cost_proc = processor_cost(run.processors, config)
-        if run.energy >= cost_proc and run.processors < 12:
+        if run.energy >= cost_proc and run.processors < 25:
             run.energy -= cost_proc
             run.processors += 1
 
-        # 5. Overclocker Blueprint & Overclocker
-        if run.processors >= 3 and not run.overclocker_blueprint:
+        # 6. Overclocker Blueprint & Overclocker (requires 3 Processors & 3 Power Cells)
+        if run.processors >= 3 and run.power_cells >= 3:
             run.overclocker_blueprint = True
 
         if run.overclocker_blueprint:
             cost_oc = overclocker_cost(run.overclockers, config)
-            if run.energy >= cost_oc and run.overclockers < 3:
+            if run.energy >= cost_oc and run.overclockers < 5:
                 run.energy -= cost_oc
                 run.overclockers += 1
                 run.overclocker_active = True
 
-        # 6. CRC Blueprint & Construction
+        # 7. CRC Blueprint & Construction
         if run.peak_energy >= config["blueprint"]["revealAtPeakEnergy"]:
             run.crc_blueprint = True
 
         if run.crc_blueprint:
             cost_crc = crc_cost(run.crc_count, config)
-            if run.energy >= cost_crc and run.crc_count < 8:
+            if run.energy >= cost_crc and run.crc_count < 25:
                 run.energy -= cost_crc
                 run.crc_count += 1
-
-        # 7. Power Cells (to prevent overflow blocking)
-        cost_cell = power_cell_cost(run, config)
-        if run.soft_data_display and run.energy >= cost_cell and run.energy >= 0.7 * cap:
-            run.energy -= cost_cell
-            run.power_cells += 1
 
     return run
 
@@ -376,11 +395,14 @@ def run_benchmark() -> None:
 
     print("[RUN 1: Fresh Start (0 Science Points, First Particle Synthesis)]")
     run1 = simulate_run(config, has_redundancy=False, max_seconds=7200.0)
+    time1 = run1.milestones.get("1e11_J", run1.elapsed)
+    calc1 = run1.milestones.get("first_calc", 0)
     print(f"  * Elapsed Time       : {run1.elapsed:.1f} s ({run1.elapsed / 60.0:.2f} min)")
     print(f"  * Peak Energy        : {run1.peak_energy:.4e} J")
     print(f"  * Milestone 1e-8 J   : {run1.milestones.get('1e-8', 0):.1f} s")
-    print(f"  * Milestone 100 J    : {run1.milestones.get('100_J', 0):.1f} s")
-    print(f"  * Milestone 100 GJ   : {run1.milestones.get('1e11_J', 0):.1f} s ({run1.milestones.get('1e11_J', 0) / 60.0:.2f} min)")
+    print(f"  * First Auto Calc    : {calc1:.1f} s ({calc1 / 60.0:.2f} min)")
+    print(f"  * Milestone 100 J    : {run1.milestones.get('100_J', 0):.1f} s ({run1.milestones.get('100_J', 0) / 60.0:.2f} min)")
+    print(f"  * Milestone 100 GJ   : {time1:.1f} s ({time1 / 60.0:.2f} min)")
     print(f"  * Algorithm Upgrades : {run1.upgrades}")
     print(f"  * Improvements       : {run1.improvements}")
     print(f"  * CMUs (Method)      : {run1.method_upgrades}")
@@ -392,11 +414,14 @@ def run_benchmark() -> None:
 
     print("[RUN 2: Post-Synthesis with Redundancy Elimination Active]")
     run2 = simulate_run(config, has_redundancy=True, max_seconds=7200.0)
+    time2 = run2.milestones.get("1e11_J", run2.elapsed)
+    calc2 = run2.milestones.get("first_calc", 0)
     print(f"  * Elapsed Time       : {run2.elapsed:.1f} s ({run2.elapsed / 60.0:.2f} min)")
     print(f"  * Peak Energy        : {run2.peak_energy:.4e} J")
     print(f"  * Milestone 1e-8 J   : {run2.milestones.get('1e-8', 0):.1f} s")
-    print(f"  * Milestone 100 J    : {run2.milestones.get('100_J', 0):.1f} s")
-    print(f"  * Milestone 100 GJ   : {run2.milestones.get('1e11_J', 0):.1f} s ({run2.milestones.get('1e11_J', 0) / 60.0:.2f} min)")
+    print(f"  * First Auto Calc    : {calc2:.1f} s ({calc2 / 60.0:.2f} min)")
+    print(f"  * Milestone 100 J    : {run2.milestones.get('100_J', 0):.1f} s ({run2.milestones.get('100_J', 0) / 60.0:.2f} min)")
+    print(f"  * Milestone 100 GJ   : {time2:.1f} s ({time2 / 60.0:.2f} min)")
     print(f"  * Algorithm Upgrades : {run2.upgrades}")
     print(f"  * Improvements       : {run2.improvements}")
     print(f"  * CMUs (Method)      : {run2.method_upgrades}")
@@ -406,8 +431,6 @@ def run_benchmark() -> None:
     print(f"  * Overclockers       : {run2.overclockers}")
     print(f"  * Power Cells        : {run2.power_cells}\n")
 
-    time1 = run1.milestones.get("1e11_J", run1.elapsed)
-    time2 = run2.milestones.get("1e11_J", run2.elapsed)
     speedup = time1 / max(1.0, time2)
     print(f"Synthesis Acceleration Factor: {speedup:.2f}x faster with Redundancy Elimination")
     print("================================================================================")

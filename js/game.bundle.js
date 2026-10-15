@@ -5788,9 +5788,9 @@
     "cost": 2
   },
   "autoCalculator": {
-    "baseCost": 0.001,
-    "costGrowth": 50,
-    "costGrowthExponent": 1.2,
+    "baseCost": 5e-7,
+    "costGrowth": 60,
+    "costGrowthExponent": 1.25,
     "firstSpeedMultiplier": 2,
     "additionalSpeedMultiplier": 2
   },
@@ -5805,9 +5805,9 @@
     "durationSeconds": 20
   },
   "processor": {
-    "baseCost": 0.25,
-    "costGrowth": 4,
-    "costGrowthExponent": 1.15,
+    "baseCost": 0.000125,
+    "costGrowth": 6,
+    "costGrowthExponent": 1.2,
     "deviceEfficiencyMultiplier": 1.15
   },
   "overclocker": {
@@ -5842,7 +5842,7 @@
     },
     "improvements": {
       "baseDurationSeconds": 0.5,
-      "durationGrowthCoefficient": 0.015,
+      "durationGrowthCoefficient": 0.001,
       "durationGrowthPower": 2
     },
     "algorithmUpgrades": {

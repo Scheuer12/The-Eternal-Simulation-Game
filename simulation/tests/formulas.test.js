@@ -367,19 +367,18 @@ test("Science Era quark formulas use synthesis energy, safe capacity, and overfl
   assertBigEqual(calculateQuarkDecay(state, config), 0);
 });
 
-test("Algorithm Improvement duration follows quadratic curve T_I(I) = 0.5*(1 + 0.015*I^2)/V", () => {
+test("Algorithm Improvement duration follows quadratic curve T_I(I) = 0.5*(1 + b*I^2)/V", () => {
   const state = createInitialState(config);
+  const b = config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.001;
 
   state.improvements = 0;
   assert.equal(calculateStudyDuration(state, config), 0.5);
 
   state.improvements = 10;
-  // 0.5 * (1 + 0.015 * 100) = 0.5 * 2.5 = 1.25
-  assert.equal(calculateStudyDuration(state, config), 1.25);
+  assert.equal(calculateStudyDuration(state, config), 0.5 * (1 + b * 100));
 
   state.improvements = 20;
-  // 0.5 * (1 + 0.015 * 400) = 0.5 * 7 = 3.5
-  assert.equal(calculateStudyDuration(state, config), 3.5);
+  assert.equal(calculateStudyDuration(state, config), 0.5 * (1 + b * 400));
 });
 
 test("Redundancy Elimination softcaps at 50 and hardcaps at 100", () => {

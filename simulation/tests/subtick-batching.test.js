@@ -88,10 +88,11 @@ test("closed-form energy integration matches sequential step-by-step replay exac
   const Q = 1e-12;
 
   // Step-by-step sequential sum:
+  const b = config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.001;
   let sequentialTime = 0;
   let sequentialEnergy = 0;
   for (let i = j; i < j + n; i++) {
-    const dur = (0.5 * (1 + 0.015 * i * i)) / V;
+    const dur = (0.5 * (1 + b * i * i)) / V;
     sequentialTime += dur;
     sequentialEnergy += Q * (1 + i) * dur;
   }
