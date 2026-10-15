@@ -690,6 +690,26 @@ export function calculateStudyDuration(state, config, developmentMode = false) {
 
   const baseCurve = baseSec * (1 + coeff * (i ** power));
 
+  const totalSpeed = calculateAlgorithmImprovementSpeedMultiplier(state, config);
+  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
+
+  if (developmentMode) {
+    duration *= getDevelopmentDurationMultiplier(state, config);
+  }
+
+  return duration;
+}
+
+export function calculateImprovementRatePerSecond(
+  state,
+  config,
+  developmentMode = false,
+) {
+  const duration = calculateStudyDuration(state, config, developmentMode);
+  return duration > 0 ? 1 / duration : 0;
+}
+
+export function calculateAlgorithmImprovementSpeedMultiplier(state, config) {
   const va = calculateAutoCalculatorSpeedMultiplier(state, config);
   const vr = calculateRedundancyEliminationSpeedMultiplier(state, config);
 
@@ -706,14 +726,88 @@ export function calculateStudyDuration(state, config, developmentMode = false) {
     );
   }
 
-  const totalSpeed = va * vr * vDirect * vQuantum;
-  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
+  return va * vr * vDirect * vQuantum;
+}
 
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
+export function sumOfIntegers(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  return bx.mul(bx.add(1)).div(2);
+}
+
+export function sumOfSquares(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  return bx.mul(bx.add(1)).mul(bx.mul(2).add(1)).div(6);
+}
+
+export function sumOfCubes(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  const f1 = bx.mul(bx.add(1)).div(2);
+  return f1.pow(2);
+}
+
+export function calculateBatchDuration(j, n, V, config) {
+  if (n <= 0) return big(0);
+  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const bn = big(n);
+  const end = big(j).add(bn).sub(1);
+  const start = big(j).sub(1);
+  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
+  const inner = bn.add(sigma2.mul(b));
+  return inner.mul(baseSec).div(V);
+}
+
+export function calculateBatchEnergy(j, n, V, Q, config) {
+  if (n <= 0) return big(0);
+  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const bn = big(n);
+  const end = big(j).add(bn).sub(1);
+  const start = big(j).sub(1);
+
+  const sigma1 = sumOfIntegers(end).sub(sumOfIntegers(start));
+  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
+  const sigma3 = sumOfCubes(end).sub(sumOfCubes(start));
+
+  const inner = bn.add(sigma1).add(sigma2.add(sigma3).mul(b));
+  return big(Q).mul(baseSec).div(V).mul(inner);
+}
+
+export function calculateMaxBatchImprovements(
+  j,
+  V,
+  dtAvailable,
+  nLimit = Infinity,
+  config,
+) {
+  if (dtAvailable <= 0 || nLimit <= 0) return 0;
+  if (calculateBatchDuration(j, 1, V, config).gt(dtAvailable)) return 0;
+  if (nLimit === 1) return 1;
+
+  let step = 1;
+  while (
+    step * 2 <= nLimit &&
+    calculateBatchDuration(j, step * 2, V, config).lte(dtAvailable)
+  ) {
+    step *= 2;
   }
 
-  return duration;
+  let low = step;
+  let high = Math.min(step * 2, nLimit);
+  let best = low;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (calculateBatchDuration(j, mid, V, config).lte(dtAvailable)) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return best;
 }
 
 export function calculateStudyDurationLoad(

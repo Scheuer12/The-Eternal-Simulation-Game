@@ -6744,6 +6744,26 @@ function calculateStudyDuration(state, config, developmentMode = false) {
 
   const baseCurve = baseSec * (1 + coeff * (i ** power));
 
+  const totalSpeed = calculateAlgorithmImprovementSpeedMultiplier(state, config);
+  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
+
+  if (developmentMode) {
+    duration *= getDevelopmentDurationMultiplier(state, config);
+  }
+
+  return duration;
+}
+
+function calculateImprovementRatePerSecond(
+  state,
+  config,
+  developmentMode = false,
+) {
+  const duration = calculateStudyDuration(state, config, developmentMode);
+  return duration > 0 ? 1 / duration : 0;
+}
+
+function calculateAlgorithmImprovementSpeedMultiplier(state, config) {
   const va = calculateAutoCalculatorSpeedMultiplier(state, config);
   const vr = calculateRedundancyEliminationSpeedMultiplier(state, config);
 
@@ -6760,14 +6780,88 @@ function calculateStudyDuration(state, config, developmentMode = false) {
     );
   }
 
-  const totalSpeed = va * vr * vDirect * vQuantum;
-  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
+  return va * vr * vDirect * vQuantum;
+}
 
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
+function sumOfIntegers(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  return bx.mul(bx.add(1)).div(2);
+}
+
+function sumOfSquares(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  return bx.mul(bx.add(1)).mul(bx.mul(2).add(1)).div(6);
+}
+
+function sumOfCubes(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  const f1 = bx.mul(bx.add(1)).div(2);
+  return f1.pow(2);
+}
+
+function calculateBatchDuration(j, n, V, config) {
+  if (n <= 0) return big(0);
+  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const bn = big(n);
+  const end = big(j).add(bn).sub(1);
+  const start = big(j).sub(1);
+  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
+  const inner = bn.add(sigma2.mul(b));
+  return inner.mul(baseSec).div(V);
+}
+
+function calculateBatchEnergy(j, n, V, Q, config) {
+  if (n <= 0) return big(0);
+  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const bn = big(n);
+  const end = big(j).add(bn).sub(1);
+  const start = big(j).sub(1);
+
+  const sigma1 = sumOfIntegers(end).sub(sumOfIntegers(start));
+  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
+  const sigma3 = sumOfCubes(end).sub(sumOfCubes(start));
+
+  const inner = bn.add(sigma1).add(sigma2.add(sigma3).mul(b));
+  return big(Q).mul(baseSec).div(V).mul(inner);
+}
+
+function calculateMaxBatchImprovements(
+  j,
+  V,
+  dtAvailable,
+  nLimit = Infinity,
+  config,
+) {
+  if (dtAvailable <= 0 || nLimit <= 0) return 0;
+  if (calculateBatchDuration(j, 1, V, config).gt(dtAvailable)) return 0;
+  if (nLimit === 1) return 1;
+
+  let step = 1;
+  while (
+    step * 2 <= nLimit &&
+    calculateBatchDuration(j, step * 2, V, config).lte(dtAvailable)
+  ) {
+    step *= 2;
   }
 
-  return duration;
+  let low = step;
+  let high = Math.min(step * 2, nLimit);
+  let best = low;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (calculateBatchDuration(j, mid, V, config).lte(dtAvailable)) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return best;
 }
 
 function calculateStudyDurationLoad(
@@ -8645,32 +8739,223 @@ class GameEngine {
     this.notify();
   }
 
-  tick(deltaSeconds) {
-    if (this.state.introState !== "active") return;
-    if (this.state.ui?.particleSynthesisModal) return;
-
-    const delta = clamp(deltaSeconds, 0, this.config.timing.maximumTickSeconds);
-
-    if (delta <= 0) return;
-
-    this.state.stats.totalPlayTime += delta;
-    this.state.stats.runPlayTime += delta;
-
+  advanceTimersAndEnergy(tau) {
+    if (tau <= 0) return;
     const production = calculateProduction(
       this.state,
       this.config,
       this.developmentMode,
     );
-    this.advanceEnergy(production, delta);
-    this.decayQuarks(delta, false);
-    this.drainOverclocker(delta, false);
-    this.coolOverclocker(delta, false);
+    this.advanceEnergy(production, tau);
+    this.advanceNonEnergyTimers(tau);
+  }
 
-    this.tickStudy(delta);
-    this.tickAlgorithmUpgradeStudy(delta);
-    this.tickBlueprintStudy(delta);
-    this.tickOverclockerBlueprintStudy(delta);
-    this.tickConstruction(delta);
+  advanceNonEnergyTimers(tau) {
+    if (tau <= 0) return;
+    this.decayQuarks(tau, false);
+    this.drainOverclocker(tau, false);
+    this.coolOverclocker(tau, false);
+    this.tickBlueprintStudy(tau);
+    this.tickOverclockerBlueprintStudy(tau);
+    this.tickConstruction(tau);
+  }
+
+  advanceBatchEnergy(eBatch, dtBatch) {
+    if (dtBatch <= 0) return;
+    const overflowDecay = calculateEnergyOverflowDecay(
+      this.state,
+      this.config,
+    );
+    const netEnergy = bigMax(0, eBatch.sub(overflowDecay.mul(dtBatch)));
+    const collected = calculateEffectiveEnergyGain(
+      this.state,
+      netEnergy,
+      this.config,
+    );
+
+    this.state.energy = big(this.state.energy).add(collected);
+    this.state.peakEnergy = bigMax(this.state.peakEnergy, this.state.energy);
+    for (const perk of SCIENCE_PERKS) {
+      const threshold = getSciencePerkStoredEnergyRequirement(
+        perk,
+        this.config,
+      );
+      if (threshold > 0 && this.state.energy.gte(threshold)) {
+        this.state.science.revealedPerks[perk.id] = true;
+      }
+    }
+    this.state.stats.totalEnergyCollected = big(
+      this.state.stats.totalEnergyCollected,
+    ).add(collected);
+    this.emitEvent("energy-collected", { amount: collected });
+  }
+
+  tick(deltaSeconds) {
+    if (this.state.introState !== "active") return;
+    if (this.state.ui?.particleSynthesisModal) return;
+
+    const delta = clamp(deltaSeconds, 0, this.config.timing.maximumTickSeconds);
+    if (delta <= 0) return;
+
+    this.state.stats.totalPlayTime += delta;
+    this.state.stats.runPlayTime += delta;
+
+    let remainingTime = delta;
+    const maxSubSteps = 1000;
+    let subStepCount = 0;
+
+    while (remainingTime > 1e-9 && subStepCount < maxSubSteps) {
+      subStepCount += 1;
+
+      // 1. If Algorithm Upgrade study is active (running via 50G Calculator automation)
+      if (this.state.algorithmUpgradeStudy?.active) {
+        if (this.state.algorithmUpgradeStudy.automated !== true) {
+          this.completeAlgorithmUpgrade("legacy-manual");
+          continue;
+        }
+
+        const dur = this.state.algorithmUpgradeStudy.duration;
+        const el = this.state.algorithmUpgradeStudy.elapsed;
+        const tRem = Math.max(0, dur - el);
+        const tau = Math.min(remainingTime, tRem);
+
+        this.advanceTimersAndEnergy(tau);
+        this.state.algorithmUpgradeStudy.elapsed += tau;
+
+        if (this.state.algorithmUpgradeStudy.elapsed >= dur) {
+          this.completeAlgorithmUpgrade("automated");
+        }
+        remainingTime -= tau;
+        continue;
+      }
+
+      // 2. Check if automated AI Calculation Support can claim CMU
+      if (
+        isAiCalculationSupportAutomationActive(this.state) &&
+        this.canClaimCalculationMethodUpgrade()
+      ) {
+        this.claimCalculationMethodUpgrade();
+      }
+
+      // 3. Check if automated Algorithm Upgrade should start (via 50G Calculator)
+      if (
+        isFiftyGCalculatorAutomationActive(this.state) &&
+        this.canStartAlgorithmUpgradeStudy()
+      ) {
+        this.startAlgorithmUpgradeStudy({ automated: true });
+        continue;
+      }
+
+      // 4. Algorithm Improvement study (manual or automated via Auto Calculators)
+      if (!this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
+        this.startNextAutomatedStudy();
+      }
+
+      if (this.state.study.active) {
+        // Variable speed regime (Redundancy Elimination active and improvements < 100)
+        const isVariableSpeed =
+          Boolean(this.state.science?.perks?.redundancyElimination) &&
+          this.state.improvements < 100;
+
+        if (isVariableSpeed) {
+          const dur = calculateStudyDuration(this.state, this.config, this.developmentMode);
+          this.state.study.duration = dur;
+          const tRem = Math.max(0, dur - this.state.study.elapsed);
+          const tau = Math.min(remainingTime, tRem);
+
+          this.advanceTimersAndEnergy(tau);
+          this.state.study.elapsed += tau;
+
+          if (this.state.study.elapsed >= dur) {
+            this.completeStudy();
+          }
+          remainingTime -= tau;
+          continue;
+        }
+
+        // Constant speed regime (I >= 100 or no Redundancy Elimination)
+        let nLimit = Infinity;
+        if (isFiftyGCalculatorAutomationActive(this.state)) {
+          const req = calculateAlgorithmUpgradeRequirement(this.state, this.config);
+          nLimit = Math.max(0, req - this.state.improvements);
+          if (nLimit === 0) {
+            this.startAlgorithmUpgradeStudy({ automated: true });
+            continue;
+          }
+        }
+
+        // Finish any pending partial study first
+        if (this.state.study.elapsed > 0) {
+          const dur = calculateStudyDuration(this.state, this.config, this.developmentMode);
+          this.state.study.duration = dur;
+          const tRem = Math.max(0, dur - this.state.study.elapsed);
+
+          if (remainingTime < tRem) {
+            this.advanceTimersAndEnergy(remainingTime);
+            this.state.study.elapsed += remainingTime;
+            remainingTime = 0;
+            break;
+          }
+
+          this.advanceTimersAndEnergy(tRem);
+          this.completeStudy();
+          remainingTime -= tRem;
+          continue;
+        }
+
+        // Now elapsed === 0: execute closed-form batching
+        const j = this.state.improvements;
+        const V = calculateAlgorithmImprovementSpeedMultiplier(this.state, this.config);
+        const n = calculateMaxBatchImprovements(j, V, remainingTime, nLimit, this.config);
+
+        if (n > 0) {
+          const dtBatch = calculateBatchDuration(j, n, V, this.config).toNumber();
+          const curProd = calculateProduction(this.state, this.config, this.developmentMode);
+          const Q = curProd.div(1 + j);
+          const eBatch = calculateBatchEnergy(j, n, V, Q, this.config);
+
+          this.advanceBatchEnergy(eBatch, dtBatch);
+          this.advanceNonEnergyTimers(dtBatch);
+
+          this.state.improvements += n;
+          this.state.improvementMultiplier = big(1 + this.state.improvements);
+          this.emitEvent("algorithm-improvement-completed", {
+            count: this.state.improvements,
+            batchSize: n,
+            elapsed: dtBatch,
+          });
+          this.checkBlueprintGuarantee();
+
+          remainingTime -= dtBatch;
+
+          if (
+            isFiftyGCalculatorAutomationActive(this.state) &&
+            this.canStartAlgorithmUpgradeStudy()
+          ) {
+            this.startAlgorithmUpgradeStudy({ automated: true });
+            continue;
+          }
+        }
+
+        // Leftover time after batching: partial progress into next study
+        if (remainingTime > 1e-9) {
+          const nextDur = calculateStudyDuration(this.state, this.config, this.developmentMode);
+          this.state.study.active = true;
+          this.state.study.elapsed = remainingTime;
+          this.state.study.duration = nextDur;
+          this.state.study.automated = isAutoCalculatorAutomationActive(this.state);
+
+          this.advanceTimersAndEnergy(remainingTime);
+          remainingTime = 0;
+          break;
+        }
+      } else {
+        // No study active or automated
+        this.advanceTimersAndEnergy(remainingTime);
+        remainingTime = 0;
+        break;
+      }
+    }
   }
 
   addEnergy(amount, notify = true) {
@@ -8963,11 +9248,13 @@ class GameEngine {
       bonus,
     });
 
-    this.addLog(
-      `Algorithm Improvement ${this.state.improvements} completed: +${(
-        bonus * 100
-      ).toFixed(2)}% efficiency.`,
-    );
+    if (!this.state.study.automated || this.state.improvements <= 5) {
+      this.addLog(
+        `Algorithm Improvement ${this.state.improvements} completed: +${(
+          bonus * 100
+        ).toFixed(2)}% efficiency.`,
+      );
+    }
 
     this.checkBlueprintGuarantee();
 
@@ -9918,7 +10205,7 @@ function collectEvents(summary, events) {
     }
 
     if (event.type === "algorithm-improvement-completed") {
-      summary.algorithmImprovementsCompleted += 1;
+      summary.algorithmImprovementsCompleted += event.batchSize ?? 1;
     }
 
     if (event.type === "algorithm-upgrade-completed") {
