@@ -162,7 +162,7 @@ test("loading rolls back non-finite production state while retaining large-numbe
     crcCount: 10,
     improvements: 40,
     improvementMultiplier: null,
-    upgrades: 350,
+    upgrades: 365,
     devices: { autoCalculators: 4, processors: 7 },
   });
   localStorage.setItem(

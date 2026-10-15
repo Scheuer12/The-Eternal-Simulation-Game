@@ -71,6 +71,7 @@ export function createInitialState(config) {
     discoveries: {
       crcBlueprint: false,
       blueprintSource: null,
+      overclockerBlueprint: false,
     },
     study: {
       active: false,
@@ -85,6 +86,11 @@ export function createInitialState(config) {
       automated: false,
     },
     blueprintStudy: {
+      active: false,
+      elapsed: 0,
+      duration: 0,
+    },
+    overclockerBlueprintStudy: {
       active: false,
       elapsed: 0,
       duration: 0,
@@ -215,6 +221,9 @@ export function normalizeState(candidate, config) {
         redundancyElimination:
           Boolean(candidatePerks.redundancyElimination) ||
           Boolean(legacyMatrixMechanics),
+        powerCellResonance:
+          Boolean(candidatePerks.powerCellResonance) ||
+          Boolean(candidatePerks.storedEnergyPreservation),
       },
       revealedPerks,
       totalScienceEarned: Number.isFinite(candidate.science?.totalScienceEarned)
@@ -249,6 +258,10 @@ export function normalizeState(candidate, config) {
       ...candidate.algorithmUpgradeStudy,
     },
     blueprintStudy: { ...initial.blueprintStudy, ...candidate.blueprintStudy },
+    overclockerBlueprintStudy: {
+      ...initial.overclockerBlueprintStudy,
+      ...candidate.overclockerBlueprintStudy,
+    },
     construction: { ...initial.construction, ...candidate.construction },
     overclocker: { ...initial.overclocker, ...candidate.overclocker },
     automations: {

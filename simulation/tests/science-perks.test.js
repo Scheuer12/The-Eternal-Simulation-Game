@@ -101,7 +101,7 @@ test("Energy perks have the supplied costs and prerequisite chains", () => {
   const expected = [
     ["processorBonusAppliesCRC", 1, ["redundancyElimination"]],
     ["powerModulesScaling", 1, ["processorBonusAppliesCRC"]],
-    ["storedEnergyPreservation", 2, ["powerModulesScaling"]],
+    ["powerCellResonance", 2, ["powerModulesScaling"]],
     ["sciencePoweredEnergyProduction", 2, ["processorBonusAppliesCRC"]],
     ["crcExponentialScaling", 3, ["sciencePoweredEnergyProduction"]],
   ];

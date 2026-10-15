@@ -17,13 +17,13 @@ import {
   calculateAlgorithmUpgradeDuration,
   calculateAlgorithmUpgradeRequirement,
   calculateBlueprintResearchDuration,
+  calculateOverclockerBlueprintDuration,
   calculateDeviceDurationMultiplier,
   calculateEnergyOverflowDecay,
   calculateEffectiveEnergyGain,
   calculateImprovementBonus,
   calculateOverclockerDrainPerSecond,
   calculateParticleSynthesizerCost,
-  calculateQuantumSuperpositionRetention,
   calculateSciencePointReward,
   calculateProduction,
   calculateQuarksGenerated,
@@ -137,6 +137,7 @@ export class GameEngine {
     this.tickStudy(delta);
     this.tickAlgorithmUpgradeStudy(delta);
     this.tickBlueprintStudy(delta);
+    this.tickOverclockerBlueprintStudy(delta);
     this.tickConstruction(delta);
   }
 
@@ -421,10 +422,8 @@ export class GameEngine {
       this.state.calculationMethods,
     );
 
-    this.state.improvementMultiplier = big(
-      this.state.improvementMultiplier,
-    ).mul(1 + bonus);
     this.state.improvements += 1;
+    this.state.improvementMultiplier = big(1 + this.state.improvements);
     this.state.study.active = false;
     this.state.study.elapsed = 0;
     this.emitEvent("algorithm-improvement-completed", {
@@ -531,6 +530,50 @@ export class GameEngine {
     this.state.blueprintStudy.active = false;
     this.state.blueprintStudy.elapsed = 0;
     this.completeBlueprintResearch("research");
+  }
+
+  canStartOverclockerBlueprintResearch() {
+    return evaluateComponent(
+      "overclockerBlueprint",
+      this.state,
+      this.config,
+    ).enabled;
+  }
+
+  startOverclockerBlueprintResearch() {
+    if (!this.canStartOverclockerBlueprintResearch()) return false;
+    this.state.overclockerBlueprintStudy.active = true;
+    this.state.overclockerBlueprintStudy.elapsed = 0;
+    this.state.overclockerBlueprintStudy.duration =
+      calculateOverclockerBlueprintDuration(this.state, this.config);
+    this.addLog("Overclocker Blueprint research started.", "device");
+    this.notify();
+    return true;
+  }
+
+  tickOverclockerBlueprintStudy(delta) {
+    if (!this.state.overclockerBlueprintStudy?.active) return;
+    this.state.overclockerBlueprintStudy.elapsed += delta;
+    if (
+      this.state.overclockerBlueprintStudy.elapsed <
+      this.state.overclockerBlueprintStudy.duration
+    ) {
+      return;
+    }
+
+    this.completeOverclockerBlueprintResearch();
+  }
+
+  completeOverclockerBlueprintResearch() {
+    this.state.overclockerBlueprintStudy.active = false;
+    this.state.overclockerBlueprintStudy.elapsed = 0;
+    this.state.discoveries.overclockerBlueprint = true;
+    this.emitEvent("blueprint-completed", { device: "overclocker" });
+    this.addLog(
+      "Overclocker Blueprint research completed. Overclocker construction unlocked.",
+      "discovery",
+    );
+    this.notify();
   }
 
   canPurchaseAutoCalculator() {
@@ -899,36 +942,12 @@ export class GameEngine {
   }
 
   completeAlgorithmUpgrade(source = "automated") {
-    const totalImprovementLog = bigMax(
-      0,
-      bigMax(1, this.state.improvementMultiplier).ln(),
-    );
-    const previouslyPreservedLog = bigMin(
-      totalImprovementLog,
-      bigMax(0, this.state.preservedImprovementLog ?? 0),
-    );
-    const newImprovementLog = bigMax(
-      0,
-      totalImprovementLog.sub(previouslyPreservedLog),
-    );
-    const retention = this.state.science?.perks?.quantumSuperposition
-      ? calculateQuantumSuperpositionRetention(
-          this.state.quarks?.totalEarned ?? 0,
-          this.config,
-        )
-      : 0;
-    const retainedImprovementLog = previouslyPreservedLog.add(
-      newImprovementLog.mul(retention),
-    );
-
     this.state.algorithmUpgradeStudy.active = false;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.algorithmUpgradeStudy.duration = 0;
     this.state.algorithmUpgradeStudy.automated = false;
     this.state.upgrades += 1;
     this.resetAlgorithmImprovements();
-    this.state.improvementMultiplier = retainedImprovementLog.exp();
-    this.state.preservedImprovementLog = retainedImprovementLog;
     this.emitEvent("algorithm-upgrade-completed", {
       count: this.state.upgrades,
     });
@@ -1198,13 +1217,18 @@ export class GameEngine {
     this.state.blueprintStudy.active = false;
     this.state.blueprintStudy.elapsed = 0;
     this.state.blueprintStudy.duration = 0;
+    if (this.state.overclockerBlueprintStudy) {
+      this.state.overclockerBlueprintStudy.active = false;
+      this.state.overclockerBlueprintStudy.elapsed = 0;
+      this.state.overclockerBlueprintStudy.duration = 0;
+    }
+    this.state.discoveries.crcBlueprint = false;
+    this.state.discoveries.overclockerBlueprint = false;
+    this.state.discoveries.blueprintSource = null;
   }
 
   resetHardwareForSetupOptimization() {
-    const preserveStoredEnergy = Boolean(
-      this.state.science?.perks?.storedEnergyPreservation,
-    );
-    if (!preserveStoredEnergy) this.state.energy = big(0);
+    this.state.energy = big(0);
     this.state.peakEnergy = big(0);
     this.resetAllStudies();
     this.state.calculationMethods = 0;
@@ -1217,11 +1241,6 @@ export class GameEngine {
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
     this.state.crcCount = this.config.energy.initialCrcCount;
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
@@ -1233,10 +1252,7 @@ export class GameEngine {
     this.state.peakEnergy = big(0);
     this.state.powerCells = this.config.energy.initialPowerCells;
     this.state.powerModules = 0;
-    this.state.improvements = 0;
-    this.state.improvementMultiplier = big(1);
-    this.state.preservedImprovementLog = big(0);
-    this.state.upgrades = 0;
+    this.resetAllStudies();
     this.state.calculationMethods = 0;
     this.state.setupOptimizations = 0;
     this.state.crcCount = this.config.energy.initialCrcCount;
@@ -1247,19 +1263,6 @@ export class GameEngine {
     this.state.devices.overclockers = 0;
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
-    this.state.study.active = false;
-    this.state.study.elapsed = 0;
-    this.state.study.duration = 0;
-    this.state.study.automated = false;
-    this.state.algorithmUpgradeStudy.active = false;
-    this.state.algorithmUpgradeStudy.elapsed = 0;
-    this.state.algorithmUpgradeStudy.duration = 0;
-    this.state.algorithmUpgradeStudy.automated = false;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;

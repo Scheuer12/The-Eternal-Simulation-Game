@@ -5710,7 +5710,7 @@
   },
   "science": {
     "redundancyElimination": {
-      "researchSpeedBonusPerUpgradePerCycle": 0.0085,
+      "researchSpeedBonusPerUpgradePerCycle": 0.005,
       "softcapStartsAtImprovements": 50,
       "postSoftcapCycleRate": 0.08,
       "postSoftcapMaximumExtraCycles": 4,
@@ -5768,10 +5768,9 @@
     "onboardingImprovements": 15,
     "onboardingInitialBonus": 9,
     "baselineBonus": 0.05,
-    "minimumBonus": 0.025,
     "onboardingDecayShape": 1.55,
-    "lateDecayScale": 40,
-    "lateDecayPower": 0.65,
+    "bonusCurveSmoothing": 0.001,
+    "bonusDecayRate": 0.0062,
     "effectPenaltyMultiplierPerMethod": 0.9
   },
   "algorithmUpgrade": {
@@ -5835,6 +5834,49 @@
   "development": {
     "durationMultiplier": 0.05,
     "productionMultiplier": 1000
+  },
+  "economyV2": {
+    "crc": {
+      "baseProductionPerSecond": 1e-12,
+      "improvementLinearBonus": 1
+    },
+    "improvements": {
+      "baseDurationSeconds": 0.5,
+      "durationGrowthCoefficient": 0.015,
+      "durationGrowthPower": 2
+    },
+    "algorithmUpgrades": {
+      "productionMultiplierPerUpgrade": 2,
+      "initialRequiredImprovements": 10,
+      "linearRequirementGrowth": 5,
+      "quadraticRequirementCoefficient": 0.25,
+      "automatedBaseDurationSeconds": 10,
+      "automatedDurationGrowthCoefficient": 0.16,
+      "automatedDurationGrowthPower": 1.1
+    },
+    "autoCalculators": {
+      "perUnitSpeedBonus": 0.5
+    },
+    "processors": {
+      "perUnitBonus": 0.15
+    },
+    "calculationMethods": {
+      "processorBonusMultiplierPerCMU": 1.2
+    },
+    "setupOptimizations": {
+      "devicePerformanceLogCoefficient": 2
+    },
+    "overclockers": {
+      "firstProcessorBonusMultiplier": 5,
+      "additionalProcessorBonusMultiplier": 1.5,
+      "blueprintResearchBaseDurationSeconds": 45
+    },
+    "scienceRebalance": {
+      "calculatorUpgradeResearchLogCoefficient": 0.2,
+      "calculatorEnhancedBonus": 0.7,
+      "quantumSuperpositionLogCoefficient": 0.02,
+      "powerCellResonanceLogCoefficient": 0.02
+    }
   }
 };
 
@@ -5921,6 +5963,52 @@ function bigClamp(value, minimum, maximum) {
   return bigMax(minimum, bigMin(value, maximum));
 }
 
+function bigFloor(value) {
+  const d = big(value);
+  if (d.layer === 0 && d.mag < 1e15) {
+    const r = Math.round(d.toNumber());
+    if (Math.abs(d.toNumber() - r) < 1e-11) return big(r);
+  }
+  return d.floor();
+}
+
+function bigCeil(value) {
+  const d = big(value);
+  if (d.layer === 0 && d.mag < 1e15) {
+    const r = Math.round(d.toNumber());
+    if (Math.abs(d.toNumber() - r) < 1e-11) return big(r);
+  }
+  return d.ceil();
+}
+
+function bigRound(value) {
+  const d = big(value);
+  return d.round();
+}
+
+function bigFloorDiv(numerator, denominator) {
+  const num = big(numerator);
+  const den = big(denominator);
+  if (den.eq(0)) return big(0);
+  return bigFloor(num.div(den));
+}
+
+function bigPow(base, exponent) {
+  return big(base).pow(exponent);
+}
+
+function bigLog10(value) {
+  return big(value).log10();
+}
+
+function bigLn(value) {
+  return big(value).ln();
+}
+
+function bigExp(value) {
+  return big(value).exp();
+}
+
 function toFiniteNumber(value, fallback = 0) {
   const result = big(value).toNumber();
   return Number.isFinite(result) ? result : fallback;
@@ -5978,34 +6066,16 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+/**
+ * In Economy V2, each completed Improvement gives a linear +1 (+100% nominal)
+ * boost to CRC base production.
+ */
 function calculateImprovementBonus(
   completedImprovements,
   config,
   calculationMethodUpgrades = 0,
 ) {
-  const study = config.study;
-  const effectiveImprovements =
-    completedImprovements *
-    study.effectPenaltyMultiplierPerMethod ** calculationMethodUpgrades;
-  let bonus;
-
-  if (effectiveImprovements < study.onboardingImprovements) {
-    const remaining = 1 - effectiveImprovements / study.onboardingImprovements;
-
-    bonus =
-      study.baselineBonus +
-      (study.onboardingInitialBonus - study.baselineBonus) *
-        remaining ** study.onboardingDecayShape;
-  } else {
-    const lateImprovements =
-      effectiveImprovements - study.onboardingImprovements;
-
-    bonus =
-      study.baselineBonus /
-      (1 + lateImprovements / study.lateDecayScale) ** study.lateDecayPower;
-  }
-
-  return Math.max(study.minimumBonus ?? 0, bonus);
+  return config?.economyV2?.crc?.improvementLinearBonus ?? 1;
 }
 
 function calculateEscalatingCost(baseCost, growth, exponent, ownedCount) {
@@ -6082,21 +6152,75 @@ function calculatePowerModuleCost(ownedPowerModules, config) {
   );
 }
 
-function calculatePowerModuleCapacityMultiplier(state, config) {
-  const modules = Math.max(0, state.powerModules);
-  let effectiveModuleCount = modules;
-  if (hasSciencePerk(state, "powerModulesScaling")) {
-    const scaling =
-      config.science?.energyPerks?.powerModuleScalingPerOwnedModule ?? 0.01;
-    effectiveModuleCount += ((modules * (modules - 1)) / 2) * scaling;
-  }
-  return big(config.powerModule.capacityMultiplier).pow(effectiveModuleCount);
+/**
+ * Setup Optimization device performance multiplier:
+ * D(S) = 1 + 2 * ln(1 + S)
+ */
+function calculateSetupDevicePerformance(setupOptimizations = 0, config = {}) {
+  const s = Math.max(0, setupOptimizations ?? 0);
+  const coeff =
+    config?.economyV2?.setupOptimizations?.devicePerformanceLogCoefficient ?? 2;
+  return 1 + coeff * Math.log(1 + s);
 }
 
+/**
+ * Science perk: Power Cell Resonance (replaces legacy Stored Energy Preservation)
+ * Capacity multiplier: 1 + 0.02 * log10(1 + powerCellsOwned)
+ */
+function calculatePowerCellResonanceMultiplier(powerCellsOwned, config = {}) {
+  const coeff =
+    config?.economyV2?.scienceRebalance?.powerCellResonanceLogCoefficient ?? 0.02;
+  const count = Math.max(0, powerCellsOwned ?? 0);
+  return 1 + coeff * Math.log10(1 + count);
+}
+
+/**
+ * Power Module capacity multiplier:
+ * M_cap = [1 + 0.35 * D(S)]^N_eff
+ */
+function calculatePowerModuleCapacityMultiplier(state, config) {
+  const modules = Math.max(0, state.powerModules ?? 0);
+  if (modules <= 0) return big(1);
+
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  let effectiveModules = modules;
+  if (hasSciencePerk(state, "powerModulesScaling")) {
+    const scaling =
+      config.science?.energyPerks?.powerModuleScalingPerOwnedModule ?? 0.0085;
+    effectiveModules = modules * (1 + modules * scaling);
+  }
+
+  const baseGrowth = (config.powerModule?.capacityMultiplier ?? 1.35) - 1; // 0.35
+  const unitMultiplier = 1 + baseGrowth * setupPerformance;
+
+  return big(unitMultiplier).pow(effectiveModules);
+}
+
+/**
+ * Stable Energy Capacity:
+ * Capacity_cells = powerCellsOwned * baseCapacity * D(S) * resonanceEffect
+ * Total = Capacity_cells * M_cap
+ */
 function calculateStableEnergyCapacity(state, config) {
-  return big(config.energy.powerCellCapacity)
-    .mul(Math.max(1, state.powerCells))
-    .mul(calculatePowerModuleCapacityMultiplier(state, config));
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  let resonance = 1;
+  if (hasSciencePerk(state, "powerCellResonance")) {
+    resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
+  }
+
+  const baseCapacity = config.energy.powerCellCapacity;
+  const cellCapacity = big(Math.max(1, state.powerCells))
+    .mul(baseCapacity)
+    .mul(setupPerformance)
+    .mul(resonance);
+
+  return cellCapacity.mul(calculatePowerModuleCapacityMultiplier(state, config));
 }
 
 function calculateEnergyOverflowDecay(state, config) {
@@ -6131,79 +6255,35 @@ function calculateEnergyRetention(
   );
 }
 
-function calculateAutoCalculatorSpeedMultiplier(state, config) {
-  const calculators = state.devices.autoCalculators;
-  if (calculators <= 0) return 1;
+/**
+ * Overclocker amplification on Processor bonus:
+ * O_0(K) = 5 * 1.5^(K-1) when active, else 1
+ * O_eff(K,S) = 1 + (O_0(K) - 1) * D(S)
+ */
+function calculateOverclockerSpeedMultiplier(state, config) {
+  const overclockers = state.devices?.overclockers ?? 0;
+  if (overclockers <= 0 || !state.overclocker?.active) return 1;
 
-  const calculatorSpeed =
-    config.autoCalculator.firstSpeedMultiplier *
-    config.autoCalculator.additionalSpeedMultiplier ** (calculators - 1);
+  const first =
+    config.economyV2?.overclockers?.firstProcessorBonusMultiplier ??
+    config.overclocker?.baseCalculatorSpeedMultiplier ??
+    5;
+  const additional =
+    config.economyV2?.overclockers?.additionalProcessorBonusMultiplier ??
+    config.overclocker?.additionalCalculatorSpeedMultiplier ??
+    1.5;
+  const o0 = first * additional ** (overclockers - 1);
 
-  return toFiniteNumber(
-    big(calculatorSpeed)
-      .mul(calculateDeviceEfficiencyMultiplier(state, config))
-      .mul(calculateOverclockerSpeedMultiplier(state, config)),
-    Number.MAX_VALUE,
-  );
-}
-
-function calculateRedundancyEffectiveCycles(improvements, config) {
-  const settings = config.science?.redundancyElimination ?? {};
-  const softcapStart = settings.softcapStartsAtImprovements ?? 50;
-  const hardcapStart = settings.hardcapStartsAtImprovements ?? 100;
-  const postSoftcapRate = settings.postSoftcapCycleRate ?? 0.08;
-  const extraCap = settings.postSoftcapMaximumExtraCycles ?? 4;
-  const cycles = Math.max(0, improvements);
-
-  if (cycles <= softcapStart) return cycles;
-
-  const counted = Math.min(cycles, hardcapStart);
-  const extra = (counted - softcapStart) * postSoftcapRate;
-  return softcapStart + Math.min(extra, extraCap);
-}
-
-function calculateRedundancyEliminationSpeedMultiplier(state, config) {
-  if (!state.science?.perks?.redundancyElimination) return 1;
-
-  const bonus =
-    config.science?.redundancyElimination
-      ?.researchSpeedBonusPerUpgradePerCycle ?? 0;
-  const effectiveCycles = calculateRedundancyEffectiveCycles(
-    state.improvements,
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
     config,
   );
-
-  return toFiniteNumber(
-    big(1 + bonus).pow(state.upgrades * effectiveCycles),
-    Number.MAX_VALUE,
-  );
-}
-
-function calculateProcessorImprovementSpeedMultiplier(state, config) {
-  if (!hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) {
-    return 1;
-  }
-  const exponent =
-    config.science?.studyPerks?.processorBonusImprovementSpeedExponent ?? 1.07;
-  return toFiniteNumber(
-    calculateDeviceEfficiencyMultiplier(state, config).pow(exponent),
-    Number.MAX_VALUE,
-  );
-}
-
-function calculateOverclockerSpeedMultiplier(state, config) {
-  const overclockers = state.devices.overclockers;
-  if (overclockers <= 0 || !state.overclocker.active) return 1;
-
-  return (
-    config.overclocker.baseCalculatorSpeedMultiplier *
-    config.overclocker.additionalCalculatorSpeedMultiplier ** (overclockers - 1)
-  );
+  return 1 + (o0 - 1) * setupPerformance;
 }
 
 function calculateOverclockerDrainPerSecond(state, config) {
-  const overclockers = state.devices.overclockers;
-  if (overclockers <= 0 || !state.overclocker.active) return big(0);
+  const overclockers = state.devices?.overclockers ?? 0;
+  if (overclockers <= 0 || !state.overclocker?.active) return big(0);
   const activeSeconds = Math.max(0, state.overclocker.activeSeconds ?? 0);
   const runtimeMultiplier = config.overclocker.runtimeDrainGrowthBase
     ? big(config.overclocker.runtimeDrainGrowthBase).pow(activeSeconds)
@@ -6218,26 +6298,71 @@ function calculateOverclockerDrainPerSecond(state, config) {
     .mul(runtimeMultiplier);
 }
 
-function calculateDeviceEfficiencyMultiplier(state, config) {
-  return big(config.processor.deviceEfficiencyMultiplier).pow(
-    state.devices.processors,
+/**
+ * Processor unit bonus:
+ * 0.15 * G_M(M) * D(S) * O_eff(K,S)
+ * where G_M(M) = 1.2^M
+ */
+function calculateProcessorBonusUnit(state, config) {
+  const cmu = state.calculationMethods ?? 0;
+  const cmuMultiplier =
+    (config.economyV2?.calculationMethods?.processorBonusMultiplierPerCMU ?? 1.2) **
+    cmu;
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
   );
+  const overclockMultiplier = calculateOverclockerSpeedMultiplier(state, config);
+  const baseBonus =
+    config.economyV2?.processors?.perUnitBonus ??
+    (config.processor?.deviceEfficiencyMultiplier
+      ? config.processor.deviceEfficiencyMultiplier - 1
+      : 0.15);
+  return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
+}
+
+/**
+ * Aggregated Processor effectiveness:
+ * E_P = (1 + unitBonus)^P
+ */
+function calculateProcessorEfficiencyMultiplier(state, config) {
+  const processors = state.devices?.processors ?? 0;
+  if (processors <= 0) return 1;
+  const unitBonus = calculateProcessorBonusUnit(state, config);
+  return (1 + unitBonus) ** processors;
+}
+
+/**
+ * Backwards compatibility alias for calculateProcessorEfficiencyMultiplier.
+ */
+function calculateDeviceEfficiencyMultiplier(state, config) {
+  return big(calculateProcessorEfficiencyMultiplier(state, config));
 }
 
 function hasSciencePerk(state, perkId) {
   return Boolean(state.science?.perks?.[perkId]);
 }
 
+/**
+ * Direct Processor -> CRC production perk:
+ * E_P^0.15
+ */
 function calculateCrcProcessorBonusMultiplier(state, config) {
   if (!hasSciencePerk(state, "processorBonusAppliesCRC")) return big(1);
   const exponent =
     config.science?.energyPerks?.processorBonusExponentForCrc ?? 0.15;
-  return calculateDeviceEfficiencyMultiplier(state, config).pow(exponent);
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  return big(ep).pow(exponent);
 }
 
+/**
+ * Science-Powered Energy Production perk:
+ * 1 + totalScienceEarned
+ */
 function calculateScienceProductionMultiplier(state) {
   if (!hasSciencePerk(state, "sciencePoweredEnergyProduction")) return big(1);
-  return bigMax(1, state.science?.totalScienceEarned ?? 0);
+  const earned = Math.max(0, state.science?.totalScienceEarned ?? 0);
+  return big(1).add(earned);
 }
 
 function calculateCrcExponentialMultiplier(state, config) {
@@ -6245,6 +6370,71 @@ function calculateCrcExponentialMultiplier(state, config) {
   const perCrc =
     config.science?.energyPerks?.crcExponentialProductionPerCrc ?? 1.005;
   return big(perCrc).pow(Math.max(0, state.crcCount));
+}
+
+/**
+ * Auto Calculator fleet speed multiplier:
+ * V_A = (1 + B_A * D(S) * E_P)^A
+ * where B_A is 0.5 (or 0.7 with calculatorBonusX2ToX22 perk)
+ */
+function calculateAutoCalculatorSpeedMultiplier(state, config) {
+  const calculators = state.devices?.autoCalculators ?? 0;
+  if (calculators <= 0) return 1;
+
+  const baseUnitBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
+    ? (config.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 0.7)
+    : (config.economyV2?.autoCalculators?.perUnitSpeedBonus ?? 0.5);
+
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  const unitBonus = baseUnitBonus * setupPerformance * ep;
+
+  return (1 + unitBonus) ** calculators;
+}
+
+function calculateRedundancyEffectiveCycles(improvements, config) {
+  const settings = config.science?.redundancyElimination ?? {};
+  const softcapStart = settings.softcapStartsAtImprovements ?? 50;
+  const hardcapStart = settings.hardcapStartsAtImprovements ?? 100;
+  const postSoftcapRate = settings.postSoftcapCycleRate ?? 0.08;
+  const maxExtra = settings.postSoftcapMaximumExtraCycles ?? 4;
+
+  const count = Math.max(0, improvements ?? 0);
+  if (count <= softcapStart) {
+    return count;
+  }
+
+  const clampedCount = Math.min(count, hardcapStart);
+  const postSoftcap = clampedCount - softcapStart;
+  const extraCycles = Math.min(maxExtra, postSoftcap * postSoftcapRate);
+  return softcapStart + extraCycles;
+}
+
+function calculateRedundancyEliminationSpeedMultiplier(state, config) {
+  if (!hasSciencePerk(state, "redundancyElimination")) return 1;
+  const effectiveCycles = calculateRedundancyEffectiveCycles(
+    state.improvements,
+    config,
+  );
+  const bonusPerUpgradeCycle =
+    config.science?.redundancyElimination
+      ?.researchSpeedBonusPerUpgradePerCycle ?? 0.005;
+  return (1 + bonusPerUpgradeCycle) ** ((state.upgrades ?? 0) * effectiveCycles);
+}
+
+/**
+ * Direct Processor -> Improvement speed perk:
+ * V_direct = E_P^1.07
+ */
+function calculateProcessorImprovementSpeedMultiplier(state, config) {
+  if (!hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) return 1;
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  const exp =
+    config.science?.studyPerks?.processorBonusImprovementSpeedExponent ?? 1.07;
+  return ep ** exp;
 }
 
 function calculateQuantumCalculationBonus(totalQuarks, config) {
@@ -6262,30 +6452,50 @@ function calculateQuantumCalculationBonus(totalQuarks, config) {
   return 1 + bigMin(maximum, effective).toNumber();
 }
 
+/**
+ * Legacy compatibility: Quantum Superposition retention is removed in V2.
+ */
 function calculateQuantumSuperpositionRetention(totalQuarks, config) {
-  const settings = config.science?.quantumPerks ?? {};
-  const raw = bigMax(0, totalQuarks)
-    .add(1)
-    .log10()
-    .mul(settings.superpositionRetentionLogCoefficient ?? 0.01);
-  return bigMin(
-    settings.superpositionMaximumRetention ?? 0.1,
-    bigMax(0, raw),
-  ).toNumber();
+  return 0;
+}
+
+/**
+ * Quantum Superposition in V2:
+ * V_quantum = 1 + 0.02 * log10(1 + totalQuarksEarned)
+ */
+function calculateQuantumSuperpositionSpeedMultiplier(totalQuarks, config) {
+  const coeff =
+    config?.economyV2?.scienceRebalance?.quantumSuperpositionLogCoefficient ??
+    0.02;
+  const quarks = bigMax(0, totalQuarks);
+  const logQuarks = quarks.add(1).log10().toNumber();
+  return 1 + coeff * logQuarks;
 }
 
 function calculateDeviceDurationMultiplier(state, config) {
   return toFiniteNumber(
-    big(1).div(calculateDeviceEfficiencyMultiplier(state, config)),
+    big(1).div(calculateProcessorEfficiencyMultiplier(state, config)),
     0,
   );
 }
 
+/**
+ * Algorithm Upgrade requirement:
+ * R(U) = ceil(10 + 5U + (0.25/2)*U*(U-1))
+ */
 function calculateAlgorithmUpgradeRequirement(state, config) {
-  return (
-    config.algorithmUpgrade.initialImprovementsRequired +
-    config.algorithmUpgrade.improvementsRequiredGrowth * state.upgrades
-  );
+  const u = Math.max(0, state.upgrades ?? 0);
+  const initial =
+    config.economyV2?.algorithmUpgrades?.initialRequiredImprovements ??
+    config.algorithmUpgrade?.initialImprovementsRequired ??
+    10;
+  const linear =
+    config.economyV2?.algorithmUpgrades?.linearRequirementGrowth ??
+    config.algorithmUpgrade?.improvementsRequiredGrowth ??
+    5;
+  const quadCoeff =
+    config.economyV2?.algorithmUpgrades?.quadraticRequirementCoefficient ?? 0.25;
+  return Math.ceil(initial + linear * u + (quadCoeff / 2) * u * (u - 1));
 }
 
 function calculateAlgorithmUpgradeDuration(
@@ -6293,11 +6503,30 @@ function calculateAlgorithmUpgradeDuration(
   config,
   developmentMode = false,
 ) {
-  let duration =
-    config.algorithmUpgrade.baseDurationSeconds *
-    (1 +
-      config.algorithmUpgrade.durationGrowthCoefficient *
-        state.upgrades ** config.algorithmUpgrade.durationGrowthPower);
+  const u = Math.max(0, state.upgrades ?? 0);
+  const baseSec =
+    config.economyV2?.algorithmUpgrades?.automatedBaseDurationSeconds ??
+    config.algorithmUpgrade?.baseDurationSeconds ??
+    10;
+  const coeff =
+    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthCoefficient ??
+    config.algorithmUpgrade?.durationGrowthCoefficient ??
+    0.16;
+  const power =
+    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthPower ??
+    config.algorithmUpgrade?.durationGrowthPower ??
+    1.1;
+
+  let duration = baseSec * (1 + coeff * (u ** power));
+
+  if (hasSciencePerk(state, "calculatorBonusAppliesAUpgrades")) {
+    const va = calculateAutoCalculatorSpeedMultiplier(state, config);
+    const logCoeff =
+      config.economyV2?.scienceRebalance
+        ?.calculatorUpgradeResearchLogCoefficient ?? 0.2;
+    const vu = 1 + logCoeff * Math.log10(1 + va);
+    if (vu > 0) duration /= vu;
+  }
 
   if (hasSciencePerk(state, "quantumCalculationPrinciples")) {
     duration /= calculateQuantumCalculationBonus(
@@ -6340,6 +6569,12 @@ function calculateBlueprintResearchDuration(
   }
 
   return duration;
+}
+
+function calculateOverclockerBlueprintDuration(state, config) {
+  return (
+    config.economyV2?.overclockers?.blueprintResearchBaseDurationSeconds ?? 45
+  );
 }
 
 function canResearchBlueprint(state, config) {
@@ -6385,21 +6620,65 @@ function calculateParticleSynthesizerProgress(state, config) {
     .toNumber();
 }
 
+/**
+ * Closed-form threshold inversion for Science Point rewards:
+ * C(s) = 10^(a + b*s + c*s^2), a=11, b=0.9, c=0.055
+ * s* = 2*(log10(E) - a) / (b + sqrt(b^2 + 4c(log10(E) - a)))
+ * SP_gained = max(0, floor(s*) - H + 1)
+ */
 function calculateSciencePointReward(
   energy,
   totalScienceEarned,
   config,
 ) {
-  return big(energy).gte(calculateSciencePointCost(totalScienceEarned, config))
-    ? 1
-    : 0;
+  const settings = config.science?.sciencePointCost ?? {};
+  const a = settings.baseExponent ?? 11;
+  const b = settings.linearExponentGrowth ?? 0.9;
+  const c = settings.quadraticExponentGrowth ?? 0.055;
+
+  if (![a, b, c].every(Number.isFinite) || c < 0 || b < 0) {
+    throw new RangeError("Science Point cost must be non-decreasing");
+  }
+  if (c === 0 && b === 0) {
+    throw new RangeError("Science Point cost must increase");
+  }
+
+  const available = big(energy);
+  if (!available.gt(0)) return 0;
+
+  const logEnergy = available.log10().toNumber();
+  if (!Number.isFinite(logEnergy) || logEnergy < a) return 0;
+
+  let maximumThreshold;
+  if (c === 0) {
+    maximumThreshold = Math.floor((logEnergy - a) / b);
+  } else {
+    const discriminant = b ** 2 + 4 * c * (logEnergy - a);
+    if (discriminant < 0) return 0;
+
+    const root = (2 * (logEnergy - a)) / (b + Math.sqrt(discriminant));
+    maximumThreshold = Math.floor(root);
+  }
+
+  if (maximumThreshold < 0) return 0;
+
+  const thresholdIsAvailable = (threshold) =>
+    big(available).gte(calculateSciencePointCost(threshold, config));
+
+  while (maximumThreshold >= 0 && !thresholdIsAvailable(maximumThreshold)) {
+    maximumThreshold -= 1;
+  }
+  while (thresholdIsAvailable(maximumThreshold + 1)) {
+    maximumThreshold += 1;
+  }
+
+  const earned = Math.max(0, Math.floor(totalScienceEarned ?? 0));
+  return Math.max(0, maximumThreshold - earned + 1);
 }
 
 function calculateQuarksGenerated(energy, config) {
   const unit = config.science?.quarks?.energyPerQuark ?? 100000000000;
-  const available = big(energy);
-  if (available.lt(unit)) return big(0);
-  return available.div(unit).floor();
+  return bigFloorDiv(energy, unit);
 }
 
 function calculateQuarkCageCapacity(ownedCages, config) {
@@ -6452,22 +6731,37 @@ function getDevelopmentProductionMultiplier(state, config) {
   );
 }
 
+/**
+ * Quadratic Algorithm Improvement duration:
+ * T_I(I) = 0.5 * (1 + 0.015 * I^2) / (V_A * V_R * V_direct * V_quantum)
+ */
 function calculateStudyDuration(state, config, developmentMode = false) {
-  const study = config.study;
-  const effectiveLoad = calculateStudyDurationLoad(
-    state.improvements,
-    state.setupOptimizations,
-    config,
-  );
-  let duration =
-    study.baseDurationSeconds *
-    (1 +
-      study.durationGrowthCoefficient *
-        effectiveLoad ** study.durationGrowthPower);
+  const i = Math.max(0, state.improvements ?? 0);
+  const baseSec = config.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const coeff =
+    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const power = config.economyV2?.improvements?.durationGrowthPower ?? 2;
 
-  duration /= calculateAutoCalculatorSpeedMultiplier(state, config);
-  duration /= calculateRedundancyEliminationSpeedMultiplier(state, config);
-  duration /= calculateProcessorImprovementSpeedMultiplier(state, config);
+  const baseCurve = baseSec * (1 + coeff * (i ** power));
+
+  const va = calculateAutoCalculatorSpeedMultiplier(state, config);
+  const vr = calculateRedundancyEliminationSpeedMultiplier(state, config);
+
+  let vDirect = 1;
+  if (hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) {
+    vDirect = calculateProcessorImprovementSpeedMultiplier(state, config);
+  }
+
+  let vQuantum = 1;
+  if (hasSciencePerk(state, "quantumSuperposition")) {
+    vQuantum = calculateQuantumSuperpositionSpeedMultiplier(
+      state.quarks?.totalEarned ?? 0,
+      config,
+    );
+  }
+
+  const totalSpeed = va * vr * vDirect * vQuantum;
+  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
 
   if (developmentMode) {
     duration *= getDevelopmentDurationMultiplier(state, config);
@@ -6481,35 +6775,35 @@ function calculateStudyDurationLoad(
   setupOptimizations,
   config,
 ) {
-  const study = config.study;
-  const earlyUntil = study.durationEarlyLoadUntil;
-  const fullAt = study.durationFullLoadAt;
-  const earlyLoad = completedImprovements * study.durationEarlyLoadMultiplier;
-  let baseLoad = completedImprovements;
-
-  if (completedImprovements <= earlyUntil) {
-    baseLoad = earlyLoad;
-  } else if (completedImprovements < fullAt) {
-    const progress =
-      (completedImprovements - earlyUntil) / (fullAt - earlyUntil);
-    const easedProgress = progress * progress * (3 - 2 * progress);
-    baseLoad = earlyLoad + (completedImprovements - earlyLoad) * easedProgress;
-  }
-
-  return baseLoad * study.durationLoadMultiplierPerSetup ** setupOptimizations;
+  return completedImprovements;
 }
 
+/**
+ * CRC Production rate:
+ * P_CRC = 10^-12 * C * (1 + I) * 2^U * D(S) * SciencePerks
+ */
 function calculateProduction(state, config, developmentMode = false) {
-  let production = big(config.energy.baseProductionPerSecond).mul(
-    state.crcCount,
+  const baseRate =
+    config.economyV2?.crc?.baseProductionPerSecond ??
+    config.energy?.baseProductionPerSecond ??
+    1e-12;
+  const c = Math.max(0, state.crcCount ?? 0);
+  const i = Math.max(0, state.improvements ?? 0);
+  const u = Math.max(0, state.upgrades ?? 0);
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
   );
+
+  let production = big(baseRate)
+    .mul(c)
+    .mul(1 + i)
+    .mul(big(2).pow(u))
+    .mul(setupPerformance);
+
   production = production.mul(calculateCrcExponentialMultiplier(state, config));
   production = production.mul(calculateCrcProcessorBonusMultiplier(state, config));
   production = production.mul(calculateScienceProductionMultiplier(state));
-  production = production.mul(state.improvementMultiplier);
-  production = production.mul(
-    big(config.algorithmUpgrade.productionMultiplier).pow(state.upgrades),
-  );
 
   if (developmentMode) {
     production = production.mul(
@@ -6526,19 +6820,57 @@ function calculateProductionBreakdown(
   developmentMode = false,
 ) {
   const rows = [];
-  const baseFromCrcs = big(config.energy.baseProductionPerSecond).mul(
-    state.crcCount,
+  const baseRate =
+    config.economyV2?.crc?.baseProductionPerSecond ??
+    config.energy?.baseProductionPerSecond ??
+    1e-12;
+  const c = Math.max(0, state.crcCount ?? 0);
+  const i = Math.max(0, state.improvements ?? 0);
+  const u = Math.max(0, state.upgrades ?? 0);
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
   );
+
+  const baseFromCrcs = big(baseRate).mul(c).mul(setupPerformance);
   let running = baseFromCrcs;
 
   rows.push({
     id: "crc-base",
-    label: "Total base from CRCs",
-    detail: `${state.crcCount} active CRC${state.crcCount === 1 ? "" : "s"} at ${formatRate(config.energy.baseProductionPerSecond)} each`,
-    multiplierLabel: `x${state.crcCount}`,
+    label: "Base from CRCs",
+    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each (Setup: x${setupPerformance.toFixed(2)})`,
+    multiplierLabel: `x${c}`,
     value: baseFromCrcs,
     output: baseFromCrcs,
   });
+
+  const improvementFactor = 1 + i;
+  if (improvementFactor > 1) {
+    const improved = running.mul(improvementFactor);
+    rows.push({
+      id: "algorithm-improvements",
+      label: "From Algorithm Improvements",
+      detail: `${i} Improvements (+${i * 100}% nominal)`,
+      multiplierLabel: `x${improvementFactor}`,
+      value: improved.sub(running),
+      output: improved,
+    });
+    running = improved;
+  }
+
+  const upgradeMultiplier = big(2).pow(u);
+  if (upgradeMultiplier.gt(1)) {
+    const upgraded = running.mul(upgradeMultiplier);
+    rows.push({
+      id: "algorithm-upgrades",
+      label: "From Algorithm Upgrades",
+      detail: `${u} completed Upgrade${u === 1 ? "" : "s"} (x2 each)`,
+      multiplierLabel: `x${formatEngineering(upgradeMultiplier)}`,
+      value: upgraded.sub(running),
+      output: upgraded,
+    });
+    running = upgraded;
+  }
 
   const crcExponentialMultiplier = calculateCrcExponentialMultiplier(
     state,
@@ -6566,7 +6898,7 @@ function calculateProductionBreakdown(
     rows.push({
       id: "processor-crc-bonus",
       label: "From Processor bonus",
-      detail: "Reduced Processor efficiency exponent applied to CRC output",
+      detail: "Processor efficiency exponent (E_P^0.15) applied to CRC output",
       multiplierLabel: `x${formatEngineering(processorBonusMultiplier)}`,
       value: boosted.sub(running),
       output: boosted,
@@ -6580,41 +6912,12 @@ function calculateProductionBreakdown(
     rows.push({
       id: "science-powered-production",
       label: "From Science Points",
-      detail: "Total Science earned converted into an energy multiplier",
+      detail: "Total Science earned converted into an energy multiplier (1 + SP)",
       multiplierLabel: `x${formatEngineering(scienceMultiplier)}`,
       value: boosted.sub(running),
       output: boosted,
     });
     running = boosted;
-  }
-
-  if (big(state.improvementMultiplier).gt(1)) {
-    const improved = running.mul(state.improvementMultiplier);
-    rows.push({
-      id: "algorithm-improvements",
-      label: "From Algorithm Improvements",
-      detail: `${state.improvements} Improvements retained in the current cycle`,
-      multiplierLabel: `x${formatEngineering(state.improvementMultiplier)}`,
-      value: improved.sub(running),
-      output: improved,
-    });
-    running = improved;
-  }
-
-  const upgradeMultiplier = big(
-    config.algorithmUpgrade.productionMultiplier,
-  ).pow(state.upgrades);
-  if (upgradeMultiplier.gt(1)) {
-    const upgraded = running.mul(upgradeMultiplier);
-    rows.push({
-      id: "algorithm-upgrades",
-      label: "From Algorithm Upgrades",
-      detail: `${state.upgrades} completed Upgrade${state.upgrades === 1 ? "" : "s"}`,
-      multiplierLabel: `x${formatEngineering(upgradeMultiplier)}`,
-      value: upgraded.sub(running),
-      output: upgraded,
-    });
-    running = upgraded;
   }
 
   if (developmentMode) {
@@ -6707,7 +7010,7 @@ function getProductionEffects(state, config, developmentMode = false) {
       label: "Algorithm Improvements",
       target: "crc.production",
       operation: "multiply",
-      value: state.improvementMultiplier
+      value: 1 + Math.max(0, state.improvements ?? 0)
     },
     {
       id: "algorithm-upgrades",
@@ -6814,6 +7117,7 @@ const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "overclockerCost" },
     visibleWhen: [
+      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
       {
         kind: "stateAtLeast",
         path: "devices.processors",
@@ -6825,7 +7129,10 @@ const COMPONENT_REGISTRY = {
         configPath: "overclocker.powerCellsRequired",
       },
     ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
+    enabledWhen: [
+      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   powerCell: {
     id: "powerCell",
@@ -6978,6 +7285,50 @@ const COMPONENT_REGISTRY = {
       },
     ],
   },
+  overclockerBlueprint: {
+    id: "overclockerBlueprint",
+    type: "study",
+    tab: "studies",
+    label: "Overclocker Blueprint",
+    action: "start-overclocker-blueprint-research",
+    ownedPath: "discoveries.overclockerBlueprint",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "none" },
+    visibleWhen: [
+      {
+        kind: "any",
+        rules: [
+          { kind: "truthy", path: "discoveries.overclockerBlueprint" },
+          { kind: "truthy", path: "overclockerBlueprintStudy.active" },
+          {
+            kind: "stateAtLeast",
+            path: "devices.processors",
+            configPath: "overclocker.processorsRequired",
+          },
+        ],
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
+      },
+    ],
+    enabledWhen: [
+      { kind: "falsy", path: "discoveries.overclockerBlueprint" },
+      { kind: "falsy", path: "overclockerBlueprintStudy.active" },
+      {
+        kind: "stateAtLeast",
+        path: "devices.processors",
+        configPath: "overclocker.processorsRequired",
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
+      },
+    ],
+  },
   crcConstruction: {
     id: "crcConstruction",
     type: "device",
@@ -7121,8 +7472,8 @@ const SCIENCE_PERKS = [
       "science.quantumPerks.revealAtAllocatedSciencePoints",
     revealHint: "Allocate 3 Science Points to reveal this technology.",
     effect:
-      "Preserves up to 10% of new Algorithm Improvement progress, measured in log space, when an Algorithm Upgrade resets Improvements.",
-    summary: "Carry a small share of Improvement progress forward.",
+      "Quarks accelerate Algorithm Improvement research directly by a logarithmic curve (V_quantum = 1 + 0.02 * log10(1 + Quarks)).",
+    summary: "Quarks accelerate Algorithm Improvement research.",
   },
   {
     id: "processorBonusAppliesCRC",
@@ -7144,14 +7495,14 @@ const SCIENCE_PERKS = [
     summary: "Each Power Module scales the next ones slightly.",
   },
   {
-    id: "storedEnergyPreservation",
-    name: "Stored Energy Preservation",
+    id: "powerCellResonance",
+    name: "Power Cell Resonance",
     branch: "energy",
     cost: 2,
     requires: ["powerModulesScaling"],
     effect:
-      "Stored Energy is preserved when completing a Setup Optimization instead of being reset to zero.",
-    summary: "Keep Stored Energy through Setup Optimization.",
+      "Power Cell capacity is multiplied by 1 + 0.02 * log10(1 + Power Cells owned).",
+    summary: "Expands Power Cell capacity based on owned cells.",
   },
   {
     id: "sciencePoweredEnergyProduction",
@@ -7318,17 +7669,17 @@ const SCIENCE_PERKS = [
     branch: "studies",
     cost: 1,
     requires: ["redundancyElimination"],
-    effect: "Applies Calculator bonuses to Algorithm Upgrades.",
-    summary: "Adds Calculator bonus to A. Upgrades.",
+    effect: "Accelerates automated Algorithm Upgrades by 1 + 0.2 * log10(1 + V_A).",
+    summary: "Scales Calculator fleet speed to accelerate A. Upgrades.",
   },
   {
     id: "calculatorBonusX2ToX22",
-    name: "Calculator Bonus x2 → x2.2",
+    name: "Calculator Bonus +50% → +70%",
     branch: "studies",
     cost: 2,
     requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases the Calculator bonus from x2 to x2.2.",
-    summary: "Raises Calculator bonus from x2 to x2.2.",
+    effect: "Increases the Auto Calculator base unit bonus from +50% to +70%.",
+    summary: "Raises Calculator unit bonus from +50% to +70%.",
   },
   {
     id: "processorBonusAppliesAImprovementSpeed",
@@ -7350,7 +7701,7 @@ const SCIENCE_PERK_BRANCHES = [
     tiers: [
       ["processorBonusAppliesCRC"],
       ["powerModulesScaling", "sciencePoweredEnergyProduction"],
-      ["storedEnergyPreservation", "crcExponentialScaling"],
+      ["powerCellResonance", "crcExponentialScaling"],
     ],
   },
   {
@@ -7830,6 +8181,7 @@ function createInitialState(config) {
     discoveries: {
       crcBlueprint: false,
       blueprintSource: null,
+      overclockerBlueprint: false,
     },
     study: {
       active: false,
@@ -7844,6 +8196,11 @@ function createInitialState(config) {
       automated: false,
     },
     blueprintStudy: {
+      active: false,
+      elapsed: 0,
+      duration: 0,
+    },
+    overclockerBlueprintStudy: {
       active: false,
       elapsed: 0,
       duration: 0,
@@ -7974,6 +8331,9 @@ function normalizeState(candidate, config) {
         redundancyElimination:
           Boolean(candidatePerks.redundancyElimination) ||
           Boolean(legacyMatrixMechanics),
+        powerCellResonance:
+          Boolean(candidatePerks.powerCellResonance) ||
+          Boolean(candidatePerks.storedEnergyPreservation),
       },
       revealedPerks,
       totalScienceEarned: Number.isFinite(candidate.science?.totalScienceEarned)
@@ -8008,6 +8368,10 @@ function normalizeState(candidate, config) {
       ...candidate.algorithmUpgradeStudy,
     },
     blueprintStudy: { ...initial.blueprintStudy, ...candidate.blueprintStudy },
+    overclockerBlueprintStudy: {
+      ...initial.overclockerBlueprintStudy,
+      ...candidate.overclockerBlueprintStudy,
+    },
     construction: { ...initial.construction, ...candidate.construction },
     overclocker: { ...initial.overclocker, ...candidate.overclocker },
     automations: {
@@ -8305,6 +8669,7 @@ class GameEngine {
     this.tickStudy(delta);
     this.tickAlgorithmUpgradeStudy(delta);
     this.tickBlueprintStudy(delta);
+    this.tickOverclockerBlueprintStudy(delta);
     this.tickConstruction(delta);
   }
 
@@ -8589,10 +8954,8 @@ class GameEngine {
       this.state.calculationMethods,
     );
 
-    this.state.improvementMultiplier = big(
-      this.state.improvementMultiplier,
-    ).mul(1 + bonus);
     this.state.improvements += 1;
+    this.state.improvementMultiplier = big(1 + this.state.improvements);
     this.state.study.active = false;
     this.state.study.elapsed = 0;
     this.emitEvent("algorithm-improvement-completed", {
@@ -8699,6 +9062,50 @@ class GameEngine {
     this.state.blueprintStudy.active = false;
     this.state.blueprintStudy.elapsed = 0;
     this.completeBlueprintResearch("research");
+  }
+
+  canStartOverclockerBlueprintResearch() {
+    return evaluateComponent(
+      "overclockerBlueprint",
+      this.state,
+      this.config,
+    ).enabled;
+  }
+
+  startOverclockerBlueprintResearch() {
+    if (!this.canStartOverclockerBlueprintResearch()) return false;
+    this.state.overclockerBlueprintStudy.active = true;
+    this.state.overclockerBlueprintStudy.elapsed = 0;
+    this.state.overclockerBlueprintStudy.duration =
+      calculateOverclockerBlueprintDuration(this.state, this.config);
+    this.addLog("Overclocker Blueprint research started.", "device");
+    this.notify();
+    return true;
+  }
+
+  tickOverclockerBlueprintStudy(delta) {
+    if (!this.state.overclockerBlueprintStudy?.active) return;
+    this.state.overclockerBlueprintStudy.elapsed += delta;
+    if (
+      this.state.overclockerBlueprintStudy.elapsed <
+      this.state.overclockerBlueprintStudy.duration
+    ) {
+      return;
+    }
+
+    this.completeOverclockerBlueprintResearch();
+  }
+
+  completeOverclockerBlueprintResearch() {
+    this.state.overclockerBlueprintStudy.active = false;
+    this.state.overclockerBlueprintStudy.elapsed = 0;
+    this.state.discoveries.overclockerBlueprint = true;
+    this.emitEvent("blueprint-completed", { device: "overclocker" });
+    this.addLog(
+      "Overclocker Blueprint research completed. Overclocker construction unlocked.",
+      "discovery",
+    );
+    this.notify();
   }
 
   canPurchaseAutoCalculator() {
@@ -9067,36 +9474,12 @@ class GameEngine {
   }
 
   completeAlgorithmUpgrade(source = "automated") {
-    const totalImprovementLog = bigMax(
-      0,
-      bigMax(1, this.state.improvementMultiplier).ln(),
-    );
-    const previouslyPreservedLog = bigMin(
-      totalImprovementLog,
-      bigMax(0, this.state.preservedImprovementLog ?? 0),
-    );
-    const newImprovementLog = bigMax(
-      0,
-      totalImprovementLog.sub(previouslyPreservedLog),
-    );
-    const retention = this.state.science?.perks?.quantumSuperposition
-      ? calculateQuantumSuperpositionRetention(
-          this.state.quarks?.totalEarned ?? 0,
-          this.config,
-        )
-      : 0;
-    const retainedImprovementLog = previouslyPreservedLog.add(
-      newImprovementLog.mul(retention),
-    );
-
     this.state.algorithmUpgradeStudy.active = false;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.algorithmUpgradeStudy.duration = 0;
     this.state.algorithmUpgradeStudy.automated = false;
     this.state.upgrades += 1;
     this.resetAlgorithmImprovements();
-    this.state.improvementMultiplier = retainedImprovementLog.exp();
-    this.state.preservedImprovementLog = retainedImprovementLog;
     this.emitEvent("algorithm-upgrade-completed", {
       count: this.state.upgrades,
     });
@@ -9366,13 +9749,18 @@ class GameEngine {
     this.state.blueprintStudy.active = false;
     this.state.blueprintStudy.elapsed = 0;
     this.state.blueprintStudy.duration = 0;
+    if (this.state.overclockerBlueprintStudy) {
+      this.state.overclockerBlueprintStudy.active = false;
+      this.state.overclockerBlueprintStudy.elapsed = 0;
+      this.state.overclockerBlueprintStudy.duration = 0;
+    }
+    this.state.discoveries.crcBlueprint = false;
+    this.state.discoveries.overclockerBlueprint = false;
+    this.state.discoveries.blueprintSource = null;
   }
 
   resetHardwareForSetupOptimization() {
-    const preserveStoredEnergy = Boolean(
-      this.state.science?.perks?.storedEnergyPreservation,
-    );
-    if (!preserveStoredEnergy) this.state.energy = big(0);
+    this.state.energy = big(0);
     this.state.peakEnergy = big(0);
     this.resetAllStudies();
     this.state.calculationMethods = 0;
@@ -9385,11 +9773,6 @@ class GameEngine {
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
     this.state.crcCount = this.config.energy.initialCrcCount;
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
@@ -9401,10 +9784,7 @@ class GameEngine {
     this.state.peakEnergy = big(0);
     this.state.powerCells = this.config.energy.initialPowerCells;
     this.state.powerModules = 0;
-    this.state.improvements = 0;
-    this.state.improvementMultiplier = big(1);
-    this.state.preservedImprovementLog = big(0);
-    this.state.upgrades = 0;
+    this.resetAllStudies();
     this.state.calculationMethods = 0;
     this.state.setupOptimizations = 0;
     this.state.crcCount = this.config.energy.initialCrcCount;
@@ -9415,19 +9795,6 @@ class GameEngine {
     this.state.devices.overclockers = 0;
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
-    this.state.study.active = false;
-    this.state.study.elapsed = 0;
-    this.state.study.duration = 0;
-    this.state.study.automated = false;
-    this.state.algorithmUpgradeStudy.active = false;
-    this.state.algorithmUpgradeStudy.elapsed = 0;
-    this.state.algorithmUpgradeStudy.duration = 0;
-    this.state.algorithmUpgradeStudy.automated = false;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;

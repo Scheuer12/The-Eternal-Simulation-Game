@@ -22,7 +22,7 @@ export function getProductionEffects(state, config, developmentMode = false) {
       label: "Algorithm Improvements",
       target: "crc.production",
       operation: "multiply",
-      value: state.improvementMultiplier
+      value: 1 + Math.max(0, state.improvements ?? 0)
     },
     {
       id: "algorithm-upgrades",

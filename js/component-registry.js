@@ -70,6 +70,7 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "overclockerCost" },
     visibleWhen: [
+      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
       {
         kind: "stateAtLeast",
         path: "devices.processors",
@@ -81,7 +82,10 @@ export const COMPONENT_REGISTRY = {
         configPath: "overclocker.powerCellsRequired",
       },
     ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
+    enabledWhen: [
+      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   powerCell: {
     id: "powerCell",
@@ -231,6 +235,50 @@ export const COMPONENT_REGISTRY = {
         kind: "stateAtLeast",
         path: "peakEnergy",
         configPath: "blueprint.revealAtPeakEnergy",
+      },
+    ],
+  },
+  overclockerBlueprint: {
+    id: "overclockerBlueprint",
+    type: "study",
+    tab: "studies",
+    label: "Overclocker Blueprint",
+    action: "start-overclocker-blueprint-research",
+    ownedPath: "discoveries.overclockerBlueprint",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "none" },
+    visibleWhen: [
+      {
+        kind: "any",
+        rules: [
+          { kind: "truthy", path: "discoveries.overclockerBlueprint" },
+          { kind: "truthy", path: "overclockerBlueprintStudy.active" },
+          {
+            kind: "stateAtLeast",
+            path: "devices.processors",
+            configPath: "overclocker.processorsRequired",
+          },
+        ],
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
+      },
+    ],
+    enabledWhen: [
+      { kind: "falsy", path: "discoveries.overclockerBlueprint" },
+      { kind: "falsy", path: "overclockerBlueprintStudy.active" },
+      {
+        kind: "stateAtLeast",
+        path: "devices.processors",
+        configPath: "overclocker.processorsRequired",
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
       },
     ],
   },

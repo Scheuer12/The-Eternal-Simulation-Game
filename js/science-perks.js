@@ -52,8 +52,8 @@ export const SCIENCE_PERKS = [
       "science.quantumPerks.revealAtAllocatedSciencePoints",
     revealHint: "Allocate 3 Science Points to reveal this technology.",
     effect:
-      "Preserves up to 10% of new Algorithm Improvement progress, measured in log space, when an Algorithm Upgrade resets Improvements.",
-    summary: "Carry a small share of Improvement progress forward.",
+      "Quarks accelerate Algorithm Improvement research directly by a logarithmic curve (V_quantum = 1 + 0.02 * log10(1 + Quarks)).",
+    summary: "Quarks accelerate Algorithm Improvement research.",
   },
   {
     id: "processorBonusAppliesCRC",
@@ -75,14 +75,14 @@ export const SCIENCE_PERKS = [
     summary: "Each Power Module scales the next ones slightly.",
   },
   {
-    id: "storedEnergyPreservation",
-    name: "Stored Energy Preservation",
+    id: "powerCellResonance",
+    name: "Power Cell Resonance",
     branch: "energy",
     cost: 2,
     requires: ["powerModulesScaling"],
     effect:
-      "Stored Energy is preserved when completing a Setup Optimization instead of being reset to zero.",
-    summary: "Keep Stored Energy through Setup Optimization.",
+      "Power Cell capacity is multiplied by 1 + 0.02 * log10(1 + Power Cells owned).",
+    summary: "Expands Power Cell capacity based on owned cells.",
   },
   {
     id: "sciencePoweredEnergyProduction",
@@ -249,17 +249,17 @@ export const SCIENCE_PERKS = [
     branch: "studies",
     cost: 1,
     requires: ["redundancyElimination"],
-    effect: "Applies Calculator bonuses to Algorithm Upgrades.",
-    summary: "Adds Calculator bonus to A. Upgrades.",
+    effect: "Accelerates automated Algorithm Upgrades by 1 + 0.2 * log10(1 + V_A).",
+    summary: "Scales Calculator fleet speed to accelerate A. Upgrades.",
   },
   {
     id: "calculatorBonusX2ToX22",
-    name: "Calculator Bonus x2 → x2.2",
+    name: "Calculator Bonus +50% → +70%",
     branch: "studies",
     cost: 2,
     requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases the Calculator bonus from x2 to x2.2.",
-    summary: "Raises Calculator bonus from x2 to x2.2.",
+    effect: "Increases the Auto Calculator base unit bonus from +50% to +70%.",
+    summary: "Raises Calculator unit bonus from +50% to +70%.",
   },
   {
     id: "processorBonusAppliesAImprovementSpeed",
@@ -281,7 +281,7 @@ export const SCIENCE_PERK_BRANCHES = [
     tiers: [
       ["processorBonusAppliesCRC"],
       ["powerModulesScaling", "sciencePoweredEnergyProduction"],
-      ["storedEnergyPreservation", "crcExponentialScaling"],
+      ["powerCellResonance", "crcExponentialScaling"],
     ],
   },
   {

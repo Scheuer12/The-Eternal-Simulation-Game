@@ -75,16 +75,24 @@ test("Power Cell visibility unlocks after Soft Display and three Algorithm Upgra
   assert.equal(evaluateComponent("powerCell", state, config).visible, true);
 });
 
-test("Overclocker visibility unlocks after three Processors and three Power Cells", () => {
+test("Overclocker Blueprint and device visibility unlocks through processors, power cells, and research", () => {
   const state = createInitialState(config);
   state.devices.processors = config.overclocker.processorsRequired;
   state.powerCells = config.overclocker.powerCellsRequired - 1;
+  assert.equal(evaluateComponent("overclockerBlueprint", state, config).visible, false);
   assert.equal(evaluateComponent("overclocker", state, config).visible, false);
 
   state.powerCells = config.overclocker.powerCellsRequired;
-  const visible = evaluateComponent("overclocker", state, config);
-  assert.equal(visible.visible, true);
-  assert.equal(visible.enabled, false);
+  const blueprintEval = evaluateComponent("overclockerBlueprint", state, config);
+  assert.equal(blueprintEval.visible, true);
+  assert.equal(blueprintEval.enabled, true);
+
+  assert.equal(evaluateComponent("overclocker", state, config).visible, false);
+
+  state.discoveries.overclockerBlueprint = true;
+  const overclockerEval = evaluateComponent("overclocker", state, config);
+  assert.equal(overclockerEval.visible, true);
+  assert.equal(overclockerEval.enabled, false);
 
   state.energy = config.overclocker.baseCost;
   assert.equal(evaluateComponent("overclocker", state, config).enabled, true);
