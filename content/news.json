@@ -1,0 +1,149 @@
+[
+  {
+    "id": "processing_network_online",
+    "text": "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    "category": "NETWORK",
+    "rarity": 1,
+    "weight": 80
+  },
+  {
+    "id": "solar_wind_shift",
+    "text": "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
+    "category": "TELEMETRY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "thermal_equilibrium",
+    "text": "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
+    "category": "SYSTEM",
+    "rarity": 1,
+    "weight": 90
+  },
+  {
+    "id": "subspace_resonance",
+    "text": "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
+    "category": "ENERGY",
+    "rarity": 1,
+    "weight": 85
+  },
+  {
+    "id": "buffer_clearing",
+    "text": "Automated diagnostic routine cleared 4,096 unreferenced telemetry buffers.",
+    "category": "MAINTENANCE",
+    "rarity": 1,
+    "weight": 80
+  },
+  {
+    "id": "particle_flux_nominal",
+    "text": "Atmospheric sensor array reports cosmic ray flux at 1.42 particles/cm²/s.",
+    "category": "SENSORS",
+    "rarity": 1,
+    "weight": 75
+  },
+  {
+    "id": "clock_sync",
+    "text": "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
+    "category": "CHRONO",
+    "rarity": 2,
+    "weight": 50
+  },
+  {
+    "id": "packet_echo",
+    "text": "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
+    "category": "NETWORK",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "algorithm_divergence",
+    "text": "Algorithm optimization branch pruned: 1,024 redundant iterations collapsed.",
+    "category": "COMPUTE",
+    "rarity": 2,
+    "weight": 40
+  },
+  {
+    "id": "vacuum_fluctuation",
+    "text": "Transient energy spike observed at quantum boundary. Flux collapsed to zero.",
+    "category": "SENSORS",
+    "rarity": 2,
+    "weight": 35
+  },
+  {
+    "id": "magnetic_reversal",
+    "text": "Local field coil micro-fluctuation compensated by primary dampener circuits.",
+    "category": "SYSTEM",
+    "rarity": 2,
+    "weight": 30
+  },
+  {
+    "id": "stray_signal",
+    "text": "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
+    "category": "ANOMALY",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "memory_ghost",
+    "text": "Recovered corrupted memory partition from prior cycle: '...do not turn off the...' .",
+    "category": "ARCHIVE",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "micro_singularity",
+    "text": "Gravimetric sensor registers micro-distortion near the particle manifold.",
+    "category": "GRAVIMETRY",
+    "rarity": 3,
+    "weight": 15
+  },
+  {
+    "id": "quantum_entanglement_noise",
+    "text": "Entanglement pair correlation dropped to 99.4%. Re-calibrating spin detectors.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 12
+  },
+  {
+    "id": "temporal_leak",
+    "text": "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
+    "category": "ANOMALY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "facility_architect",
+    "text": "Decrypted supervisor log: 'Iteration #14,082 was our best hope. Continue the run.'",
+    "category": "CLASSIFIED",
+    "rarity": 4,
+    "weight": 4
+  },
+  {
+    "id": "sub_zero_quantum_spin",
+    "text": "Sensor reports negative thermodynamic entropy in dormant containment cell C-12.",
+    "category": "DEEP VOID",
+    "rarity": 4,
+    "weight": 3
+  },
+  {
+    "id": "simulation_breach",
+    "text": "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
+    "category": "SYSTEM FAULT",
+    "rarity": 5,
+    "weight": 2
+  },
+  {
+    "id": "cosmic_whisper",
+    "text": "The universe is not expanding. It is just making room for the next calculation.",
+    "category": "TRANSMISSION",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "ouroboros",
+    "text": "Simulation state matches initial conditions of universe #1. We have been here before.",
+    "category": "DEEP LORE",
+    "rarity": 5,
+    "weight": 1
+  }
+]

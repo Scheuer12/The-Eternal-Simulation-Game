@@ -5879,6 +5879,155 @@
     }
   }
 };
+  globalThis.__TES_NEWS__ = [
+  {
+    "id": "processing_network_online",
+    "text": "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    "category": "NETWORK",
+    "rarity": 1,
+    "weight": 80
+  },
+  {
+    "id": "solar_wind_shift",
+    "text": "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
+    "category": "TELEMETRY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "thermal_equilibrium",
+    "text": "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
+    "category": "SYSTEM",
+    "rarity": 1,
+    "weight": 90
+  },
+  {
+    "id": "subspace_resonance",
+    "text": "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
+    "category": "ENERGY",
+    "rarity": 1,
+    "weight": 85
+  },
+  {
+    "id": "buffer_clearing",
+    "text": "Automated diagnostic routine cleared 4,096 unreferenced telemetry buffers.",
+    "category": "MAINTENANCE",
+    "rarity": 1,
+    "weight": 80
+  },
+  {
+    "id": "particle_flux_nominal",
+    "text": "Atmospheric sensor array reports cosmic ray flux at 1.42 particles/cm²/s.",
+    "category": "SENSORS",
+    "rarity": 1,
+    "weight": 75
+  },
+  {
+    "id": "clock_sync",
+    "text": "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
+    "category": "CHRONO",
+    "rarity": 2,
+    "weight": 50
+  },
+  {
+    "id": "packet_echo",
+    "text": "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
+    "category": "NETWORK",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "algorithm_divergence",
+    "text": "Algorithm optimization branch pruned: 1,024 redundant iterations collapsed.",
+    "category": "COMPUTE",
+    "rarity": 2,
+    "weight": 40
+  },
+  {
+    "id": "vacuum_fluctuation",
+    "text": "Transient energy spike observed at quantum boundary. Flux collapsed to zero.",
+    "category": "SENSORS",
+    "rarity": 2,
+    "weight": 35
+  },
+  {
+    "id": "magnetic_reversal",
+    "text": "Local field coil micro-fluctuation compensated by primary dampener circuits.",
+    "category": "SYSTEM",
+    "rarity": 2,
+    "weight": 30
+  },
+  {
+    "id": "stray_signal",
+    "text": "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
+    "category": "ANOMALY",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "memory_ghost",
+    "text": "Recovered corrupted memory partition from prior cycle: '...do not turn off the...' .",
+    "category": "ARCHIVE",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "micro_singularity",
+    "text": "Gravimetric sensor registers micro-distortion near the particle manifold.",
+    "category": "GRAVIMETRY",
+    "rarity": 3,
+    "weight": 15
+  },
+  {
+    "id": "quantum_entanglement_noise",
+    "text": "Entanglement pair correlation dropped to 99.4%. Re-calibrating spin detectors.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 12
+  },
+  {
+    "id": "temporal_leak",
+    "text": "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
+    "category": "ANOMALY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "facility_architect",
+    "text": "Decrypted supervisor log: 'Iteration #14,082 was our best hope. Continue the run.'",
+    "category": "CLASSIFIED",
+    "rarity": 4,
+    "weight": 4
+  },
+  {
+    "id": "sub_zero_quantum_spin",
+    "text": "Sensor reports negative thermodynamic entropy in dormant containment cell C-12.",
+    "category": "DEEP VOID",
+    "rarity": 4,
+    "weight": 3
+  },
+  {
+    "id": "simulation_breach",
+    "text": "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
+    "category": "SYSTEM FAULT",
+    "rarity": 5,
+    "weight": 2
+  },
+  {
+    "id": "cosmic_whisper",
+    "text": "The universe is not expanding. It is just making room for the next calculation.",
+    "category": "TRANSMISSION",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "ouroboros",
+    "text": "Simulation state matches initial conditions of universe #1. We have been here before.",
+    "category": "DEEP LORE",
+    "rarity": 5,
+    "weight": 1
+  }
+];
 
 // ---- content/texts.js ----
 const TEXT = Object.freeze({
@@ -7108,6 +7257,145 @@ function formatDuration(seconds) {
   const minutes = Math.floor(seconds / 60);
   const remainder = Math.round(seconds % 60);
   return `${minutes}m ${remainder}s`;
+}
+
+
+// ---- js/news.js ----
+const DEFAULT_NEWS = [
+  {
+    id: "processing_network_online",
+    text: "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    category: "NETWORK",
+    rarity: 1,
+    weight: 80,
+  },
+  {
+    id: "solar_wind_shift",
+    text: "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
+    category: "TELEMETRY",
+    rarity: 1,
+    weight: 100,
+  },
+  {
+    id: "thermal_equilibrium",
+    text: "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
+    category: "SYSTEM",
+    rarity: 1,
+    weight: 90,
+  },
+  {
+    id: "subspace_resonance",
+    text: "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
+    category: "ENERGY",
+    rarity: 1,
+    weight: 85,
+  },
+  {
+    id: "clock_sync",
+    text: "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
+    category: "CHRONO",
+    rarity: 2,
+    weight: 50,
+  },
+  {
+    id: "packet_echo",
+    text: "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
+    category: "NETWORK",
+    rarity: 2,
+    weight: 45,
+  },
+  {
+    id: "stray_signal",
+    text: "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
+    category: "ANOMALY",
+    rarity: 3,
+    weight: 20,
+  },
+  {
+    id: "temporal_leak",
+    text: "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
+    category: "ANOMALY",
+    rarity: 4,
+    weight: 6,
+  },
+  {
+    id: "simulation_breach",
+    text: "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
+    category: "SYSTEM FAULT",
+    rarity: 5,
+    weight: 2,
+  },
+  {
+    id: "cosmic_whisper",
+    text: "The universe is not expanding. It is just making room for the next calculation.",
+    category: "TRANSMISSION",
+    rarity: 5,
+    weight: 1,
+  },
+];
+
+function getRarityLabel(rarity) {
+  switch (Number(rarity)) {
+    case 5:
+      return "LEGENDARY";
+    case 4:
+      return "VERY RARE";
+    case 3:
+      return "RARE";
+    case 2:
+      return "UNCOMMON";
+    case 1:
+    default:
+      return "COMMON";
+  }
+}
+
+function getRarityClass(rarity) {
+  switch (Number(rarity)) {
+    case 5:
+      return "news-rarity--legendary";
+    case 4:
+      return "news-rarity--very-rare";
+    case 3:
+      return "news-rarity--rare";
+    case 2:
+      return "news-rarity--uncommon";
+    case 1:
+    default:
+      return "news-rarity--common";
+  }
+}
+
+function selectNextNews(newsList, currentNewsId = null, randomFn = Math.random) {
+  const items = Array.isArray(newsList) && newsList.length > 0 ? newsList : DEFAULT_NEWS;
+  if (items.length === 1) return items[0];
+
+  const candidates = items.filter((item) => item.id !== currentNewsId);
+  const pool = candidates.length > 0 ? candidates : items;
+
+  let totalWeight = 0;
+  for (const item of pool) {
+    const w = Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 1;
+    totalWeight += w;
+  }
+
+  const roll = randomFn() * totalWeight;
+  let accumulated = 0;
+  for (const item of pool) {
+    const w = Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 1;
+    accumulated += w;
+    if (roll < accumulated) {
+      return item;
+    }
+  }
+
+  return pool[pool.length - 1];
+}
+
+function getNewsItem(newsList, id) {
+  const items = Array.isArray(newsList) && newsList.length > 0 ? newsList : DEFAULT_NEWS;
+  if (!id) return selectNextNews(items);
+  return items.find((item) => item.id === id) || items[0];
 }
 
 
@@ -8347,6 +8635,9 @@ function createInitialState(config) {
       particleSynthesisModal: null,
       hideCompletedPurchases: false,
       seenComponents: {},
+      newsDismissed: false,
+      currentNewsId: null,
+      newsTimer: 0,
     },
     devices: {
       softDataDisplay: false,
@@ -8596,6 +8887,12 @@ function normalizeState(candidate, config) {
         ...initial.ui.seenComponents,
         ...candidate.ui?.seenComponents,
       },
+      newsDismissed: Boolean(candidate.ui?.newsDismissed),
+      currentNewsId: candidate.ui?.currentNewsId ?? null,
+      newsTimer:
+        typeof candidate.ui?.newsTimer === "number"
+          ? candidate.ui.newsTimer
+          : 0,
     },
     setupOptimizations:
       candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,
@@ -8876,6 +9173,7 @@ class GameEngine {
     random = Math.random,
     collectEvents = false,
     suppressLogs = false,
+    news = null,
   }) {
     this.state = state;
     this.config = config;
@@ -8883,8 +9181,68 @@ class GameEngine {
     this.random = random;
     this.collectEvents = collectEvents;
     this.suppressLogs = suppressLogs;
+    this.news =
+      Array.isArray(news) && news.length > 0
+        ? news
+        : globalThis.__TES_NEWS__ || DEFAULT_NEWS;
     this.events = [];
     this.listeners = new Set();
+
+    if (this.state.ui && !this.state.ui.currentNewsId) {
+      const initial = selectNextNews(this.news, null, this.random);
+      if (initial) {
+        this.state.ui.currentNewsId = initial.id;
+      }
+    }
+  }
+
+  getNewsList() {
+    return this.news;
+  }
+
+  setNewsList(newsList) {
+    if (Array.isArray(newsList) && newsList.length > 0) {
+      this.news = newsList;
+      if (!this.state.ui.currentNewsId) {
+        const next = selectNextNews(this.news, null, this.random);
+        if (next) this.state.ui.currentNewsId = next.id;
+      }
+    }
+  }
+
+  cycleNews(manual = false) {
+    if (!this.news || this.news.length === 0) return;
+    const next = selectNextNews(
+      this.news,
+      this.state.ui?.currentNewsId,
+      this.random,
+    );
+    if (next && this.state.ui) {
+      this.state.ui.currentNewsId = next.id;
+      this.state.ui.newsTimer = 0;
+      if (manual) this.notify();
+    }
+  }
+
+  dismissNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = true;
+      this.notify();
+    }
+  }
+
+  restoreNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = false;
+      this.notify();
+    }
+  }
+
+  toggleNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = !this.state.ui.newsDismissed;
+      this.notify();
+    }
   }
 
   subscribe(listener) {
@@ -9059,6 +9417,14 @@ class GameEngine {
 
     this.state.stats.totalPlayTime += delta;
     this.state.stats.runPlayTime += delta;
+
+    if (this.state.ui) {
+      this.state.ui.newsTimer = (this.state.ui.newsTimer || 0) + delta;
+      if (this.state.ui.newsTimer >= 10) {
+        this.state.ui.newsTimer = 0;
+        this.cycleNews(false);
+      }
+    }
 
     let remainingTime = delta;
     const maxSubSteps = 1000;
@@ -10086,7 +10452,13 @@ class GameEngine {
 
     this.state.energy = big(this.state.energy).sub(cost);
     this.state.devices.processors += 1;
-    this.state.prototypeComplete = true;
+    if (!this.state.prototypeComplete) {
+      this.state.prototypeComplete = true;
+      if (this.state.ui) {
+        this.state.ui.newsDismissed = false;
+        this.state.ui.currentNewsId = "processing_network_online";
+      }
+    }
     this.emitEvent("device-purchased", {
       device: "processor",
       count: this.state.devices.processors,
@@ -10115,7 +10487,13 @@ class GameEngine {
       if (big(this.state.energy).lt(cost)) break;
       this.state.energy = big(this.state.energy).sub(cost);
       this.state.devices.processors += 1;
-      this.state.prototypeComplete = true;
+      if (!this.state.prototypeComplete) {
+        this.state.prototypeComplete = true;
+        if (this.state.ui) {
+          this.state.ui.newsDismissed = false;
+          this.state.ui.currentNewsId = "processing_network_online";
+        }
+      }
       purchased++;
     }
     if (purchased > 0) {
@@ -11599,6 +11977,9 @@ function renderCrcBriefing() {
 }
 
 function renderHeader(state, developmentMode) {
+  const showRestoreNews =
+    (state.prototypeComplete || developmentMode) && state.ui?.newsDismissed;
+
   return `
     <header class="topbar">
       <div>
@@ -11611,6 +11992,14 @@ function renderHeader(state, developmentMode) {
           developmentMode
             ? button("Exit dev", "exit-dev-mode", { variant: "text" })
             : button("Dev mode", "enter-dev-mode", { variant: "text" })
+        }
+        ${
+          showRestoreNews
+            ? button("News Feed", "restore-news-section", {
+                variant: "text",
+                className: "button--news-toggle",
+              })
+            : ""
         }
         ${button("Save now", "save-now", { variant: "text" })}
         ${button("Reset current", "reset-current-save", { variant: "text" })}
@@ -13324,20 +13713,57 @@ function renderDevelopmentPanel(state) {
         ${button("Force Blueprint", "dev-force-blueprint", { variant: "ghost" })}
         ${button("Cycle Production", "dev-cycle-production", { variant: "ghost" })}
         ${button("Cycle Duration", "dev-cycle-duration", { variant: "ghost" })}
+        ${button(state.ui?.devShowNews ? "Hide News (Dev)" : "Force News (Dev)", "dev-toggle-news", { variant: "ghost" })}
+        ${button("Cycle News", "cycle-news", { variant: "ghost" })}
       </div>
     </article>
   `;
 }
 
-function renderCompletion() {
+function renderNewsSection(state, newsList = DEFAULT_NEWS) {
+  if (state.ui?.newsDismissed) {
+    return "";
+  }
+
+  const currentItem = getNewsItem(newsList, state.ui?.currentNewsId);
+  const rarityNum = Number(currentItem?.rarity) || 1;
+  const rarityLabel = getRarityLabel(rarityNum);
+  const rarityClass = getRarityClass(rarityNum);
+  const showRarityBadge = rarityNum >= 2;
+
   return `
-    <article class="panel completion-panel">
-      <p class="eyebrow">MILESTONE REACHED</p>
-      <h2>PROCESSING NETWORK ONLINE</h2>
-      <p>${TEXT.processorComplete}</p>
-      <p class="completion-panel__note">MVP-0 COMPLETE // LAYER CONTINUES</p>
-    </article>
+    <aside class="news-section" role="region" aria-label="News Section">
+      <div class="news-section__badge">
+        <span class="news-section__pulse" aria-hidden="true"></span>
+        <span>NEWS FEED</span>
+      </div>
+      <span class="news-section__category" data-field="news-category">${currentItem?.category || "TELEMETRY"}</span>
+      <span class="news-section__rarity ${rarityClass}" data-field="news-rarity" style="${showRarityBadge ? "" : "display: none;"}">${showRarityBadge ? rarityLabel : ""}</span>
+      <div class="news-section__ticker" data-action="cycle-news" title="Click to cycle headline">
+        <span class="news-section__text" data-field="news-text">${currentItem?.text || "Monitoring facility background telemetry."}</span>
+      </div>
+      <div class="news-section__actions">
+        <button
+          type="button"
+          class="news-section__action-btn"
+          data-action="cycle-news"
+          title="Next news item"
+          aria-label="Next news item"
+        >↻</button>
+        <button
+          type="button"
+          class="news-section__close"
+          data-action="dismiss-news-section"
+          title="Close News Section"
+          aria-label="Close News Section"
+        >×</button>
+      </div>
+    </aside>
   `;
+}
+
+function renderCompletion(state, newsList = DEFAULT_NEWS) {
+  return renderNewsSection(state, newsList);
 }
 
 function renderSection(title, label, note, content, className = "") {
@@ -14256,6 +14682,9 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     blueprintStudyActive: state.blueprintStudy.active,
     constructionActive: state.construction.active,
     prototypeComplete: state.prototypeComplete,
+    newsDismissed: state.ui?.newsDismissed ?? false,
+    currentNewsId: state.ui?.currentNewsId ?? null,
+    devShowNews: state.ui?.devShowNews ?? false,
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
     saveSlots,
@@ -14263,7 +14692,13 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
   });
 }
 
-function updateDynamicFields(app, state, config, developmentMode) {
+function updateDynamicFields(
+  app,
+  state,
+  config,
+  developmentMode,
+  newsList = DEFAULT_NEWS,
+) {
   if (state.introState !== "active") return;
 
   const stableCapacity = calculateStableEnergyCapacity(state, config);
@@ -14461,14 +14896,43 @@ function updateDynamicFields(app, state, config, developmentMode) {
       ),
     );
   }
+
+  if (state.ui?.currentNewsId) {
+    const newsItem = getNewsItem(newsList, state.ui.currentNewsId);
+    if (newsItem) {
+      setField(app, "news-text", newsItem.text);
+      setField(app, "news-category", newsItem.category || "TELEMETRY");
+      const rarityNum = Number(newsItem.rarity) || 1;
+      const rarityEl = app.querySelector('[data-field="news-rarity"]');
+      if (rarityEl) {
+        if (rarityNum >= 2) {
+          rarityEl.textContent = getRarityLabel(rarityNum);
+          rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
+          rarityEl.style.display = "";
+        } else {
+          rarityEl.textContent = "";
+          rarityEl.style.display = "none";
+        }
+      }
+    }
+  }
 }
 
-function renderGame(state, config, developmentMode, saveSlots) {
+function renderGame(
+  state,
+  config,
+  developmentMode,
+  saveSlots,
+  newsList = DEFAULT_NEWS,
+) {
   const activeTab = getActiveTab(state, config);
+  const showNews =
+    (state.prototypeComplete || (developmentMode && state.ui?.devShowNews)) &&
+    !state.ui?.newsDismissed;
 
   return `
     ${renderHeader(state, developmentMode)}
-    ${state.prototypeComplete ? renderCompletion() : ""}
+    ${showNews ? renderNewsSection(state, newsList) : ""}
     ${renderTabBar(state, config)}
     <section class="operation-focus" aria-label="Power and production focus">
       ${renderGlobalHUD(state, config, developmentMode)}
@@ -14490,6 +14954,7 @@ function createRenderer(
   config,
   developmentMode,
   getSaveSlots = () => [],
+  newsList = DEFAULT_NEWS,
 ) {
   let lastRenderSignature = "";
   let pointerIsDown = false;
@@ -14525,13 +14990,13 @@ function createRenderer(
     );
 
     if (signature === lastRenderSignature) {
-      updateDynamicFields(app, state, config, developmentMode);
+      updateDynamicFields(app, state, config, developmentMode, newsList);
       return;
     }
 
     if (pointerIsDown) {
       deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode);
+      updateDynamicFields(app, state, config, developmentMode, newsList);
       return;
     }
 
@@ -14553,8 +15018,14 @@ function createRenderer(
       return;
     }
 
-    app.innerHTML = renderGame(state, config, developmentMode, saveSlots);
-    updateDynamicFields(app, state, config, developmentMode);
+    app.innerHTML = renderGame(
+      state,
+      config,
+      developmentMode,
+      saveSlots,
+      newsList,
+    );
+    updateDynamicFields(app, state, config, developmentMode, newsList);
   };
 }
 
@@ -14569,6 +15040,20 @@ async function loadConfig() {
   const response = await fetch("config/game-config.json");
   if (!response.ok) throw new Error("Game configuration could not be loaded.");
   return response.json();
+}
+
+async function loadNews() {
+  if (globalThis.__TES_NEWS__) {
+    return globalThis.__TES_NEWS__;
+  }
+
+  try {
+    const response = await fetch("content/news.json");
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn("Could not load news feed, falling back to default news.", error);
+  }
+  return DEFAULT_NEWS;
 }
 
 function bindActions(app, engine, saveActions, config) {
@@ -14726,6 +15211,14 @@ function bindActions(app, engine, saveActions, config) {
       "dev-cycle-production": () =>
         engine.developmentCycleProductionMultiplier(),
       "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
+      "dismiss-news-section": () => engine.dismissNewsSection(),
+      "restore-news-section": () => engine.restoreNewsSection(),
+      "toggle-news-section": () => engine.toggleNewsSection(),
+      "cycle-news": () => engine.cycleNews(true),
+      "dev-toggle-news": () => {
+        engine.state.ui.devShowNews = !engine.state.ui.devShowNews;
+        engine.notify();
+      },
       "save-now": () => saveActions.saveNow(),
       "reset-save": () => saveActions.resetCurrent(),
       "reset-current-save": () => saveActions.resetCurrent(),
@@ -14745,10 +15238,17 @@ async function start() {
 
   try {
     const config = await loadConfig();
+    const news = await loadNews();
     const state = loadState(config, developmentMode);
     simulateOfflineProgress(state, config, { developmentMode });
-    const engine = new GameEngine({ state, config, developmentMode });
-    const render = createRenderer(app, config, developmentMode, listSaveSlots);
+    const engine = new GameEngine({ state, config, developmentMode, news });
+    const render = createRenderer(
+      app,
+      config,
+      developmentMode,
+      listSaveSlots,
+      news,
+    );
     let saveSuppressed = false;
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);

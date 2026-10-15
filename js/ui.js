@@ -54,6 +54,12 @@ import {
   isAutomationEnabled,
   listUnlockedAutomations,
 } from "./automations.js";
+import {
+  DEFAULT_NEWS,
+  getNewsItem,
+  getRarityClass,
+  getRarityLabel,
+} from "./news.js";
 
 function button(label, action, options = {}) {
   const {
@@ -704,6 +710,9 @@ function renderCrcBriefing() {
 }
 
 function renderHeader(state, developmentMode) {
+  const showRestoreNews =
+    (state.prototypeComplete || developmentMode) && state.ui?.newsDismissed;
+
   return `
     <header class="topbar">
       <div>
@@ -716,6 +725,14 @@ function renderHeader(state, developmentMode) {
           developmentMode
             ? button("Exit dev", "exit-dev-mode", { variant: "text" })
             : button("Dev mode", "enter-dev-mode", { variant: "text" })
+        }
+        ${
+          showRestoreNews
+            ? button("News Feed", "restore-news-section", {
+                variant: "text",
+                className: "button--news-toggle",
+              })
+            : ""
         }
         ${button("Save now", "save-now", { variant: "text" })}
         ${button("Reset current", "reset-current-save", { variant: "text" })}
@@ -2429,20 +2446,57 @@ function renderDevelopmentPanel(state) {
         ${button("Force Blueprint", "dev-force-blueprint", { variant: "ghost" })}
         ${button("Cycle Production", "dev-cycle-production", { variant: "ghost" })}
         ${button("Cycle Duration", "dev-cycle-duration", { variant: "ghost" })}
+        ${button(state.ui?.devShowNews ? "Hide News (Dev)" : "Force News (Dev)", "dev-toggle-news", { variant: "ghost" })}
+        ${button("Cycle News", "cycle-news", { variant: "ghost" })}
       </div>
     </article>
   `;
 }
 
-function renderCompletion() {
+export function renderNewsSection(state, newsList = DEFAULT_NEWS) {
+  if (state.ui?.newsDismissed) {
+    return "";
+  }
+
+  const currentItem = getNewsItem(newsList, state.ui?.currentNewsId);
+  const rarityNum = Number(currentItem?.rarity) || 1;
+  const rarityLabel = getRarityLabel(rarityNum);
+  const rarityClass = getRarityClass(rarityNum);
+  const showRarityBadge = rarityNum >= 2;
+
   return `
-    <article class="panel completion-panel">
-      <p class="eyebrow">MILESTONE REACHED</p>
-      <h2>PROCESSING NETWORK ONLINE</h2>
-      <p>${TEXT.processorComplete}</p>
-      <p class="completion-panel__note">MVP-0 COMPLETE // LAYER CONTINUES</p>
-    </article>
+    <aside class="news-section" role="region" aria-label="News Section">
+      <div class="news-section__badge">
+        <span class="news-section__pulse" aria-hidden="true"></span>
+        <span>NEWS FEED</span>
+      </div>
+      <span class="news-section__category" data-field="news-category">${currentItem?.category || "TELEMETRY"}</span>
+      <span class="news-section__rarity ${rarityClass}" data-field="news-rarity" style="${showRarityBadge ? "" : "display: none;"}">${showRarityBadge ? rarityLabel : ""}</span>
+      <div class="news-section__ticker" data-action="cycle-news" title="Click to cycle headline">
+        <span class="news-section__text" data-field="news-text">${currentItem?.text || "Monitoring facility background telemetry."}</span>
+      </div>
+      <div class="news-section__actions">
+        <button
+          type="button"
+          class="news-section__action-btn"
+          data-action="cycle-news"
+          title="Next news item"
+          aria-label="Next news item"
+        >↻</button>
+        <button
+          type="button"
+          class="news-section__close"
+          data-action="dismiss-news-section"
+          title="Close News Section"
+          aria-label="Close News Section"
+        >×</button>
+      </div>
+    </aside>
   `;
+}
+
+function renderCompletion(state, newsList = DEFAULT_NEWS) {
+  return renderNewsSection(state, newsList);
 }
 
 function renderSection(title, label, note, content, className = "") {
@@ -3361,6 +3415,9 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     blueprintStudyActive: state.blueprintStudy.active,
     constructionActive: state.construction.active,
     prototypeComplete: state.prototypeComplete,
+    newsDismissed: state.ui?.newsDismissed ?? false,
+    currentNewsId: state.ui?.currentNewsId ?? null,
+    devShowNews: state.ui?.devShowNews ?? false,
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
     saveSlots,
@@ -3368,7 +3425,13 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
   });
 }
 
-function updateDynamicFields(app, state, config, developmentMode) {
+function updateDynamicFields(
+  app,
+  state,
+  config,
+  developmentMode,
+  newsList = DEFAULT_NEWS,
+) {
   if (state.introState !== "active") return;
 
   const stableCapacity = calculateStableEnergyCapacity(state, config);
@@ -3566,14 +3629,43 @@ function updateDynamicFields(app, state, config, developmentMode) {
       ),
     );
   }
+
+  if (state.ui?.currentNewsId) {
+    const newsItem = getNewsItem(newsList, state.ui.currentNewsId);
+    if (newsItem) {
+      setField(app, "news-text", newsItem.text);
+      setField(app, "news-category", newsItem.category || "TELEMETRY");
+      const rarityNum = Number(newsItem.rarity) || 1;
+      const rarityEl = app.querySelector('[data-field="news-rarity"]');
+      if (rarityEl) {
+        if (rarityNum >= 2) {
+          rarityEl.textContent = getRarityLabel(rarityNum);
+          rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
+          rarityEl.style.display = "";
+        } else {
+          rarityEl.textContent = "";
+          rarityEl.style.display = "none";
+        }
+      }
+    }
+  }
 }
 
-function renderGame(state, config, developmentMode, saveSlots) {
+function renderGame(
+  state,
+  config,
+  developmentMode,
+  saveSlots,
+  newsList = DEFAULT_NEWS,
+) {
   const activeTab = getActiveTab(state, config);
+  const showNews =
+    (state.prototypeComplete || (developmentMode && state.ui?.devShowNews)) &&
+    !state.ui?.newsDismissed;
 
   return `
     ${renderHeader(state, developmentMode)}
-    ${state.prototypeComplete ? renderCompletion() : ""}
+    ${showNews ? renderNewsSection(state, newsList) : ""}
     ${renderTabBar(state, config)}
     <section class="operation-focus" aria-label="Power and production focus">
       ${renderGlobalHUD(state, config, developmentMode)}
@@ -3595,6 +3687,7 @@ export function createRenderer(
   config,
   developmentMode,
   getSaveSlots = () => [],
+  newsList = DEFAULT_NEWS,
 ) {
   let lastRenderSignature = "";
   let pointerIsDown = false;
@@ -3630,13 +3723,13 @@ export function createRenderer(
     );
 
     if (signature === lastRenderSignature) {
-      updateDynamicFields(app, state, config, developmentMode);
+      updateDynamicFields(app, state, config, developmentMode, newsList);
       return;
     }
 
     if (pointerIsDown) {
       deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode);
+      updateDynamicFields(app, state, config, developmentMode, newsList);
       return;
     }
 
@@ -3658,7 +3751,13 @@ export function createRenderer(
       return;
     }
 
-    app.innerHTML = renderGame(state, config, developmentMode, saveSlots);
-    updateDynamicFields(app, state, config, developmentMode);
+    app.innerHTML = renderGame(
+      state,
+      config,
+      developmentMode,
+      saveSlots,
+      newsList,
+    );
+    updateDynamicFields(app, state, config, developmentMode, newsList);
   };
 }

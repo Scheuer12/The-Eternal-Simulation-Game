@@ -1624,6 +1624,207 @@ h2 {
   letter-spacing: 0.11em;
 }
 
+/* News Section: slim carousel / marquee ticker */
+.news-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 4px 10px;
+  margin-bottom: 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(14, 34, 45, 0.92) 0%,
+    rgba(9, 21, 32, 0.95) 100%
+  );
+  border: 1px solid rgba(99, 242, 220, 0.28);
+  border-radius: 6px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.35),
+    inset 0 0 10px rgba(99, 242, 220, 0.04);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.78rem;
+  overflow: hidden;
+  animation: newsFadeIn 0.3s ease-out;
+}
+
+@keyframes newsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.news-section__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 7px;
+  background: rgba(99, 242, 220, 0.12);
+  border: 1px solid rgba(99, 242, 220, 0.35);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.news-section__pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  animation: newsPulse 2s infinite ease-in-out;
+}
+
+@keyframes newsPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.75);
+  }
+}
+
+.news-section__category {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  color: #8fa7a5;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.news-section__rarity {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.news-rarity--legendary {
+  color: #ffe072;
+  background: rgba(255, 202, 110, 0.18);
+  border-color: rgba(255, 202, 110, 0.5);
+  box-shadow: 0 0 8px rgba(255, 202, 110, 0.25);
+}
+
+.news-rarity--very-rare {
+  color: #e599f7;
+  background: rgba(219, 123, 250, 0.16);
+  border-color: rgba(219, 123, 250, 0.45);
+  box-shadow: 0 0 6px rgba(219, 123, 250, 0.2);
+}
+
+.news-rarity--rare {
+  color: #74c0fc;
+  background: rgba(101, 196, 255, 0.14);
+  border-color: rgba(101, 196, 255, 0.4);
+}
+
+.news-rarity--uncommon {
+  color: #8ce99a;
+  background: rgba(99, 242, 180, 0.1);
+  border-color: rgba(99, 242, 180, 0.3);
+}
+
+.news-rarity--common {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+}
+
+.news-section__ticker {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.news-section__ticker:hover .news-section__text {
+  color: #ffffff;
+}
+
+.news-section__text {
+  color: #dceaf2;
+  line-height: 1.4;
+  transition:
+    color 0.15s ease,
+    opacity 0.2s ease;
+}
+
+.news-section__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.news-section__action-btn,
+.news-section__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.news-section__action-btn:hover {
+  color: var(--cyan);
+  background: rgba(99, 242, 220, 0.12);
+  border-color: rgba(99, 242, 220, 0.25);
+}
+
+.news-section__close:hover {
+  color: var(--red);
+  background: rgba(255, 110, 120, 0.14);
+  border-color: rgba(255, 110, 120, 0.3);
+}
+
+.button--news-toggle {
+  color: var(--cyan) !important;
+  border-color: rgba(99, 242, 220, 0.3) !important;
+}
+
 .dev-panel {
   border-color: rgba(255, 202, 110, 0.22);
 }

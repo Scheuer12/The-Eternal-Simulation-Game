@@ -8,6 +8,7 @@ import {
 } from "./save-system.js";
 import { simulateOfflineProgress } from "./offline-progress.js";
 import { createRenderer, markTabComponentsSeen } from "./ui.js";
+import { DEFAULT_NEWS } from "./news.js";
 
 async function loadConfig() {
   if (globalThis.__TES_GAME_CONFIG__) {
@@ -17,6 +18,20 @@ async function loadConfig() {
   const response = await fetch("config/game-config.json");
   if (!response.ok) throw new Error("Game configuration could not be loaded.");
   return response.json();
+}
+
+async function loadNews() {
+  if (globalThis.__TES_NEWS__) {
+    return globalThis.__TES_NEWS__;
+  }
+
+  try {
+    const response = await fetch("content/news.json");
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn("Could not load news feed, falling back to default news.", error);
+  }
+  return DEFAULT_NEWS;
 }
 
 function bindActions(app, engine, saveActions, config) {
@@ -174,6 +189,14 @@ function bindActions(app, engine, saveActions, config) {
       "dev-cycle-production": () =>
         engine.developmentCycleProductionMultiplier(),
       "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
+      "dismiss-news-section": () => engine.dismissNewsSection(),
+      "restore-news-section": () => engine.restoreNewsSection(),
+      "toggle-news-section": () => engine.toggleNewsSection(),
+      "cycle-news": () => engine.cycleNews(true),
+      "dev-toggle-news": () => {
+        engine.state.ui.devShowNews = !engine.state.ui.devShowNews;
+        engine.notify();
+      },
       "save-now": () => saveActions.saveNow(),
       "reset-save": () => saveActions.resetCurrent(),
       "reset-current-save": () => saveActions.resetCurrent(),
@@ -193,10 +216,17 @@ async function start() {
 
   try {
     const config = await loadConfig();
+    const news = await loadNews();
     const state = loadState(config, developmentMode);
     simulateOfflineProgress(state, config, { developmentMode });
-    const engine = new GameEngine({ state, config, developmentMode });
-    const render = createRenderer(app, config, developmentMode, listSaveSlots);
+    const engine = new GameEngine({ state, config, developmentMode, news });
+    const render = createRenderer(
+      app,
+      config,
+      developmentMode,
+      listSaveSlots,
+      news,
+    );
     let saveSuppressed = false;
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);

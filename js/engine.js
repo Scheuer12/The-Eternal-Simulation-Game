@@ -38,6 +38,7 @@ import {
   canResearchBlueprint,
   clamp,
 } from "./formulas.js";
+import { DEFAULT_NEWS, getNewsItem, selectNextNews } from "./news.js";
 
 export class GameEngine {
   constructor({
@@ -47,6 +48,7 @@ export class GameEngine {
     random = Math.random,
     collectEvents = false,
     suppressLogs = false,
+    news = null,
   }) {
     this.state = state;
     this.config = config;
@@ -54,8 +56,68 @@ export class GameEngine {
     this.random = random;
     this.collectEvents = collectEvents;
     this.suppressLogs = suppressLogs;
+    this.news =
+      Array.isArray(news) && news.length > 0
+        ? news
+        : globalThis.__TES_NEWS__ || DEFAULT_NEWS;
     this.events = [];
     this.listeners = new Set();
+
+    if (this.state.ui && !this.state.ui.currentNewsId) {
+      const initial = selectNextNews(this.news, null, this.random);
+      if (initial) {
+        this.state.ui.currentNewsId = initial.id;
+      }
+    }
+  }
+
+  getNewsList() {
+    return this.news;
+  }
+
+  setNewsList(newsList) {
+    if (Array.isArray(newsList) && newsList.length > 0) {
+      this.news = newsList;
+      if (!this.state.ui.currentNewsId) {
+        const next = selectNextNews(this.news, null, this.random);
+        if (next) this.state.ui.currentNewsId = next.id;
+      }
+    }
+  }
+
+  cycleNews(manual = false) {
+    if (!this.news || this.news.length === 0) return;
+    const next = selectNextNews(
+      this.news,
+      this.state.ui?.currentNewsId,
+      this.random,
+    );
+    if (next && this.state.ui) {
+      this.state.ui.currentNewsId = next.id;
+      this.state.ui.newsTimer = 0;
+      if (manual) this.notify();
+    }
+  }
+
+  dismissNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = true;
+      this.notify();
+    }
+  }
+
+  restoreNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = false;
+      this.notify();
+    }
+  }
+
+  toggleNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = !this.state.ui.newsDismissed;
+      this.notify();
+    }
   }
 
   subscribe(listener) {
@@ -230,6 +292,14 @@ export class GameEngine {
 
     this.state.stats.totalPlayTime += delta;
     this.state.stats.runPlayTime += delta;
+
+    if (this.state.ui) {
+      this.state.ui.newsTimer = (this.state.ui.newsTimer || 0) + delta;
+      if (this.state.ui.newsTimer >= 10) {
+        this.state.ui.newsTimer = 0;
+        this.cycleNews(false);
+      }
+    }
 
     let remainingTime = delta;
     const maxSubSteps = 1000;
@@ -1257,7 +1327,13 @@ export class GameEngine {
 
     this.state.energy = big(this.state.energy).sub(cost);
     this.state.devices.processors += 1;
-    this.state.prototypeComplete = true;
+    if (!this.state.prototypeComplete) {
+      this.state.prototypeComplete = true;
+      if (this.state.ui) {
+        this.state.ui.newsDismissed = false;
+        this.state.ui.currentNewsId = "processing_network_online";
+      }
+    }
     this.emitEvent("device-purchased", {
       device: "processor",
       count: this.state.devices.processors,
@@ -1286,7 +1362,13 @@ export class GameEngine {
       if (big(this.state.energy).lt(cost)) break;
       this.state.energy = big(this.state.energy).sub(cost);
       this.state.devices.processors += 1;
-      this.state.prototypeComplete = true;
+      if (!this.state.prototypeComplete) {
+        this.state.prototypeComplete = true;
+        if (this.state.ui) {
+          this.state.ui.newsDismissed = false;
+          this.state.ui.currentNewsId = "processing_network_online";
+        }
+      }
       purchased++;
     }
     if (purchased > 0) {

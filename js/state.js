@@ -61,6 +61,9 @@ export function createInitialState(config) {
       particleSynthesisModal: null,
       hideCompletedPurchases: false,
       seenComponents: {},
+      newsDismissed: false,
+      currentNewsId: null,
+      newsTimer: 0,
     },
     devices: {
       softDataDisplay: false,
@@ -310,6 +313,12 @@ export function normalizeState(candidate, config) {
         ...initial.ui.seenComponents,
         ...candidate.ui?.seenComponents,
       },
+      newsDismissed: Boolean(candidate.ui?.newsDismissed),
+      currentNewsId: candidate.ui?.currentNewsId ?? null,
+      newsTimer:
+        typeof candidate.ui?.newsTimer === "number"
+          ? candidate.ui.newsTimer
+          : 0,
     },
     setupOptimizations:
       candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,
