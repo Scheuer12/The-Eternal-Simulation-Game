@@ -295,10 +295,14 @@ def simulate_run(
             run.improvements = 0
             run.study_remaining = None
 
-        # CMU Trigger: competent player resets studies when processor fleet is large enough to benefit
+        # CMU Trigger: reset studies when required Algorithm Upgrades reached
         req_cmu = cmu_requirement(run, config)
-        if run.method_upgrades < 2 and run.upgrades >= req_cmu and run.processors >= 8 and run.improvements >= 80:
+        if run.method_upgrades < 2 and run.upgrades >= req_cmu:
             run.method_upgrades += 1
+            if "first_cmu" not in run.milestones:
+                run.milestones["first_cmu"] = run.elapsed
+            if run.method_upgrades == 2 and "second_cmu" not in run.milestones:
+                run.milestones["second_cmu"] = run.elapsed
             run.upgrades = 0
             run.improvements = 0
             run.study_remaining = None
@@ -336,6 +340,8 @@ def simulate_run(
         ):
             run.energy -= config["t2SoftDataDisplay"]["cost"]
             run.t2_soft_data_display = True
+            if "t2_display" not in run.milestones:
+                run.milestones["t2_display"] = run.elapsed
 
         # 3. Power Cells (expand capacity and satisfy Overclocker prerequisite)
         cost_cell = power_cell_cost(run, config)
@@ -362,6 +368,8 @@ def simulate_run(
         if run.energy >= cost_proc and run.processors < 25:
             run.energy -= cost_proc
             run.processors += 1
+            if "first_proc" not in run.milestones:
+                run.milestones["first_proc"] = run.elapsed
 
         # 6. Overclocker Blueprint & Overclocker (requires 3 Processors & 3 Power Cells)
         if run.processors >= 3 and run.power_cells >= 3:
@@ -401,6 +409,10 @@ def run_benchmark() -> None:
     print(f"  * Peak Energy        : {run1.peak_energy:.4e} J")
     print(f"  * Milestone 1e-8 J   : {run1.milestones.get('1e-8', 0):.1f} s")
     print(f"  * First Auto Calc    : {calc1:.1f} s ({calc1 / 60.0:.2f} min)")
+    print(f"  * First Processor    : {run1.milestones.get('first_proc', 0):.1f} s ({run1.milestones.get('first_proc', 0) / 60.0:.2f} min)")
+    print(f"  * First CMU          : {run1.milestones.get('first_cmu', 0):.1f} s ({run1.milestones.get('first_cmu', 0) / 60.0:.2f} min)")
+    print(f"  * Second CMU         : {run1.milestones.get('second_cmu', 0):.1f} s ({run1.milestones.get('second_cmu', 0) / 60.0:.2f} min)")
+    print(f"  * T2 Soft Display    : {run1.milestones.get('t2_display', 0):.1f} s ({run1.milestones.get('t2_display', 0) / 60.0:.2f} min)")
     print(f"  * Milestone 100 J    : {run1.milestones.get('100_J', 0):.1f} s ({run1.milestones.get('100_J', 0) / 60.0:.2f} min)")
     print(f"  * Milestone 100 GJ   : {time1:.1f} s ({time1 / 60.0:.2f} min)")
     print(f"  * Algorithm Upgrades : {run1.upgrades}")
@@ -420,6 +432,10 @@ def run_benchmark() -> None:
     print(f"  * Peak Energy        : {run2.peak_energy:.4e} J")
     print(f"  * Milestone 1e-8 J   : {run2.milestones.get('1e-8', 0):.1f} s")
     print(f"  * First Auto Calc    : {calc2:.1f} s ({calc2 / 60.0:.2f} min)")
+    print(f"  * First Processor    : {run2.milestones.get('first_proc', 0):.1f} s ({run2.milestones.get('first_proc', 0) / 60.0:.2f} min)")
+    print(f"  * First CMU          : {run2.milestones.get('first_cmu', 0):.1f} s ({run2.milestones.get('first_cmu', 0) / 60.0:.2f} min)")
+    print(f"  * Second CMU         : {run2.milestones.get('second_cmu', 0):.1f} s ({run2.milestones.get('second_cmu', 0) / 60.0:.2f} min)")
+    print(f"  * T2 Soft Display    : {run2.milestones.get('t2_display', 0):.1f} s ({run2.milestones.get('t2_display', 0) / 60.0:.2f} min)")
     print(f"  * Milestone 100 J    : {run2.milestones.get('100_J', 0):.1f} s ({run2.milestones.get('100_J', 0) / 60.0:.2f} min)")
     print(f"  * Milestone 100 GJ   : {time2:.1f} s ({time2 / 60.0:.2f} min)")
     print(f"  * Algorithm Upgrades : {run2.upgrades}")

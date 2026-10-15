@@ -5777,18 +5777,18 @@
     "baseDurationSeconds": 10,
     "durationGrowthCoefficient": 0.16,
     "durationGrowthPower": 1.1,
-    "initialImprovementsRequired": 10,
+    "initialImprovementsRequired": 12,
     "improvementsRequiredGrowth": 5,
     "productionMultiplier": 2
   },
   "softDataDisplay": {
-    "cost": 1e-8
+    "cost": 2e-9
   },
   "t2SoftDataDisplay": {
-    "cost": 2
+    "cost": 0.002
   },
   "autoCalculator": {
-    "baseCost": 5e-7,
+    "baseCost": 8e-8,
     "costGrowth": 60,
     "costGrowthExponent": 1.25,
     "firstSpeedMultiplier": 2,
@@ -5805,7 +5805,7 @@
     "durationSeconds": 20
   },
   "processor": {
-    "baseCost": 0.000125,
+    "baseCost": 0.000001,
     "costGrowth": 6,
     "costGrowthExponent": 1.2,
     "deviceEfficiencyMultiplier": 1.15
@@ -5824,8 +5824,8 @@
     "coolingDurationMultiplier": 2
   },
   "calculationMethodUpgrade": {
-    "initialAlgorithmUpgradesRequired": 5,
-    "algorithmUpgradesRequiredGrowth": 5
+    "initialAlgorithmUpgradesRequired": 12,
+    "algorithmUpgradesRequiredGrowth": 6
   },
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
@@ -5847,7 +5847,7 @@
     },
     "algorithmUpgrades": {
       "productionMultiplierPerUpgrade": 2,
-      "initialRequiredImprovements": 10,
+      "initialRequiredImprovements": 12,
       "linearRequirementGrowth": 5,
       "quadraticRequirementCoefficient": 0.25,
       "automatedBaseDurationSeconds": 10,

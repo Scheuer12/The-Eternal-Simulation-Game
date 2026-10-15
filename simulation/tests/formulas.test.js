@@ -83,14 +83,14 @@ test("I=0, 1, 10, 100: CRC produces proportionally to 1+I without hidden compoun
   assertBigClose(calculateProduction(state, config), 101e-12);
 });
 
-test("Algorithm Upgrade requirement follows R(U) = ceil(10 + 5U + 0.125 U(U-1))", () => {
+test("Algorithm Upgrade requirement follows R(U) = ceil(12 + 5U + 0.125 U(U-1))", () => {
   const state = createInitialState(config);
 
-  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 0 }, config), 10);
-  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 1 }, config), 15);
-  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 2 }, config), 21);
-  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 3 }, config), 26);
-  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 4 }, config), 32);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 0 }, config), 12);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 1 }, config), 17);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 2 }, config), 23);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 3 }, config), 28);
+  assert.equal(calculateAlgorithmUpgradeRequirement({ ...state, upgrades: 4 }, config), 34);
 });
 
 test("first Algorithm Upgrade duration is the configured base duration", () => {
@@ -108,7 +108,7 @@ test("reset layer requirements rise as configured", () => {
         config,
       ),
     ),
-    [5, 10, 15, 20],
+    [12, 18, 24, 30],
   );
 
   assert.deepEqual(

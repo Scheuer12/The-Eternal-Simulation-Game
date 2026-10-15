@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { GameEngine } from "../../js/engine.js";
 import { createInitialState } from "../../js/state.js";
 import { createRenderer } from "../../js/ui.js";
+import { calculateCalculationMethodRequirement } from "../../js/formulas.js";
 
 const config = JSON.parse(
   readFileSync(new URL("../../config/game-config.json", import.meta.url), "utf8"),
@@ -139,7 +140,7 @@ test("UI: Reset confirmation modal behavior - CMU, Setup, and Synthesis open mod
   assert.strictEqual(state.improvements, 0);
 
   // 2. CMU opens confirmation modal when requirement is met
-  state.upgrades = 10;
+  state.upgrades = calculateCalculationMethodRequirement(state, config);
   engine.openCalculationMethodUpgradeConfirmation();
   assert.strictEqual(state.ui.resetModal, "cmu");
 
