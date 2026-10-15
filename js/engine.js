@@ -94,13 +94,65 @@ export class GameEngine {
     this.state.log = this.state.log.slice(0, 60);
   }
 
+  recordHistory({ eventId, kind = "Narrative", title, summary, body }) {
+    if (!this.state.history) {
+      this.state.history = [];
+    }
+    const id = eventId;
+    if (this.state.history.some((e) => (e.id || e.eventId) === id)) {
+      return;
+    }
+    const entry = {
+      id,
+      eventId: id,
+      kind,
+      title,
+      summary,
+      body: body || summary,
+      timestamp: Date.now(),
+      runPlayTime: this.state.stats.runPlayTime,
+      seenAt: Date.now(),
+    };
+    this.state.history.unshift(entry);
+  }
+
+  openHistoryEntry(id) {
+    if (!this.state.history) return false;
+    const entry = this.state.history.find((e) => (e.id || e.eventId) === id);
+    if (!entry) return false;
+    this.state.ui.historyModalEntry = entry;
+    this.notify();
+    return true;
+  }
+
+  closeHistoryModal() {
+    if (!this.state.ui.historyModalEntry) return false;
+    this.state.ui.historyModalEntry = null;
+    this.notify();
+    return true;
+  }
+
   pressButton() {
     this.state.introState = "crc-briefing";
+    this.recordHistory({
+      eventId: "narrative-intro",
+      kind: "Narrative",
+      title: "The room has been waiting.",
+      summary: "Dust hangs motionless in the air. A single button emits a faint blue pulse.",
+      body: "Dust hangs motionless in the air. Every panel is dark, every instrument silent.\n\nAt the center of the chamber, a single button emits a faint blue pulse.\n\nYou cannot remember why you entered this place — only that something behind these walls was never meant to be forgotten.",
+    });
     this.notify();
   }
 
   activateCrc() {
     this.state.introState = "active";
+    this.recordHistory({
+      eventId: "narrative-crc-awakening",
+      kind: "Narrative",
+      title: "The first machine wakes by pulling energy out of noise.",
+      summary: "Cosmic Radiation Condenser online. Pulls background radiation into usable Stored Energy.",
+      body: "The screen identifies the device as a Cosmic Radiation Condenser: a damaged instrument built to catch background cosmic radiation and compress it into usable Stored Energy.\n\nIts output is almost nothing at first. The facility expects you to improve the algorithm, not to operate the machine by hand.\n\nA Power Cell below the floor begins accepting charge. Every system you recover will either improve the condenser, automate the study cycle, or prepare the next layer of the facility.",
+    });
     this.addLog(
       "Cosmic Radiation Condenser detected. Status: ONLINE.",
       "discovery",
@@ -691,6 +743,13 @@ export class GameEngine {
     this.state.discoveries.crcBlueprint = true;
     this.state.discoveries.blueprintSource = source;
     this.emitEvent("blueprint-research-completed", { source });
+    this.recordHistory({
+      eventId: "discovery-crc-blueprint",
+      kind: "Discoveries",
+      title: "CRC Blueprint Recovered",
+      summary: "Specifications recovered for constructing additional Cosmic Radiation Condensers.",
+      body: "The facility has reconstructed the fabrication plan for additional Cosmic Radiation Condensers. Each new condenser constructed provides an independent, passive energy gathering point.",
+    });
     this.addLog(
       "CRC Blueprint reconstructed. New condensers can now be fabricated.",
       "discovery",
@@ -767,6 +826,13 @@ export class GameEngine {
     this.state.overclockerBlueprintStudy.elapsed = 0;
     this.state.discoveries.overclockerBlueprint = true;
     this.emitEvent("blueprint-completed", { device: "overclocker" });
+    this.recordHistory({
+      eventId: "discovery-overclocker-blueprint",
+      kind: "Discoveries",
+      title: "Overclocker Blueprint Recovered",
+      summary: "Thermal routing plan recovered for overclocking calculator arrays.",
+      body: "Analysis of processor routing channels reveals an overclocking pathway. Excessive Stored Energy can be burned to dramatically accelerate Auto Calculator speed.",
+    });
     this.addLog(
       "Overclocker Blueprint research completed. Overclocker construction unlocked.",
       "discovery",
@@ -817,6 +883,36 @@ export class GameEngine {
     );
     this.notify();
     return true;
+  }
+
+  purchasePowerCells(amount = 1) {
+    if (amount === "max") {
+      return this.purchaseMaxPowerCells();
+    }
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    if (count <= 1) {
+      return this.purchasePowerCell() ? 1 : 0;
+    }
+    let totalCost = big(0);
+    for (let i = 0; i < count; i++) {
+      totalCost = totalCost.add(
+        calculatePowerCellCost(
+          { ...this.state, powerCells: this.state.powerCells + i },
+          this.config,
+        ),
+      );
+    }
+    if (big(this.state.energy).lt(totalCost)) return 0;
+    this.state.energy = big(this.state.energy).sub(totalCost);
+    this.state.powerCells += count;
+    this.emitEvent("device-purchased", {
+      device: "powerCell",
+      count,
+      cost: totalCost,
+    });
+    this.addLog(`Power Cell Array expanded by ${count} cells.`, "device");
+    this.notify();
+    return count;
   }
 
   purchaseMaxPowerCells(maxPurchases = 100000) {
@@ -879,6 +975,29 @@ export class GameEngine {
     return true;
   }
 
+  purchasePowerModules(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchasePowerModule()) break;
+      const availability = evaluateComponent("powerModule", this.state, this.config);
+      if (big(this.state.energy).lt(availability.cost)) break;
+      this.state.energy = big(this.state.energy).sub(availability.cost);
+      this.state.powerModules += 1;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "powerModule",
+        count: this.state.powerModules,
+      });
+      this.addLog(`${purchased} Power Module(s) synchronized.`, "device");
+      this.notify();
+    }
+    return purchased;
+  }
+
   purchaseSoftDataDisplay() {
     if (!this.canPurchaseSoftDataDisplay()) return false;
     const cost = evaluateComponent(
@@ -892,6 +1011,13 @@ export class GameEngine {
       device: "softDataDisplay",
       count: 1,
       cost,
+    });
+    this.recordHistory({
+      eventId: "discovery-soft-display",
+      kind: "Discoveries",
+      title: "Soft Data Display Restored",
+      summary: "Production telemetry and flow dynamics unlocked. Buy 10 enabled.",
+      body: "The primary monitoring display flickers to life. Real-time net flow, overflow decay rates, and stable cell thresholds are now legible across all facility sectors.",
     });
     this.addLog(
       "Soft Display restored. Production telemetry is now readable.",
@@ -914,6 +1040,13 @@ export class GameEngine {
       device: "t2SoftDataDisplay",
       count: 1,
       cost,
+    });
+    this.recordHistory({
+      eventId: "discovery-t2-soft-display",
+      kind: "Discoveries",
+      title: "T2 Soft Data Display Restored",
+      summary: "Output composition and mathematical trace unlocked. Buy Max enabled.",
+      body: "The auxiliary analysis matrix decodes high-frequency resonance patterns. Production breakdowns and multi-factor mathematical traces can now be inspected directly.",
     });
     this.addLog(
       "T2 Soft Display restored. Condenser output composition is now readable.",
@@ -941,6 +1074,31 @@ export class GameEngine {
     this.refreshAlgorithmImprovementDuration();
     this.notify();
     return true;
+  }
+
+  purchaseOverclockers(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseOverclocker()) break;
+      const cost = evaluateComponent("overclocker", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.devices.overclockers += 1;
+      this.state.overclocker.active = false;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "overclocker",
+        count: this.state.devices.overclockers,
+      });
+      this.addLog(`${purchased} Overclocker(s) installed.`, "device");
+      this.refreshAlgorithmImprovementDuration();
+      this.notify();
+    }
+    return purchased;
   }
 
   toggleOverclocker() {
@@ -1000,6 +1158,35 @@ export class GameEngine {
     if (!this.state.study.active) this.startNextAutomatedStudy();
     this.notify();
     return true;
+  }
+
+  purchaseAutoCalculators(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseAutoCalculator()) break;
+      const cost = evaluateComponent("autoCalculator", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.devices.autoCalculators += 1;
+      unlockAutomation(this.state, "autoCalculator");
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "autoCalculator",
+        count: this.state.devices.autoCalculators,
+      });
+      if (this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
+        this.state.study.automated = true;
+        this.refreshAlgorithmImprovementDuration();
+      }
+      this.addLog(`${purchased} Auto Calculator(s) connected.`, "device");
+      if (!this.state.study.active) this.startNextAutomatedStudy();
+      this.notify();
+    }
+    return purchased;
   }
 
   toggleAutomation(id, enabled) {
@@ -1089,6 +1276,35 @@ export class GameEngine {
     return true;
   }
 
+  purchaseProcessors(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseProcessor()) break;
+      const cost = evaluateComponent("processor", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.devices.processors += 1;
+      this.state.prototypeComplete = true;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "processor",
+        count: this.state.devices.processors,
+      });
+      this.refreshAlgorithmImprovementDuration();
+      this.retimeActiveProgress(
+        this.state.construction,
+        this.calculateCrcConstructionDuration(),
+      );
+      this.addLog(`${purchased} Processor(s) integrated.`, "device");
+      this.notify();
+    }
+    return purchased;
+  }
+
   canStartAlgorithmUpgradeStudy() {
     return evaluateComponent("algorithmUpgrade", this.state, this.config)
       .enabled;
@@ -1175,6 +1391,13 @@ export class GameEngine {
     this.emitEvent("calculation-method-upgraded", {
       count: this.state.calculationMethods,
     });
+    this.recordHistory({
+      eventId: `milestone-cmu-${this.state.calculationMethods}`,
+      kind: "Milestones",
+      title: `Calculation Method Upgrade #${this.state.calculationMethods}`,
+      summary: `Processor bonus amplified by 1.2^${this.state.calculationMethods}. Studies reset.`,
+      body: `The facility's fundamental mathematical frameworks have been re-engineered. All Processors now achieve a 1.2^${this.state.calculationMethods} scaling multiplier across all calculation tasks.`,
+    });
     this.addLog(
       `Calculation Method Upgrade ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
       "milestone",
@@ -1183,9 +1406,35 @@ export class GameEngine {
     return true;
   }
 
+  openCalculationMethodUpgradeConfirmation() {
+    if (!this.canClaimCalculationMethodUpgrade()) return false;
+    this.state.ui.resetModal = "cmu";
+    this.notify();
+    return true;
+  }
+
+  confirmCalculationMethodUpgrade() {
+    if (this.state.ui.resetModal !== "cmu") return false;
+    this.state.ui.resetModal = null;
+    return this.claimCalculationMethodUpgrade();
+  }
+
   canClaimSetupOptimization() {
     return evaluateComponent("setupOptimization", this.state, this.config)
       .enabled;
+  }
+
+  openSetupOptimizationConfirmation() {
+    if (!this.canClaimSetupOptimization()) return false;
+    this.state.ui.resetModal = "setup";
+    this.notify();
+    return true;
+  }
+
+  confirmSetupOptimization() {
+    if (this.state.ui.resetModal !== "setup") return false;
+    this.state.ui.resetModal = null;
+    return this.claimSetupOptimization();
   }
 
   canActivateParticleSynthesizer() {
@@ -1196,20 +1445,104 @@ export class GameEngine {
   openParticleSynthesisConfirmation() {
     if (!this.canActivateParticleSynthesizer()) return false;
     this.state.ui.particleSynthesisModal = "confirm";
+    this.state.ui.resetModal = "synthesis";
     this.notify();
     return true;
   }
 
   closeParticleSynthesisModal() {
-    if (!this.state.ui.particleSynthesisModal) return false;
     this.state.ui.particleSynthesisModal = null;
+    this.state.ui.resetModal = null;
     this.notify();
     return true;
   }
 
+  closeResetModal() {
+    return this.closeParticleSynthesisModal();
+  }
+
   confirmParticleSynthesis() {
-    if (this.state.ui.particleSynthesisModal !== "confirm") return false;
+    if (
+      this.state.ui.particleSynthesisModal !== "confirm" &&
+      this.state.ui.resetModal !== "synthesis"
+    ) {
+      return false;
+    }
+    this.state.ui.resetModal = null;
     return this.activateParticleSynthesizer({ showNarrative: true });
+  }
+
+  getResetPreview(resetType) {
+    if (resetType === "cmu") {
+      const nextCMU = this.state.calculationMethods + 1;
+      const studyRunning = Boolean(
+        this.state.study?.active ||
+          this.state.algorithmUpgradeStudy?.active ||
+          this.state.blueprintStudy?.active ||
+          this.state.overclockerBlueprintStudy?.active,
+      );
+      return {
+        type: "cmu",
+        title: "Confirm Calculation Method Upgrade",
+        gain: `Calculation Method Upgrade ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
+        lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
+        preserved:
+          "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
+        warnings: studyRunning
+          ? "Warning: A research study or blueprint reconstruction is currently active and will be aborted!"
+          : null,
+        isEligible: this.canClaimCalculationMethodUpgrade(),
+      };
+    }
+
+    if (resetType === "setup") {
+      const nextSetup = this.state.setupOptimizations + 1;
+      const currentD = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
+      const nextD = 1 + 2 * Math.log(1 + nextSetup);
+      return {
+        type: "setup",
+        title: "Confirm Setup Optimization",
+        gain: `Setup Optimization ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
+        lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+        preserved:
+          "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
+        warnings:
+          "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
+        isEligible: this.canClaimSetupOptimization(),
+      };
+    }
+
+    if (resetType === "synthesis") {
+      const activationCost = calculateParticleSynthesizerCost(
+        this.state,
+        this.config,
+      );
+      const spReward = calculateSciencePointReward(
+        this.state.energy,
+        this.state.science?.totalScienceEarned ?? 0,
+        this.config,
+      );
+      const quarksReward = calculateQuarksGenerated(
+        this.state.energy,
+        this.config,
+      );
+      return {
+        type: "synthesis",
+        title: "Confirm Particle Synthesis",
+        gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
+        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
+        preserved:
+          "Preserves Science Points, Quarks, Science Perks, and History.",
+        warnings:
+          "Complete reset of all physical devices, power cells, and stored energy.",
+        isEligible: this.canActivateParticleSynthesizer(),
+        activationCost,
+        spReward,
+        quarksReward,
+      };
+    }
+
+    return null;
   }
 
   activateParticleSynthesizer({ showNarrative = false } = {}) {
@@ -1249,8 +1582,18 @@ export class GameEngine {
       quarksGenerated,
     });
     this.resetEnergyLayerForSynthesis();
+    this.recordHistory({
+      eventId: `milestone-synthesis-${this.state.science.syntheses}`,
+      kind: firstSynthesis ? "Narrative" : "Milestones",
+      title: firstSynthesis
+        ? "First Particle Synthesis"
+        : `Particle Synthesis #${this.state.science.syntheses}`,
+      summary: `Full Energy Layer reset yielding ${sciencePointsGained} SP and ${quarksGenerated} Quarks.`,
+      body: "The laboratory rings ignite in sequence. For a fraction of a second, the entire facility feeds one impossible concentration of energy into the central chamber.\n\nA new signature appears on the display. Then the Synthesizer overloads. Protection circuits sever every route at once, and the facility falls dark.\n\nWhen the first condenser returns, something survived the collapse: preserved scientific knowledge and the quarks formed during synthesis.",
+    });
     this.state.ui.particleSynthesisModal =
       showNarrative && firstSynthesis ? "narrative" : null;
+    this.state.ui.resetModal = null;
     this.addLog(
       `Particle Synthesizer activated. ${sciencePointsGained} Science Points and ${quarksGenerated} quarks preserved through a full Energy Layer reset.`,
       "milestone",
@@ -1280,6 +1623,29 @@ export class GameEngine {
     );
     this.notify();
     return true;
+  }
+
+  purchaseQuarkCages(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseQuarkCage()) break;
+      const cost = evaluateComponent("quarkCage", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.scienceDevices.quarkCages += 1;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "quarkCage",
+        count: this.state.scienceDevices.quarkCages,
+      });
+      this.addLog(`${purchased} Quarks Cage(s) stabilized.`, "device");
+      this.notify();
+    }
+    return purchased;
   }
 
   canPurchaseFiftyGCalculator() {
@@ -1338,6 +1704,10 @@ export class GameEngine {
     return true;
   }
 
+  buySciencePerk(perkId) {
+    return this.purchaseSciencePerk(perkId);
+  }
+
   resetSciencePointAllocation() {
     const totalScienceEarned = Math.max(
       0,
@@ -1384,8 +1754,16 @@ export class GameEngine {
 
     this.state.setupOptimizations += 1;
     this.resetHardwareForSetupOptimization();
+    const D_S = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
     this.emitEvent("setup-optimized", {
       count: this.state.setupOptimizations,
+    });
+    this.recordHistory({
+      eventId: `milestone-setup-${this.state.setupOptimizations}`,
+      kind: "Milestones",
+      title: `Setup Optimization #${this.state.setupOptimizations}`,
+      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}.`,
+      body: `Lower energy layer physical infrastructure has been dismantled and re-architected. Power Cells and scientific progress are preserved while device performance scales to D(S) = 1 + 2 ln(1+S).`,
     });
     this.addLog(
       `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
@@ -1531,6 +1909,34 @@ export class GameEngine {
     this.state.devSettings.durationMultiplier =
       options[(index + 1) % options.length];
     this.refreshAllActiveDurations();
+    this.notify();
+  }
+
+  startAlgorithmUpgrade(options = {}) {
+    return this.startAlgorithmUpgradeStudy(options);
+  }
+
+  selectSciencePerk(perkId) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.selectedSciencePerkId = perkId;
+    this.notify();
+  }
+
+  setTreeZoom(zoom) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.treeZoom = Math.min(2.0, Math.max(0.5, Number(zoom) || 1.0));
+    this.notify();
+  }
+
+  setBuyMode(mode) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.buyMode = String(mode);
+    this.notify();
+  }
+
+  setHistoryFilter(filter) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.historyFilter = String(filter);
     this.notify();
   }
 }

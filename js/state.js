@@ -50,8 +50,14 @@ export function createInitialState(config) {
       activated: false,
     },
     ui: {
-      activeTab: "devices",
+      activeTab: "energy",
       activeScienceSubtab: "tree",
+      buyMode: "1",
+      historyFilter: "all",
+      treeZoom: 1.0,
+      selectedSciencePerkId: null,
+      resetModal: null,
+      historyModalEntry: null,
       particleSynthesisModal: null,
       hideCompletedPurchases: false,
       seenComponents: {},
@@ -111,6 +117,7 @@ export function createInitialState(config) {
       runPlayTime: 0,
     },
     log: [],
+    history: [],
     lastSavedAt: Date.now(),
   };
 }
@@ -162,8 +169,12 @@ export function migrateSaveV2ToV3(candidate, config) {
   const tabMapping = {
     hardware: "energy",
     devices: "energy",
-    studies: "automation",
+    studies: "energy",
+    energy: "energy",
     automation: "automation",
+    automations: "automation",
+    measure: "automation",
+    statistics: "automation",
     science: "science",
     history: "history",
   };
@@ -173,6 +184,10 @@ export function migrateSaveV2ToV3(candidate, config) {
     ...candidate.ui,
     activeTab: tabMapping[activeTab] ?? "energy",
   };
+
+  migrated.history = Array.isArray(candidate.history)
+    ? [...candidate.history]
+    : [];
 
   // 5. Discoveries
   migrated.discoveries = {
@@ -200,6 +215,19 @@ export function normalizeState(candidate, config) {
   } else if (candidate.saveVersion !== SAVE_VERSION) {
     return initial;
   }
+
+  const tabMapping = {
+    hardware: "energy",
+    devices: "energy",
+    studies: "energy",
+    energy: "energy",
+    automation: "automation",
+    automations: "automation",
+    measure: "automation",
+    statistics: "automation",
+    science: "science",
+    history: "history",
+  };
 
   const devices = {
     ...initial.devices,
@@ -261,10 +289,23 @@ export function normalizeState(candidate, config) {
       ...initial.particleSynthesizer,
       ...candidate.particleSynthesizer,
     },
+    history: Array.isArray(candidate.history)
+      ? [...candidate.history]
+      : initial.history,
     ui: {
       ...initial.ui,
       ...candidate.ui,
+      activeTab: tabMapping[candidate.ui?.activeTab] ?? initial.ui.activeTab,
       particleSynthesisModal: null,
+      resetModal: null,
+      historyModalEntry: null,
+      buyMode: candidate.ui?.buyMode ?? initial.ui.buyMode,
+      historyFilter: candidate.ui?.historyFilter ?? initial.ui.historyFilter,
+      treeZoom:
+        typeof candidate.ui?.treeZoom === "number"
+          ? candidate.ui.treeZoom
+          : initial.ui.treeZoom,
+      selectedSciencePerkId: candidate.ui?.selectedSciencePerkId ?? null,
       seenComponents: {
         ...initial.ui.seenComponents,
         ...candidate.ui?.seenComponents,
