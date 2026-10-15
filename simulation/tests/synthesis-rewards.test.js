@@ -46,7 +46,6 @@ test("lifetime production cannot satisfy the next Science Point threshold", () =
   assert.equal(engine.activateParticleSynthesizer(), true);
   assertBigEqual(engine.state.sciencePoints, 0);
   assertBigEqual(engine.state.science.totalScienceEarned, 1);
-  assertBigEqual(engine.state.quarks.lastSynthesis, 1);
 });
 
 test("stored energy at the next threshold grants the next Science Point", () => {

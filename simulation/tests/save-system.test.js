@@ -162,7 +162,7 @@ test("loading rolls back non-finite production state while retaining large-numbe
     crcCount: 10,
     improvements: 40,
     improvementMultiplier: null,
-    upgrades: 350,
+    upgrades: 365,
     devices: { autoCalculators: 4, processors: 7 },
   });
   localStorage.setItem(
@@ -233,5 +233,64 @@ test("save slots expose normal and development metadata", () => {
   assert.equal(slots[0].lastSavedAt, 123);
   assert.equal(slots[1].id, "development");
   assert.equal(slots[1].exists, false);
+});
+
+test("migrating a v2 save to v3 converts storedEnergyPreservation to powerCellResonance and updates version", () => {
+  globalThis.localStorage = createLocalStorageMock();
+  const v2Data = {
+    saveVersion: 2,
+    introState: "active",
+    energy: "5000",
+    powerCells: 10,
+    improvements: 42,
+    improvementMultiplier: "1.5e12",
+    preservedImprovementLog: "28.0",
+    upgrades: 3,
+    ui: { activeTab: "hardware" },
+    science: {
+      perks: { storedEnergyPreservation: true },
+      totalScienceEarned: 2,
+    },
+  };
+  localStorage.setItem("the-eternal-simulation.save.v2", JSON.stringify(v2Data));
+
+  const state = loadState(config, false);
+
+  assert.equal(state.saveVersion, 3);
+  assert.equal(state.improvements, 42);
+  // Linear multiplier (1 + I = 43) replaces obsolete exponential multiplier
+  assertBigEqual(state.improvementMultiplier, 43);
+  assert.equal(state.science.perks.powerCellResonance, true);
+  assert.equal(state.science.perks.storedEnergyPreservation, undefined);
+  // Tab mapped from hardware to energy
+  assert.equal(state.ui.activeTab, "energy");
+  // Original v2 save preserved
+  assert.ok(localStorage.getItem("the-eternal-simulation.save.v2"));
+  // New v3 save created
+  assert.ok(localStorage.getItem(getSaveKey(false)));
+});
+
+test("migrating a v2 save preserves active study completion percentage", () => {
+  globalThis.localStorage = createLocalStorageMock();
+  const v2Data = {
+    saveVersion: 2,
+    introState: "active",
+    improvements: 5,
+    devices: { autoCalculators: 1 },
+    study: {
+      active: true,
+      elapsed: 2.5,
+      duration: 5.0, // 50% completed in old formula
+    },
+  };
+  localStorage.setItem("the-eternal-simulation.save.v2", JSON.stringify(v2Data));
+
+  const state = loadState(config, false);
+
+  assert.equal(state.saveVersion, 3);
+  assert.equal(state.study.active, true);
+  // In v3, elapsed / duration must still be 50%
+  const pct = state.study.elapsed / state.study.duration;
+  assert.ok(Math.abs(pct - 0.5) < 1e-6, `Expected ~0.5, got ${pct}`);
 });
 

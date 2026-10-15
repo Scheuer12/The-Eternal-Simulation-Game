@@ -45,6 +45,52 @@ export function bigClamp(value, minimum, maximum) {
   return bigMax(minimum, bigMin(value, maximum));
 }
 
+export function bigFloor(value) {
+  const d = big(value);
+  if (d.layer === 0 && d.mag < 1e15) {
+    const r = Math.round(d.toNumber());
+    if (Math.abs(d.toNumber() - r) < 1e-11) return big(r);
+  }
+  return d.floor();
+}
+
+export function bigCeil(value) {
+  const d = big(value);
+  if (d.layer === 0 && d.mag < 1e15) {
+    const r = Math.round(d.toNumber());
+    if (Math.abs(d.toNumber() - r) < 1e-11) return big(r);
+  }
+  return d.ceil();
+}
+
+export function bigRound(value) {
+  const d = big(value);
+  return d.round();
+}
+
+export function bigFloorDiv(numerator, denominator) {
+  const num = big(numerator);
+  const den = big(denominator);
+  if (den.eq(0)) return big(0);
+  return bigFloor(num.div(den));
+}
+
+export function bigPow(base, exponent) {
+  return big(base).pow(exponent);
+}
+
+export function bigLog10(value) {
+  return big(value).log10();
+}
+
+export function bigLn(value) {
+  return big(value).ln();
+}
+
+export function bigExp(value) {
+  return big(value).exp();
+}
+
 export function toFiniteNumber(value, fallback = 0) {
   const result = big(value).toNumber();
   return Number.isFinite(result) ? result : fallback;

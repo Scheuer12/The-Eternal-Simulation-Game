@@ -210,7 +210,7 @@ test("a completed Algorithm Improvement applies its next marginal multiplier", (
   engine.startStudy();
   engine.completeStudy();
   assert.equal(engine.state.improvements, 1);
-  assertBigEqual(engine.state.improvementMultiplier, 10);
+  assertBigEqual(engine.state.improvementMultiplier, 2);
 });
 
 test("Blueprint becomes researchable at 10 J peak and unlocks CRC construction after research", () => {
@@ -295,14 +295,14 @@ test("Processor requires only sufficient energy", () => {
   assert.equal(engine.state.prototypeComplete, true);
 });
 
-test("Overclocker requires three Processors, three Power Cells and stored energy", () => {
+test("Overclocker requires three Processors, three Power Cells, stored energy and Overclocker Blueprint", () => {
   const engine = createEngine();
   engine.state.energy = config.overclocker.baseCost;
   engine.state.devices.processors = config.overclocker.processorsRequired;
-  engine.state.powerCells = config.overclocker.powerCellsRequired - 1;
+  engine.state.powerCells = config.overclocker.powerCellsRequired;
   assert.equal(engine.purchaseOverclocker(), false);
 
-  engine.state.powerCells = config.overclocker.powerCellsRequired;
+  engine.state.discoveries.overclockerBlueprint = true;
   assert.equal(engine.purchaseOverclocker(), true);
   assert.equal(engine.state.devices.overclockers, 1);
   assert.equal(engine.state.overclocker.active, false);
@@ -315,6 +315,7 @@ test("Overclocker requires three Processors, three Power Cells and stored energy
 test("active Overclocker drains energy and retimes Algorithm Improvement", () => {
   const engine = createEngine();
   engine.state.devices.autoCalculators = 1;
+  engine.state.devices.processors = 3;
   engine.state.devices.overclockers = 1;
   const capacity = calculateStableEnergyCapacity(engine.state, config);
   engine.state.energy = capacity.add(
@@ -393,28 +394,16 @@ test("Algorithm Upgrade is manual and resets Improvements", () => {
   assertBigEqual(engine.state.improvementMultiplier, 1);
 });
 
-test("Quantum Superposition retains only new log-space progress without compounding old retention", () => {
+test("Quantum Superposition provides energy boost based on Quarks without retaining improvements on Algorithm Upgrade", () => {
   const engine = createEngine();
   engine.state.science.perks.quantumSuperposition = true;
   engine.state.quarks.totalEarned = 1e30;
-  const retention = 0.1;
-  engine.state.improvementMultiplier = 100;
+  engine.state.improvements = 10;
+  engine.state.improvementMultiplier = big(11);
 
   engine.completeAlgorithmUpgrade();
-  const firstRetained = 100 ** retention;
-  assert.ok(
-    Math.abs(engine.state.improvementMultiplier - firstRetained) < 1e-12,
-  );
-  assert.ok(
-    Math.abs(engine.state.preservedImprovementLog - Math.log(firstRetained)) <
-      1e-12,
-  );
-
-  engine.state.improvementMultiplier *= 100;
-  engine.completeAlgorithmUpgrade();
-  const expected = firstRetained * 100 ** retention;
-  assert.ok(Math.abs(engine.state.improvementMultiplier - expected) < 1e-12);
   assert.equal(engine.state.improvements, 0);
+  assertBigEqual(engine.state.improvementMultiplier, 1);
 });
 
 test("Particle Generator reveal is permanently recorded once Stored Energy reaches its target", () => {
@@ -582,14 +571,18 @@ test("Setup Optimization replaces Compression and resets hardware except Power C
   assert.equal(engine.state.overclocker.activeSeconds, 0);
 });
 
-test("Stored Energy Preservation keeps energy through Setup Optimization only when purchased", () => {
+test("Setup Optimization hard resets energy to 0 and preserves Power Cells", () => {
   const engine = createEngine();
   engine.state.energy = 123;
+  engine.state.powerCells = 5;
   engine.resetHardwareForSetupOptimization();
   assertBigEqual(engine.state.energy, 0);
+  assert.equal(engine.state.powerCells, 5);
 
   engine.state.energy = 456;
-  engine.state.science.perks.storedEnergyPreservation = true;
+  engine.state.powerCells = 8;
+  engine.state.science.perks.powerCellResonance = true;
   engine.resetHardwareForSetupOptimization();
-  assertBigEqual(engine.state.energy, 456);
+  assertBigEqual(engine.state.energy, 0);
+  assert.equal(engine.state.powerCells, 8);
 });

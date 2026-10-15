@@ -17,6 +17,7 @@ const config = JSON.parse(
 test("production effects reproduce the current production formula", () => {
   const state = createInitialState(config);
   state.crcCount = 3;
+  state.improvements = 11;
   state.improvementMultiplier = 12;
   state.upgrades = 2;
 

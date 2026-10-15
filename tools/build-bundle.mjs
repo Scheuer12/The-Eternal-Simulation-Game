@@ -7,6 +7,7 @@ const sources = [
   "content/texts.js",
   "js/numeric.js",
   "js/formulas.js",
+  "js/news.js",
   "js/effect-system.js",
   "js/component-registry.js",
   "js/science-perks.js",
@@ -30,6 +31,10 @@ const config = JSON.parse(
   await readFile(path.join(root, "config/game-config.json"), "utf8"),
 );
 
+const news = JSON.parse(
+  await readFile(path.join(root, "content/news.json"), "utf8"),
+);
+
 const decimalRuntime = await readFile(
   path.join(root, "node_modules/break_eternity.js/dist/break_eternity.js"),
   "utf8",
@@ -48,6 +53,7 @@ ${decimalRuntime}
 (() => {
   "use strict";
   globalThis.__TES_GAME_CONFIG__ = ${JSON.stringify(config, null, 2)};
+  globalThis.__TES_NEWS__ = ${JSON.stringify(news, null, 2)};
 ${sections.join("\n")}
 })();
 `;

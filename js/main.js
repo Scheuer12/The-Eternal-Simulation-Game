@@ -8,6 +8,7 @@ import {
 } from "./save-system.js";
 import { simulateOfflineProgress } from "./offline-progress.js";
 import { createRenderer, markTabComponentsSeen } from "./ui.js";
+import { DEFAULT_NEWS } from "./news.js";
 
 async function loadConfig() {
   if (globalThis.__TES_GAME_CONFIG__) {
@@ -17,6 +18,20 @@ async function loadConfig() {
   const response = await fetch("config/game-config.json");
   if (!response.ok) throw new Error("Game configuration could not be loaded.");
   return response.json();
+}
+
+async function loadNews() {
+  if (globalThis.__TES_NEWS__) {
+    return globalThis.__TES_NEWS__;
+  }
+
+  try {
+    const response = await fetch("content/news.json");
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn("Could not load news feed, falling back to default news.", error);
+  }
+  return DEFAULT_NEWS;
 }
 
 function bindActions(app, engine, saveActions, config) {
@@ -35,6 +50,22 @@ function bindActions(app, engine, saveActions, config) {
     true,
   );
 
+  app.addEventListener("mouseover", (event) => {
+    if (event.target.closest?.(".news-section")) {
+      engine.setNewsHovered(true);
+    }
+  });
+
+  app.addEventListener("mouseout", (event) => {
+    const section = event.target.closest?.(".news-section");
+    if (
+      section &&
+      (!event.relatedTarget || !section.contains(event.relatedTarget))
+    ) {
+      engine.setNewsHovered(false);
+    }
+  });
+
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
@@ -47,38 +78,100 @@ function bindActions(app, engine, saveActions, config) {
       "start-study": () => engine.startStudy(false),
       "start-algorithm-upgrade": () => engine.startAlgorithmUpgradeStudy(),
       "start-blueprint-research": () => engine.startBlueprintResearch(),
-      "buy-power-cell": () => engine.purchasePowerCell(),
+      "start-overclocker-blueprint-research": () =>
+        engine.startOverclockerBlueprintResearch(),
+      "buy-power-cell": () =>
+        engine.purchasePowerCells(engine.state.ui.buyMode ?? 1),
       "buy-max-power-cells": () => engine.purchaseMaxPowerCells(),
-      "buy-power-module": () => engine.purchasePowerModule(),
+      "buy-power-module": () =>
+        engine.purchasePowerModules(engine.state.ui.buyMode ?? 1),
       "buy-soft-display": () => engine.purchaseSoftDataDisplay(),
       "buy-t2-soft-display": () => engine.purchaseT2SoftDataDisplay(),
-      "buy-overclocker": () => engine.purchaseOverclocker(),
+      "buy-overclocker": () =>
+        engine.purchaseOverclockers(engine.state.ui.buyMode ?? 1),
       "toggle-overclocker": () => engine.toggleOverclocker(),
       "toggle-automation": () =>
         engine.toggleAutomation(target.dataset.automationId),
-      "buy-auto": () => engine.purchaseAutoCalculator(),
+      "buy-auto": () =>
+        engine.purchaseAutoCalculators(engine.state.ui.buyMode ?? 1),
       "construct-crc": () => engine.startCrcConstruction(),
-      "buy-processor": () => engine.purchaseProcessor(),
+      "buy-processor": () =>
+        engine.purchaseProcessors(engine.state.ui.buyMode ?? 1),
       "open-particle-synthesis": () =>
         engine.openParticleSynthesisConfirmation(),
       "cancel-particle-synthesis": () => engine.closeParticleSynthesisModal(),
       "confirm-particle-synthesis": () => engine.confirmParticleSynthesis(),
       "close-particle-synthesis-narrative": () =>
         engine.closeParticleSynthesisModal(),
-      "buy-quark-cage": () => engine.purchaseQuarkCage(),
+      "cancel-reset-modal": () => engine.closeResetModal(),
+      "confirm-reset-modal": () => {
+        if (engine.state.ui.resetModal === "cmu") {
+          engine.confirmCalculationMethodUpgrade();
+        } else if (engine.state.ui.resetModal === "setup") {
+          engine.confirmSetupOptimization();
+        } else if (
+          engine.state.ui.resetModal === "synthesis" ||
+          engine.state.ui.particleSynthesisModal === "confirm"
+        ) {
+          engine.confirmParticleSynthesis();
+        }
+      },
+      "buy-quark-cage": () =>
+        engine.purchaseQuarkCages(engine.state.ui.buyMode ?? 1),
       "buy-fifty-g-calculator": () => engine.purchaseFiftyGCalculator(),
       "buy-science-perk": () =>
         engine.purchaseSciencePerk(target.dataset.perkId),
+      "select-science-perk": () => {
+        engine.state.ui.selectedSciencePerkId = target.dataset.perkId;
+        engine.notify();
+      },
+      "zoom-in-tree": () => {
+        engine.state.ui.treeZoom = Math.min(
+          1.6,
+          (engine.state.ui.treeZoom || 1) + 0.15,
+        );
+        engine.notify();
+      },
+      "zoom-out-tree": () => {
+        engine.state.ui.treeZoom = Math.max(
+          0.6,
+          (engine.state.ui.treeZoom || 1) - 0.15,
+        );
+        engine.notify();
+      },
+      "reset-tree-zoom": () => {
+        engine.state.ui.treeZoom = 1.0;
+        engine.notify();
+      },
+      "set-buy-mode": () => {
+        engine.state.ui.buyMode =
+          target.dataset.buyMode || target.dataset.mode || "1";
+        engine.notify();
+      },
+      "set-history-filter": () => {
+        engine.state.ui.historyFilter = target.dataset.filter || "all";
+        engine.notify();
+      },
+      "open-history-entry": () => {
+        engine.openHistoryEntry(
+          target.dataset.historyId || target.dataset.entryId,
+        );
+      },
+      "close-history-modal": () => {
+        engine.closeHistoryModal();
+      },
       "reset-science-points": () => {
         const confirmed = window.confirm(
           "Return every allocated Science Point and clear all purchased Science perks?",
         );
         if (confirmed) engine.resetSciencePointAllocation();
       },
-      "claim-method": () => engine.claimCalculationMethodUpgrade(),
-      "claim-setup": () => engine.claimSetupOptimization(),
+      "claim-method": () => engine.openCalculationMethodUpgradeConfirmation(),
+      "confirm-method-upgrade": () => engine.confirmCalculationMethodUpgrade(),
+      "claim-setup": () => engine.openSetupOptimizationConfirmation(),
+      "confirm-setup-optimization": () => engine.confirmSetupOptimization(),
       "set-tab": () => {
-        engine.state.ui.activeTab = target.dataset.tab || "devices";
+        engine.state.ui.activeTab = target.dataset.tab || "energy";
         markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
         engine.notify();
       },
@@ -112,6 +205,14 @@ function bindActions(app, engine, saveActions, config) {
       "dev-cycle-production": () =>
         engine.developmentCycleProductionMultiplier(),
       "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
+      "dismiss-news-section": () => engine.dismissNewsSection(),
+      "restore-news-section": () => engine.restoreNewsSection(),
+      "toggle-news-section": () => engine.toggleNewsSection(),
+      "cycle-news": () => engine.cycleNews(true),
+      "dev-toggle-news": () => {
+        engine.state.ui.devShowNews = !engine.state.ui.devShowNews;
+        engine.notify();
+      },
       "save-now": () => saveActions.saveNow(),
       "reset-save": () => saveActions.resetCurrent(),
       "reset-current-save": () => saveActions.resetCurrent(),
@@ -131,10 +232,17 @@ async function start() {
 
   try {
     const config = await loadConfig();
+    const news = await loadNews();
     const state = loadState(config, developmentMode);
     simulateOfflineProgress(state, config, { developmentMode });
-    const engine = new GameEngine({ state, config, developmentMode });
-    const render = createRenderer(app, config, developmentMode, listSaveSlots);
+    const engine = new GameEngine({ state, config, developmentMode, news });
+    const render = createRenderer(
+      app,
+      config,
+      developmentMode,
+      listSaveSlots,
+      news,
+    );
     let saveSuppressed = false;
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);

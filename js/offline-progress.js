@@ -48,7 +48,7 @@ function collectEvents(summary, events) {
     }
 
     if (event.type === "algorithm-improvement-completed") {
-      summary.algorithmImprovementsCompleted += 1;
+      summary.algorithmImprovementsCompleted += event.batchSize ?? 1;
     }
 
     if (event.type === "algorithm-upgrade-completed") {

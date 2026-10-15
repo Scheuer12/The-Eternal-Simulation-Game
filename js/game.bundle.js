@@ -5710,7 +5710,7 @@
   },
   "science": {
     "redundancyElimination": {
-      "researchSpeedBonusPerUpgradePerCycle": 0.0085,
+      "researchSpeedBonusPerUpgradePerCycle": 0.005,
       "softcapStartsAtImprovements": 50,
       "postSoftcapCycleRate": 0.08,
       "postSoftcapMaximumExtraCycles": 4,
@@ -5768,30 +5768,29 @@
     "onboardingImprovements": 15,
     "onboardingInitialBonus": 9,
     "baselineBonus": 0.05,
-    "minimumBonus": 0.025,
     "onboardingDecayShape": 1.55,
-    "lateDecayScale": 40,
-    "lateDecayPower": 0.65,
+    "bonusCurveSmoothing": 0.001,
+    "bonusDecayRate": 0.0062,
     "effectPenaltyMultiplierPerMethod": 0.9
   },
   "algorithmUpgrade": {
     "baseDurationSeconds": 10,
     "durationGrowthCoefficient": 0.16,
     "durationGrowthPower": 1.1,
-    "initialImprovementsRequired": 10,
+    "initialImprovementsRequired": 12,
     "improvementsRequiredGrowth": 5,
     "productionMultiplier": 2
   },
   "softDataDisplay": {
-    "cost": 1e-8
+    "cost": 2e-9
   },
   "t2SoftDataDisplay": {
-    "cost": 2
+    "cost": 0.002
   },
   "autoCalculator": {
-    "baseCost": 0.001,
-    "costGrowth": 50,
-    "costGrowthExponent": 1.2,
+    "baseCost": 8e-8,
+    "costGrowth": 60,
+    "costGrowthExponent": 1.25,
     "firstSpeedMultiplier": 2,
     "additionalSpeedMultiplier": 2
   },
@@ -5806,9 +5805,9 @@
     "durationSeconds": 20
   },
   "processor": {
-    "baseCost": 0.25,
-    "costGrowth": 4,
-    "costGrowthExponent": 1.15,
+    "baseCost": 0.000001,
+    "costGrowth": 6,
+    "costGrowthExponent": 1.2,
     "deviceEfficiencyMultiplier": 1.15
   },
   "overclocker": {
@@ -5825,8 +5824,8 @@
     "coolingDurationMultiplier": 2
   },
   "calculationMethodUpgrade": {
-    "initialAlgorithmUpgradesRequired": 5,
-    "algorithmUpgradesRequiredGrowth": 5
+    "initialAlgorithmUpgradesRequired": 12,
+    "algorithmUpgradesRequiredGrowth": 6
   },
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
@@ -5835,8 +5834,200 @@
   "development": {
     "durationMultiplier": 0.05,
     "productionMultiplier": 1000
+  },
+  "economyV2": {
+    "crc": {
+      "baseProductionPerSecond": 1e-12,
+      "improvementLinearBonus": 1
+    },
+    "improvements": {
+      "baseDurationSeconds": 0.5,
+      "durationGrowthCoefficient": 0.001,
+      "durationGrowthPower": 2
+    },
+    "algorithmUpgrades": {
+      "productionMultiplierPerUpgrade": 2,
+      "initialRequiredImprovements": 12,
+      "linearRequirementGrowth": 5,
+      "quadraticRequirementCoefficient": 0.25,
+      "automatedBaseDurationSeconds": 10,
+      "automatedDurationGrowthCoefficient": 0.16,
+      "automatedDurationGrowthPower": 1.1
+    },
+    "autoCalculators": {
+      "perUnitSpeedBonus": 0.5
+    },
+    "processors": {
+      "perUnitBonus": 0.15
+    },
+    "calculationMethods": {
+      "processorBonusMultiplierPerCMU": 1.2
+    },
+    "setupOptimizations": {
+      "devicePerformanceLogCoefficient": 2
+    },
+    "overclockers": {
+      "firstProcessorBonusMultiplier": 5,
+      "additionalProcessorBonusMultiplier": 1.5,
+      "blueprintResearchBaseDurationSeconds": 45
+    },
+    "scienceRebalance": {
+      "calculatorUpgradeResearchLogCoefficient": 0.2,
+      "calculatorEnhancedBonus": 0.7,
+      "quantumSuperpositionLogCoefficient": 0.02,
+      "powerCellResonanceLogCoefficient": 0.02
+    }
   }
 };
+  globalThis.__TES_NEWS__ = [
+  {
+    "id": "processing_network_online",
+    "text": "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    "category": "NETWORK",
+    "rarity": 1,
+    "weight": 80
+  },
+  {
+    "id": "solar_wind_shift",
+    "text": "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
+    "category": "TELEMETRY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "thermal_equilibrium",
+    "text": "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
+    "category": "SYSTEM",
+    "rarity": 1,
+    "weight": 90
+  },
+  {
+    "id": "subspace_resonance",
+    "text": "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
+    "category": "ENERGY",
+    "rarity": 1,
+    "weight": 85
+  },
+  {
+    "id": "buffer_clearing",
+    "text": "Automated diagnostic routine cleared 4,096 unreferenced telemetry buffers.",
+    "category": "MAINTENANCE",
+    "rarity": 1,
+    "weight": 80
+  },
+  {
+    "id": "particle_flux_nominal",
+    "text": "Atmospheric sensor array reports cosmic ray flux at 1.42 particles/cm²/s.",
+    "category": "SENSORS",
+    "rarity": 1,
+    "weight": 75
+  },
+  {
+    "id": "clock_sync",
+    "text": "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
+    "category": "CHRONO",
+    "rarity": 2,
+    "weight": 50
+  },
+  {
+    "id": "packet_echo",
+    "text": "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
+    "category": "NETWORK",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "algorithm_divergence",
+    "text": "Algorithm optimization branch pruned: 1,024 redundant iterations collapsed.",
+    "category": "COMPUTE",
+    "rarity": 2,
+    "weight": 40
+  },
+  {
+    "id": "vacuum_fluctuation",
+    "text": "Transient energy spike observed at quantum boundary. Flux collapsed to zero.",
+    "category": "SENSORS",
+    "rarity": 2,
+    "weight": 35
+  },
+  {
+    "id": "magnetic_reversal",
+    "text": "Local field coil micro-fluctuation compensated by primary dampener circuits.",
+    "category": "SYSTEM",
+    "rarity": 2,
+    "weight": 30
+  },
+  {
+    "id": "stray_signal",
+    "text": "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
+    "category": "ANOMALY",
+    "rarity": 3,
+    "weight": 20
+  },
+  {
+    "id": "memory_ghost",
+    "text": "Recovered corrupted memory partition from prior cycle: '...do not turn off the...' .",
+    "category": "ARCHIVE",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "micro_singularity",
+    "text": "Gravimetric sensor registers micro-distortion near the particle manifold.",
+    "category": "GRAVIMETRY",
+    "rarity": 3,
+    "weight": 15
+  },
+  {
+    "id": "quantum_entanglement_noise",
+    "text": "Entanglement pair correlation dropped to 99.4%. Re-calibrating spin detectors.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 12
+  },
+  {
+    "id": "temporal_leak",
+    "text": "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
+    "category": "ANOMALY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "facility_architect",
+    "text": "Decrypted supervisor log: 'Iteration #14,082 was our best hope. Continue the run.'",
+    "category": "CLASSIFIED",
+    "rarity": 4,
+    "weight": 4
+  },
+  {
+    "id": "sub_zero_quantum_spin",
+    "text": "Sensor reports negative thermodynamic entropy in dormant containment cell C-12.",
+    "category": "DEEP VOID",
+    "rarity": 4,
+    "weight": 3
+  },
+  {
+    "id": "simulation_breach",
+    "text": "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
+    "category": "SYSTEM FAULT",
+    "rarity": 5,
+    "weight": 2
+  },
+  {
+    "id": "cosmic_whisper",
+    "text": "The universe is not expanding. It is just making room for the next calculation.",
+    "category": "TRANSMISSION",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "ouroboros",
+    "text": "Simulation state matches initial conditions of universe #1. We have been here before.",
+    "category": "DEEP LORE",
+    "rarity": 5,
+    "weight": 1
+  }
+];
 
 // ---- content/texts.js ----
 const TEXT = Object.freeze({
@@ -5921,6 +6112,52 @@ function bigClamp(value, minimum, maximum) {
   return bigMax(minimum, bigMin(value, maximum));
 }
 
+function bigFloor(value) {
+  const d = big(value);
+  if (d.layer === 0 && d.mag < 1e15) {
+    const r = Math.round(d.toNumber());
+    if (Math.abs(d.toNumber() - r) < 1e-11) return big(r);
+  }
+  return d.floor();
+}
+
+function bigCeil(value) {
+  const d = big(value);
+  if (d.layer === 0 && d.mag < 1e15) {
+    const r = Math.round(d.toNumber());
+    if (Math.abs(d.toNumber() - r) < 1e-11) return big(r);
+  }
+  return d.ceil();
+}
+
+function bigRound(value) {
+  const d = big(value);
+  return d.round();
+}
+
+function bigFloorDiv(numerator, denominator) {
+  const num = big(numerator);
+  const den = big(denominator);
+  if (den.eq(0)) return big(0);
+  return bigFloor(num.div(den));
+}
+
+function bigPow(base, exponent) {
+  return big(base).pow(exponent);
+}
+
+function bigLog10(value) {
+  return big(value).log10();
+}
+
+function bigLn(value) {
+  return big(value).ln();
+}
+
+function bigExp(value) {
+  return big(value).exp();
+}
+
 function toFiniteNumber(value, fallback = 0) {
   const result = big(value).toNumber();
   return Number.isFinite(result) ? result : fallback;
@@ -5978,34 +6215,46 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+/**
+ * In Economy V2, each completed Improvement gives a linear +1 nominal factor
+ * to CRC base production.
+ */
 function calculateImprovementBonus(
   completedImprovements,
   config,
   calculationMethodUpgrades = 0,
 ) {
-  const study = config.study;
-  const effectiveImprovements =
-    completedImprovements *
-    study.effectPenaltyMultiplierPerMethod ** calculationMethodUpgrades;
-  let bonus;
+  return config?.economyV2?.crc?.improvementLinearBonus ?? 1;
+}
 
-  if (effectiveImprovements < study.onboardingImprovements) {
-    const remaining = 1 - effectiveImprovements / study.onboardingImprovements;
+/**
+ * Direct unmultiplied base production rate added by a single Algorithm Improvement cycle.
+ * This represents the raw unamplified rate (nominally 1e-12 J/s) added directly before CRC-level
+ * multipliers (such as CRC count C, Upgrades 2^U, Setup D(S)).
+ * If an active perk/modifier affects Improvement strength directly, it scales here.
+ */
+function calculateImprovementBaseOutput(config, state = null) {
+  const baseRate =
+    config?.economyV2?.crc?.baseProductionPerSecond ??
+    config?.energy?.baseProductionPerSecond ??
+    1e-12;
+  const linearBonus = config?.economyV2?.crc?.improvementLinearBonus ?? 1;
 
-    bonus =
-      study.baselineBonus +
-      (study.onboardingInitialBonus - study.baselineBonus) *
-        remaining ** study.onboardingDecayShape;
-  } else {
-    const lateImprovements =
-      effectiveImprovements - study.onboardingImprovements;
-
-    bonus =
-      study.baselineBonus /
-      (1 + lateImprovements / study.lateDecayScale) ** study.lateDecayPower;
+  let directMultiplier = 1;
+  if (state && hasSciencePerk(state, "improvementStrengthMultiplier")) {
+    directMultiplier *= state.improvementStrengthMultiplier ?? 1;
   }
 
-  return Math.max(study.minimumBonus ?? 0, bonus);
+  return big(baseRate).mul(linearBonus).mul(directMultiplier);
+}
+
+/**
+ * Total direct base output generated by all completed improvements combined.
+ */
+function calculateTotalImprovementDirectOutput(state, config) {
+  const basePerImp = calculateImprovementBaseOutput(config, state);
+  const count = Math.max(0, state?.improvements ?? 0);
+  return basePerImp.mul(count);
 }
 
 function calculateEscalatingCost(baseCost, growth, exponent, ownedCount) {
@@ -6082,21 +6331,75 @@ function calculatePowerModuleCost(ownedPowerModules, config) {
   );
 }
 
-function calculatePowerModuleCapacityMultiplier(state, config) {
-  const modules = Math.max(0, state.powerModules);
-  let effectiveModuleCount = modules;
-  if (hasSciencePerk(state, "powerModulesScaling")) {
-    const scaling =
-      config.science?.energyPerks?.powerModuleScalingPerOwnedModule ?? 0.01;
-    effectiveModuleCount += ((modules * (modules - 1)) / 2) * scaling;
-  }
-  return big(config.powerModule.capacityMultiplier).pow(effectiveModuleCount);
+/**
+ * Setup Optimization device performance multiplier:
+ * D(S) = 1 + 2 * ln(1 + S)
+ */
+function calculateSetupDevicePerformance(setupOptimizations = 0, config = {}) {
+  const s = Math.max(0, setupOptimizations ?? 0);
+  const coeff =
+    config?.economyV2?.setupOptimizations?.devicePerformanceLogCoefficient ?? 2;
+  return 1 + coeff * Math.log(1 + s);
 }
 
+/**
+ * Science perk: Power Cell Resonance (replaces legacy Stored Energy Preservation)
+ * Capacity multiplier: 1 + 0.02 * log10(1 + powerCellsOwned)
+ */
+function calculatePowerCellResonanceMultiplier(powerCellsOwned, config = {}) {
+  const coeff =
+    config?.economyV2?.scienceRebalance?.powerCellResonanceLogCoefficient ?? 0.02;
+  const count = Math.max(0, powerCellsOwned ?? 0);
+  return 1 + coeff * Math.log10(1 + count);
+}
+
+/**
+ * Power Module capacity multiplier:
+ * M_cap = [1 + 0.35 * D(S)]^N_eff
+ */
+function calculatePowerModuleCapacityMultiplier(state, config) {
+  const modules = Math.max(0, state.powerModules ?? 0);
+  if (modules <= 0) return big(1);
+
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  let effectiveModules = modules;
+  if (hasSciencePerk(state, "powerModulesScaling")) {
+    const scaling =
+      config.science?.energyPerks?.powerModuleScalingPerOwnedModule ?? 0.0085;
+    effectiveModules = modules * (1 + modules * scaling);
+  }
+
+  const baseGrowth = (config.powerModule?.capacityMultiplier ?? 1.35) - 1; // 0.35
+  const unitMultiplier = 1 + baseGrowth * setupPerformance;
+
+  return big(unitMultiplier).pow(effectiveModules);
+}
+
+/**
+ * Stable Energy Capacity:
+ * Capacity_cells = powerCellsOwned * baseCapacity * D(S) * resonanceEffect
+ * Total = Capacity_cells * M_cap
+ */
 function calculateStableEnergyCapacity(state, config) {
-  return big(config.energy.powerCellCapacity)
-    .mul(Math.max(1, state.powerCells))
-    .mul(calculatePowerModuleCapacityMultiplier(state, config));
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  let resonance = 1;
+  if (hasSciencePerk(state, "powerCellResonance")) {
+    resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
+  }
+
+  const baseCapacity = config.energy.powerCellCapacity;
+  const cellCapacity = big(Math.max(1, state.powerCells))
+    .mul(baseCapacity)
+    .mul(setupPerformance)
+    .mul(resonance);
+
+  return cellCapacity.mul(calculatePowerModuleCapacityMultiplier(state, config));
 }
 
 function calculateEnergyOverflowDecay(state, config) {
@@ -6131,79 +6434,35 @@ function calculateEnergyRetention(
   );
 }
 
-function calculateAutoCalculatorSpeedMultiplier(state, config) {
-  const calculators = state.devices.autoCalculators;
-  if (calculators <= 0) return 1;
+/**
+ * Overclocker amplification on Processor bonus:
+ * O_0(K) = 5 * 1.5^(K-1) when active, else 1
+ * O_eff(K,S) = 1 + (O_0(K) - 1) * D(S)
+ */
+function calculateOverclockerSpeedMultiplier(state, config) {
+  const overclockers = state.devices?.overclockers ?? 0;
+  if (overclockers <= 0 || !state.overclocker?.active) return 1;
 
-  const calculatorSpeed =
-    config.autoCalculator.firstSpeedMultiplier *
-    config.autoCalculator.additionalSpeedMultiplier ** (calculators - 1);
+  const first =
+    config.economyV2?.overclockers?.firstProcessorBonusMultiplier ??
+    config.overclocker?.baseCalculatorSpeedMultiplier ??
+    5;
+  const additional =
+    config.economyV2?.overclockers?.additionalProcessorBonusMultiplier ??
+    config.overclocker?.additionalCalculatorSpeedMultiplier ??
+    1.5;
+  const o0 = first * additional ** (overclockers - 1);
 
-  return toFiniteNumber(
-    big(calculatorSpeed)
-      .mul(calculateDeviceEfficiencyMultiplier(state, config))
-      .mul(calculateOverclockerSpeedMultiplier(state, config)),
-    Number.MAX_VALUE,
-  );
-}
-
-function calculateRedundancyEffectiveCycles(improvements, config) {
-  const settings = config.science?.redundancyElimination ?? {};
-  const softcapStart = settings.softcapStartsAtImprovements ?? 50;
-  const hardcapStart = settings.hardcapStartsAtImprovements ?? 100;
-  const postSoftcapRate = settings.postSoftcapCycleRate ?? 0.08;
-  const extraCap = settings.postSoftcapMaximumExtraCycles ?? 4;
-  const cycles = Math.max(0, improvements);
-
-  if (cycles <= softcapStart) return cycles;
-
-  const counted = Math.min(cycles, hardcapStart);
-  const extra = (counted - softcapStart) * postSoftcapRate;
-  return softcapStart + Math.min(extra, extraCap);
-}
-
-function calculateRedundancyEliminationSpeedMultiplier(state, config) {
-  if (!state.science?.perks?.redundancyElimination) return 1;
-
-  const bonus =
-    config.science?.redundancyElimination
-      ?.researchSpeedBonusPerUpgradePerCycle ?? 0;
-  const effectiveCycles = calculateRedundancyEffectiveCycles(
-    state.improvements,
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
     config,
   );
-
-  return toFiniteNumber(
-    big(1 + bonus).pow(state.upgrades * effectiveCycles),
-    Number.MAX_VALUE,
-  );
-}
-
-function calculateProcessorImprovementSpeedMultiplier(state, config) {
-  if (!hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) {
-    return 1;
-  }
-  const exponent =
-    config.science?.studyPerks?.processorBonusImprovementSpeedExponent ?? 1.07;
-  return toFiniteNumber(
-    calculateDeviceEfficiencyMultiplier(state, config).pow(exponent),
-    Number.MAX_VALUE,
-  );
-}
-
-function calculateOverclockerSpeedMultiplier(state, config) {
-  const overclockers = state.devices.overclockers;
-  if (overclockers <= 0 || !state.overclocker.active) return 1;
-
-  return (
-    config.overclocker.baseCalculatorSpeedMultiplier *
-    config.overclocker.additionalCalculatorSpeedMultiplier ** (overclockers - 1)
-  );
+  return 1 + (o0 - 1) * setupPerformance;
 }
 
 function calculateOverclockerDrainPerSecond(state, config) {
-  const overclockers = state.devices.overclockers;
-  if (overclockers <= 0 || !state.overclocker.active) return big(0);
+  const overclockers = state.devices?.overclockers ?? 0;
+  if (overclockers <= 0 || !state.overclocker?.active) return big(0);
   const activeSeconds = Math.max(0, state.overclocker.activeSeconds ?? 0);
   const runtimeMultiplier = config.overclocker.runtimeDrainGrowthBase
     ? big(config.overclocker.runtimeDrainGrowthBase).pow(activeSeconds)
@@ -6218,26 +6477,71 @@ function calculateOverclockerDrainPerSecond(state, config) {
     .mul(runtimeMultiplier);
 }
 
-function calculateDeviceEfficiencyMultiplier(state, config) {
-  return big(config.processor.deviceEfficiencyMultiplier).pow(
-    state.devices.processors,
+/**
+ * Processor unit bonus:
+ * 0.15 * G_M(M) * D(S) * O_eff(K,S)
+ * where G_M(M) = 1.2^M
+ */
+function calculateProcessorBonusUnit(state, config) {
+  const cmu = state.calculationMethods ?? 0;
+  const cmuMultiplier =
+    (config.economyV2?.calculationMethods?.processorBonusMultiplierPerCMU ?? 1.2) **
+    cmu;
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
   );
+  const overclockMultiplier = calculateOverclockerSpeedMultiplier(state, config);
+  const baseBonus =
+    config.economyV2?.processors?.perUnitBonus ??
+    (config.processor?.deviceEfficiencyMultiplier
+      ? config.processor.deviceEfficiencyMultiplier - 1
+      : 0.15);
+  return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
+}
+
+/**
+ * Aggregated Processor effectiveness:
+ * E_P = (1 + unitBonus)^P
+ */
+function calculateProcessorEfficiencyMultiplier(state, config) {
+  const processors = state.devices?.processors ?? 0;
+  if (processors <= 0) return 1;
+  const unitBonus = calculateProcessorBonusUnit(state, config);
+  return (1 + unitBonus) ** processors;
+}
+
+/**
+ * Backwards compatibility alias for calculateProcessorEfficiencyMultiplier.
+ */
+function calculateDeviceEfficiencyMultiplier(state, config) {
+  return big(calculateProcessorEfficiencyMultiplier(state, config));
 }
 
 function hasSciencePerk(state, perkId) {
   return Boolean(state.science?.perks?.[perkId]);
 }
 
+/**
+ * Direct Processor -> CRC production perk:
+ * E_P^0.15
+ */
 function calculateCrcProcessorBonusMultiplier(state, config) {
   if (!hasSciencePerk(state, "processorBonusAppliesCRC")) return big(1);
   const exponent =
     config.science?.energyPerks?.processorBonusExponentForCrc ?? 0.15;
-  return calculateDeviceEfficiencyMultiplier(state, config).pow(exponent);
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  return big(ep).pow(exponent);
 }
 
+/**
+ * Science-Powered Energy Production perk:
+ * 1 + totalScienceEarned
+ */
 function calculateScienceProductionMultiplier(state) {
   if (!hasSciencePerk(state, "sciencePoweredEnergyProduction")) return big(1);
-  return bigMax(1, state.science?.totalScienceEarned ?? 0);
+  const earned = Math.max(0, state.science?.totalScienceEarned ?? 0);
+  return big(1).add(earned);
 }
 
 function calculateCrcExponentialMultiplier(state, config) {
@@ -6245,6 +6549,71 @@ function calculateCrcExponentialMultiplier(state, config) {
   const perCrc =
     config.science?.energyPerks?.crcExponentialProductionPerCrc ?? 1.005;
   return big(perCrc).pow(Math.max(0, state.crcCount));
+}
+
+/**
+ * Auto Calculator fleet speed multiplier:
+ * V_A = (1 + B_A * D(S) * E_P)^A
+ * where B_A is 0.5 (or 0.7 with calculatorBonusX2ToX22 perk)
+ */
+function calculateAutoCalculatorSpeedMultiplier(state, config) {
+  const calculators = state.devices?.autoCalculators ?? 0;
+  if (calculators <= 0) return 1;
+
+  const baseUnitBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
+    ? (config.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 0.7)
+    : (config.economyV2?.autoCalculators?.perUnitSpeedBonus ?? 0.5);
+
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  const unitBonus = baseUnitBonus * setupPerformance * ep;
+
+  return (1 + unitBonus) ** calculators;
+}
+
+function calculateRedundancyEffectiveCycles(improvements, config) {
+  const settings = config.science?.redundancyElimination ?? {};
+  const softcapStart = settings.softcapStartsAtImprovements ?? 50;
+  const hardcapStart = settings.hardcapStartsAtImprovements ?? 100;
+  const postSoftcapRate = settings.postSoftcapCycleRate ?? 0.08;
+  const maxExtra = settings.postSoftcapMaximumExtraCycles ?? 4;
+
+  const count = Math.max(0, improvements ?? 0);
+  if (count <= softcapStart) {
+    return count;
+  }
+
+  const clampedCount = Math.min(count, hardcapStart);
+  const postSoftcap = clampedCount - softcapStart;
+  const extraCycles = Math.min(maxExtra, postSoftcap * postSoftcapRate);
+  return softcapStart + extraCycles;
+}
+
+function calculateRedundancyEliminationSpeedMultiplier(state, config) {
+  if (!hasSciencePerk(state, "redundancyElimination")) return 1;
+  const effectiveCycles = calculateRedundancyEffectiveCycles(
+    state.improvements,
+    config,
+  );
+  const bonusPerUpgradeCycle =
+    config.science?.redundancyElimination
+      ?.researchSpeedBonusPerUpgradePerCycle ?? 0.005;
+  return (1 + bonusPerUpgradeCycle) ** ((state.upgrades ?? 0) * effectiveCycles);
+}
+
+/**
+ * Direct Processor -> Improvement speed perk:
+ * V_direct = E_P^1.07
+ */
+function calculateProcessorImprovementSpeedMultiplier(state, config) {
+  if (!hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) return 1;
+  const ep = calculateProcessorEfficiencyMultiplier(state, config);
+  const exp =
+    config.science?.studyPerks?.processorBonusImprovementSpeedExponent ?? 1.07;
+  return ep ** exp;
 }
 
 function calculateQuantumCalculationBonus(totalQuarks, config) {
@@ -6262,30 +6631,50 @@ function calculateQuantumCalculationBonus(totalQuarks, config) {
   return 1 + bigMin(maximum, effective).toNumber();
 }
 
+/**
+ * Legacy compatibility: Quantum Superposition retention is removed in V2.
+ */
 function calculateQuantumSuperpositionRetention(totalQuarks, config) {
-  const settings = config.science?.quantumPerks ?? {};
-  const raw = bigMax(0, totalQuarks)
-    .add(1)
-    .log10()
-    .mul(settings.superpositionRetentionLogCoefficient ?? 0.01);
-  return bigMin(
-    settings.superpositionMaximumRetention ?? 0.1,
-    bigMax(0, raw),
-  ).toNumber();
+  return 0;
+}
+
+/**
+ * Quantum Superposition in V2:
+ * V_quantum = 1 + 0.02 * log10(1 + totalQuarksEarned)
+ */
+function calculateQuantumSuperpositionSpeedMultiplier(totalQuarks, config) {
+  const coeff =
+    config?.economyV2?.scienceRebalance?.quantumSuperpositionLogCoefficient ??
+    0.02;
+  const quarks = bigMax(0, totalQuarks);
+  const logQuarks = quarks.add(1).log10().toNumber();
+  return 1 + coeff * logQuarks;
 }
 
 function calculateDeviceDurationMultiplier(state, config) {
   return toFiniteNumber(
-    big(1).div(calculateDeviceEfficiencyMultiplier(state, config)),
+    big(1).div(calculateProcessorEfficiencyMultiplier(state, config)),
     0,
   );
 }
 
+/**
+ * Algorithm Upgrade requirement:
+ * R(U) = ceil(10 + 5U + (0.25/2)*U*(U-1))
+ */
 function calculateAlgorithmUpgradeRequirement(state, config) {
-  return (
-    config.algorithmUpgrade.initialImprovementsRequired +
-    config.algorithmUpgrade.improvementsRequiredGrowth * state.upgrades
-  );
+  const u = Math.max(0, state.upgrades ?? 0);
+  const initial =
+    config.economyV2?.algorithmUpgrades?.initialRequiredImprovements ??
+    config.algorithmUpgrade?.initialImprovementsRequired ??
+    10;
+  const linear =
+    config.economyV2?.algorithmUpgrades?.linearRequirementGrowth ??
+    config.algorithmUpgrade?.improvementsRequiredGrowth ??
+    5;
+  const quadCoeff =
+    config.economyV2?.algorithmUpgrades?.quadraticRequirementCoefficient ?? 0.25;
+  return Math.ceil(initial + linear * u + (quadCoeff / 2) * u * (u - 1));
 }
 
 function calculateAlgorithmUpgradeDuration(
@@ -6293,11 +6682,30 @@ function calculateAlgorithmUpgradeDuration(
   config,
   developmentMode = false,
 ) {
-  let duration =
-    config.algorithmUpgrade.baseDurationSeconds *
-    (1 +
-      config.algorithmUpgrade.durationGrowthCoefficient *
-        state.upgrades ** config.algorithmUpgrade.durationGrowthPower);
+  const u = Math.max(0, state.upgrades ?? 0);
+  const baseSec =
+    config.economyV2?.algorithmUpgrades?.automatedBaseDurationSeconds ??
+    config.algorithmUpgrade?.baseDurationSeconds ??
+    10;
+  const coeff =
+    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthCoefficient ??
+    config.algorithmUpgrade?.durationGrowthCoefficient ??
+    0.16;
+  const power =
+    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthPower ??
+    config.algorithmUpgrade?.durationGrowthPower ??
+    1.1;
+
+  let duration = baseSec * (1 + coeff * (u ** power));
+
+  if (hasSciencePerk(state, "calculatorBonusAppliesAUpgrades")) {
+    const va = calculateAutoCalculatorSpeedMultiplier(state, config);
+    const logCoeff =
+      config.economyV2?.scienceRebalance
+        ?.calculatorUpgradeResearchLogCoefficient ?? 0.2;
+    const vu = 1 + logCoeff * Math.log10(1 + va);
+    if (vu > 0) duration /= vu;
+  }
 
   if (hasSciencePerk(state, "quantumCalculationPrinciples")) {
     duration /= calculateQuantumCalculationBonus(
@@ -6340,6 +6748,12 @@ function calculateBlueprintResearchDuration(
   }
 
   return duration;
+}
+
+function calculateOverclockerBlueprintDuration(state, config) {
+  return (
+    config.economyV2?.overclockers?.blueprintResearchBaseDurationSeconds ?? 45
+  );
 }
 
 function canResearchBlueprint(state, config) {
@@ -6385,21 +6799,65 @@ function calculateParticleSynthesizerProgress(state, config) {
     .toNumber();
 }
 
+/**
+ * Closed-form threshold inversion for Science Point rewards:
+ * C(s) = 10^(a + b*s + c*s^2), a=11, b=0.9, c=0.055
+ * s* = 2*(log10(E) - a) / (b + sqrt(b^2 + 4c(log10(E) - a)))
+ * SP_gained = max(0, floor(s*) - H + 1)
+ */
 function calculateSciencePointReward(
   energy,
   totalScienceEarned,
   config,
 ) {
-  return big(energy).gte(calculateSciencePointCost(totalScienceEarned, config))
-    ? 1
-    : 0;
+  const settings = config.science?.sciencePointCost ?? {};
+  const a = settings.baseExponent ?? 11;
+  const b = settings.linearExponentGrowth ?? 0.9;
+  const c = settings.quadraticExponentGrowth ?? 0.055;
+
+  if (![a, b, c].every(Number.isFinite) || c < 0 || b < 0) {
+    throw new RangeError("Science Point cost must be non-decreasing");
+  }
+  if (c === 0 && b === 0) {
+    throw new RangeError("Science Point cost must increase");
+  }
+
+  const available = big(energy);
+  if (!available.gt(0)) return 0;
+
+  const logEnergy = available.log10().toNumber();
+  if (!Number.isFinite(logEnergy) || logEnergy < a) return 0;
+
+  let maximumThreshold;
+  if (c === 0) {
+    maximumThreshold = Math.floor((logEnergy - a) / b);
+  } else {
+    const discriminant = b ** 2 + 4 * c * (logEnergy - a);
+    if (discriminant < 0) return 0;
+
+    const root = (2 * (logEnergy - a)) / (b + Math.sqrt(discriminant));
+    maximumThreshold = Math.floor(root);
+  }
+
+  if (maximumThreshold < 0) return 0;
+
+  const thresholdIsAvailable = (threshold) =>
+    big(available).gte(calculateSciencePointCost(threshold, config));
+
+  while (maximumThreshold >= 0 && !thresholdIsAvailable(maximumThreshold)) {
+    maximumThreshold -= 1;
+  }
+  while (thresholdIsAvailable(maximumThreshold + 1)) {
+    maximumThreshold += 1;
+  }
+
+  const earned = Math.max(0, Math.floor(totalScienceEarned ?? 0));
+  return Math.max(0, maximumThreshold - earned + 1);
 }
 
 function calculateQuarksGenerated(energy, config) {
   const unit = config.science?.quarks?.energyPerQuark ?? 100000000000;
-  const available = big(energy);
-  if (available.lt(unit)) return big(0);
-  return available.div(unit).floor();
+  return bigFloorDiv(energy, unit);
 }
 
 function calculateQuarkCageCapacity(ownedCages, config) {
@@ -6452,22 +6910,21 @@ function getDevelopmentProductionMultiplier(state, config) {
   );
 }
 
+/**
+ * Quadratic Algorithm Improvement duration:
+ * T_I(I) = 0.5 * (1 + 0.015 * I^2) / (V_A * V_R * V_direct * V_quantum)
+ */
 function calculateStudyDuration(state, config, developmentMode = false) {
-  const study = config.study;
-  const effectiveLoad = calculateStudyDurationLoad(
-    state.improvements,
-    state.setupOptimizations,
-    config,
-  );
-  let duration =
-    study.baseDurationSeconds *
-    (1 +
-      study.durationGrowthCoefficient *
-        effectiveLoad ** study.durationGrowthPower);
+  const i = Math.max(0, state.improvements ?? 0);
+  const baseSec = config.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const coeff =
+    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const power = config.economyV2?.improvements?.durationGrowthPower ?? 2;
 
-  duration /= calculateAutoCalculatorSpeedMultiplier(state, config);
-  duration /= calculateRedundancyEliminationSpeedMultiplier(state, config);
-  duration /= calculateProcessorImprovementSpeedMultiplier(state, config);
+  const baseCurve = baseSec * (1 + coeff * (i ** power));
+
+  const totalSpeed = calculateAlgorithmImprovementSpeedMultiplier(state, config);
+  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
 
   if (developmentMode) {
     duration *= getDevelopmentDurationMultiplier(state, config);
@@ -6476,40 +6933,150 @@ function calculateStudyDuration(state, config, developmentMode = false) {
   return duration;
 }
 
+function calculateImprovementRatePerSecond(
+  state,
+  config,
+  developmentMode = false,
+) {
+  const duration = calculateStudyDuration(state, config, developmentMode);
+  return duration > 0 ? 1 / duration : 0;
+}
+
+function calculateAlgorithmImprovementSpeedMultiplier(state, config) {
+  const va = calculateAutoCalculatorSpeedMultiplier(state, config);
+  const vr = calculateRedundancyEliminationSpeedMultiplier(state, config);
+
+  let vDirect = 1;
+  if (hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) {
+    vDirect = calculateProcessorImprovementSpeedMultiplier(state, config);
+  }
+
+  let vQuantum = 1;
+  if (hasSciencePerk(state, "quantumSuperposition")) {
+    vQuantum = calculateQuantumSuperpositionSpeedMultiplier(
+      state.quarks?.totalEarned ?? 0,
+      config,
+    );
+  }
+
+  return va * vr * vDirect * vQuantum;
+}
+
+function sumOfIntegers(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  return bx.mul(bx.add(1)).div(2);
+}
+
+function sumOfSquares(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  return bx.mul(bx.add(1)).mul(bx.mul(2).add(1)).div(6);
+}
+
+function sumOfCubes(x) {
+  if (x < 0) return big(0);
+  const bx = big(x);
+  const f1 = bx.mul(bx.add(1)).div(2);
+  return f1.pow(2);
+}
+
+function calculateBatchDuration(j, n, V, config) {
+  if (n <= 0) return big(0);
+  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const bn = big(n);
+  const end = big(j).add(bn).sub(1);
+  const start = big(j).sub(1);
+  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
+  const inner = bn.add(sigma2.mul(b));
+  return inner.mul(baseSec).div(V);
+}
+
+function calculateBatchEnergy(j, n, V, Q, config) {
+  if (n <= 0) return big(0);
+  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
+  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
+  const bn = big(n);
+  const end = big(j).add(bn).sub(1);
+  const start = big(j).sub(1);
+
+  const sigma1 = sumOfIntegers(end).sub(sumOfIntegers(start));
+  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
+  const sigma3 = sumOfCubes(end).sub(sumOfCubes(start));
+
+  const inner = bn.add(sigma1).add(sigma2.add(sigma3).mul(b));
+  return big(Q).mul(baseSec).div(V).mul(inner);
+}
+
+function calculateMaxBatchImprovements(
+  j,
+  V,
+  dtAvailable,
+  nLimit = Infinity,
+  config,
+) {
+  if (dtAvailable <= 0 || nLimit <= 0) return 0;
+  if (calculateBatchDuration(j, 1, V, config).gt(dtAvailable)) return 0;
+  if (nLimit === 1) return 1;
+
+  let step = 1;
+  while (
+    step * 2 <= nLimit &&
+    calculateBatchDuration(j, step * 2, V, config).lte(dtAvailable)
+  ) {
+    step *= 2;
+  }
+
+  let low = step;
+  let high = Math.min(step * 2, nLimit);
+  let best = low;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (calculateBatchDuration(j, mid, V, config).lte(dtAvailable)) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return best;
+}
+
 function calculateStudyDurationLoad(
   completedImprovements,
   setupOptimizations,
   config,
 ) {
-  const study = config.study;
-  const earlyUntil = study.durationEarlyLoadUntil;
-  const fullAt = study.durationFullLoadAt;
-  const earlyLoad = completedImprovements * study.durationEarlyLoadMultiplier;
-  let baseLoad = completedImprovements;
-
-  if (completedImprovements <= earlyUntil) {
-    baseLoad = earlyLoad;
-  } else if (completedImprovements < fullAt) {
-    const progress =
-      (completedImprovements - earlyUntil) / (fullAt - earlyUntil);
-    const easedProgress = progress * progress * (3 - 2 * progress);
-    baseLoad = earlyLoad + (completedImprovements - earlyLoad) * easedProgress;
-  }
-
-  return baseLoad * study.durationLoadMultiplierPerSetup ** setupOptimizations;
+  return completedImprovements;
 }
 
+/**
+ * CRC Production rate:
+ * P_CRC = 10^-12 * C * (1 + I) * 2^U * D(S) * SciencePerks
+ */
 function calculateProduction(state, config, developmentMode = false) {
-  let production = big(config.energy.baseProductionPerSecond).mul(
-    state.crcCount,
+  const baseRate =
+    config.economyV2?.crc?.baseProductionPerSecond ??
+    config.energy?.baseProductionPerSecond ??
+    1e-12;
+  const c = Math.max(0, state.crcCount ?? 0);
+  const i = Math.max(0, state.improvements ?? 0);
+  const u = Math.max(0, state.upgrades ?? 0);
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
   );
+
+  let production = big(baseRate)
+    .mul(c)
+    .mul(1 + i)
+    .mul(big(2).pow(u))
+    .mul(setupPerformance);
+
   production = production.mul(calculateCrcExponentialMultiplier(state, config));
   production = production.mul(calculateCrcProcessorBonusMultiplier(state, config));
   production = production.mul(calculateScienceProductionMultiplier(state));
-  production = production.mul(state.improvementMultiplier);
-  production = production.mul(
-    big(config.algorithmUpgrade.productionMultiplier).pow(state.upgrades),
-  );
 
   if (developmentMode) {
     production = production.mul(
@@ -6526,19 +7093,57 @@ function calculateProductionBreakdown(
   developmentMode = false,
 ) {
   const rows = [];
-  const baseFromCrcs = big(config.energy.baseProductionPerSecond).mul(
-    state.crcCount,
+  const baseRate =
+    config.economyV2?.crc?.baseProductionPerSecond ??
+    config.energy?.baseProductionPerSecond ??
+    1e-12;
+  const c = Math.max(0, state.crcCount ?? 0);
+  const i = Math.max(0, state.improvements ?? 0);
+  const u = Math.max(0, state.upgrades ?? 0);
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
   );
+
+  const baseFromCrcs = big(baseRate).mul(c).mul(setupPerformance);
   let running = baseFromCrcs;
 
   rows.push({
     id: "crc-base",
-    label: "Total base from CRCs",
-    detail: `${state.crcCount} active CRC${state.crcCount === 1 ? "" : "s"} at ${formatRate(config.energy.baseProductionPerSecond)} each`,
-    multiplierLabel: `x${state.crcCount}`,
+    label: "Base from CRCs",
+    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each (Setup: x${setupPerformance.toFixed(2)})`,
+    multiplierLabel: `x${c}`,
     value: baseFromCrcs,
     output: baseFromCrcs,
   });
+
+  const improvementFactor = 1 + i;
+  if (improvementFactor > 1) {
+    const improved = running.mul(improvementFactor);
+    rows.push({
+      id: "algorithm-improvements",
+      label: "From Algorithm Improvements",
+      detail: `${i} Improvements (+1 base per CRC each · x${improvementFactor} factor)`,
+      multiplierLabel: `x${improvementFactor}`,
+      value: improved.sub(running),
+      output: improved,
+    });
+    running = improved;
+  }
+
+  const upgradeMultiplier = big(2).pow(u);
+  if (upgradeMultiplier.gt(1)) {
+    const upgraded = running.mul(upgradeMultiplier);
+    rows.push({
+      id: "algorithm-upgrades",
+      label: "From Algorithm Upgrades",
+      detail: `${u} completed Upgrade${u === 1 ? "" : "s"} (x2 each)`,
+      multiplierLabel: `x${formatEngineering(upgradeMultiplier)}`,
+      value: upgraded.sub(running),
+      output: upgraded,
+    });
+    running = upgraded;
+  }
 
   const crcExponentialMultiplier = calculateCrcExponentialMultiplier(
     state,
@@ -6566,7 +7171,7 @@ function calculateProductionBreakdown(
     rows.push({
       id: "processor-crc-bonus",
       label: "From Processor bonus",
-      detail: "Reduced Processor efficiency exponent applied to CRC output",
+      detail: "Processor efficiency exponent (E_P^0.15) applied to CRC output",
       multiplierLabel: `x${formatEngineering(processorBonusMultiplier)}`,
       value: boosted.sub(running),
       output: boosted,
@@ -6580,41 +7185,12 @@ function calculateProductionBreakdown(
     rows.push({
       id: "science-powered-production",
       label: "From Science Points",
-      detail: "Total Science earned converted into an energy multiplier",
+      detail: "Total Science earned converted into an energy multiplier (1 + SP)",
       multiplierLabel: `x${formatEngineering(scienceMultiplier)}`,
       value: boosted.sub(running),
       output: boosted,
     });
     running = boosted;
-  }
-
-  if (big(state.improvementMultiplier).gt(1)) {
-    const improved = running.mul(state.improvementMultiplier);
-    rows.push({
-      id: "algorithm-improvements",
-      label: "From Algorithm Improvements",
-      detail: `${state.improvements} Improvements retained in the current cycle`,
-      multiplierLabel: `x${formatEngineering(state.improvementMultiplier)}`,
-      value: improved.sub(running),
-      output: improved,
-    });
-    running = improved;
-  }
-
-  const upgradeMultiplier = big(
-    config.algorithmUpgrade.productionMultiplier,
-  ).pow(state.upgrades);
-  if (upgradeMultiplier.gt(1)) {
-    const upgraded = running.mul(upgradeMultiplier);
-    rows.push({
-      id: "algorithm-upgrades",
-      label: "From Algorithm Upgrades",
-      detail: `${state.upgrades} completed Upgrade${state.upgrades === 1 ? "" : "s"}`,
-      multiplierLabel: `x${formatEngineering(upgradeMultiplier)}`,
-      value: upgraded.sub(running),
-      output: upgraded,
-    });
-    running = upgraded;
   }
 
   if (developmentMode) {
@@ -6684,6 +7260,145 @@ function formatDuration(seconds) {
 }
 
 
+// ---- js/news.js ----
+const DEFAULT_NEWS = [
+  {
+    id: "processing_network_online",
+    text: "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    category: "NETWORK",
+    rarity: 1,
+    weight: 80,
+  },
+  {
+    id: "solar_wind_shift",
+    text: "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
+    category: "TELEMETRY",
+    rarity: 1,
+    weight: 100,
+  },
+  {
+    id: "thermal_equilibrium",
+    text: "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
+    category: "SYSTEM",
+    rarity: 1,
+    weight: 90,
+  },
+  {
+    id: "subspace_resonance",
+    text: "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
+    category: "ENERGY",
+    rarity: 1,
+    weight: 85,
+  },
+  {
+    id: "clock_sync",
+    text: "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
+    category: "CHRONO",
+    rarity: 2,
+    weight: 50,
+  },
+  {
+    id: "packet_echo",
+    text: "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
+    category: "NETWORK",
+    rarity: 2,
+    weight: 45,
+  },
+  {
+    id: "stray_signal",
+    text: "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
+    category: "ANOMALY",
+    rarity: 3,
+    weight: 20,
+  },
+  {
+    id: "temporal_leak",
+    text: "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
+    category: "ANOMALY",
+    rarity: 4,
+    weight: 6,
+  },
+  {
+    id: "simulation_breach",
+    text: "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
+    category: "SYSTEM FAULT",
+    rarity: 5,
+    weight: 2,
+  },
+  {
+    id: "cosmic_whisper",
+    text: "The universe is not expanding. It is just making room for the next calculation.",
+    category: "TRANSMISSION",
+    rarity: 5,
+    weight: 1,
+  },
+];
+
+function getRarityLabel(rarity) {
+  switch (Number(rarity)) {
+    case 5:
+      return "LEGENDARY";
+    case 4:
+      return "VERY RARE";
+    case 3:
+      return "RARE";
+    case 2:
+      return "UNCOMMON";
+    case 1:
+    default:
+      return "COMMON";
+  }
+}
+
+function getRarityClass(rarity) {
+  switch (Number(rarity)) {
+    case 5:
+      return "news-rarity--legendary";
+    case 4:
+      return "news-rarity--very-rare";
+    case 3:
+      return "news-rarity--rare";
+    case 2:
+      return "news-rarity--uncommon";
+    case 1:
+    default:
+      return "news-rarity--common";
+  }
+}
+
+function selectNextNews(newsList, currentNewsId = null, randomFn = Math.random) {
+  const items = Array.isArray(newsList) && newsList.length > 0 ? newsList : DEFAULT_NEWS;
+  if (items.length === 1) return items[0];
+
+  const candidates = items.filter((item) => item.id !== currentNewsId);
+  const pool = candidates.length > 0 ? candidates : items;
+
+  let totalWeight = 0;
+  for (const item of pool) {
+    const w = Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 1;
+    totalWeight += w;
+  }
+
+  const roll = randomFn() * totalWeight;
+  let accumulated = 0;
+  for (const item of pool) {
+    const w = Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 1;
+    accumulated += w;
+    if (roll < accumulated) {
+      return item;
+    }
+  }
+
+  return pool[pool.length - 1];
+}
+
+function getNewsItem(newsList, id) {
+  const items = Array.isArray(newsList) && newsList.length > 0 ? newsList : DEFAULT_NEWS;
+  if (!id) return selectNextNews(items);
+  return items.find((item) => item.id === id) || items[0];
+}
+
+
 // ---- js/effect-system.js ----
 
 function getProductionEffects(state, config, developmentMode = false) {
@@ -6707,7 +7422,7 @@ function getProductionEffects(state, config, developmentMode = false) {
       label: "Algorithm Improvements",
       target: "crc.production",
       operation: "multiply",
-      value: state.improvementMultiplier
+      value: 1 + Math.max(0, state.improvements ?? 0)
     },
     {
       id: "algorithm-upgrades",
@@ -6746,7 +7461,10 @@ const COMPONENT_REGISTRY = {
   softDataDisplay: {
     id: "softDataDisplay",
     type: "device",
-    tab: "devices",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "instrumentation",
+    uiType: "device",
     subcategory: "computational",
     label: "Soft Display",
     action: "buy-soft-display",
@@ -6763,7 +7481,10 @@ const COMPONENT_REGISTRY = {
   t2SoftDataDisplay: {
     id: "t2SoftDataDisplay",
     type: "device",
-    tab: "devices",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "instrumentation",
+    uiType: "device",
     subcategory: "computational",
     label: "T2 Soft Display",
     action: "buy-t2-soft-display",
@@ -6780,7 +7501,10 @@ const COMPONENT_REGISTRY = {
   autoCalculator: {
     id: "autoCalculator",
     type: "device",
-    tab: "devices",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "fleet",
+    uiType: "device",
     subcategory: "computational",
     label: "Auto Calculator",
     action: "buy-auto",
@@ -6793,7 +7517,10 @@ const COMPONENT_REGISTRY = {
   processor: {
     id: "processor",
     type: "device",
-    tab: "devices",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "fleet",
+    uiType: "device",
     subcategory: "computational",
     label: "Processor",
     action: "buy-processor",
@@ -6806,7 +7533,10 @@ const COMPONENT_REGISTRY = {
   overclocker: {
     id: "overclocker",
     type: "device",
-    tab: "devices",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "fleet",
+    uiType: "device",
     subcategory: "computational",
     label: "Overclocker",
     action: "buy-overclocker",
@@ -6814,6 +7544,7 @@ const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "overclockerCost" },
     visibleWhen: [
+      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
       {
         kind: "stateAtLeast",
         path: "devices.processors",
@@ -6825,12 +7556,18 @@ const COMPONENT_REGISTRY = {
         configPath: "overclocker.powerCellsRequired",
       },
     ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
+    enabledWhen: [
+      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
+      { kind: "resourceAtLeastCost", resource: "energy" },
+    ],
   },
   powerCell: {
     id: "powerCell",
     type: "device",
-    tab: "devices",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "storage",
+    uiType: "device",
     subcategory: "energy",
     label: "Power Cell",
     action: "buy-power-cell",
@@ -6850,7 +7587,10 @@ const COMPONENT_REGISTRY = {
   powerModule: {
     id: "powerModule",
     type: "device",
-    tab: "devices",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "storage",
+    uiType: "device",
     subcategory: "energy",
     label: "Power Module",
     action: "buy-power-module",
@@ -6868,6 +7608,10 @@ const COMPONENT_REGISTRY = {
     id: "particleSynthesizer",
     type: "device",
     tab: "science",
+    functionalTab: "science",
+    uiSection: "particle-lab",
+    uiType: "device",
+    resetKind: "synthesis",
     subcategory: "energy",
     label: "Particle Sintetizer",
     action: "open-particle-synthesis",
@@ -6897,6 +7641,9 @@ const COMPONENT_REGISTRY = {
     id: "quarkCage",
     type: "device",
     tab: "science",
+    functionalTab: "science",
+    uiSection: "devices",
+    uiType: "device",
     subcategory: "science-device",
     label: "Quarks Cage",
     action: "buy-quark-cage",
@@ -6918,7 +7665,10 @@ const COMPONENT_REGISTRY = {
   fiftyGCalculator: {
     id: "fiftyGCalculator",
     type: "science",
-    tab: "science",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "automations",
+    uiType: "science",
     label: "50G Calculator",
     action: "buy-fifty-g-calculator",
     ownedPath: "science.fiftyGCalculator",
@@ -6947,7 +7697,10 @@ const COMPONENT_REGISTRY = {
   crcBlueprint: {
     id: "crcBlueprint",
     type: "study",
-    tab: "studies",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "production",
+    uiType: "study",
     label: "CRC Blueprint",
     action: "start-blueprint-research",
     ownedPath: "discoveries.crcBlueprint",
@@ -6978,10 +7731,60 @@ const COMPONENT_REGISTRY = {
       },
     ],
   },
+  overclockerBlueprint: {
+    id: "overclockerBlueprint",
+    type: "study",
+    tab: "automation",
+    functionalTab: "automation",
+    uiSection: "fleet",
+    uiType: "study",
+    label: "Overclocker Blueprint",
+    action: "start-overclocker-blueprint-research",
+    ownedPath: "discoveries.overclockerBlueprint",
+    ownedMode: "boolean",
+    completedWhenOwned: true,
+    cost: { kind: "none" },
+    visibleWhen: [
+      {
+        kind: "any",
+        rules: [
+          { kind: "truthy", path: "discoveries.overclockerBlueprint" },
+          { kind: "truthy", path: "overclockerBlueprintStudy.active" },
+          {
+            kind: "stateAtLeast",
+            path: "devices.processors",
+            configPath: "overclocker.processorsRequired",
+          },
+        ],
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
+      },
+    ],
+    enabledWhen: [
+      { kind: "falsy", path: "discoveries.overclockerBlueprint" },
+      { kind: "falsy", path: "overclockerBlueprintStudy.active" },
+      {
+        kind: "stateAtLeast",
+        path: "devices.processors",
+        configPath: "overclocker.processorsRequired",
+      },
+      {
+        kind: "stateAtLeast",
+        path: "powerCells",
+        configPath: "overclocker.powerCellsRequired",
+      },
+    ],
+  },
   crcConstruction: {
     id: "crcConstruction",
     type: "device",
-    tab: "devices",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "production",
+    uiType: "device",
     subcategory: "energy",
     label: "Cosmic Radiation Condenser",
     action: "construct-crc",
@@ -6997,7 +7800,11 @@ const COMPONENT_REGISTRY = {
   algorithmUpgrade: {
     id: "algorithmUpgrade",
     type: "study",
-    tab: "studies",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "production",
+    uiType: "study",
+    resetKind: "none",
     label: "Algorithm Upgrade",
     action: "start-algorithm-upgrade",
     ownedPath: "upgrades",
@@ -7021,7 +7828,11 @@ const COMPONENT_REGISTRY = {
   calculationMethodUpgrade: {
     id: "calculationMethodUpgrade",
     type: "reset",
-    tab: "studies",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "breakthroughs",
+    uiType: "study",
+    resetKind: "soft",
     label: "Calculation Method Upgrade",
     action: "claim-method",
     ownedPath: "calculationMethods",
@@ -7042,7 +7853,11 @@ const COMPONENT_REGISTRY = {
   setupOptimization: {
     id: "setupOptimization",
     type: "reset",
-    tab: "devices",
+    tab: "energy",
+    functionalTab: "energy",
+    uiSection: "breakthroughs",
+    uiType: "study",
+    resetKind: "hard",
     subcategory: "reset",
     label: "Setup Optimization",
     action: "claim-setup",
@@ -7121,8 +7936,8 @@ const SCIENCE_PERKS = [
       "science.quantumPerks.revealAtAllocatedSciencePoints",
     revealHint: "Allocate 3 Science Points to reveal this technology.",
     effect:
-      "Preserves up to 10% of new Algorithm Improvement progress, measured in log space, when an Algorithm Upgrade resets Improvements.",
-    summary: "Carry a small share of Improvement progress forward.",
+      "Quarks accelerate Algorithm Improvement research directly by a logarithmic curve (V_quantum = 1 + 0.02 * log10(1 + Quarks)).",
+    summary: "Quarks accelerate Algorithm Improvement research.",
   },
   {
     id: "processorBonusAppliesCRC",
@@ -7144,14 +7959,14 @@ const SCIENCE_PERKS = [
     summary: "Each Power Module scales the next ones slightly.",
   },
   {
-    id: "storedEnergyPreservation",
-    name: "Stored Energy Preservation",
+    id: "powerCellResonance",
+    name: "Power Cell Resonance",
     branch: "energy",
     cost: 2,
     requires: ["powerModulesScaling"],
     effect:
-      "Stored Energy is preserved when completing a Setup Optimization instead of being reset to zero.",
-    summary: "Keep Stored Energy through Setup Optimization.",
+      "Power Cell capacity is multiplied by 1 + 0.02 * log10(1 + Power Cells owned).",
+    summary: "Expands Power Cell capacity based on owned cells.",
   },
   {
     id: "sciencePoweredEnergyProduction",
@@ -7318,17 +8133,17 @@ const SCIENCE_PERKS = [
     branch: "studies",
     cost: 1,
     requires: ["redundancyElimination"],
-    effect: "Applies Calculator bonuses to Algorithm Upgrades.",
-    summary: "Adds Calculator bonus to A. Upgrades.",
+    effect: "Accelerates automated Algorithm Upgrades by 1 + 0.2 * log10(1 + V_A).",
+    summary: "Scales Calculator fleet speed to accelerate A. Upgrades.",
   },
   {
     id: "calculatorBonusX2ToX22",
-    name: "Calculator Bonus x2 → x2.2",
+    name: "Calculator Bonus +50% → +70%",
     branch: "studies",
     cost: 2,
     requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases the Calculator bonus from x2 to x2.2.",
-    summary: "Raises Calculator bonus from x2 to x2.2.",
+    effect: "Increases the Auto Calculator base unit bonus from +50% to +70%.",
+    summary: "Raises Calculator unit bonus from +50% to +70%.",
   },
   {
     id: "processorBonusAppliesAImprovementSpeed",
@@ -7350,7 +8165,7 @@ const SCIENCE_PERK_BRANCHES = [
     tiers: [
       ["processorBonusAppliesCRC"],
       ["powerModulesScaling", "sciencePoweredEnergyProduction"],
-      ["storedEnergyPreservation", "crcExponentialScaling"],
+      ["powerCellResonance", "crcExponentialScaling"],
     ],
   },
   {
@@ -7768,7 +8583,7 @@ function buildAvailabilitySnapshot(state, config) {
 
 // ---- js/state.js ----
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 function createInitialState(config) {
   return {
@@ -7809,11 +8624,21 @@ function createInitialState(config) {
       activated: false,
     },
     ui: {
-      activeTab: "devices",
+      activeTab: "energy",
       activeScienceSubtab: "tree",
+      buyMode: "1",
+      historyFilter: "all",
+      treeZoom: 1.0,
+      selectedSciencePerkId: null,
+      resetModal: null,
+      historyModalEntry: null,
       particleSynthesisModal: null,
       hideCompletedPurchases: false,
       seenComponents: {},
+      newsDismissed: false,
+      currentNewsId: null,
+      newsTimer: 0,
+      newsHovered: false,
     },
     devices: {
       softDataDisplay: false,
@@ -7830,6 +8655,7 @@ function createInitialState(config) {
     discoveries: {
       crcBlueprint: false,
       blueprintSource: null,
+      overclockerBlueprint: false,
     },
     study: {
       active: false,
@@ -7844,6 +8670,11 @@ function createInitialState(config) {
       automated: false,
     },
     blueprintStudy: {
+      active: false,
+      elapsed: 0,
+      duration: 0,
+    },
+    overclockerBlueprintStudy: {
       active: false,
       elapsed: 0,
       duration: 0,
@@ -7864,16 +8695,117 @@ function createInitialState(config) {
       runPlayTime: 0,
     },
     log: [],
+    history: [],
     lastSavedAt: Date.now(),
   };
+}
+
+function migrateSaveV2ToV3(candidate, config) {
+  if (!candidate) return createInitialState(config);
+
+  const initial = createInitialState(config);
+  const migrated = { ...candidate };
+  migrated.saveVersion = SAVE_VERSION;
+
+  // 1. Improvements and linear multiplier
+  const improvements = Math.max(
+    0,
+    Number.isFinite(candidate.improvements) ? candidate.improvements : 0,
+  );
+  migrated.improvements = improvements;
+  migrated.improvementMultiplier = big(1 + improvements);
+  delete migrated.preservedImprovementLog;
+
+  // 2. Science perks: storedEnergyPreservation -> powerCellResonance, matrixMechanics -> redundancyElimination
+  const candidateScience = candidate.science ? { ...candidate.science } : {};
+  const perks = candidateScience.perks ? { ...candidateScience.perks } : {};
+  if (perks.storedEnergyPreservation) {
+    perks.powerCellResonance = true;
+    delete perks.storedEnergyPreservation;
+  }
+  if (candidateScience.matrixMechanics) {
+    perks.redundancyElimination = true;
+    delete candidateScience.matrixMechanics;
+  }
+  candidateScience.perks = perks;
+  migrated.science = candidateScience;
+
+  // 3. Active studies: migrate by percentage completed
+  if (candidate.study?.active && candidate.study?.duration > 0) {
+    const elapsed = Math.max(0, candidate.study.elapsed ?? 0);
+    const pct = Math.min(1, elapsed / candidate.study.duration);
+    const tempState = { ...migrated, ...candidate };
+    const newDuration = calculateStudyDuration(tempState, config);
+    migrated.study = {
+      ...candidate.study,
+      duration: newDuration,
+      elapsed: pct * newDuration,
+    };
+  }
+
+  // 4. Tab mapping
+  const tabMapping = {
+    hardware: "energy",
+    devices: "energy",
+    studies: "energy",
+    energy: "energy",
+    automation: "automation",
+    automations: "automation",
+    measure: "automation",
+    statistics: "automation",
+    science: "science",
+    history: "history",
+  };
+  const activeTab = candidate.ui?.activeTab;
+  migrated.ui = {
+    ...initial.ui,
+    ...candidate.ui,
+    activeTab: tabMapping[activeTab] ?? "energy",
+  };
+
+  migrated.history = Array.isArray(candidate.history)
+    ? [...candidate.history]
+    : [];
+
+  // 5. Discoveries
+  migrated.discoveries = {
+    ...initial.discoveries,
+    ...candidate.discoveries,
+    overclockerBlueprint: Boolean(candidate.discoveries?.overclockerBlueprint),
+  };
+  migrated.overclockerBlueprintStudy = {
+    ...initial.overclockerBlueprintStudy,
+    ...candidate.overclockerBlueprintStudy,
+  };
+
+  return migrated;
 }
 
 function normalizeState(candidate, config) {
   const initial = createInitialState(config);
 
-  if (!candidate || candidate.saveVersion !== SAVE_VERSION) {
+  if (!candidate) {
     return initial;
   }
+
+  if (candidate.saveVersion && candidate.saveVersion < SAVE_VERSION) {
+    candidate = migrateSaveV2ToV3(candidate, config);
+  } else if (candidate.saveVersion !== SAVE_VERSION) {
+    return initial;
+  }
+
+  const tabMapping = {
+    hardware: "energy",
+    devices: "energy",
+    studies: "energy",
+    energy: "energy",
+    automation: "automation",
+    automations: "automation",
+    measure: "automation",
+    statistics: "automation",
+    science: "science",
+    history: "history",
+  };
 
   const devices = {
     ...initial.devices,
@@ -7894,23 +8826,10 @@ function normalizeState(candidate, config) {
 
   let improvementMultiplier = big(candidate.improvementMultiplier);
   if (improvementMultiplier.lte(0)) {
-    const preservedLog = big(candidate.preservedImprovementLog);
     const completedImprovements = Number.isSafeInteger(candidate.improvements)
-      ? Math.min(Math.max(0, candidate.improvements), 100_000)
+      ? Math.max(0, candidate.improvements)
       : 0;
-    let reconstructedMultiplier = preservedLog.exp();
-
-    for (let completed = 0; completed < completedImprovements; completed += 1) {
-      reconstructedMultiplier = reconstructedMultiplier.mul(
-        1 + calculateImprovementBonus(
-          completed,
-          config,
-          candidate.calculationMethods ?? 0,
-        ),
-      );
-    }
-
-    improvementMultiplier = reconstructedMultiplier;
+    improvementMultiplier = big(1 + completedImprovements);
   }
 
   const { matrixMechanics: legacyMatrixMechanics, ...candidateScience } =
@@ -7948,14 +8867,34 @@ function normalizeState(candidate, config) {
       ...initial.particleSynthesizer,
       ...candidate.particleSynthesizer,
     },
+    history: Array.isArray(candidate.history)
+      ? [...candidate.history]
+      : initial.history,
     ui: {
       ...initial.ui,
       ...candidate.ui,
+      activeTab: tabMapping[candidate.ui?.activeTab] ?? initial.ui.activeTab,
       particleSynthesisModal: null,
+      resetModal: null,
+      historyModalEntry: null,
+      buyMode: candidate.ui?.buyMode ?? initial.ui.buyMode,
+      historyFilter: candidate.ui?.historyFilter ?? initial.ui.historyFilter,
+      treeZoom:
+        typeof candidate.ui?.treeZoom === "number"
+          ? candidate.ui.treeZoom
+          : initial.ui.treeZoom,
+      selectedSciencePerkId: candidate.ui?.selectedSciencePerkId ?? null,
       seenComponents: {
         ...initial.ui.seenComponents,
         ...candidate.ui?.seenComponents,
       },
+      newsDismissed: Boolean(candidate.ui?.newsDismissed),
+      currentNewsId: candidate.ui?.currentNewsId ?? null,
+      newsTimer:
+        typeof candidate.ui?.newsTimer === "number"
+          ? candidate.ui.newsTimer
+          : 0,
+      newsHovered: false,
     },
     setupOptimizations:
       candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,
@@ -7974,6 +8913,9 @@ function normalizeState(candidate, config) {
         redundancyElimination:
           Boolean(candidatePerks.redundancyElimination) ||
           Boolean(legacyMatrixMechanics),
+        powerCellResonance:
+          Boolean(candidatePerks.powerCellResonance) ||
+          Boolean(candidatePerks.storedEnergyPreservation),
       },
       revealedPerks,
       totalScienceEarned: Number.isFinite(candidate.science?.totalScienceEarned)
@@ -8008,6 +8950,10 @@ function normalizeState(candidate, config) {
       ...candidate.algorithmUpgradeStudy,
     },
     blueprintStudy: { ...initial.blueprintStudy, ...candidate.blueprintStudy },
+    overclockerBlueprintStudy: {
+      ...initial.overclockerBlueprintStudy,
+      ...candidate.overclockerBlueprintStudy,
+    },
     construction: { ...initial.construction, ...candidate.construction },
     overclocker: { ...initial.overclocker, ...candidate.overclocker },
     automations: {
@@ -8113,17 +9059,16 @@ function loadState(config, developmentMode) {
 
       try {
         const candidate = JSON.parse(raw);
-        if (candidate?.saveVersion !== SAVE_VERSION) continue;
-
-        const state = normalizeState(candidate, config);
-        if (isBackup) {
-          // Restore the known-good snapshot before any later autosave can run.
-          localStorage.setItem(saveKey, JSON.stringify(state));
+        if (candidate?.saveVersion === SAVE_VERSION) {
+          const state = normalizeState(candidate, config);
+          if (isBackup) {
+            localStorage.setItem(saveKey, JSON.stringify(state));
+          }
+          if (candidate?.science?.matrixMechanics) {
+            saveState(state, developmentMode);
+          }
+          return state;
         }
-        if (candidate?.science?.matrixMechanics) {
-          saveState(state, developmentMode);
-        }
-        return state;
       } catch (error) {
         console.warn(
           isBackup
@@ -8131,6 +9076,26 @@ function loadState(config, developmentMode) {
             : "The save could not be loaded; trying its backup.",
           error,
         );
+      }
+    }
+
+    // Check for previous save versions (v2, v1) and migrate seamlessly
+    for (let v = SAVE_VERSION - 1; v >= 1; v -= 1) {
+      const legacyKey = `${getSavePrefix(developmentMode)}.v${v}`;
+      const legacyBackupKey = `${legacyKey}.backup`;
+      for (const key of [legacyKey, legacyBackupKey]) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const candidate = JSON.parse(raw);
+          if (candidate?.saveVersion && candidate.saveVersion < SAVE_VERSION) {
+            const state = normalizeState(candidate, config);
+            localStorage.setItem(saveKey, JSON.stringify(state));
+            return state;
+          }
+        } catch (error) {
+          console.warn(`Legacy save ${key} could not be parsed.`, error);
+        }
       }
     }
 
@@ -8210,6 +9175,7 @@ class GameEngine {
     random = Math.random,
     collectEvents = false,
     suppressLogs = false,
+    news = null,
   }) {
     this.state = state;
     this.config = config;
@@ -8217,8 +9183,74 @@ class GameEngine {
     this.random = random;
     this.collectEvents = collectEvents;
     this.suppressLogs = suppressLogs;
+    this.news =
+      Array.isArray(news) && news.length > 0
+        ? news
+        : globalThis.__TES_NEWS__ || DEFAULT_NEWS;
     this.events = [];
     this.listeners = new Set();
+
+    if (this.state.ui && !this.state.ui.currentNewsId) {
+      const initial = selectNextNews(this.news, null, this.random);
+      if (initial) {
+        this.state.ui.currentNewsId = initial.id;
+      }
+    }
+  }
+
+  getNewsList() {
+    return this.news;
+  }
+
+  setNewsList(newsList) {
+    if (Array.isArray(newsList) && newsList.length > 0) {
+      this.news = newsList;
+      if (!this.state.ui.currentNewsId) {
+        const next = selectNextNews(this.news, null, this.random);
+        if (next) this.state.ui.currentNewsId = next.id;
+      }
+    }
+  }
+
+  cycleNews(manual = false) {
+    if (!this.news || this.news.length === 0) return;
+    const next = selectNextNews(
+      this.news,
+      this.state.ui?.currentNewsId,
+      this.random,
+    );
+    if (next && this.state.ui) {
+      this.state.ui.currentNewsId = next.id;
+      this.state.ui.newsTimer = 0;
+      if (manual) this.notify();
+    }
+  }
+
+  dismissNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = true;
+      this.notify();
+    }
+  }
+
+  restoreNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = false;
+      this.notify();
+    }
+  }
+
+  toggleNewsSection() {
+    if (this.state.ui) {
+      this.state.ui.newsDismissed = !this.state.ui.newsDismissed;
+      this.notify();
+    }
+  }
+
+  setNewsHovered(isHovered) {
+    if (this.state.ui) {
+      this.state.ui.newsHovered = Boolean(isHovered);
+    }
   }
 
   subscribe(listener) {
@@ -8257,13 +9289,65 @@ class GameEngine {
     this.state.log = this.state.log.slice(0, 60);
   }
 
+  recordHistory({ eventId, kind = "Narrative", title, summary, body }) {
+    if (!this.state.history) {
+      this.state.history = [];
+    }
+    const id = eventId;
+    if (this.state.history.some((e) => (e.id || e.eventId) === id)) {
+      return;
+    }
+    const entry = {
+      id,
+      eventId: id,
+      kind,
+      title,
+      summary,
+      body: body || summary,
+      timestamp: Date.now(),
+      runPlayTime: this.state.stats.runPlayTime,
+      seenAt: Date.now(),
+    };
+    this.state.history.unshift(entry);
+  }
+
+  openHistoryEntry(id) {
+    if (!this.state.history) return false;
+    const entry = this.state.history.find((e) => (e.id || e.eventId) === id);
+    if (!entry) return false;
+    this.state.ui.historyModalEntry = entry;
+    this.notify();
+    return true;
+  }
+
+  closeHistoryModal() {
+    if (!this.state.ui.historyModalEntry) return false;
+    this.state.ui.historyModalEntry = null;
+    this.notify();
+    return true;
+  }
+
   pressButton() {
     this.state.introState = "crc-briefing";
+    this.recordHistory({
+      eventId: "narrative-intro",
+      kind: "Narrative",
+      title: "The room has been waiting.",
+      summary: "Dust hangs motionless in the air. A single button emits a faint blue pulse.",
+      body: "Dust hangs motionless in the air. Every panel is dark, every instrument silent.\n\nAt the center of the chamber, a single button emits a faint blue pulse.\n\nYou cannot remember why you entered this place — only that something behind these walls was never meant to be forgotten.",
+    });
     this.notify();
   }
 
   activateCrc() {
     this.state.introState = "active";
+    this.recordHistory({
+      eventId: "narrative-crc-awakening",
+      kind: "Narrative",
+      title: "The first machine wakes by pulling energy out of noise.",
+      summary: "Cosmic Radiation Condenser online. Pulls background radiation into usable Stored Energy.",
+      body: "The screen identifies the device as a Cosmic Radiation Condenser: a damaged instrument built to catch background cosmic radiation and compress it into usable Stored Energy.\n\nIts output is almost nothing at first. The facility expects you to improve the algorithm, not to operate the machine by hand.\n\nA Power Cell below the floor begins accepting charge. Every system you recover will either improve the condenser, automate the study cycle, or prepare the next layer of the facility.",
+    });
     this.addLog(
       "Cosmic Radiation Condenser detected. Status: ONLINE.",
       "discovery",
@@ -8281,31 +9365,234 @@ class GameEngine {
     this.notify();
   }
 
-  tick(deltaSeconds) {
-    if (this.state.introState !== "active") return;
-    if (this.state.ui?.particleSynthesisModal) return;
-
-    const delta = clamp(deltaSeconds, 0, this.config.timing.maximumTickSeconds);
-
-    if (delta <= 0) return;
-
-    this.state.stats.totalPlayTime += delta;
-    this.state.stats.runPlayTime += delta;
-
+  advanceTimersAndEnergy(tau) {
+    if (tau <= 0) return;
     const production = calculateProduction(
       this.state,
       this.config,
       this.developmentMode,
     );
-    this.advanceEnergy(production, delta);
-    this.decayQuarks(delta, false);
-    this.drainOverclocker(delta, false);
-    this.coolOverclocker(delta, false);
+    this.advanceEnergy(production, tau);
+    this.advanceNonEnergyTimers(tau);
+  }
 
-    this.tickStudy(delta);
-    this.tickAlgorithmUpgradeStudy(delta);
-    this.tickBlueprintStudy(delta);
-    this.tickConstruction(delta);
+  advanceNonEnergyTimers(tau) {
+    if (tau <= 0) return;
+    this.decayQuarks(tau, false);
+    this.drainOverclocker(tau, false);
+    this.coolOverclocker(tau, false);
+    this.tickBlueprintStudy(tau);
+    this.tickOverclockerBlueprintStudy(tau);
+    this.tickConstruction(tau);
+  }
+
+  advanceBatchEnergy(eBatch, dtBatch) {
+    if (dtBatch <= 0) return;
+    const overflowDecay = calculateEnergyOverflowDecay(
+      this.state,
+      this.config,
+    );
+    const netEnergy = bigMax(0, eBatch.sub(overflowDecay.mul(dtBatch)));
+    const collected = calculateEffectiveEnergyGain(
+      this.state,
+      netEnergy,
+      this.config,
+    );
+
+    this.state.energy = big(this.state.energy).add(collected);
+    this.state.peakEnergy = bigMax(this.state.peakEnergy, this.state.energy);
+    for (const perk of SCIENCE_PERKS) {
+      const threshold = getSciencePerkStoredEnergyRequirement(
+        perk,
+        this.config,
+      );
+      if (threshold > 0 && this.state.energy.gte(threshold)) {
+        this.state.science.revealedPerks[perk.id] = true;
+      }
+    }
+    this.state.stats.totalEnergyCollected = big(
+      this.state.stats.totalEnergyCollected,
+    ).add(collected);
+    this.emitEvent("energy-collected", { amount: collected });
+  }
+
+  tick(deltaSeconds) {
+    if (this.state.introState !== "active") return;
+    if (this.state.ui?.particleSynthesisModal) return;
+
+    const delta = clamp(deltaSeconds, 0, this.config.timing.maximumTickSeconds);
+    if (delta <= 0) return;
+
+    this.state.stats.totalPlayTime += delta;
+    this.state.stats.runPlayTime += delta;
+
+    if (this.state.ui) {
+      if (!this.state.ui.newsHovered) {
+        this.state.ui.newsTimer = (this.state.ui.newsTimer || 0) + delta;
+        const cycleInterval = 6;
+        if (this.state.ui.newsTimer >= cycleInterval) {
+          this.state.ui.newsTimer = 0;
+          this.cycleNews(false);
+        }
+      }
+    }
+
+    let remainingTime = delta;
+    const maxSubSteps = 1000;
+    let subStepCount = 0;
+
+    while (remainingTime > 1e-9 && subStepCount < maxSubSteps) {
+      subStepCount += 1;
+
+      // 1. If Algorithm Upgrade study is active (running via 50G Calculator automation)
+      if (this.state.algorithmUpgradeStudy?.active) {
+        if (this.state.algorithmUpgradeStudy.automated !== true) {
+          this.completeAlgorithmUpgrade("legacy-manual");
+          continue;
+        }
+
+        const dur = this.state.algorithmUpgradeStudy.duration;
+        const el = this.state.algorithmUpgradeStudy.elapsed;
+        const tRem = Math.max(0, dur - el);
+        const tau = Math.min(remainingTime, tRem);
+
+        this.advanceTimersAndEnergy(tau);
+        this.state.algorithmUpgradeStudy.elapsed += tau;
+
+        if (this.state.algorithmUpgradeStudy.elapsed >= dur) {
+          this.completeAlgorithmUpgrade("automated");
+        }
+        remainingTime -= tau;
+        continue;
+      }
+
+      // 2. Check if automated AI Calculation Support can claim CMU
+      if (
+        isAiCalculationSupportAutomationActive(this.state) &&
+        this.canClaimCalculationMethodUpgrade()
+      ) {
+        this.claimCalculationMethodUpgrade();
+      }
+
+      // 3. Check if automated Algorithm Upgrade should start (via 50G Calculator)
+      if (
+        isFiftyGCalculatorAutomationActive(this.state) &&
+        this.canStartAlgorithmUpgradeStudy()
+      ) {
+        this.startAlgorithmUpgradeStudy({ automated: true });
+        continue;
+      }
+
+      // 4. Algorithm Improvement study (manual or automated via Auto Calculators)
+      if (!this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
+        this.startNextAutomatedStudy();
+      }
+
+      if (this.state.study.active) {
+        // Variable speed regime (Redundancy Elimination active and improvements < 100)
+        const isVariableSpeed =
+          Boolean(this.state.science?.perks?.redundancyElimination) &&
+          this.state.improvements < 100;
+
+        if (isVariableSpeed) {
+          const dur = calculateStudyDuration(this.state, this.config, this.developmentMode);
+          this.state.study.duration = dur;
+          const tRem = Math.max(0, dur - this.state.study.elapsed);
+          const tau = Math.min(remainingTime, tRem);
+
+          this.advanceTimersAndEnergy(tau);
+          this.state.study.elapsed += tau;
+
+          if (this.state.study.elapsed >= dur) {
+            this.completeStudy();
+          }
+          remainingTime -= tau;
+          continue;
+        }
+
+        // Constant speed regime (I >= 100 or no Redundancy Elimination)
+        let nLimit = Infinity;
+        if (isFiftyGCalculatorAutomationActive(this.state)) {
+          const req = calculateAlgorithmUpgradeRequirement(this.state, this.config);
+          nLimit = Math.max(0, req - this.state.improvements);
+          if (nLimit === 0) {
+            this.startAlgorithmUpgradeStudy({ automated: true });
+            continue;
+          }
+        }
+
+        // Finish any pending partial study first
+        if (this.state.study.elapsed > 0) {
+          const dur = calculateStudyDuration(this.state, this.config, this.developmentMode);
+          this.state.study.duration = dur;
+          const tRem = Math.max(0, dur - this.state.study.elapsed);
+
+          if (remainingTime < tRem) {
+            this.advanceTimersAndEnergy(remainingTime);
+            this.state.study.elapsed += remainingTime;
+            remainingTime = 0;
+            break;
+          }
+
+          this.advanceTimersAndEnergy(tRem);
+          this.completeStudy();
+          remainingTime -= tRem;
+          continue;
+        }
+
+        // Now elapsed === 0: execute closed-form batching
+        const j = this.state.improvements;
+        const V = calculateAlgorithmImprovementSpeedMultiplier(this.state, this.config);
+        const n = calculateMaxBatchImprovements(j, V, remainingTime, nLimit, this.config);
+
+        if (n > 0) {
+          const dtBatch = calculateBatchDuration(j, n, V, this.config).toNumber();
+          const curProd = calculateProduction(this.state, this.config, this.developmentMode);
+          const Q = curProd.div(1 + j);
+          const eBatch = calculateBatchEnergy(j, n, V, Q, this.config);
+
+          this.advanceBatchEnergy(eBatch, dtBatch);
+          this.advanceNonEnergyTimers(dtBatch);
+
+          this.state.improvements += n;
+          this.state.improvementMultiplier = big(1 + this.state.improvements);
+          this.emitEvent("algorithm-improvement-completed", {
+            count: this.state.improvements,
+            batchSize: n,
+            elapsed: dtBatch,
+          });
+          this.checkBlueprintGuarantee();
+
+          remainingTime -= dtBatch;
+
+          if (
+            isFiftyGCalculatorAutomationActive(this.state) &&
+            this.canStartAlgorithmUpgradeStudy()
+          ) {
+            this.startAlgorithmUpgradeStudy({ automated: true });
+            continue;
+          }
+        }
+
+        // Leftover time after batching: partial progress into next study
+        if (remainingTime > 1e-9) {
+          const nextDur = calculateStudyDuration(this.state, this.config, this.developmentMode);
+          this.state.study.active = true;
+          this.state.study.elapsed = remainingTime;
+          this.state.study.duration = nextDur;
+          this.state.study.automated = isAutoCalculatorAutomationActive(this.state);
+
+          this.advanceTimersAndEnergy(remainingTime);
+          remainingTime = 0;
+          break;
+        }
+      } else {
+        // No study active or automated
+        this.advanceTimersAndEnergy(remainingTime);
+        remainingTime = 0;
+        break;
+      }
+    }
   }
 
   addEnergy(amount, notify = true) {
@@ -8589,10 +9876,8 @@ class GameEngine {
       this.state.calculationMethods,
     );
 
-    this.state.improvementMultiplier = big(
-      this.state.improvementMultiplier,
-    ).mul(1 + bonus);
     this.state.improvements += 1;
+    this.state.improvementMultiplier = big(1 + this.state.improvements);
     this.state.study.active = false;
     this.state.study.elapsed = 0;
     this.emitEvent("algorithm-improvement-completed", {
@@ -8600,11 +9885,13 @@ class GameEngine {
       bonus,
     });
 
-    this.addLog(
-      `Algorithm Improvement ${this.state.improvements} completed: +${(
-        bonus * 100
-      ).toFixed(2)}% efficiency.`,
-    );
+    if (!this.state.study.automated || this.state.improvements <= 5) {
+      this.addLog(
+        `Algorithm Improvement ${this.state.improvements} completed: +${(
+          bonus * 100
+        ).toFixed(2)}% efficiency.`,
+      );
+    }
 
     this.checkBlueprintGuarantee();
 
@@ -8662,6 +9949,13 @@ class GameEngine {
     this.state.discoveries.crcBlueprint = true;
     this.state.discoveries.blueprintSource = source;
     this.emitEvent("blueprint-research-completed", { source });
+    this.recordHistory({
+      eventId: "discovery-crc-blueprint",
+      kind: "Discoveries",
+      title: "CRC Blueprint Recovered",
+      summary: "Specifications recovered for constructing additional Cosmic Radiation Condensers.",
+      body: "The facility has reconstructed the fabrication plan for additional Cosmic Radiation Condensers. Each new condenser constructed provides an independent, passive energy gathering point.",
+    });
     this.addLog(
       "CRC Blueprint reconstructed. New condensers can now be fabricated.",
       "discovery",
@@ -8699,6 +9993,57 @@ class GameEngine {
     this.state.blueprintStudy.active = false;
     this.state.blueprintStudy.elapsed = 0;
     this.completeBlueprintResearch("research");
+  }
+
+  canStartOverclockerBlueprintResearch() {
+    return evaluateComponent(
+      "overclockerBlueprint",
+      this.state,
+      this.config,
+    ).enabled;
+  }
+
+  startOverclockerBlueprintResearch() {
+    if (!this.canStartOverclockerBlueprintResearch()) return false;
+    this.state.overclockerBlueprintStudy.active = true;
+    this.state.overclockerBlueprintStudy.elapsed = 0;
+    this.state.overclockerBlueprintStudy.duration =
+      calculateOverclockerBlueprintDuration(this.state, this.config);
+    this.addLog("Overclocker Blueprint research started.", "device");
+    this.notify();
+    return true;
+  }
+
+  tickOverclockerBlueprintStudy(delta) {
+    if (!this.state.overclockerBlueprintStudy?.active) return;
+    this.state.overclockerBlueprintStudy.elapsed += delta;
+    if (
+      this.state.overclockerBlueprintStudy.elapsed <
+      this.state.overclockerBlueprintStudy.duration
+    ) {
+      return;
+    }
+
+    this.completeOverclockerBlueprintResearch();
+  }
+
+  completeOverclockerBlueprintResearch() {
+    this.state.overclockerBlueprintStudy.active = false;
+    this.state.overclockerBlueprintStudy.elapsed = 0;
+    this.state.discoveries.overclockerBlueprint = true;
+    this.emitEvent("blueprint-completed", { device: "overclocker" });
+    this.recordHistory({
+      eventId: "discovery-overclocker-blueprint",
+      kind: "Discoveries",
+      title: "Overclocker Blueprint Recovered",
+      summary: "Thermal routing plan recovered for overclocking calculator arrays.",
+      body: "Analysis of processor routing channels reveals an overclocking pathway. Excessive Stored Energy can be burned to dramatically accelerate Auto Calculator speed.",
+    });
+    this.addLog(
+      "Overclocker Blueprint research completed. Overclocker construction unlocked.",
+      "discovery",
+    );
+    this.notify();
   }
 
   canPurchaseAutoCalculator() {
@@ -8744,6 +10089,36 @@ class GameEngine {
     );
     this.notify();
     return true;
+  }
+
+  purchasePowerCells(amount = 1) {
+    if (amount === "max") {
+      return this.purchaseMaxPowerCells();
+    }
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    if (count <= 1) {
+      return this.purchasePowerCell() ? 1 : 0;
+    }
+    let totalCost = big(0);
+    for (let i = 0; i < count; i++) {
+      totalCost = totalCost.add(
+        calculatePowerCellCost(
+          { ...this.state, powerCells: this.state.powerCells + i },
+          this.config,
+        ),
+      );
+    }
+    if (big(this.state.energy).lt(totalCost)) return 0;
+    this.state.energy = big(this.state.energy).sub(totalCost);
+    this.state.powerCells += count;
+    this.emitEvent("device-purchased", {
+      device: "powerCell",
+      count,
+      cost: totalCost,
+    });
+    this.addLog(`Power Cell Array expanded by ${count} cells.`, "device");
+    this.notify();
+    return count;
   }
 
   purchaseMaxPowerCells(maxPurchases = 100000) {
@@ -8806,6 +10181,29 @@ class GameEngine {
     return true;
   }
 
+  purchasePowerModules(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchasePowerModule()) break;
+      const availability = evaluateComponent("powerModule", this.state, this.config);
+      if (big(this.state.energy).lt(availability.cost)) break;
+      this.state.energy = big(this.state.energy).sub(availability.cost);
+      this.state.powerModules += 1;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "powerModule",
+        count: this.state.powerModules,
+      });
+      this.addLog(`${purchased} Power Module(s) synchronized.`, "device");
+      this.notify();
+    }
+    return purchased;
+  }
+
   purchaseSoftDataDisplay() {
     if (!this.canPurchaseSoftDataDisplay()) return false;
     const cost = evaluateComponent(
@@ -8819,6 +10217,13 @@ class GameEngine {
       device: "softDataDisplay",
       count: 1,
       cost,
+    });
+    this.recordHistory({
+      eventId: "discovery-soft-display",
+      kind: "Discoveries",
+      title: "Soft Data Display Restored",
+      summary: "Production telemetry and flow dynamics unlocked. Buy 10 enabled.",
+      body: "The primary monitoring display flickers to life. Real-time net flow, overflow decay rates, and stable cell thresholds are now legible across all facility sectors.",
     });
     this.addLog(
       "Soft Display restored. Production telemetry is now readable.",
@@ -8841,6 +10246,13 @@ class GameEngine {
       device: "t2SoftDataDisplay",
       count: 1,
       cost,
+    });
+    this.recordHistory({
+      eventId: "discovery-t2-soft-display",
+      kind: "Discoveries",
+      title: "T2 Soft Data Display Restored",
+      summary: "Output composition and mathematical trace unlocked. Buy Max enabled.",
+      body: "The auxiliary analysis matrix decodes high-frequency resonance patterns. Production breakdowns and multi-factor mathematical traces can now be inspected directly.",
     });
     this.addLog(
       "T2 Soft Display restored. Condenser output composition is now readable.",
@@ -8868,6 +10280,31 @@ class GameEngine {
     this.refreshAlgorithmImprovementDuration();
     this.notify();
     return true;
+  }
+
+  purchaseOverclockers(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseOverclocker()) break;
+      const cost = evaluateComponent("overclocker", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.devices.overclockers += 1;
+      this.state.overclocker.active = false;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "overclocker",
+        count: this.state.devices.overclockers,
+      });
+      this.addLog(`${purchased} Overclocker(s) installed.`, "device");
+      this.refreshAlgorithmImprovementDuration();
+      this.notify();
+    }
+    return purchased;
   }
 
   toggleOverclocker() {
@@ -8927,6 +10364,35 @@ class GameEngine {
     if (!this.state.study.active) this.startNextAutomatedStudy();
     this.notify();
     return true;
+  }
+
+  purchaseAutoCalculators(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseAutoCalculator()) break;
+      const cost = evaluateComponent("autoCalculator", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.devices.autoCalculators += 1;
+      unlockAutomation(this.state, "autoCalculator");
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "autoCalculator",
+        count: this.state.devices.autoCalculators,
+      });
+      if (this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
+        this.state.study.automated = true;
+        this.refreshAlgorithmImprovementDuration();
+      }
+      this.addLog(`${purchased} Auto Calculator(s) connected.`, "device");
+      if (!this.state.study.active) this.startNextAutomatedStudy();
+      this.notify();
+    }
+    return purchased;
   }
 
   toggleAutomation(id, enabled) {
@@ -8997,7 +10463,13 @@ class GameEngine {
 
     this.state.energy = big(this.state.energy).sub(cost);
     this.state.devices.processors += 1;
-    this.state.prototypeComplete = true;
+    if (!this.state.prototypeComplete) {
+      this.state.prototypeComplete = true;
+      if (this.state.ui) {
+        this.state.ui.newsDismissed = false;
+        this.state.ui.currentNewsId = "processing_network_online";
+      }
+    }
     this.emitEvent("device-purchased", {
       device: "processor",
       count: this.state.devices.processors,
@@ -9014,6 +10486,41 @@ class GameEngine {
     );
     this.notify();
     return true;
+  }
+
+  purchaseProcessors(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseProcessor()) break;
+      const cost = evaluateComponent("processor", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.devices.processors += 1;
+      if (!this.state.prototypeComplete) {
+        this.state.prototypeComplete = true;
+        if (this.state.ui) {
+          this.state.ui.newsDismissed = false;
+          this.state.ui.currentNewsId = "processing_network_online";
+        }
+      }
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "processor",
+        count: this.state.devices.processors,
+      });
+      this.refreshAlgorithmImprovementDuration();
+      this.retimeActiveProgress(
+        this.state.construction,
+        this.calculateCrcConstructionDuration(),
+      );
+      this.addLog(`${purchased} Processor(s) integrated.`, "device");
+      this.notify();
+    }
+    return purchased;
   }
 
   canStartAlgorithmUpgradeStudy() {
@@ -9067,36 +10574,12 @@ class GameEngine {
   }
 
   completeAlgorithmUpgrade(source = "automated") {
-    const totalImprovementLog = bigMax(
-      0,
-      bigMax(1, this.state.improvementMultiplier).ln(),
-    );
-    const previouslyPreservedLog = bigMin(
-      totalImprovementLog,
-      bigMax(0, this.state.preservedImprovementLog ?? 0),
-    );
-    const newImprovementLog = bigMax(
-      0,
-      totalImprovementLog.sub(previouslyPreservedLog),
-    );
-    const retention = this.state.science?.perks?.quantumSuperposition
-      ? calculateQuantumSuperpositionRetention(
-          this.state.quarks?.totalEarned ?? 0,
-          this.config,
-        )
-      : 0;
-    const retainedImprovementLog = previouslyPreservedLog.add(
-      newImprovementLog.mul(retention),
-    );
-
     this.state.algorithmUpgradeStudy.active = false;
     this.state.algorithmUpgradeStudy.elapsed = 0;
     this.state.algorithmUpgradeStudy.duration = 0;
     this.state.algorithmUpgradeStudy.automated = false;
     this.state.upgrades += 1;
     this.resetAlgorithmImprovements();
-    this.state.improvementMultiplier = retainedImprovementLog.exp();
-    this.state.preservedImprovementLog = retainedImprovementLog;
     this.emitEvent("algorithm-upgrade-completed", {
       count: this.state.upgrades,
     });
@@ -9126,6 +10609,13 @@ class GameEngine {
     this.emitEvent("calculation-method-upgraded", {
       count: this.state.calculationMethods,
     });
+    this.recordHistory({
+      eventId: `milestone-cmu-${this.state.calculationMethods}`,
+      kind: "Milestones",
+      title: `Calculation Method Upgrade #${this.state.calculationMethods}`,
+      summary: `Processor bonus amplified by 1.2^${this.state.calculationMethods}. Studies reset.`,
+      body: `The facility's fundamental mathematical frameworks have been re-engineered. All Processors now achieve a 1.2^${this.state.calculationMethods} scaling multiplier across all calculation tasks.`,
+    });
     this.addLog(
       `Calculation Method Upgrade ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
       "milestone",
@@ -9134,9 +10624,35 @@ class GameEngine {
     return true;
   }
 
+  openCalculationMethodUpgradeConfirmation() {
+    if (!this.canClaimCalculationMethodUpgrade()) return false;
+    this.state.ui.resetModal = "cmu";
+    this.notify();
+    return true;
+  }
+
+  confirmCalculationMethodUpgrade() {
+    if (this.state.ui.resetModal !== "cmu") return false;
+    this.state.ui.resetModal = null;
+    return this.claimCalculationMethodUpgrade();
+  }
+
   canClaimSetupOptimization() {
     return evaluateComponent("setupOptimization", this.state, this.config)
       .enabled;
+  }
+
+  openSetupOptimizationConfirmation() {
+    if (!this.canClaimSetupOptimization()) return false;
+    this.state.ui.resetModal = "setup";
+    this.notify();
+    return true;
+  }
+
+  confirmSetupOptimization() {
+    if (this.state.ui.resetModal !== "setup") return false;
+    this.state.ui.resetModal = null;
+    return this.claimSetupOptimization();
   }
 
   canActivateParticleSynthesizer() {
@@ -9147,20 +10663,104 @@ class GameEngine {
   openParticleSynthesisConfirmation() {
     if (!this.canActivateParticleSynthesizer()) return false;
     this.state.ui.particleSynthesisModal = "confirm";
+    this.state.ui.resetModal = "synthesis";
     this.notify();
     return true;
   }
 
   closeParticleSynthesisModal() {
-    if (!this.state.ui.particleSynthesisModal) return false;
     this.state.ui.particleSynthesisModal = null;
+    this.state.ui.resetModal = null;
     this.notify();
     return true;
   }
 
+  closeResetModal() {
+    return this.closeParticleSynthesisModal();
+  }
+
   confirmParticleSynthesis() {
-    if (this.state.ui.particleSynthesisModal !== "confirm") return false;
+    if (
+      this.state.ui.particleSynthesisModal !== "confirm" &&
+      this.state.ui.resetModal !== "synthesis"
+    ) {
+      return false;
+    }
+    this.state.ui.resetModal = null;
     return this.activateParticleSynthesizer({ showNarrative: true });
+  }
+
+  getResetPreview(resetType) {
+    if (resetType === "cmu") {
+      const nextCMU = this.state.calculationMethods + 1;
+      const studyRunning = Boolean(
+        this.state.study?.active ||
+          this.state.algorithmUpgradeStudy?.active ||
+          this.state.blueprintStudy?.active ||
+          this.state.overclockerBlueprintStudy?.active,
+      );
+      return {
+        type: "cmu",
+        title: "Confirm Calculation Method Upgrade",
+        gain: `Calculation Method Upgrade ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
+        lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
+        preserved:
+          "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
+        warnings: studyRunning
+          ? "Warning: A research study or blueprint reconstruction is currently active and will be aborted!"
+          : null,
+        isEligible: this.canClaimCalculationMethodUpgrade(),
+      };
+    }
+
+    if (resetType === "setup") {
+      const nextSetup = this.state.setupOptimizations + 1;
+      const currentD = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
+      const nextD = 1 + 2 * Math.log(1 + nextSetup);
+      return {
+        type: "setup",
+        title: "Confirm Setup Optimization",
+        gain: `Setup Optimization ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
+        lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+        preserved:
+          "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
+        warnings:
+          "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
+        isEligible: this.canClaimSetupOptimization(),
+      };
+    }
+
+    if (resetType === "synthesis") {
+      const activationCost = calculateParticleSynthesizerCost(
+        this.state,
+        this.config,
+      );
+      const spReward = calculateSciencePointReward(
+        this.state.energy,
+        this.state.science?.totalScienceEarned ?? 0,
+        this.config,
+      );
+      const quarksReward = calculateQuarksGenerated(
+        this.state.energy,
+        this.config,
+      );
+      return {
+        type: "synthesis",
+        title: "Confirm Particle Synthesis",
+        gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
+        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
+        preserved:
+          "Preserves Science Points, Quarks, Science Perks, and History.",
+        warnings:
+          "Complete reset of all physical devices, power cells, and stored energy.",
+        isEligible: this.canActivateParticleSynthesizer(),
+        activationCost,
+        spReward,
+        quarksReward,
+      };
+    }
+
+    return null;
   }
 
   activateParticleSynthesizer({ showNarrative = false } = {}) {
@@ -9200,8 +10800,18 @@ class GameEngine {
       quarksGenerated,
     });
     this.resetEnergyLayerForSynthesis();
+    this.recordHistory({
+      eventId: `milestone-synthesis-${this.state.science.syntheses}`,
+      kind: firstSynthesis ? "Narrative" : "Milestones",
+      title: firstSynthesis
+        ? "First Particle Synthesis"
+        : `Particle Synthesis #${this.state.science.syntheses}`,
+      summary: `Full Energy Layer reset yielding ${sciencePointsGained} SP and ${quarksGenerated} Quarks.`,
+      body: "The laboratory rings ignite in sequence. For a fraction of a second, the entire facility feeds one impossible concentration of energy into the central chamber.\n\nA new signature appears on the display. Then the Synthesizer overloads. Protection circuits sever every route at once, and the facility falls dark.\n\nWhen the first condenser returns, something survived the collapse: preserved scientific knowledge and the quarks formed during synthesis.",
+    });
     this.state.ui.particleSynthesisModal =
       showNarrative && firstSynthesis ? "narrative" : null;
+    this.state.ui.resetModal = null;
     this.addLog(
       `Particle Synthesizer activated. ${sciencePointsGained} Science Points and ${quarksGenerated} quarks preserved through a full Energy Layer reset.`,
       "milestone",
@@ -9231,6 +10841,29 @@ class GameEngine {
     );
     this.notify();
     return true;
+  }
+
+  purchaseQuarkCages(amount = 1) {
+    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
+    let purchased = 0;
+    const maxIterations = amount === "max" ? 1000 : count;
+    for (let i = 0; i < maxIterations; i++) {
+      if (!this.canPurchaseQuarkCage()) break;
+      const cost = evaluateComponent("quarkCage", this.state, this.config).cost;
+      if (big(this.state.energy).lt(cost)) break;
+      this.state.energy = big(this.state.energy).sub(cost);
+      this.state.scienceDevices.quarkCages += 1;
+      purchased++;
+    }
+    if (purchased > 0) {
+      this.emitEvent("device-purchased", {
+        device: "quarkCage",
+        count: this.state.scienceDevices.quarkCages,
+      });
+      this.addLog(`${purchased} Quarks Cage(s) stabilized.`, "device");
+      this.notify();
+    }
+    return purchased;
   }
 
   canPurchaseFiftyGCalculator() {
@@ -9289,6 +10922,10 @@ class GameEngine {
     return true;
   }
 
+  buySciencePerk(perkId) {
+    return this.purchaseSciencePerk(perkId);
+  }
+
   resetSciencePointAllocation() {
     const totalScienceEarned = Math.max(
       0,
@@ -9335,8 +10972,16 @@ class GameEngine {
 
     this.state.setupOptimizations += 1;
     this.resetHardwareForSetupOptimization();
+    const D_S = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
     this.emitEvent("setup-optimized", {
       count: this.state.setupOptimizations,
+    });
+    this.recordHistory({
+      eventId: `milestone-setup-${this.state.setupOptimizations}`,
+      kind: "Milestones",
+      title: `Setup Optimization #${this.state.setupOptimizations}`,
+      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}.`,
+      body: `Lower energy layer physical infrastructure has been dismantled and re-architected. Power Cells and scientific progress are preserved while device performance scales to D(S) = 1 + 2 ln(1+S).`,
     });
     this.addLog(
       `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
@@ -9366,13 +11011,18 @@ class GameEngine {
     this.state.blueprintStudy.active = false;
     this.state.blueprintStudy.elapsed = 0;
     this.state.blueprintStudy.duration = 0;
+    if (this.state.overclockerBlueprintStudy) {
+      this.state.overclockerBlueprintStudy.active = false;
+      this.state.overclockerBlueprintStudy.elapsed = 0;
+      this.state.overclockerBlueprintStudy.duration = 0;
+    }
+    this.state.discoveries.crcBlueprint = false;
+    this.state.discoveries.overclockerBlueprint = false;
+    this.state.discoveries.blueprintSource = null;
   }
 
   resetHardwareForSetupOptimization() {
-    const preserveStoredEnergy = Boolean(
-      this.state.science?.perks?.storedEnergyPreservation,
-    );
-    if (!preserveStoredEnergy) this.state.energy = big(0);
+    this.state.energy = big(0);
     this.state.peakEnergy = big(0);
     this.resetAllStudies();
     this.state.calculationMethods = 0;
@@ -9385,11 +11035,6 @@ class GameEngine {
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
     this.state.crcCount = this.config.energy.initialCrcCount;
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
@@ -9401,10 +11046,7 @@ class GameEngine {
     this.state.peakEnergy = big(0);
     this.state.powerCells = this.config.energy.initialPowerCells;
     this.state.powerModules = 0;
-    this.state.improvements = 0;
-    this.state.improvementMultiplier = big(1);
-    this.state.preservedImprovementLog = big(0);
-    this.state.upgrades = 0;
+    this.resetAllStudies();
     this.state.calculationMethods = 0;
     this.state.setupOptimizations = 0;
     this.state.crcCount = this.config.energy.initialCrcCount;
@@ -9415,19 +11057,6 @@ class GameEngine {
     this.state.devices.overclockers = 0;
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
-    this.state.study.active = false;
-    this.state.study.elapsed = 0;
-    this.state.study.duration = 0;
-    this.state.study.automated = false;
-    this.state.algorithmUpgradeStudy.active = false;
-    this.state.algorithmUpgradeStudy.elapsed = 0;
-    this.state.algorithmUpgradeStudy.duration = 0;
-    this.state.algorithmUpgradeStudy.automated = false;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
@@ -9500,6 +11129,34 @@ class GameEngine {
     this.refreshAllActiveDurations();
     this.notify();
   }
+
+  startAlgorithmUpgrade(options = {}) {
+    return this.startAlgorithmUpgradeStudy(options);
+  }
+
+  selectSciencePerk(perkId) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.selectedSciencePerkId = perkId;
+    this.notify();
+  }
+
+  setTreeZoom(zoom) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.treeZoom = Math.min(2.0, Math.max(0.5, Number(zoom) || 1.0));
+    this.notify();
+  }
+
+  setBuyMode(mode) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.buyMode = String(mode);
+    this.notify();
+  }
+
+  setHistoryFilter(filter) {
+    if (!this.state.ui) this.state.ui = {};
+    this.state.ui.historyFilter = String(filter);
+    this.notify();
+  }
 }
 
 
@@ -9551,7 +11208,7 @@ function collectEvents(summary, events) {
     }
 
     if (event.type === "algorithm-improvement-completed") {
-      summary.algorithmImprovementsCompleted += 1;
+      summary.algorithmImprovementsCompleted += event.batchSize ?? 1;
     }
 
     if (event.type === "algorithm-upgrade-completed") {
@@ -9746,42 +11403,54 @@ function statusPill(text, tone = "") {
   return `<span class="status ${tone ? `status--${tone}` : ""}">${text}</span>`;
 }
 
+function renderCardTags(type, extra = null) {
+  const typeLabel = type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
+  const extraClass = extra ? extra.toLowerCase().replace(/\s+/g, "-") : "";
+  return `
+    <div class="card-tags">
+      <span class="card-tag card-tag--${(type || "device").toLowerCase()}">${typeLabel}</span>
+      ${extra ? `<span class="card-tag card-tag--${extraClass}">${extra}</span>` : ""}
+    </div>
+  `;
+}
+
+function getEffectiveBuyMode(state) {
+  const mode = state.ui?.buyMode ?? "1";
+  if (mode === "max") {
+    return state.devices.t2SoftDataDisplay ? "max" : "1";
+  }
+  if (mode === "10") {
+    return state.devices.softDataDisplay ? "10" : "1";
+  }
+  return "1";
+}
+
+function renderBuyModeSelector(state) {
+  const buyMode = state.ui?.buyMode ?? "1";
+  const hasSoft = Boolean(state.devices.softDataDisplay);
+  const hasT2 = Boolean(state.devices.t2SoftDataDisplay);
+  if (!hasSoft && !hasT2) return "";
+  return `
+    <div class="buy-mode-selector" role="group" aria-label="Purchase quantity">
+      <button class="buy-mode-btn ${buyMode === "1" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="1" type="button">Buy 1</button>
+      ${hasSoft ? `<button class="buy-mode-btn ${buyMode === "10" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="10" type="button">Buy 10</button>` : ""}
+      ${hasT2 ? `<button class="buy-mode-btn ${buyMode === "max" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="max" type="button">Buy Max</button>` : ""}
+    </div>
+  `;
+}
+
 const TAB_DEFINITIONS = [
-  { id: "devices", label: "Devices" },
-  { id: "studies", label: "Studies" },
+  { id: "energy", label: "Energy Production" },
+  { id: "automation", label: "Automation and Efficiency" },
   {
     id: "science",
     label: "Science",
     visible: (state, config) =>
       canAccessParticleLab(state, config) ||
       state.sciencePoints > 0 ||
-      state.science?.syntheses > 0,
+      (state.science?.syntheses ?? 0) > 0,
   },
-  {
-    id: "automations",
-    label: "Automations",
-    visible: (state) => hasUnlockedAutomations(state),
-  },
-  {
-    id: "measure",
-    label: "Measure",
-    visible: (state) => state.devices.t2SoftDataDisplay,
-  },
-  { id: "statistics", label: "Statistics" },
-  { id: "save", label: "Save" },
-];
-
-const DEVICE_GROUPS = [
-  {
-    id: "energy",
-    label: "Energy Devices",
-    note: "Hardware that collects, stores, routes, or spends Stored Energy.",
-  },
-  {
-    id: "computational",
-    label: "Computational Devices",
-    note: "Hardware that exposes information or accelerates study systems.",
-  },
+  { id: "history", label: "History" },
 ];
 
 function isTabVisible(tab, state, config) {
@@ -9789,16 +11458,46 @@ function isTabVisible(tab, state, config) {
 }
 
 function getActiveTab(state, config) {
-  const requested = state.ui?.activeTab ?? "devices";
+  let requested = state.ui?.activeTab ?? "energy";
+  if (requested === "devices" || requested === "studies") requested = "energy";
+  if (
+    requested === "automations" ||
+    requested === "measure" ||
+    requested === "statistics" ||
+    requested === "save"
+  ) {
+    requested = "automation";
+  }
   return TAB_DEFINITIONS.some(
     (tab) => tab.id === requested && isTabVisible(tab, state, config),
   )
     ? requested
-    : "devices";
+    : "energy";
 }
 
 function getComponentsForTab(tabId) {
-  return Object.values(COMPONENT_REGISTRY).filter((spec) => spec.tab === tabId);
+  return Object.values(COMPONENT_REGISTRY).filter((spec) => {
+    if (tabId === "energy") {
+      return (
+        spec.functionalTab === "energy" ||
+        spec.tab === "energy" ||
+        spec.tab === "devices" ||
+        spec.tab === "studies"
+      );
+    }
+    if (tabId === "automation") {
+      return (
+        spec.functionalTab === "automation" ||
+        spec.tab === "automation" ||
+        spec.tab === "automations" ||
+        spec.tab === "measure"
+      );
+    }
+    if (tabId === "science") {
+      return spec.functionalTab === "science" || spec.tab === "science";
+    }
+    return spec.functionalTab === tabId || spec.tab === tabId;
+  });
 }
 
 function getVisibleComponentIdsForTab(tabId, state, config) {
@@ -9939,6 +11638,306 @@ function renderTelemetry(state, config, developmentMode) {
   `;
 }
 
+function calculateNextMilestone(state, config) {
+  if (
+    state.crcCount === 1 &&
+    !state.discoveries.crcBlueprint &&
+    !state.blueprintStudy.active
+  ) {
+    const cost = config.blueprint?.revealAtPeakEnergy ?? 10;
+    return {
+      title: "CRC Blueprint Research",
+      requirement: `Reach ${formatEnergy(cost)} peak energy to reveal blueprint`,
+      progress: clamp(state.peakEnergy / cost, 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (state.blueprintStudy?.active) {
+    const elapsed = state.blueprintStudy.elapsed;
+    const dur = state.blueprintStudy.duration;
+    return {
+      title: "Blueprint Reconstruction",
+      requirement: `Active research in progress (${formatDuration(Math.max(0, dur - elapsed))})`,
+      progress: dur > 0 ? clamp(elapsed / dur, 0, 1) : 0,
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (state.discoveries.crcBlueprint && state.crcCount === 1) {
+    const cost = calculateCrcCost(state.crcCount, config);
+    return {
+      title: "Fabricate 2nd CRC",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (!state.devices.softDataDisplay) {
+    const cost = config.softDataDisplay.cost;
+    return {
+      title: "Restore Soft Display",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  if (state.devices.autoCalculators === 0) {
+    const cost = config.autoCalculator.baseCost;
+    return {
+      title: "Activate Auto Calculator",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
+  if (state.upgrades === 0 && state.improvements < reqUpgrade) {
+    return {
+      title: "Algorithm Upgrade 1",
+      requirement: `${state.improvements} / ${reqUpgrade} Improvements completed`,
+      progress: clamp(state.improvements / reqUpgrade, 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (state.devices.processors === 0) {
+    const cost = config.processor.baseCost;
+    return {
+      title: "Install Processor",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  const reqCMU = calculateCalculationMethodRequirement(state, config);
+  if (state.calculationMethods === 0 && state.upgrades < reqCMU) {
+    return {
+      title: "Calculation Method Upgrade 1",
+      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
+      progress: clamp(state.upgrades / reqCMU, 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (state.calculationMethods < 2) {
+    return {
+      title: "Calculation Method Upgrade 2",
+      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
+      progress: clamp(state.upgrades / reqCMU, 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (!state.devices.t2SoftDataDisplay) {
+    const cost = config.t2SoftDataDisplay.cost;
+    return {
+      title: "Restore T2 Soft Display",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  if (
+    !state.discoveries.overclockerBlueprint &&
+    !state.overclockerBlueprintStudy?.active &&
+    state.devices.processors >= 3
+  ) {
+    return {
+      title: "Overclocker Blueprint",
+      requirement: "Transistor overclocking blueprint ready for research",
+      progress: 1,
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  if (state.overclockerBlueprintStudy?.active) {
+    const elapsed = state.overclockerBlueprintStudy.elapsed;
+    const dur = state.overclockerBlueprintStudy.duration;
+    return {
+      title: "Overclocker Blueprint Research",
+      requirement: `Active research (${formatDuration(Math.max(0, dur - elapsed))})`,
+      progress: dur > 0 ? clamp(elapsed / dur, 0, 1) : 0,
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  if (
+    state.discoveries.overclockerBlueprint &&
+    state.devices.overclockers === 0
+  ) {
+    const cost = config.overclocker.baseCost;
+    return {
+      title: "Install Overclocker",
+      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
+      tab: "automation",
+      tabLabel: "Automation",
+    };
+  }
+
+  const reqSetup = calculateSetupOptimizationRequirement(state, config);
+  if (
+    state.setupOptimizations === 0 &&
+    state.calculationMethods >= 1 &&
+    state.calculationMethods < reqSetup
+  ) {
+    return {
+      title: "Setup Optimization 1",
+      requirement: `${state.calculationMethods} / ${reqSetup} Method Upgrades`,
+      progress: clamp(state.calculationMethods / reqSetup, 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if (!canAccessParticleLab(state, config)) {
+    const doorReq = config.particleLab.doorEnergyRequired;
+    return {
+      title: "Particle Laboratory Access",
+      requirement: `Charge to ${formatEnergy(doorReq)} Stored Energy`,
+      progress: calculateDoorProgress(state, config),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  if ((state.science?.syntheses ?? 0) === 0) {
+    const synthCost = calculateParticleSynthesizerCost(state, config);
+    return {
+      title: "First Particle Synthesis",
+      requirement: `Synthesizer needs ${formatEnergy(synthCost)} Stored Energy`,
+      progress: clamp(big(state.energy).div(synthCost).toNumber(), 0, 1),
+      tab: "energy",
+      tabLabel: "Energy",
+    };
+  }
+
+  // Science Era
+  const spCost = calculateSciencePointCost(
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  return {
+    title: "Next Science Point Threshold",
+    requirement: `Threshold: ${formatEnergy(spCost)} Stored Energy`,
+    progress: clamp(big(state.energy).div(spCost).toNumber(), 0, 1),
+    tab: "science",
+    tabLabel: "Science",
+  };
+}
+
+function getLastDiscovery(state) {
+  if (state.history?.length) {
+    const last = state.history.find(
+      (h) => h.kind === "Discoveries" || h.kind === "Milestones",
+    );
+    if (last) return last.title;
+  }
+  if (state.discoveries?.crcBlueprint) return "CRC Blueprint";
+  if (state.devices?.softDataDisplay) return "Soft Data Display";
+  return "Cosmic Radiation Condenser";
+}
+
+function getResetPreviewData(state, config, resetType) {
+  if (resetType === "cmu") {
+    const nextCMU = state.calculationMethods + 1;
+    const studyRunning = Boolean(
+      state.study?.active ||
+        state.algorithmUpgradeStudy?.active ||
+        state.blueprintStudy?.active ||
+        state.overclockerBlueprintStudy?.active,
+    );
+    const eligible = evaluateComponent(
+      "calculationMethodUpgrade",
+      state,
+      config,
+    ).enabled;
+    return {
+      type: "cmu",
+      title: "Confirm Calculation Method Upgrade",
+      gain: `Calculation Method Upgrade ${state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
+      lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
+      preserved:
+        "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
+      warnings: studyRunning
+        ? "Warning: A research study or blueprint reconstruction is currently active and will be aborted!"
+        : null,
+      isEligible: eligible,
+    };
+  }
+
+  if (resetType === "setup") {
+    const nextSetup = state.setupOptimizations + 1;
+    const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
+    const nextD = 1 + 2 * Math.log(1 + nextSetup);
+    const eligible = evaluateComponent(
+      "setupOptimization",
+      state,
+      config,
+    ).enabled;
+    return {
+      type: "setup",
+      title: "Confirm Setup Optimization",
+      gain: `Setup Optimization ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
+      lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+      preserved:
+        "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
+      warnings:
+        "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
+      isEligible: eligible,
+    };
+  }
+
+  if (resetType === "synthesis") {
+    const activationCost = calculateParticleSynthesizerCost(state, config);
+    const spReward = calculateSciencePointReward(
+      state.energy,
+      state.science?.totalScienceEarned ?? 0,
+      config,
+    );
+    const quarksReward = calculateQuarksGenerated(state.energy, config);
+    const eligible = evaluateComponent(
+      "particleSynthesizer",
+      state,
+      config,
+    ).enabled;
+    return {
+      type: "synthesis",
+      title: "Confirm Particle Synthesis",
+      gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
+      lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
+      preserved:
+        "Preserves Science Points, Quarks, Science Perks, and History.",
+      warnings:
+        "Complete reset of all physical devices, power cells, and stored energy.",
+      isEligible: eligible,
+      activationCost,
+      spReward,
+      quarksReward,
+    };
+  }
+
+  return null;
+}
+
 function renderIntro() {
   return `
     <section class="screen intro-screen">
@@ -9989,6 +11988,9 @@ function renderCrcBriefing() {
 }
 
 function renderHeader(state, developmentMode) {
+  const showRestoreNews =
+    (state.prototypeComplete || developmentMode) && state.ui?.newsDismissed;
+
   return `
     <header class="topbar">
       <div>
@@ -10001,6 +12003,14 @@ function renderHeader(state, developmentMode) {
           developmentMode
             ? button("Exit dev", "exit-dev-mode", { variant: "text" })
             : button("Dev mode", "enter-dev-mode", { variant: "text" })
+        }
+        ${
+          showRestoreNews
+            ? button("News Feed", "restore-news-section", {
+                variant: "text",
+                className: "button--news-toggle",
+              })
+            : ""
         }
         ${button("Save now", "save-now", { variant: "text" })}
         ${button("Reset current", "reset-current-save", { variant: "text" })}
@@ -10066,7 +12076,7 @@ function renderRecord() {
   `;
 }
 
-function renderEnergy(state, config, developmentMode) {
+function renderGlobalHUD(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
   const netProduction = calculateEffectiveProduction(
     state,
@@ -10076,67 +12086,119 @@ function renderEnergy(state, config, developmentMode) {
   const capacity = calculateStableEnergyCapacity(state, config);
   const overflowDecay = calculateEnergyOverflowDecay(state, config);
   const capacityProgress = big(state.energy).div(capacity).toNumber();
-  const displayTelemetry = state.devices.softDataDisplay;
+  const displayTelemetry = Boolean(state.devices.softDataDisplay);
   const overflowing = big(state.energy).gt(capacity);
+  const milestone = calculateNextMilestone(state, config);
+  const phase =
+    (state.science?.syntheses ?? 0) > 0
+      ? "Science Era // Particle Synthesis"
+      : "Energy Era // Cosmic Condensation";
+  const lastDiscovery = getLastDiscovery(state);
 
   return `
-    <article class="panel energy-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">STORED ENERGY</p>
-        <strong class="energy-readout" data-field="energy">${formatEnergy(state.energy)}</strong>
-        </div>
-        <span class="status ${overflowing ? "status--warning" : "status--online"}">
-          ${overflowing ? "EXCESS UNSTABLE" : "CELL STABLE"}
-        </span>
+    <section class="global-hud" aria-label="Global status and next milestone">
+      <div class="global-hud__grid">
+        <article class="panel global-hud__primary">
+          <div class="panel__heading">
+            <div>
+              <p class="panel__label">STORED ENERGY</p>
+              <strong class="energy-readout" data-field="energy">${formatEnergy(state.energy)}</strong>
+            </div>
+            <div class="hud-rate-box">
+              <span class="panel__label">ENERGY / SECOND</span>
+              <strong class="rate-readout" data-field="energy-rate">${
+                displayTelemetry ? formatRate(production) : "UNREADABLE"
+              }</strong>
+            </div>
+          </div>
+          ${progressBar(capacityProgress, "Stable Power Cell charge", "energy", "energy")}
+          <div class="hud-telemetry-row">
+            <div>
+              <span>Stable capacity:</span>
+              <strong data-field="stable-capacity">${
+                displayTelemetry ? formatEnergy(capacity) : "UNREADABLE"
+              }</strong>
+            </div>
+            <div>
+              <span>Net flow:</span>
+              <strong data-field="retained-rate-main">${
+                displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
+              }</strong>
+            </div>
+            <div>
+              <span>Status:</span>
+              <strong class="${overflowing ? "text--warning" : "text--online"}">${
+                overflowing
+                  ? displayTelemetry
+                    ? `EXCESS DECAY (${formatRate(overflowDecay)})`
+                    : "EXCESS UNSTABLE"
+                  : "CELL STABLE"
+              }</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel global-hud__milestone">
+          <div class="panel__heading">
+            <div>
+              <p class="panel__label">NEXT MILESTONE</p>
+              <h2 class="milestone-title">${milestone.title}</h2>
+            </div>
+            <button class="button button--compact button--ghost" data-action="set-tab" data-tab="${milestone.tab}" type="button">
+              <span>Go to ${milestone.tabLabel}</span>
+            </button>
+          </div>
+          <p class="muted milestone-req">${milestone.requirement}</p>
+          ${milestone.progress !== null ? progressBar(milestone.progress, milestone.title, "discovery", "milestone") : ""}
+        </article>
       </div>
-      ${progressBar(capacityProgress, "Stable Power Cell charge", "energy", "energy")}
-      ${helpNote("Power Cells define stable capacity. Energy above that capacity is still usable, but unstable excess leaks back into background noise every second. More excess means faster decay.")}
-      <div class="metric-row">
-        <span>Stable capacity</span>
-        <strong data-field="stable-capacity">${formatEnergy(capacity)}</strong>
+
+      <div class="global-hud__subbar">
+        <span><strong>Phase:</strong> ${phase}</span>
+        <span><strong>Last discovery:</strong> ${lastDiscovery}</span>
       </div>
-      <div class="metric-row">
-        <span>Power Cells installed</span>
-        <strong data-field="power-cells">${state.powerCells}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Net flow</span>
-        <strong data-field="retained-rate-main">${
-          displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
-        }</strong>
-      </div>
-      <div class="metric-row">
-        <span>Overflow decay</span>
-        <strong data-field="energy-retention-main">${displayTelemetry ? formatRate(overflowDecay) : "UNREADABLE"}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Condensers online</span>
-        <strong>${state.crcCount}</strong>
-      </div>
-      ${renderTelemetry(state, config, developmentMode)}
-    </article>
+    </section>
   `;
 }
 
 function renderCrcDevice(state, config, developmentMode) {
   const production = calculateProduction(state, config, developmentMode);
+  const baseRate =
+    config?.economyV2?.crc?.baseProductionPerSecond ??
+    config?.energy?.baseProductionPerSecond ??
+    1e-12;
+  const crcCount = Math.max(0, state.crcCount ?? 0);
+  const improvements = Math.max(0, state.improvements ?? 0);
+  const algorithmFactor = 1 + improvements;
+  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
 
   return `
     <article class="panel device-card condenser-card device-card--online">
-      ${helpNote("Each active condenser adds passive energy production. Improvements and Upgrades modify every CRC at once.")}
+      ${helpNote("Each active condenser collects cosmic radiation at a base rate of 1e-12 J/s. Each completed Algorithm Improvement adds +1 base output to every active condenser simultaneously.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Stage 1")}
+        ${statusPill(`${crcCount} ONLINE`, "online")}
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY DEVICE // ONLINE</p>
           <h2>Cosmic Radiation Condenser</h2>
         </div>
-        ${statusPill(`${state.crcCount} ONLINE`, "online")}
       </div>
-      <p class="muted">Collects cosmic radiation and condenses it into usable energy.</p>
+      <p class="muted">Collects cosmic radiation at a base rate of ${isSoftUnlocked ? formatRate(baseRate) : "1e-12 J/s"} per CRC. Each Algorithm Improvement adds +1 base production to every active condenser via the (1 + I) multiplier.</p>
+      <div class="study-metrics crc-metrics">
+        <div>
+          <span>Base rate per CRC</span>
+          <strong>${isSoftUnlocked ? formatRate(baseRate) + " / unit" : "UNREADABLE"}</strong>
+        </div>
+        <div>
+          <span>Algorithm Multiplier (1 + I)</span>
+          <strong data-field="crc-algorithm-multiplier">x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
+        </div>
+      </div>
       <div class="metric-row">
-        <span>Current output</span>
-        <strong>${
-          state.devices.softDataDisplay ? formatRate(production) : "UNREADABLE"
+        <span>Current total output</span>
+        <strong data-field="crc-total-output">${
+          isSoftUnlocked ? formatRate(production) : "UNREADABLE"
         }</strong>
       </div>
     </article>
@@ -10147,6 +12209,9 @@ function renderPowerCellArray(state, config) {
   const availability = evaluateComponent("powerCell", state, config);
   if (!availability.visible) return "";
 
+  const effectiveMode = getEffectiveBuyMode(state);
+  const actionLabel =
+    effectiveMode === "max" ? "Buy Max" : `Add (${effectiveMode})`;
   const cost = availability.cost;
   const capacity = calculateStableEnergyCapacity(state, config);
   const nextCapacity = calculateStableEnergyCapacity(
@@ -10161,25 +12226,24 @@ function renderPowerCellArray(state, config) {
   return `
     <article class="panel device-card power-cell-card">
       ${helpNote("Buying a Power Cell expands stable capacity. It does not increase raw production, but it raises the point where overflow decay starts pushing back against Stored Energy.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Storage")}
+        <span class="card-subsystem">Stable Capacity</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY DEVICE</p>
           <h2>Power Cell Array</h2>
         </div>
         <div class="panel__action-group">
-          ${headingAction("Add Cell", "buy-power-cell", {
+          ${headingAction(actionLabel, "buy-power-cell", {
             cost,
             count: state.powerCells,
             disabled: !availability.enabled,
             variant: availability.enabled ? "primary" : "ghost",
           })}
-          ${headingAction("Buy Max", "buy-max-power-cells", {
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "secondary" : "ghost",
-          })}
         </div>
       </div>
-      <p class="muted">Stable cells give condensed energy somewhere to stay.</p>
+      <p class="muted">Stable cells give condensed energy somewhere to stay. Storage hardware does not produce energy.</p>
       <div class="metric-row">
         <span>Current stable capacity</span>
         <strong>${formatEnergy(capacity)}</strong>
@@ -10200,6 +12264,8 @@ function renderPowerModule(state, config) {
   const availability = evaluateComponent("powerModule", state, config);
   if (!availability.visible) return "";
 
+  const effectiveMode = getEffectiveBuyMode(state);
+  const actionLabel = `Install (${effectiveMode === "max" ? "Max" : effectiveMode})`;
   const requirement = availability.requirement;
   const currentMultiplier = calculatePowerModuleCapacityMultiplier(
     state,
@@ -10211,14 +12277,17 @@ function renderPowerModule(state, config) {
   );
 
   return `
-    <article class="panel device-card">
+    <article class="panel device-card power-module-card">
       ${helpNote("Power Modules do not consume Power Cells. They activate capture and conduction circuits around each full group of 100 cells, increasing effective stable capacity.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Amplification")}
+        <span class="card-subsystem">Group Multiplier</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY DEVICE</p>
           <h2>Power Module</h2>
         </div>
-        ${headingAction("Install", "buy-power-module", {
+        ${headingAction(actionLabel, "buy-power-module", {
           cost: availability.cost,
           count: state.powerModules,
           disabled: !availability.enabled,
@@ -10244,9 +12313,12 @@ function renderSoftDataDisplay(state, config) {
   return `
     <article class="panel device-card ${state.devices.softDataDisplay ? "device-card--online" : ""}">
       ${helpNote("Soft Display reveals usable energy production rate, Power Cell capacity, capacity occupation, and the current decay rate of unstable overflow energy.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Display")}
+        <span class="card-subsystem">Telemetry Unit</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Soft Display</h2>
         </div>
         ${
@@ -10280,9 +12352,12 @@ function renderT2SoftDataDisplay(state, config) {
   return `
     <article class="panel device-card ${state.devices.t2SoftDataDisplay ? "device-card--online" : ""}">
       ${helpNote("T2 Soft Display unlocks the Measure tab, separating current output into base condenser signal and active production bonuses. It does not change production by itself.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Spectrometry")}
+        <span class="card-subsystem">Diagnostic Spectrometry</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>T2 Soft Display</h2>
         </div>
         ${
@@ -10310,11 +12385,7 @@ function renderT2SoftDataDisplay(state, config) {
 }
 
 function renderStudy(state, config, developmentMode) {
-  const nextBonus = calculateImprovementBonus(
-    state.improvements,
-    config,
-    state.calculationMethods,
-  );
+  const currentFactor = 1 + (state.improvements ?? 0);
   const previewDuration = calculateStudyDuration(
     state,
     config,
@@ -10323,17 +12394,25 @@ function renderStudy(state, config, developmentMode) {
   const studyProgress = state.study.active
     ? state.study.elapsed / state.study.duration
     : 0;
+  const rate = previewDuration > 0 ? 1 / previewDuration : 0;
+  const rateDisplay =
+    rate >= 10
+      ? `${rate.toFixed(1)} Improvements/s`
+      : formatDuration(previewDuration);
 
   return `
     <article class="panel study-panel">
-      ${helpNote("Algorithm Improvements always complete. After enough Improvements, an Algorithm Upgrade study can be run manually. It doubles CRC production and resets Improvements.")}
+      ${helpNote("Algorithm Improvements always complete. Each cycle adds +1 base production unit to every CRC via the (1 + I) multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S). After enough Improvements, an Algorithm Upgrade study can be run manually to double structural production and reset Improvements.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Stage 2")}
+        <span class="card-subsystem">Continuous Optimization</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY</p>
           <h2>Algorithm Improvement</h2>
         </div>
         ${headingAction(
-          state.study.active ? "Running" : "Start",
+          state.study.active ? "Running" : "Start Study",
           "start-study",
           {
             count: state.improvements,
@@ -10345,10 +12424,10 @@ function renderStudy(state, config, developmentMode) {
           },
         )}
       </div>
-      <p class="muted">Improves how the CRC converts background radiation into Stored Energy.</p>
+      <p class="muted">Refines the Theseus algorithm. Each cycle adds +1 base production to every CRC via the (1 + I) multiplier.</p>
       <div class="study-metrics">
-        <div><span>Next efficiency gain</span><strong>+${formatPercent(nextBonus)}</strong></div>
-        <div><span>Estimated duration</span><strong>${formatDuration(previewDuration)}</strong></div>
+        <div><span>Algorithm Multiplier (1 + I)</span><strong data-field="study-algorithm-factor">x${currentFactor} (+1.0 / cycle)</strong></div>
+        <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong data-field="study-rate-display">${rateDisplay}</strong></div>
       </div>
       ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
       <div class="progress-caption">
@@ -10370,12 +12449,18 @@ function renderAlgorithmUpgrade(state, config) {
     ? state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
     : state.improvements / requirement;
 
+  const currentMultiplier = 2 ** state.upgrades;
+  const nextMultiplier = 2 ** (state.upgrades + 1);
+
   return `
-    <article class="panel study-panel">
-      ${helpNote("Manual Algorithm Upgrades complete instantly. Calculator automation uses a timed execution that grows with each Upgrade.")}
+    <article class="panel study-panel panel--upgrade ${ready ? "panel--upgrade-ready" : ""}">
+      ${helpNote("Manual Algorithm Upgrades complete instantly and reset Improvements. Each completed Upgrade permanently doubles production (x2 multiplier).")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Stage 3")}
+        <span class="card-subsystem text--warning">Resets Improvements</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY</p>
           <h2>Algorithm Upgrade</h2>
         </div>
         ${headingAction(
@@ -10388,14 +12473,24 @@ function renderAlgorithmUpgrade(state, config) {
           },
         )}
       </div>
-      <p class="muted">Rebuild the Theseus algorithm into a stronger version.</p>
+      <p class="muted">Rebuild the Theseus algorithm into a stronger version. Each completed upgrade doubles production. <strong class="text--warning">Resets Improvements.</strong></p>
+      <div class="study-metrics">
+        <div>
+          <span>Active Upgrade Multiplier</span>
+          <strong>x${currentMultiplier}</strong>
+        </div>
+        <div>
+          <span>Next Upgrade Multiplier</span>
+          <strong>x${nextMultiplier} (2x)</strong>
+        </div>
+      </div>
       ${progressBar(progress, "Algorithm Upgrade readiness", "discovery", "algorithm-upgrade")}
       <div class="progress-caption">
         <span data-field="algorithm-upgrade-status">${
           state.algorithmUpgradeStudy.active
             ? "UPGRADE STUDY"
             : ready
-              ? "READY // MANUAL EXECUTION IS INSTANT"
+              ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
               : `${state.improvements} / ${requirement} Improvements`
         }</span>
         <span data-field="algorithm-upgrade-remaining">${
@@ -10437,9 +12532,12 @@ function renderStudyOverclockControl(state, config) {
   return `
     <article class="panel study-panel study-overclock-card ${overclockActive ? "device-card--overclocking" : ""}">
       ${helpNote("Overclock burns unstable energy above stable Power Cell capacity to accelerate Auto Calculator-driven Algorithm Improvements. The energy draw rises while active.")}
+      <div class="panel__header-row">
+        ${renderCardTags("System", "Control")}
+        <span class="card-subsystem">Thermal Acceleration</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY ACCELERATION</p>
           <h2>Processor Overclock</h2>
         </div>
       </div>
@@ -10465,18 +12563,23 @@ function renderStudyOverclockControl(state, config) {
 function renderAutoCalculator(state, config) {
   const owned = state.devices.autoCalculators;
   const availability = evaluateComponent("autoCalculator", state, config);
+  const effectiveMode = getEffectiveBuyMode(state);
+  const actionLabel = owned > 0 ? `Add (${effectiveMode})` : "Activate";
   const cost = availability.cost;
   const speedMultiplier = calculateAutoCalculatorSpeedMultiplier(state, config);
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
       ${helpNote("The first Auto Calculator automates Algorithm Improvements and runs them 2x faster than manual runs. Each additional calculator doubles Algorithm Improvement speed again.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Automation")}
+        <span class="card-subsystem">Autonomous Processing</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Auto Calculator</h2>
         </div>
-        ${headingAction(owned > 0 ? "Add" : "Activate", "buy-auto", {
+        ${headingAction(actionLabel, "buy-auto", {
           cost,
           count: owned,
           disabled: !availability.enabled,
@@ -10506,8 +12609,16 @@ function renderOverclocker(state, config) {
   if (!availability.visible) return "";
 
   const owned = state.devices.overclockers;
+  const effectiveMode = getEffectiveBuyMode(state);
+  const actionLabel = owned > 0 ? `Upgrade (${effectiveMode})` : "Install";
   const active = owned > 0 && state.overclocker.active;
   const cooling = owned > 0 && !active && state.overclocker.activeSeconds > 0;
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const canToggle =
+    owned > 0 &&
+    (active ||
+      (state.devices.autoCalculators > 0 &&
+        big(state.energy).gt(stableCapacity)));
   const previewState = {
     ...state,
     devices: {
@@ -10524,37 +12635,39 @@ function renderOverclocker(state, config) {
     owned > 0
       ? calculateOverclockerDrainPerSecond(previewState, config)
       : config.overclocker.baseEnergyDrainPerSecond;
-  const nextSpeed = calculateOverclockerSpeedMultiplier(
-    {
-      ...state,
-      devices: { ...state.devices, overclockers: owned + 1 },
-      overclocker: { ...state.overclocker, active: true },
-    },
-    config,
-  );
-  const nextDrain = calculateOverclockerDrainPerSecond(
-    {
-      ...state,
-      devices: { ...state.devices, overclockers: owned + 1 },
-      overclocker: { ...state.overclocker, active: true },
-    },
-    config,
-  );
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""} ${active ? "device-card--overclocking" : ""}">
-      ${helpNote("The Overclocker expands the Processor control loop. Each unit increases Auto Calculator acceleration, but the energy draw scales faster than the speed gain.")}
+      ${helpNote("The Overclocker expands the Processor control loop. Each unit increases Auto Calculator acceleration, but the energy draw scales faster than the speed gain. Single On/Off switch with no slider or heat gauge.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Acceleration")}
+        <span class="card-subsystem">Thermal Governor</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Overclocker</h2>
         </div>
-        ${headingAction(owned > 0 ? "Upgrade" : "Install", "buy-overclocker", {
-          cost: availability.cost,
-          count: owned,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
+        <div class="panel__action-group">
+          ${headingAction(actionLabel, "buy-overclocker", {
+            cost: availability.cost,
+            count: owned,
+            disabled: !availability.enabled,
+            variant: availability.enabled ? "primary" : "ghost",
+          })}
+          ${
+            owned > 0
+              ? button(
+                  active ? "Stop Overclock" : "Overclock",
+                  "toggle-overclocker",
+                  {
+                    disabled: !canToggle,
+                    variant: active ? "ghost" : "primary",
+                    className: "button--compact",
+                  },
+                )
+              : ""
+          }
+        </div>
       </div>
       <p class="muted">${
         owned > 0
@@ -10562,7 +12675,7 @@ function renderOverclocker(state, config) {
           : "The processors and stable cells can now support a controlled calculator overload."
       }</p>
       <div class="metric-row">
-        <span>${owned > 0 ? "Current overclock" : "Initial overclock"}</span>
+        <span>Overclock multiplier & drain</span>
         <strong data-field="overclock-current">x${speedMultiplier.toFixed(2)} / ${formatRate(drain)}</strong>
       </div>
       <div class="metric-row">
@@ -10575,11 +12688,67 @@ function renderOverclocker(state, config) {
               : "STANDBY"
         }</strong>
       </div>
-      <div class="metric-row">
-        <span>Next overclock</span>
-        <strong>x${nextSpeed.toFixed(2)} / ${formatRate(nextDrain)}</strong>
-      </div>
       ${owned > 0 ? `<p class="effect-line" data-field="overclock-effect">${active ? "OVERCLOCK ACTIVE" : cooling ? "COOLING" : "OVERCLOCK ROUTE EXPANDED"}</p>` : ""}
+    </article>
+  `;
+}
+
+function renderOverclockerBlueprint(state, config, developmentMode) {
+  const availability = evaluateComponent("overclockerBlueprint", state, config);
+  if (!availability.visible && !state.overclockerBlueprintStudy?.active) {
+    return "";
+  }
+
+  const progress = state.overclockerBlueprintStudy?.active
+    ? state.overclockerBlueprintStudy.elapsed /
+      state.overclockerBlueprintStudy.duration
+    : state.discoveries.overclockerBlueprint
+      ? 1
+      : 0;
+
+  return `
+    <article class="panel discovery-card">
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Schematic")}
+        <span class="card-subsystem">${state.discoveries.overclockerBlueprint ? "Technology Recovered" : "Research Signal"}</span>
+      </div>
+      <div class="panel__heading">
+        <div>
+          <h2>Overclocker Blueprint</h2>
+        </div>
+        ${
+          state.discoveries.overclockerBlueprint
+            ? statusPill("RECOVERED", "discovery")
+            : headingAction("Research", "start-overclocker-blueprint-research", {
+                disabled: !availability.enabled,
+                variant: availability.enabled ? "primary" : "ghost",
+              })
+        }
+      </div>
+      <p class="muted">A theoretical architecture for driving calculation arrays beyond nominal thermal limits.</p>
+      ${state.overclockerBlueprintStudy?.active ? progressBar(progress, "Overclocker Blueprint progress", "discovery", "overclocker-blueprint") : ""}
+      <div class="progress-caption">
+        <span data-field="overclocker-blueprint-status">${
+          state.overclockerBlueprintStudy?.active
+            ? "BLUEPRINT RESEARCH"
+            : state.discoveries.overclockerBlueprint
+              ? "FABRICATION READY"
+              : "RESEARCH READY"
+        }</span>
+        <span data-field="overclocker-blueprint-remaining">${
+          state.overclockerBlueprintStudy?.active
+            ? formatDuration(
+                Math.max(
+                  0,
+                  state.overclockerBlueprintStudy.duration -
+                    state.overclockerBlueprintStudy.elapsed,
+                ),
+              )
+            : state.discoveries.overclockerBlueprint
+              ? "Overclocker fabrication unlocked"
+              : formatDuration(45)
+        }</span>
+      </div>
     </article>
   `;
 }
@@ -10609,9 +12778,12 @@ function renderBlueprint(state, config, developmentMode) {
   return `
     <article class="panel discovery-card">
       ${helpNote("Blueprint research reconstructs the fabrication plan for additional CRCs. Once completed, each new CRC costs Stored Energy and increases base condensation.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Schematic")}
+        <span class="card-subsystem">${state.discoveries.crcBlueprint ? "Technology Recovered" : "Research Signal"}</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">${state.discoveries.crcBlueprint ? "TECHNOLOGY RECOVERED" : "RESEARCH SIGNAL"}</p>
           <h2>CRC Blueprint</h2>
         </div>
         ${
@@ -10662,9 +12834,12 @@ function renderCrcConstruction(state, config) {
   return `
     <article class="panel device-card">
       ${helpNote("CRC fabrication uses the recovered Blueprint to build another Cosmic Radiation Condenser. Each completed condenser adds another base energy source.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Fabrication")}
+        <span class="card-subsystem">Hardware Assembly</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">ENERGY DEVICE</p>
           <h2>Cosmic Radiation Condenser Fabrication</h2>
         </div>
         ${headingAction(
@@ -10696,9 +12871,12 @@ function renderCrcConstruction(state, config) {
     </article>
   `;
 }
+
 function renderProcessor(state, config) {
   const owned = state.devices.processors;
   const availability = evaluateComponent("processor", state, config);
+  const effectiveMode = getEffectiveBuyMode(state);
+  const actionLabel = owned > 0 ? `Add (${effectiveMode})` : "Install";
   const cost = availability.cost;
   const efficiencyMultiplier = calculateDeviceEfficiencyMultiplier(
     state,
@@ -10723,13 +12901,16 @@ function renderProcessor(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("Each Processor adds 15% multiplicative efficiency to computational and fabrication systems. It improves Auto Calculators and CRC construction speed, but does not increase CRC energy production.")}
+      ${helpNote("Each Processor adds multiplicative efficiency to computational and fabrication systems. Amplified by CMU.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Device", "Hardware")}
+        <span class="card-subsystem">Processing Core</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">COMPUTATIONAL DEVICE</p>
           <h2>Processor</h2>
         </div>
-        ${headingAction(owned > 0 ? "Add" : "Install", "buy-processor", {
+        ${headingAction(actionLabel, "buy-processor", {
           cost,
           count: owned,
           disabled: !availability.enabled,
@@ -10774,28 +12955,29 @@ function renderCalculationMethod(state, config) {
     config,
   );
   const progress = state.upgrades / required;
-  const penaltyScale =
-    config.study.effectPenaltyMultiplierPerMethod ** state.calculationMethods;
 
   return `
     <article class="panel method-card ${ready ? "method-card--ready" : ""}">
-      ${helpNote("A Calculation Method Upgrade requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and makes future Algorithm Improvement effects decay more slowly.")}
+      ${helpNote("A Calculation Method Upgrade requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and amplifies Processor unit bonus by 1.2^M.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Soft Reset")}
+        <span class="card-subsystem text--amber">Tier 1 Reset</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">STUDY RESET</p>
           <h2>Calculation Method Upgrade</h2>
         </div>
-        ${headingAction("Upgrade", "claim-method", {
+        ${headingAction("Perform CMU", "claim-method", {
           count: state.calculationMethods,
           disabled: !availability.enabled,
           variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
-      <p class="muted">A whole new method. Starts studies over, but improves future Improvement effects.</p>
+      <p class="muted">A whole new method. Starts studies over, but amplifies Processor effectiveness by 1.2^M.</p>
       ${progressBar(progress, "Calculation Method Upgrade readiness", "study")}
       <div class="progress-caption">
         <span>${ready ? "METHOD UPGRADE READY" : `${Math.min(state.upgrades, required)} / ${required} Algorithm Upgrades`}</span>
-        <span>Penalty scale x${penaltyScale.toFixed(2)}</span>
+        <span>Scaling multiplier ×${(1.2 ** state.calculationMethods).toFixed(2)}</span>
       </div>
     </article>
   `;
@@ -10812,29 +12994,30 @@ function renderSetupOptimization(state, config) {
   const ready = state.calculationMethods >= required;
   const availability = evaluateComponent("setupOptimization", state, config);
   const progress = state.calculationMethods / required;
-  const loadScale =
-    config.study.durationLoadMultiplierPerSetup ** state.setupOptimizations;
-  const penaltyScale = loadScale ** config.study.durationGrowthPower;
+  const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
 
   return `
-    <article class="panel method-card ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy, studies, CRCs and hardware except Power Cells. It permanently reduces the time penalty growth of Algorithm Improvements.")}
+    <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
+      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, CRCs and hardware except Power Cells. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
+      <div class="panel__header-row">
+        ${renderCardTags("Study", "Hard Reset")}
+        <span class="card-subsystem text--danger">Facility Reconfiguration</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">HARD RESET</p>
           <h2>Setup Optimization</h2>
         </div>
-        ${headingAction("Optimize", "claim-setup", {
+        ${headingAction("Optimize Setup", "claim-setup", {
           count: state.setupOptimizations,
           disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
+          variant: availability.enabled ? "danger" : "ghost",
         })}
       </div>
-      <p class="muted">A whole new setup. Discards most hardware, but improves research time scaling.</p>
+      <p class="muted">A whole new setup. Discards lower hardware and stored energy, but permanently amplifies device performance.</p>
       ${progressBar(progress, "Setup Optimization readiness", "discovery")}
       <div class="progress-caption">
         <span>${ready ? "SETUP READY" : `${Math.min(state.calculationMethods, required)} / ${required} Method Upgrades`}</span>
-        <span>Penalty curve x${penaltyScale.toFixed(2)}</span>
+        <span>Device scale D(S): ${currentD.toFixed(2)}</span>
       </div>
     </article>
   `;
@@ -11033,22 +13216,26 @@ function renderScienceTreeNode(id, state, config, tone, extraClass = "") {
   const perk = getSciencePerk(id);
   const evaluation = evaluateSciencePerk(id, state, config);
   const revealed = evaluation.revealed;
+  const isSelected = state.ui?.selectedSciencePerkId === perk.id;
+  const isCapped = evaluation.owned && perk.id === "redundancyElimination";
   const visibleName = revealed ? perk.name : "???";
   const visibleSummary = revealed ? perk.summary : "???";
-  const effect = perk.effect;
+  const effect = revealed ? perk.effect : "Undiscovered technology";
   const prerequisiteNames = revealed
     ? perk.requires.map((prerequisiteId) => getSciencePerk(prerequisiteId).name)
     : [];
   const status = !revealed
     ? "UNDISCOVERED"
-    : evaluation.owned
-      ? "ACQUIRED"
-      : evaluation.missingPrerequisites.length ||
-          !evaluation.energyRequirementMet
-        ? "LOCKED"
-        : !evaluation.hasEnoughScience
-          ? `Need ${evaluation.cost} SP`
-          : "Ready";
+    : isCapped
+      ? "CAPPED"
+      : evaluation.owned
+        ? "ACQUIRED"
+        : evaluation.missingPrerequisites.length ||
+            !evaluation.energyRequirementMet
+          ? "LOCKED"
+          : !evaluation.hasEnoughScience
+            ? `Need ${evaluation.cost} SP`
+            : "Ready";
   const classes = [
     "science-tree__node-wrap",
     `science-tree__node-wrap--${tone}`,
@@ -11060,36 +13247,151 @@ function renderScienceTreeNode(id, state, config, tone, extraClass = "") {
     !evaluation.owned &&
       !evaluation.canPurchase &&
       "science-tree__node-wrap--locked",
+    isSelected && "science-tree__node-wrap--selected",
   ]
     .filter(Boolean)
     .join(" ");
   const accessibleLabel = revealed
     ? `${visibleName}. ${status}. Costs ${evaluation.cost} Science Point${evaluation.cost === 1 ? "" : "s"}. Effect: ${effect}`
-    : "Unknown Science perk. Discovery requirements have not been reached.";
+    : "Undiscovered technology";
 
   return `
     <div class="${classes}" tabindex="0" role="group" aria-label="${accessibleLabel}">
       <button
-        class="science-tree__node ${evaluation.owned ? "science-tree__node--owned" : ""} ${!evaluation.owned && !evaluation.canPurchase ? "science-tree__node--locked" : ""}"
+        class="science-tree__node ${evaluation.owned ? "science-tree__node--owned" : ""} ${!evaluation.owned && !evaluation.canPurchase ? "science-tree__node--locked" : ""} ${isSelected ? "science-tree__node--selected" : ""}"
         type="button"
-        data-action="buy-science-perk"
+        data-action="select-science-perk"
         data-perk-id="${perk.id}"
         aria-describedby="science-tooltip-${perk.id}"
         aria-label="${accessibleLabel}"
-        ${evaluation.canPurchase ? "" : "disabled"}
       >
         <span class="science-tree__node-name">${visibleName}</span>
-        <span class="science-tree__node-meta">${!revealed ? "???" : evaluation.owned ? "Acquired" : `${evaluation.cost} SP`}</span>
+        <span class="science-tree__node-meta">${!revealed ? "???" : isCapped ? "Capped" : evaluation.owned ? "Acquired" : `${evaluation.cost} SP`}</span>
       </button>
       <span class="science-tree__tooltip" id="science-tooltip-${perk.id}" role="tooltip">
         <strong>${visibleName}</strong>
-        <span>${revealed ? effect : (perk.revealHint ?? "Undiscovered principle.")}</span>
+        <span>${revealed ? effect : "Undiscovered technology"}</span>
         ${revealed && perk.requirement ? `<small>Unlock condition: ${perk.requirement}</small>` : ""}
         ${revealed ? `<small>${prerequisiteNames.length ? `Requires: ${prerequisiteNames.join(" + ")} · ` : "No perk prerequisite · "}Cost: ${evaluation.cost} SP</small>` : ""}
       </span>
       <span class="science-tree__node-summary">${visibleSummary}</span>
       <span class="science-tree__node-state">${status}</span>
     </div>
+  `;
+}
+
+function renderSciencePerkDrawer(state, config) {
+  const selectedId = state.ui?.selectedSciencePerkId;
+  if (!selectedId) {
+    return `
+      <aside class="science-drawer science-drawer--empty panel">
+        <p class="panel__label">PERK SPECIFICATION</p>
+        <p class="muted">Select a perk in the science tree to inspect technical parameters, prerequisites, and unlock controls.</p>
+      </aside>
+    `;
+  }
+
+  const perk = getSciencePerk(selectedId);
+  if (!perk) return "";
+
+  const evaluation = evaluateSciencePerk(selectedId, state, config);
+  const revealed = evaluation.revealed;
+
+  if (!revealed) {
+    return `
+      <aside class="science-drawer panel science-panel">
+        <div class="panel__heading">
+          <div>
+            <p class="panel__label">SCIENCE PERK // CLASSIFIED</p>
+            <h2>???</h2>
+          </div>
+          ${statusPill("UNDISCOVERED", "locked")}
+        </div>
+        <p class="muted">This principle is currently unmapped. Complete prerequisite research and expand facility energy thresholds to reveal.</p>
+        <div class="metric-row">
+          <span>Cost</span>
+          <strong>??? SP</strong>
+        </div>
+        <div class="metric-row">
+          <span>Requirements</span>
+          <strong>Undiscovered</strong>
+        </div>
+        <div class="panel__action" style="margin-top: 1rem;">
+          <button class="button button--ghost" disabled type="button">Locked</button>
+        </div>
+      </aside>
+    `;
+  }
+
+  const isCapped = evaluation.owned && perk.id === "redundancyElimination";
+  const prerequisiteNames = perk.requires.map(
+    (reqId) => getSciencePerk(reqId)?.name || reqId,
+  );
+
+  return `
+    <aside class="science-drawer panel science-panel">
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">SCIENCE PERK</p>
+          <h2>${perk.name}</h2>
+        </div>
+        ${
+          isCapped
+            ? statusPill("CAPPED", "online")
+            : evaluation.owned
+              ? statusPill("ACQUIRED", "online")
+              : evaluation.canPurchase
+                ? statusPill("READY", "discovery")
+                : statusPill("LOCKED", "locked")
+        }
+      </div>
+      <p class="muted">${perk.summary}</p>
+      <div class="metric-row">
+        <span>Effect</span>
+        <strong>${perk.effect}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Cost</span>
+        <strong>${evaluation.cost} SP</strong>
+      </div>
+      ${
+        prerequisiteNames.length
+          ? `
+        <div class="metric-row">
+          <span>Prerequisites</span>
+          <strong>${prerequisiteNames.join(" + ")}</strong>
+        </div>
+      `
+          : ""
+      }
+      ${
+        perk.requirement
+          ? `
+        <div class="metric-row">
+          <span>Requirement</span>
+          <strong>${perk.requirement}</strong>
+        </div>
+      `
+          : ""
+      }
+      <div class="panel__action" style="margin-top: 1rem;">
+        ${
+          isCapped
+            ? '<button class="button button--ghost" disabled type="button">Capped</button>'
+            : evaluation.owned
+              ? '<button class="button button--ghost" disabled type="button">Acquired</button>'
+              : `<button
+                  class="button button--primary"
+                  type="button"
+                  data-action="buy-science-perk"
+                  data-perk-id="${perk.id}"
+                  ${evaluation.canPurchase ? "" : "disabled"}
+                >
+                  <span>Unlock ${perk.name} (${evaluation.cost} SP)</span>
+                </button>`
+        }
+      </div>
+    </aside>
   `;
 }
 
@@ -11118,11 +13420,18 @@ function renderScienceTree(state, config) {
     0,
     (state.science?.totalScienceEarned ?? 0) - state.sciencePoints,
   );
+  const zoom = state.ui?.treeZoom ?? 1.0;
   return `
     <section class="science-tree" aria-label="Science perks skill tree">
       <div class="science-tree__heading">
-        <span>Hover a perk to see its effect · Branches grow from Redundancy Elimination</span>
+        <span>Click a perk to inspect or unlock · Branches grow from Redundancy Elimination</span>
         <div class="science-tree__heading-actions">
+          <div class="tree-zoom-toolbar" role="group" aria-label="Tree zoom controls">
+            <button type="button" class="btn btn--ghost btn--small" data-action="zoom-tree-in" aria-label="Zoom in">+</button>
+            <button type="button" class="btn btn--ghost btn--small" data-action="zoom-tree-out" aria-label="Zoom out">-</button>
+            <button type="button" class="btn btn--ghost btn--small" data-action="reset-tree-zoom" aria-label="Reset zoom">Fit</button>
+            <span class="tree-zoom-level">${Math.round(zoom * 100)}%</span>
+          </div>
           <span>${state.sciencePoints} SP available</span>
           ${button("Reset SP allocation", "reset-science-points", {
             disabled: allocatedSciencePoints <= 0,
@@ -11130,32 +13439,34 @@ function renderScienceTree(state, config) {
           })}
         </div>
       </div>
-      <div class="science-tree__lateral-scroll">
-        <div class="science-tree__lateral" aria-label="Quantum and Layer Perks progression">
-          <svg class="science-tree__lateral-connectors" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M295 110 H370 M370 54 V166 M370 68 H405 M370 152 H405 M675 68 H766 M675 152 H766 M766 68 V152 M766 110 H790 M160 145 V194 H500 V220" />
-          </svg>
-          <div class="science-tree__lateral-root">
-            ${renderScienceTreeNode("redundancyElimination", state, config, "root", "science-tree__node-wrap--root")}
-          </div>
-          <div class="science-tree__quantum-nodes" aria-label="Quark perks">
-            <span class="science-tree__layer-perks-label">QUANTUM PRINCIPLES</span>
-            <div class="science-tree__quantum-node">
-              ${renderScienceTreeNode("quantumCalculationPrinciples", state, config, "quantum")}
+      <div class="science-tree-viewport" style="transform: scale(${zoom}); transform-origin: top left; transition: transform 0.15s ease-out;">
+        <div class="science-tree__lateral-scroll">
+          <div class="science-tree__lateral" aria-label="Quantum and Layer Perks progression">
+            <svg class="science-tree__lateral-connectors" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M295 110 H370 M370 54 V166 M370 68 H405 M370 152 H405 M675 68 H766 M675 152 H766 M766 68 V152 M766 110 H790 M160 145 V194 H500 V220" />
+            </svg>
+            <div class="science-tree__lateral-root">
+              ${renderScienceTreeNode("redundancyElimination", state, config, "root", "science-tree__node-wrap--root")}
             </div>
-            <div class="science-tree__quantum-node">
-              ${renderScienceTreeNode("quantumSuperposition", state, config, "quantum")}
+            <div class="science-tree__quantum-nodes" aria-label="Quark perks">
+              <span class="science-tree__layer-perks-label">QUANTUM PRINCIPLES</span>
+              <div class="science-tree__quantum-node">
+                ${renderScienceTreeNode("quantumCalculationPrinciples", state, config, "quantum")}
+              </div>
+              <div class="science-tree__quantum-node">
+                ${renderScienceTreeNode("quantumSuperposition", state, config, "quantum")}
+              </div>
             </div>
-          </div>
-          <div class="science-tree__lateral-generator">
-            ${renderScienceTreeNode("particleGenerator", state, config, "layer", "science-tree__node-wrap--root")}
+            <div class="science-tree__lateral-generator">
+              ${renderScienceTreeNode("particleGenerator", state, config, "layer", "science-tree__node-wrap--root")}
+            </div>
           </div>
         </div>
-      </div>
-      <span class="science-tree__trunk" aria-hidden="true"></span>
-      <div class="science-tree__splitter" aria-hidden="true"><span></span><i></i><span></span></div>
-      <div class="science-tree__branches">
-        ${SCIENCE_PERK_BRANCHES.map((branch) => renderScienceBranch(branch, state, config)).join("")}
+        <span class="science-tree__trunk" aria-hidden="true"></span>
+        <div class="science-tree__splitter" aria-hidden="true"><span></span><i></i><span></span></div>
+        <div class="science-tree__branches">
+          ${SCIENCE_PERK_BRANCHES.map((branch) => renderScienceBranch(branch, state, config)).join("")}
+        </div>
       </div>
     </section>
   `;
@@ -11180,9 +13491,12 @@ function renderParticleSynthesizerDevice(state, config) {
   return `
     <article class="panel science-panel">
       ${helpNote("Activation always spends 100 GJ. Science Points and quarks are calculated from the Stored Energy held at activation.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Science", "Hardware")}
+        <span class="card-subsystem">Synthesis Core</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">SCIENCE DEVICE</p>
           <h2>Particle Sintetizer</h2>
         </div>
         ${headingAction("Activate", "open-particle-synthesis", {
@@ -11298,9 +13612,12 @@ function renderQuarkCage(state, config) {
   return `
     <article class="panel science-panel">
       ${helpNote("Quarks outside safe containment decay continuously. Quarks Cages are run hardware: synthesis resets cages, but the base containment of 1 quark remains.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Science", "Hardware")}
+        <span class="card-subsystem">Containment Unit</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">SCIENCE DEVICE</p>
           <h2>Quarks Cage</h2>
         </div>
         ${headingAction("Install", "buy-quark-cage", {
@@ -11332,9 +13649,12 @@ function renderFiftyGCalculator(state, config) {
   return `
     <article class="panel science-panel ${state.science.fiftyGCalculator ? "device-card--online" : ""}">
       ${helpNote("Extends Auto Calculator routing to Algorithm Upgrades. Manual Upgrades remain instant; automated Upgrades use their growing execution time.")}
+      <div class="panel__header-row">
+        ${renderCardTags("Science", "Automation")}
+        <span class="card-subsystem">Upgrade Pipeline</span>
+      </div>
       <div class="panel__heading">
         <div>
-          <p class="panel__label">AUTOMATION & LIFE QUALITY</p>
           <h2>50G Calculator</h2>
         </div>
         ${
@@ -11379,7 +13699,7 @@ function renderLog(state) {
   return `
     <article class="panel log-panel">
       <p class="panel__label">FACILITY LOG</p>
-      <ol class="log-list">${entries}</ol>
+      <ol class="log-list" data-latest-id="${state.log[0]?.id ?? ""}">${entries}</ol>
     </article>
   `;
 }
@@ -11404,20 +13724,67 @@ function renderDevelopmentPanel(state) {
         ${button("Force Blueprint", "dev-force-blueprint", { variant: "ghost" })}
         ${button("Cycle Production", "dev-cycle-production", { variant: "ghost" })}
         ${button("Cycle Duration", "dev-cycle-duration", { variant: "ghost" })}
+        ${button(state.ui?.devShowNews ? "Hide News (Dev)" : "Force News (Dev)", "dev-toggle-news", { variant: "ghost" })}
+        ${button("Cycle News", "cycle-news", { variant: "ghost" })}
       </div>
     </article>
   `;
 }
 
-function renderCompletion() {
+function renderNewsSection(state, newsList = DEFAULT_NEWS) {
+  if (state.ui?.newsDismissed) {
+    return "";
+  }
+
+  const currentItem = getNewsItem(newsList, state.ui?.currentNewsId);
+  const rarityNum = Number(currentItem?.rarity) || 1;
+  const rarityLabel = getRarityLabel(rarityNum);
+  const rarityClass = getRarityClass(rarityNum);
+  const showRarityBadge = rarityNum >= 2;
+
+  const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
+  const circumference = 37.7;
+  const initialOffset = (circumference * (1 - timerFraction)).toFixed(2);
+
   return `
-    <article class="panel completion-panel">
-      <p class="eyebrow">MILESTONE REACHED</p>
-      <h2>PROCESSING NETWORK ONLINE</h2>
-      <p>${TEXT.processorComplete}</p>
-      <p class="completion-panel__note">MVP-0 COMPLETE // LAYER CONTINUES</p>
-    </article>
+    <aside class="news-section" role="region" aria-label="News Section">
+      <div class="news-section__badge">
+        <span class="news-section__pulse" aria-hidden="true"></span>
+        <span>NEWS FEED</span>
+      </div>
+      <div class="news-section__timer" title="Time to next dispatch (6s - pauses on hover)">
+        <svg class="news-timer-ring" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle class="news-timer-ring__bg" cx="8" cy="8" r="6" />
+          <circle class="news-timer-ring__fill" data-progress="news-timer" cx="8" cy="8" r="6" style="stroke-dashoffset: ${initialOffset};" />
+        </svg>
+      </div>
+      <span class="news-section__category" data-field="news-category">${currentItem?.category || "TELEMETRY"}</span>
+      <span class="news-section__rarity ${rarityClass}" data-field="news-rarity" style="${showRarityBadge ? "" : "display: none;"}">${showRarityBadge ? rarityLabel : ""}</span>
+      <div class="news-section__ticker" data-action="cycle-news" title="Click to cycle headline">
+        <span class="news-section__text" data-field="news-text">${currentItem?.text || "Monitoring facility background telemetry."}</span>
+      </div>
+      <div class="news-section__actions">
+        <button
+          type="button"
+          class="news-section__action-btn"
+          data-action="cycle-news"
+          title="Next news item"
+          aria-label="Next news item"
+        >↻</button>
+        <button
+          type="button"
+          class="news-section__close"
+          data-action="dismiss-news-section"
+          title="Close News Section"
+          aria-label="Close News Section"
+        >×</button>
+      </div>
+    </aside>
   `;
+}
+
+function renderCompletion(state, newsList = DEFAULT_NEWS) {
+  return renderNewsSection(state, newsList);
 }
 
 function renderSection(title, label, note, content, className = "") {
@@ -11453,81 +13820,335 @@ function renderDeviceGroup(group, content) {
   `;
 }
 
-function renderDevicesTab(state, config, developmentMode) {
-  const energyDevices = `
-    ${renderCrcDevice(state, config, developmentMode)}
-    ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
-    ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
-    ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
+function renderEnergyTab(state, config, developmentMode) {
+  const storageDevices = `
+    <div class="energy-storage-section">
+      <div class="energy-storage-header">
+        <span class="muted">Expand facility capacity to avoid overflow decay.</span>
+        ${renderBuyModeSelector(state)}
+      </div>
+      <div class="energy-storage-grid">
+        ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
+        ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
+      </div>
+    </div>
   `;
+
+  const upgradeRendered = renderAlgorithmUpgrade(state, config);
+  const currentBonus = calculateImprovementBonus(
+    state.improvements,
+    config,
+    state.calculationMethods,
+  );
+  const upgradeBonus = 2 ** state.upgrades;
+
+  const cascadeContent = `
+    <div class="cascade-flow">
+      <div class="cascade-stage cascade-stage--crc">
+        ${renderCrcDevice(state, config, developmentMode)}
+        ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
+        ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
+      </div>
+
+      <div class="cascade-conduit" aria-hidden="true">
+        <div class="cascade-conduit__line"></div>
+        <div class="cascade-conduit__node">
+          <span class="cascade-conduit__icon">▼</span>
+          <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
+          <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
+        </div>
+        <div class="cascade-conduit__line"></div>
+      </div>
+
+      <div class="cascade-stage cascade-stage--study">
+        ${renderStudy(state, config, developmentMode)}
+      </div>
+
+      ${
+        upgradeRendered.trim()
+          ? `
+        <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
+          <div class="cascade-conduit__line"></div>
+          <div class="cascade-conduit__node">
+            <span class="cascade-conduit__icon">▼</span>
+            <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
+            <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
+          </div>
+          <div class="cascade-conduit__line"></div>
+        </div>
+
+        <div class="cascade-stage cascade-stage--upgrade">
+          ${upgradeRendered}
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `;
+
+  const resetCards = `
+    <div class="reset-routes-grid">
+      ${renderCalculationMethod(state, config)}
+      ${renderSetupOptimization(state, config)}
+    </div>
+  `;
+
+  const labReadable = canAccessParticleLab(state, config);
+  const labContent = labReadable
+    ? `
+      <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
+        <div class="device-group__heading">
+          <div>
+            <p class="panel__label">PARTICLE LABORATORY</p>
+            <h2>Laboratory Threshold</h2>
+          </div>
+          <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
+        </div>
+        <div class="section-stack">
+          ${renderParticleLabDetails(state, config)}
+        </div>
+      </section>
+    `
+    : "";
+
+  return `
+    ${renderTabTools(state)}
+    <div class="tab-grid energy-tab-layout">
+      <section class="tab-main-column">
+        <section class="energy-section" aria-label="Energy Storage">
+          <div class="device-group__heading">
+            <div>
+              <p class="panel__label">ENERGY STORAGE</p>
+              <h2>Containment & Capacity</h2>
+            </div>
+            <p>Power Cells preserve energy across Setup Optimizations; Power Modules scale bulk capacity.</p>
+          </div>
+          <div class="section-stack">${storageDevices}</div>
+        </section>
+
+        <section class="energy-section" aria-label="Energy Production Cascade">
+          <div class="device-group__heading">
+            <div>
+              <p class="panel__label">ENERGY PRODUCTION CASCADE</p>
+              <h2>Condensation & Algorithms</h2>
+            </div>
+            <p>CRCs harvest cosmic radiation, amplified by refined calculation algorithms.</p>
+          </div>
+          <div class="section-stack">${cascadeContent}</div>
+        </section>
+
+        <section class="energy-section" aria-label="Breakthroughs and Reset Routes">
+          <div class="device-group__heading">
+            <div>
+              <p class="panel__label">BREAKTHROUGHS & RESET ROUTES</p>
+              <h2>Strategic Progression</h2>
+            </div>
+            <p>Soft and hard resets that reconfigure facility architecture for long-term growth.</p>
+          </div>
+          <div class="section-stack">${resetCards}</div>
+        </section>
+
+        ${labContent}
+      </section>
+    </div>
+  `;
+}
+
+function renderAutomationTab(state, config, developmentMode, saveSlots) {
+  const impRate =
+    state.devices.autoCalculators > 0
+      ? calculateImprovementRatePerSecond(state, config, developmentMode)
+      : 0;
+  const fleetSummary = `
+    <article class="panel fleet-summary-panel">
+      <p class="panel__label">COMPUTATIONAL FLEET</p>
+      <div class="panel__heading">
+        <div>
+          <h2>Automation Fleet Telemetry</h2>
+        </div>
+        ${statusPill(impRate > 0 ? `${formatRate(impRate).replace("/s", "")} imp/s` : "IDLE", impRate > 0 ? "online" : "")}
+      </div>
+      <div class="metric-row">
+        <span>Auto Calculators</span>
+        <strong>${state.devices.autoCalculators} units</strong>
+      </div>
+      <div class="metric-row">
+        <span>Processors (Amplification)</span>
+        <strong>${state.devices.processors} units (x${calculateProcessorEfficiencyMultiplier(state, config).toFixed(2)})</strong>
+      </div>
+      <div class="metric-row">
+        <span>Overclocker status</span>
+        <strong>${
+          state.devices.overclockers > 0
+            ? state.overclocker?.active
+              ? `ONLINE (x${calculateOverclockerSpeedMultiplier(state, config).toFixed(2)})`
+              : state.overclocker?.activeSeconds > 0
+                ? "COOLING"
+                : "READY"
+            : "NOT INSTALLED"
+        }</strong>
+      </div>
+    </article>
+  `;
+
   const computationalDevices = `
-    ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
-    ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
-    ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
-    ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
-    ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
+    <div class="computational-devices-stack">
+      ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
+      ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
+      ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
+      ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
+    </div>
   `;
-  const deviceResets = `
-    ${renderSetupOptimization(state, config)}
+
+  const instrumentationDevices = `
+    <div class="instrumentation-stack">
+      ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
+      ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
+    </div>
+  `;
+
+  const unlockedAutomations = listUnlockedAutomations(state);
+  const automationsContent = `
+    <div class="automations-stack">
+      ${renderFiftyGCalculator(state, config)}
+      ${
+        unlockedAutomations.length
+          ? `
+        <article class="panel automations-panel">
+          <div class="panel__heading">
+            <div>
+              <p class="panel__label">CONTROL LOOP</p>
+              <h2>Automation Toggles</h2>
+            </div>
+            ${statusPill(`${unlockedAutomations.length} UNLOCKED`, "online")}
+          </div>
+          <div class="automation-list">
+            ${unlockedAutomations
+              .map((automation) => {
+                const enabled = isAutomationEnabled(state, automation.id);
+                const acquired = automation.isAcquired(state);
+                return `
+                  <div class="automation-row ${enabled ? "automation-row--on" : ""}">
+                    <div>
+                      <strong>${automation.name}</strong>
+                      <p class="muted">${automation.description}</p>
+                      <small>${
+                        acquired
+                          ? enabled
+                            ? "ONLINE"
+                            : "PAUSED"
+                          : "UNLOCKED // CURRENTLY OFFLINE"
+                      }</small>
+                    </div>
+                    <button
+                      class="toggle-control ${enabled ? "toggle-control--on" : ""}"
+                      data-action="toggle-automation"
+                      data-automation-id="${automation.id}"
+                      type="button"
+                      role="switch"
+                      aria-checked="${enabled}"
+                    >
+                      <span aria-hidden="true"></span>
+                      <strong>${enabled ? "Enabled" : "Disabled"}</strong>
+                    </button>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </article>
+      `
+          : ""
+      }
+    </div>
+  `;
+
+  const diagnosticsAndSaves = `
+    <div class="diagnostics-stack">
+      ${state.devices.t2SoftDataDisplay ? renderMeasureTab(state, config, developmentMode) : ""}
+      <article class="panel">
+        <p class="panel__label">RUN DATA</p>
+        <div class="metric-row">
+          <span>Total play time</span>
+          <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
+        </div>
+        <div class="metric-row">
+          <span>Current run time</span>
+          <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
+        </div>
+        <div class="metric-row">
+          <span>Total condensed</span>
+          <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
+        </div>
+        <div class="metric-row">
+          <span>Peak stored</span>
+          <strong>${formatEnergy(state.peakEnergy)}</strong>
+        </div>
+      </article>
+      ${renderLog(state)}
+      ${renderSaveManagement(saveSlots, developmentMode)}
+    </div>
   `;
 
   return `
     ${renderTabTools(state)}
     <div class="tab-grid">
       <section class="tab-main-column">
-        ${renderDeviceGroup(DEVICE_GROUPS[0], energyDevices)}
-        ${renderDeviceGroup(DEVICE_GROUPS[1], computationalDevices)}
+        ${fleetSummary}
+        <section class="device-group" aria-label="Computational Devices">
+          <div class="device-group__heading">
+            <div>
+              <p class="panel__label">COMPUTATIONAL HARDWARE</p>
+              <h2>Processing & Automation</h2>
+            </div>
+            <p>Calculators and processors accelerate study throughput and automate routine operations.</p>
+          </div>
+          <div class="section-stack">${computationalDevices}</div>
+        </section>
+
+        <section class="device-group" aria-label="Instrumentation & Displays">
+          <div class="device-group__heading">
+            <div>
+              <p class="panel__label">INSTRUMENTATION & DISPLAYS</p>
+              <h2>Telemetry & Data Feeds</h2>
+            </div>
+            <p>Diagnostic modules that unlock purchase controls and detailed energy telemetry.</p>
+          </div>
+          <div class="section-stack">${instrumentationDevices}</div>
+        </section>
+
+        <section class="device-group" aria-label="Automations">
+          <div class="device-group__heading">
+            <div>
+              <p class="panel__label">AUTOMATIONS</p>
+              <h2>Automated Routing</h2>
+            </div>
+            <p>Background routines unlocked through study and scientific advancement.</p>
+          </div>
+          <div class="section-stack">${automationsContent}</div>
+        </section>
       </section>
+
       <aside class="tab-side-column">
         <div class="device-group__heading">
           <div>
-            <p class="panel__label">DEVICE RESET</p>
-            <h2>Setup Layer</h2>
+            <p class="panel__label">DIAGNOSTICS & SYSTEM</p>
+            <h2>Facility Telemetry & Storage</h2>
           </div>
-          <p>Routes that replace the physical setup and discard most local hardware.</p>
+          <p>Real-time telemetry breakdown and local persistence slots.</p>
         </div>
-        <div class="section-stack">${deviceResets.trim() || '<p class="empty-note">No setup reset is readable yet.</p>'}</div>
+        <div class="section-stack">${diagnosticsAndSaves}</div>
       </aside>
     </div>
   `;
 }
 
-function renderStudiesTab(state, config, developmentMode) {
-  const studyCards = `
-    ${renderStudy(state, config, developmentMode)}
-    ${renderAlgorithmUpgrade(state, config)}
-    ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
-  `;
-  const resetCards = `
-    ${renderStudyOverclockControl(state, config)}
-    ${renderCalculationMethod(state, config)}
-  `;
+function renderDevicesTab(state, config, developmentMode) {
+  return renderEnergyTab(state, config, developmentMode);
+}
 
-  return `
-    ${renderTabTools(state)}
-    <div class="tab-grid">
-      <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">STUDIES</p>
-            <h2>Study Routes</h2>
-          </div>
-          <p>Methods, calculations, and research routes that change how the facility understands the condenser.</p>
-        </div>
-        <div class="section-stack">${studyCards}</div>
-      </section>
-      <aside class="tab-side-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">METHOD RESET</p>
-            <h2>Method Layer</h2>
-          </div>
-          <p>Routes that discard study progress to improve long-term method scaling.</p>
-        </div>
-        <div class="section-stack">${resetCards.trim() || '<p class="empty-note">No method reset is readable yet.</p>'}</div>
-      </aside>
-    </div>
-  `;
+function renderStudiesTab(state, config, developmentMode) {
+  return renderEnergyTab(state, config, developmentMode);
 }
 
 function renderScienceSubtabs(state) {
@@ -11551,9 +14172,14 @@ function renderScienceTab(state, config) {
       </div>
       <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
     </div>
-    <div class="section-stack">
-      ${renderScienceStatus(state, config)}
-      ${renderScienceTree(state, config)}
+    <div class="science-tree-layout-v2">
+      <div class="science-tree-layout-v2__main">
+        ${renderScienceStatus(state, config)}
+        ${renderScienceTree(state, config)}
+      </div>
+      <div class="science-tree-layout-v2__drawer">
+        ${renderSciencePerkDrawer(state, config)}
+      </div>
     </div>
   `;
   const devicesContent = `
@@ -11610,6 +14236,100 @@ function renderScienceTab(state, config) {
   `;
 }
 
+function renderHistoryTab(state) {
+  const activeFilter = state.ui?.historyFilter ?? "all";
+  const history = state.history || [];
+
+  const filteredHistory = history.filter((entry) => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "narrative") return entry.kind === "Narrative";
+    if (activeFilter === "discoveries") return entry.kind === "Discoveries";
+    if (activeFilter === "milestones") return entry.kind === "Milestones";
+    return true;
+  });
+
+  const sortedHistory = [...filteredHistory].reverse();
+
+  return `
+    ${renderTabTools(state)}
+    <div class="history-view">
+      <div class="device-group__heading">
+        <div>
+          <p class="panel__label">ARCHIVE</p>
+          <h2>Facility History & Narrative Log</h2>
+        </div>
+        <p>A persistent chronicle of facility breakthroughs, anomalies, and milestone discoveries.</p>
+      </div>
+
+      <div class="history-filter-bar" role="group" aria-label="History categories">
+        <button
+          type="button"
+          class="btn btn--ghost btn--small ${activeFilter === "all" ? "btn--active" : ""}"
+          data-action="set-history-filter"
+          data-filter="all"
+        >
+          All (${history.length})
+        </button>
+        <button
+          type="button"
+          class="btn btn--ghost btn--small ${activeFilter === "narrative" ? "btn--active" : ""}"
+          data-action="set-history-filter"
+          data-filter="narrative"
+        >
+          Narrative (${history.filter((h) => h.kind === "Narrative").length})
+        </button>
+        <button
+          type="button"
+          class="btn btn--ghost btn--small ${activeFilter === "discoveries" ? "btn--active" : ""}"
+          data-action="set-history-filter"
+          data-filter="discoveries"
+        >
+          Discoveries (${history.filter((h) => h.kind === "Discoveries").length})
+        </button>
+        <button
+          type="button"
+          class="btn btn--ghost btn--small ${activeFilter === "milestones" ? "btn--active" : ""}"
+          data-action="set-history-filter"
+          data-filter="milestones"
+        >
+          Milestones (${history.filter((h) => h.kind === "Milestones").length})
+        </button>
+      </div>
+
+      <div class="history-list" role="feed" aria-label="History entries">
+        ${
+          sortedHistory.length === 0
+            ? '<p class="empty-note">No historical records in this archive category yet.</p>'
+            : sortedHistory
+                .map((entry) => `
+                  <article class="panel history-entry-card" tabindex="0">
+                    <div class="panel__heading">
+                      <div>
+                        <span class="card-tag card-tag--${entry.kind.toLowerCase()}">${entry.kind}</span>
+                        <h3>${entry.title}</h3>
+                      </div>
+                      <time class="muted">${formatDuration(entry.at)}</time>
+                    </div>
+                    <p class="history-snippet">${entry.summary || (entry.body ? entry.body.slice(0, 140) + "..." : "")}</p>
+                    <div class="panel__action">
+                      <button
+                        type="button"
+                        class="button button--ghost button--compact"
+                        data-action="open-history-entry"
+                        data-history-id="${entry.id}"
+                      >
+                        Read Full Record
+                      </button>
+                    </div>
+                  </article>
+                `)
+                .join("")
+        }
+      </div>
+    </div>
+  `;
+}
+
 function renderStatisticsTab(state) {
   return `
     <div class="tab-grid">
@@ -11622,15 +14342,15 @@ function renderStatisticsTab(state) {
           <p class="panel__label">RUN DATA</p>
           <div class="metric-row">
             <span>Total play time</span>
-            <strong>${formatDuration(state.stats.totalPlayTime)}</strong>
+            <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
           </div>
           <div class="metric-row">
             <span>Current run time</span>
-            <strong>${formatDuration(state.stats.runPlayTime)}</strong>
+            <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
           </div>
           <div class="metric-row">
             <span>Total condensed</span>
-            <strong>${formatEnergy(state.stats.totalEnergyCollected)}</strong>
+            <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
           </div>
           <div class="metric-row">
             <span>Peak stored</span>
@@ -11781,20 +14501,147 @@ function renderTabContent(
   developmentMode,
   saveSlots,
 ) {
-  if (activeTab === "studies")
-    return renderStudiesTab(state, config, developmentMode);
-  if (activeTab === "automations") return renderAutomationsTab(state);
-  if (activeTab === "measure")
-    return renderMeasureTab(state, config, developmentMode);
+  if (
+    activeTab === "automation" ||
+    activeTab === "automations" ||
+    activeTab === "measure" ||
+    activeTab === "statistics" ||
+    activeTab === "save"
+  ) {
+    return renderAutomationTab(state, config, developmentMode, saveSlots);
+  }
   if (activeTab === "science") return renderScienceTab(state, config);
-  if (activeTab === "statistics") return renderStatisticsTab(state);
-  if (activeTab === "save") return renderSaveTab(saveSlots, developmentMode);
-  return renderDevicesTab(state, config, developmentMode);
+  if (activeTab === "history") return renderHistoryTab(state);
+  return renderEnergyTab(state, config, developmentMode);
+}
+
+function renderResetConfirmationModal(state, config) {
+  const modalType = state.ui?.resetModal;
+  if (!modalType) return "";
+
+  const preview = getResetPreviewData(state, config, modalType);
+  if (!preview) return "";
+
+  const isHard = modalType === "setup" || modalType === "synthesis";
+
+  return `
+    <div class="modal-backdrop">
+      <section
+        class="reset-modal ${isHard ? "reset-modal--hard" : ""}"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reset-modal-title"
+      >
+        <p class="panel__label">${isHard ? "IRREVERSIBLE LAYER RESET" : "CALCULATION RESTRUCTURING"}</p>
+        <h2 id="reset-modal-title">${preview.title}</h2>
+
+        <div class="reset-modal__section reset-modal__section--gain">
+          <strong class="reset-modal__label">Gained:</strong>
+          <p>${preview.gain}</p>
+        </div>
+
+        <div class="reset-modal__section reset-modal__section--lost">
+          <strong class="reset-modal__label">Reset / Discarded:</strong>
+          <p>${preview.lost}</p>
+        </div>
+
+        <div class="reset-modal__section reset-modal__section--preserved">
+          <strong class="reset-modal__label">Preserved:</strong>
+          <p>${preview.preserved}</p>
+        </div>
+
+        ${
+          preview.warnings
+            ? `
+          <div class="reset-modal__section reset-modal__section--warning">
+            <strong class="reset-modal__label">Warning:</strong>
+            <p>${preview.warnings}</p>
+          </div>
+        `
+            : ""
+        }
+
+        <div class="reset-modal__actions">
+          <button
+            type="button"
+            class="button button--ghost"
+            data-action="cancel-reset-modal"
+            autofocus
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="button ${isHard ? "button--danger" : "button--primary"}"
+            data-action="confirm-reset-modal"
+            ${preview.isEligible ? "" : "disabled"}
+          >
+            Confirm ${preview.type === "cmu" ? "Upgrade" : preview.type === "setup" ? "Optimization" : "Synthesis"}
+          </button>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderHistoryReadingModal(state) {
+  const entry = state.ui?.historyModalEntry;
+  if (!entry) return "";
+
+  return `
+    <div class="modal-backdrop">
+      <section
+        class="history-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="history-modal-title"
+      >
+        <div class="panel__heading">
+          <div>
+            <p class="panel__label">ARCHIVE RECORD // ${entry.kind.toUpperCase()}</p>
+            <h2 id="history-modal-title">${entry.title}</h2>
+          </div>
+          <time class="muted">${formatDuration(entry.at)}</time>
+        </div>
+
+        <div class="history-modal__body">
+          <p>${entry.body.replace(/\n\n/g, "</p><p>")}</p>
+        </div>
+
+        <div class="history-modal__actions">
+          <button
+            type="button"
+            class="button button--ghost"
+            data-action="close-history-modal"
+            autofocus
+          >
+            Close Archive Record
+          </button>
+        </div>
+      </section>
+    </div>
+  `;
 }
 
 function setField(app, key, value) {
   for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
-    if (element.textContent !== value) element.textContent = value;
+    if (element.textContent !== value) {
+      element.textContent = value;
+      if (key === "news-text") {
+        const ticker = element.closest(".news-section__ticker");
+        if (ticker) {
+          ticker.classList.remove("news-fade-in");
+          void ticker.offsetWidth;
+          ticker.classList.add("news-fade-in");
+        }
+      }
+    }
+  }
+}
+
+function setHtmlField(app, key, value) {
+  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
+    if (element.innerHTML !== value) element.innerHTML = value;
   }
 }
 
@@ -11809,6 +14656,125 @@ function setProgress(app, key, value) {
   fill.style.width = `${percentage}%`;
 }
 
+function updateLogList(app, state) {
+  const logLists = app.querySelectorAll(".log-list");
+  if (!logLists.length) return;
+  const currentLatestId = state.log[0]?.id ?? "";
+  for (const logList of logLists) {
+    if (logList.dataset.latestId === currentLatestId) continue;
+    logList.dataset.latestId = currentLatestId;
+    const entries = state.log.length
+      ? state.log
+          .slice(0, 12)
+          .map(
+            (entry) => `
+              <li class="log-entry log-entry--${entry.tone}">
+                <time>${formatDuration(entry.at)}</time>
+                <span>${entry.message}</span>
+              </li>
+            `,
+          )
+          .join("")
+      : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
+    logList.innerHTML = entries;
+  }
+}
+
+function updateInteractiveElements(app, state, config) {
+  for (const [componentId, spec] of Object.entries(COMPONENT_REGISTRY)) {
+    if (!spec.action) continue;
+    const button = app.querySelector(`[data-action="${spec.action}"]`);
+    if (!button) continue;
+    const evalResult = evaluateComponent(componentId, state, config);
+    const shouldBeDisabled = !evalResult.enabled;
+    if (button.disabled !== shouldBeDisabled) {
+      button.disabled = shouldBeDisabled;
+      if (shouldBeDisabled) {
+        button.classList.remove("button--primary", "button--danger");
+        button.classList.add("button--ghost");
+      } else {
+        button.classList.remove("button--ghost");
+        if (spec.action === "claim-setup") {
+          button.classList.add("button--danger");
+        } else {
+          button.classList.add("button--primary");
+        }
+      }
+    }
+  }
+
+  // Study button
+  const studyBtn = app.querySelector('[data-action="start-study"]');
+  if (studyBtn) {
+    const isAutoActive = isAutoCalculatorAutomationActive(state);
+    const shouldBeDisabled = Boolean(state.study.active || isAutoActive);
+    if (studyBtn.disabled !== shouldBeDisabled) {
+      studyBtn.disabled = shouldBeDisabled;
+      if (shouldBeDisabled) {
+        studyBtn.classList.remove("button--primary");
+        studyBtn.classList.add("button--ghost");
+      } else {
+        studyBtn.classList.remove("button--ghost");
+        studyBtn.classList.add("button--primary");
+      }
+    }
+    const span = studyBtn.querySelector("span");
+    const label = state.study.active ? "Running" : "Start Study";
+    const fullText = `${label} (${state.improvements})`;
+    if (span && span.textContent !== fullText) span.textContent = fullText;
+  }
+
+  // Algorithm Upgrade Panel & Button
+  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
+  const upgradeReady = state.improvements >= reqUpgrade;
+  const upgradePanel = app.querySelector(".panel--upgrade");
+  if (upgradePanel) {
+    upgradePanel.classList.toggle("panel--upgrade-ready", upgradeReady);
+  }
+  const upgradeBtn = app.querySelector('[data-action="start-algorithm-upgrade"]');
+  if (upgradeBtn) {
+    const shouldBeDisabled = !upgradeReady || state.algorithmUpgradeStudy.active;
+    if (upgradeBtn.disabled !== shouldBeDisabled) {
+      upgradeBtn.disabled = shouldBeDisabled;
+      if (shouldBeDisabled) {
+        upgradeBtn.classList.remove("button--primary");
+        upgradeBtn.classList.add("button--ghost");
+      } else {
+        upgradeBtn.classList.remove("button--ghost");
+        upgradeBtn.classList.add("button--primary");
+      }
+    }
+  }
+
+  // Overclocker Toggle Button
+  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const overclockActive = state.overclocker?.active ?? false;
+  const canToggleOverclock =
+    overclockActive ||
+    (state.devices.overclockers > 0 &&
+      state.devices.autoCalculators > 0 &&
+      big(state.energy).gt(stableCapacity));
+  const overclockerToggleBtn = app.querySelector('[data-action="toggle-overclocker"]');
+  if (overclockerToggleBtn) {
+    overclockerToggleBtn.disabled = !canToggleOverclock;
+  }
+
+  // Method & Setup Cards ready class
+  const reqMethod = calculateCalculationMethodRequirement(state, config);
+  const methodReady = state.upgrades >= reqMethod;
+  const methodCard = app.querySelector(".method-card:not(.panel--hard-reset)");
+  if (methodCard) {
+    methodCard.classList.toggle("method-card--ready", methodReady);
+  }
+
+  const reqSetup = calculateSetupOptimizationRequirement(state, config);
+  const setupReady = state.calculationMethods >= reqSetup;
+  const setupCard = app.querySelector(".panel--hard-reset");
+  if (setupCard) {
+    setupCard.classList.toggle("method-card--ready", setupReady);
+  }
+}
+
 function createRenderSignature(state, config, developmentMode, saveSlots = []) {
   if (state.introState !== "active") {
     return JSON.stringify({
@@ -11818,8 +14784,12 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     });
   }
 
-  const availability = buildAvailabilitySnapshot(state, config);
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
+  const componentVisibility = Object.fromEntries(
+    Object.keys(COMPONENT_REGISTRY).map((componentId) => [
+      componentId,
+      evaluateComponent(componentId, state, config).visible,
+    ]),
+  );
 
   return JSON.stringify({
     introState: state.introState,
@@ -11827,7 +14797,13 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     activeTab: getActiveTab(state, config),
     hideCompletedPurchases: state.ui?.hideCompletedPurchases ?? false,
     seenComponents: state.ui?.seenComponents ?? {},
-    improvements: state.improvements,
+    buyMode: state.ui?.buyMode ?? "1",
+    resetModal: state.ui?.resetModal ?? null,
+    historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
+    historyFilter: state.ui?.historyFilter ?? "all",
+    historyLength: state.history?.length ?? 0,
+    treeZoom: state.ui?.treeZoom ?? 1.0,
+    selectedSciencePerkId: state.ui?.selectedSciencePerkId ?? null,
     upgrades: state.upgrades,
     crcCount: state.crcCount,
     powerCells: state.powerCells,
@@ -11853,31 +14829,43 @@ function createRenderSignature(state, config, developmentMode, saveSlots = []) {
     t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
     overclockers: state.devices.overclockers,
     overclockerActive: state.overclocker.active,
-    availability,
-    overflowingEnergy: big(state.energy).gt(stableCapacity),
+    componentVisibility,
     autoCalculators: state.devices.autoCalculators,
     processors: state.devices.processors,
     crcBlueprint: state.discoveries.crcBlueprint,
+    overclockerBlueprint: state.discoveries.overclockerBlueprint,
     blueprintResearchAvailable: canResearchBlueprint(state, config),
-    studyActive: state.study.active,
-    studyAutomated: state.study.automated,
     algorithmUpgradeActive: state.algorithmUpgradeStudy.active,
     blueprintStudyActive: state.blueprintStudy.active,
+    overclockerBlueprintStudyActive: state.overclockerBlueprintStudy?.active ?? false,
     constructionActive: state.construction.active,
     prototypeComplete: state.prototypeComplete,
+    newsDismissed: state.ui?.newsDismissed ?? false,
+    devShowNews: state.ui?.devShowNews ?? false,
     devProductionMultiplier: state.devSettings.productionMultiplier,
     devDurationMultiplier: state.devSettings.durationMultiplier,
     saveSlots,
-    latestLogId: state.log[0]?.id ?? "",
   });
 }
 
-function updateDynamicFields(app, state, config, developmentMode) {
+function updateDynamicFields(
+  app,
+  state,
+  config,
+  developmentMode,
+  newsList = DEFAULT_NEWS,
+) {
   if (state.introState !== "active") return;
 
   const stableCapacity = calculateStableEnergyCapacity(state, config);
   setField(app, "energy", formatEnergy(state.energy));
   setProgress(app, "energy", big(state.energy).div(stableCapacity).toNumber());
+
+  const milestone = calculateNextMilestone(state, config);
+  setField(app, "milestone-title", milestone.title);
+  setField(app, "milestone-req", milestone.requirement);
+  setProgress(app, "milestone", milestone.progress);
+
   if (canAccessParticleLab(state, config)) {
     setProgress(
       app,
@@ -12064,34 +15052,172 @@ function updateDynamicFields(app, state, config, developmentMode) {
       ),
     );
   }
+
+  if (state.ui?.currentNewsId) {
+    const newsItem = getNewsItem(newsList, state.ui.currentNewsId);
+    if (newsItem) {
+      setField(app, "news-text", newsItem.text);
+      setField(app, "news-category", newsItem.category || "TELEMETRY");
+      const rarityNum = Number(newsItem.rarity) || 1;
+      const rarityEl = app.querySelector('[data-field="news-rarity"]');
+      if (rarityEl) {
+        if (rarityNum >= 2) {
+          rarityEl.textContent = getRarityLabel(rarityNum);
+          rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
+          rarityEl.style.display = "";
+        } else {
+          rarityEl.textContent = "";
+          rarityEl.style.display = "none";
+        }
+      }
+    }
+  }
+
+  const timerFill = app.querySelector('[data-progress="news-timer"]');
+  if (timerFill) {
+    const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
+    const circumference = 37.7;
+    const offset = (circumference * (1 - timerFraction)).toFixed(2);
+    timerFill.style.strokeDashoffset = `${offset}`;
+  }
+
+  const algorithmFactor = 1 + (state.improvements ?? 0);
+  setHtmlField(
+    app,
+    "crc-algorithm-multiplier",
+    `x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small>`,
+  );
+
+  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
+  const production = calculateProduction(state, config, developmentMode);
+  setField(
+    app,
+    "crc-total-output",
+    isSoftUnlocked ? formatRate(production) : "UNREADABLE",
+  );
+
+  const impRate =
+    state.devices.autoCalculators > 0
+      ? calculateImprovementRatePerSecond(state, config, developmentMode)
+      : 0;
+  const currentDuration = calculateStudyDuration(state, config, false);
+  const previewDuration = calculateStudyDuration(
+    state,
+    config,
+    developmentMode,
+  );
+  const rate =
+    state.devices.autoCalculators > 0 ? impRate : 1 / currentDuration;
+  const rateDisplay =
+    rate >= 10
+      ? `${rate.toFixed(1)} Improvements/s`
+      : formatDuration(previewDuration);
+
+  setField(
+    app,
+    "study-algorithm-factor",
+    `x${algorithmFactor} (+1.0 / cycle)`,
+  );
+  setField(app, "study-rate-display", rateDisplay);
+  setField(
+    app,
+    "study-status",
+    state.study.active
+      ? state.study.automated
+        ? "AUTO CALCULATION"
+        : "CALCULATION IN PROGRESS"
+      : "READY",
+  );
+
+  setField(
+    app,
+    "cascade-algorithm-sub",
+    `Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${algorithmFactor})`,
+  );
+
+  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
+  const upgradeReady = state.improvements >= reqUpgrade;
+  if (!state.algorithmUpgradeStudy.active) {
+    setProgress(app, "algorithm-upgrade", state.improvements / reqUpgrade);
+    setField(
+      app,
+      "algorithm-upgrade-status",
+      upgradeReady
+        ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
+        : `${state.improvements} / ${reqUpgrade} Improvements`,
+    );
+    setField(app, "algorithm-upgrade-remaining", "INSTANT");
+  }
+
+  if (state.overclockerBlueprintStudy?.active) {
+    setProgress(
+      app,
+      "overclocker-blueprint",
+      state.overclockerBlueprintStudy.elapsed /
+        state.overclockerBlueprintStudy.duration,
+    );
+    setField(
+      app,
+      "overclocker-blueprint-remaining",
+      formatDuration(
+        Math.max(
+          0,
+          state.overclockerBlueprintStudy.duration -
+            state.overclockerBlueprintStudy.elapsed,
+        ),
+      ),
+    );
+  }
+
+  setField(app, "total-play-time", formatDuration(state.stats.totalPlayTime));
+  setField(app, "run-play-time", formatDuration(state.stats.runPlayTime));
+  setField(
+    app,
+    "total-condensed",
+    formatEnergy(state.stats.totalEnergyCollected),
+  );
+
+  updateLogList(app, state);
+  updateInteractiveElements(app, state, config);
 }
 
-function renderGame(state, config, developmentMode, saveSlots) {
+function renderGame(
+  state,
+  config,
+  developmentMode,
+  saveSlots,
+  newsList = DEFAULT_NEWS,
+) {
   const activeTab = getActiveTab(state, config);
+  const showNews =
+    (state.prototypeComplete || (developmentMode && state.ui?.devShowNews)) &&
+    !state.ui?.newsDismissed;
 
   return `
     ${renderHeader(state, developmentMode)}
-    ${state.prototypeComplete ? renderCompletion() : ""}
+    ${showNews ? renderNewsSection(state, newsList) : ""}
     ${renderTabBar(state, config)}
     <section class="operation-focus" aria-label="Power and production focus">
-      ${renderEnergy(state, config, developmentMode)}
-    </section>
-    <section class="next-tier-focus" aria-label="Next tier progress">
-      ${renderDoor(state, config)}
+      ${renderGlobalHUD(state, config, developmentMode)}
     </section>
     <section class="tab-content tab-content--${activeTab}" aria-label="${activeTab}">
       ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
       ${developmentMode ? renderDevelopmentPanel(state) : ""}
     </section>
+    ${renderResetConfirmationModal(state, config)}
+    ${renderHistoryReadingModal(state)}
     ${renderParticleSynthesisModal(state, config)}
   `;
 }
+
+const renderEnergy = renderGlobalHUD;
 
 function createRenderer(
   app,
   config,
   developmentMode,
   getSaveSlots = () => [],
+  newsList = DEFAULT_NEWS,
 ) {
   let lastRenderSignature = "";
   let pointerIsDown = false;
@@ -12127,13 +15253,13 @@ function createRenderer(
     );
 
     if (signature === lastRenderSignature) {
-      updateDynamicFields(app, state, config, developmentMode);
+      updateDynamicFields(app, state, config, developmentMode, newsList);
       return;
     }
 
     if (pointerIsDown) {
       deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode);
+      updateDynamicFields(app, state, config, developmentMode, newsList);
       return;
     }
 
@@ -12155,8 +15281,14 @@ function createRenderer(
       return;
     }
 
-    app.innerHTML = renderGame(state, config, developmentMode, saveSlots);
-    updateDynamicFields(app, state, config, developmentMode);
+    app.innerHTML = renderGame(
+      state,
+      config,
+      developmentMode,
+      saveSlots,
+      newsList,
+    );
+    updateDynamicFields(app, state, config, developmentMode, newsList);
   };
 }
 
@@ -12171,6 +15303,20 @@ async function loadConfig() {
   const response = await fetch("config/game-config.json");
   if (!response.ok) throw new Error("Game configuration could not be loaded.");
   return response.json();
+}
+
+async function loadNews() {
+  if (globalThis.__TES_NEWS__) {
+    return globalThis.__TES_NEWS__;
+  }
+
+  try {
+    const response = await fetch("content/news.json");
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn("Could not load news feed, falling back to default news.", error);
+  }
+  return DEFAULT_NEWS;
 }
 
 function bindActions(app, engine, saveActions, config) {
@@ -12189,6 +15335,22 @@ function bindActions(app, engine, saveActions, config) {
     true,
   );
 
+  app.addEventListener("mouseover", (event) => {
+    if (event.target.closest?.(".news-section")) {
+      engine.setNewsHovered(true);
+    }
+  });
+
+  app.addEventListener("mouseout", (event) => {
+    const section = event.target.closest?.(".news-section");
+    if (
+      section &&
+      (!event.relatedTarget || !section.contains(event.relatedTarget))
+    ) {
+      engine.setNewsHovered(false);
+    }
+  });
+
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
@@ -12201,38 +15363,100 @@ function bindActions(app, engine, saveActions, config) {
       "start-study": () => engine.startStudy(false),
       "start-algorithm-upgrade": () => engine.startAlgorithmUpgradeStudy(),
       "start-blueprint-research": () => engine.startBlueprintResearch(),
-      "buy-power-cell": () => engine.purchasePowerCell(),
+      "start-overclocker-blueprint-research": () =>
+        engine.startOverclockerBlueprintResearch(),
+      "buy-power-cell": () =>
+        engine.purchasePowerCells(engine.state.ui.buyMode ?? 1),
       "buy-max-power-cells": () => engine.purchaseMaxPowerCells(),
-      "buy-power-module": () => engine.purchasePowerModule(),
+      "buy-power-module": () =>
+        engine.purchasePowerModules(engine.state.ui.buyMode ?? 1),
       "buy-soft-display": () => engine.purchaseSoftDataDisplay(),
       "buy-t2-soft-display": () => engine.purchaseT2SoftDataDisplay(),
-      "buy-overclocker": () => engine.purchaseOverclocker(),
+      "buy-overclocker": () =>
+        engine.purchaseOverclockers(engine.state.ui.buyMode ?? 1),
       "toggle-overclocker": () => engine.toggleOverclocker(),
       "toggle-automation": () =>
         engine.toggleAutomation(target.dataset.automationId),
-      "buy-auto": () => engine.purchaseAutoCalculator(),
+      "buy-auto": () =>
+        engine.purchaseAutoCalculators(engine.state.ui.buyMode ?? 1),
       "construct-crc": () => engine.startCrcConstruction(),
-      "buy-processor": () => engine.purchaseProcessor(),
+      "buy-processor": () =>
+        engine.purchaseProcessors(engine.state.ui.buyMode ?? 1),
       "open-particle-synthesis": () =>
         engine.openParticleSynthesisConfirmation(),
       "cancel-particle-synthesis": () => engine.closeParticleSynthesisModal(),
       "confirm-particle-synthesis": () => engine.confirmParticleSynthesis(),
       "close-particle-synthesis-narrative": () =>
         engine.closeParticleSynthesisModal(),
-      "buy-quark-cage": () => engine.purchaseQuarkCage(),
+      "cancel-reset-modal": () => engine.closeResetModal(),
+      "confirm-reset-modal": () => {
+        if (engine.state.ui.resetModal === "cmu") {
+          engine.confirmCalculationMethodUpgrade();
+        } else if (engine.state.ui.resetModal === "setup") {
+          engine.confirmSetupOptimization();
+        } else if (
+          engine.state.ui.resetModal === "synthesis" ||
+          engine.state.ui.particleSynthesisModal === "confirm"
+        ) {
+          engine.confirmParticleSynthesis();
+        }
+      },
+      "buy-quark-cage": () =>
+        engine.purchaseQuarkCages(engine.state.ui.buyMode ?? 1),
       "buy-fifty-g-calculator": () => engine.purchaseFiftyGCalculator(),
       "buy-science-perk": () =>
         engine.purchaseSciencePerk(target.dataset.perkId),
+      "select-science-perk": () => {
+        engine.state.ui.selectedSciencePerkId = target.dataset.perkId;
+        engine.notify();
+      },
+      "zoom-in-tree": () => {
+        engine.state.ui.treeZoom = Math.min(
+          1.6,
+          (engine.state.ui.treeZoom || 1) + 0.15,
+        );
+        engine.notify();
+      },
+      "zoom-out-tree": () => {
+        engine.state.ui.treeZoom = Math.max(
+          0.6,
+          (engine.state.ui.treeZoom || 1) - 0.15,
+        );
+        engine.notify();
+      },
+      "reset-tree-zoom": () => {
+        engine.state.ui.treeZoom = 1.0;
+        engine.notify();
+      },
+      "set-buy-mode": () => {
+        engine.state.ui.buyMode =
+          target.dataset.buyMode || target.dataset.mode || "1";
+        engine.notify();
+      },
+      "set-history-filter": () => {
+        engine.state.ui.historyFilter = target.dataset.filter || "all";
+        engine.notify();
+      },
+      "open-history-entry": () => {
+        engine.openHistoryEntry(
+          target.dataset.historyId || target.dataset.entryId,
+        );
+      },
+      "close-history-modal": () => {
+        engine.closeHistoryModal();
+      },
       "reset-science-points": () => {
         const confirmed = window.confirm(
           "Return every allocated Science Point and clear all purchased Science perks?",
         );
         if (confirmed) engine.resetSciencePointAllocation();
       },
-      "claim-method": () => engine.claimCalculationMethodUpgrade(),
-      "claim-setup": () => engine.claimSetupOptimization(),
+      "claim-method": () => engine.openCalculationMethodUpgradeConfirmation(),
+      "confirm-method-upgrade": () => engine.confirmCalculationMethodUpgrade(),
+      "claim-setup": () => engine.openSetupOptimizationConfirmation(),
+      "confirm-setup-optimization": () => engine.confirmSetupOptimization(),
       "set-tab": () => {
-        engine.state.ui.activeTab = target.dataset.tab || "devices";
+        engine.state.ui.activeTab = target.dataset.tab || "energy";
         markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
         engine.notify();
       },
@@ -12266,6 +15490,14 @@ function bindActions(app, engine, saveActions, config) {
       "dev-cycle-production": () =>
         engine.developmentCycleProductionMultiplier(),
       "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
+      "dismiss-news-section": () => engine.dismissNewsSection(),
+      "restore-news-section": () => engine.restoreNewsSection(),
+      "toggle-news-section": () => engine.toggleNewsSection(),
+      "cycle-news": () => engine.cycleNews(true),
+      "dev-toggle-news": () => {
+        engine.state.ui.devShowNews = !engine.state.ui.devShowNews;
+        engine.notify();
+      },
       "save-now": () => saveActions.saveNow(),
       "reset-save": () => saveActions.resetCurrent(),
       "reset-current-save": () => saveActions.resetCurrent(),
@@ -12285,10 +15517,17 @@ async function start() {
 
   try {
     const config = await loadConfig();
+    const news = await loadNews();
     const state = loadState(config, developmentMode);
     simulateOfflineProgress(state, config, { developmentMode });
-    const engine = new GameEngine({ state, config, developmentMode });
-    const render = createRenderer(app, config, developmentMode, listSaveSlots);
+    const engine = new GameEngine({ state, config, developmentMode, news });
+    const render = createRenderer(
+      app,
+      config,
+      developmentMode,
+      listSaveSlots,
+      news,
+    );
     let saveSuppressed = false;
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);
