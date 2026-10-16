@@ -198,17 +198,16 @@ test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 3);
 });
 
-test("Processor aggregated effectiveness E_P with cross-calculator bus synergy", () => {
+test("Processor aggregated effectiveness E_P (direct linear: E_P = 1 + unitBonus * P)", () => {
   const state = createInitialState(config);
   state.devices.processors = 2;
   state.devices.autoCalculators = 2;
 
   const unitBonus = 0.15;
-  const busFactor = 1 + Math.log(1 + 2); // 1 + ln(3)
-  const ep = 1 + unitBonus * 2 * busFactor;
+  const ep = 1 + unitBonus * 2; // 1 + 0.30 = 1.30
   assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
 
-  // 2 calculators = 2 nominal threads at speed = 2 * 1.5 * ep
+  // 2 calculators = 2 nominal threads at speed = 2 * 1.5 * ep = 3.90
   const expectedFleetSpeed = 2 * 1.5 * ep;
   assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedFleetSpeed, 1e-12);
 });

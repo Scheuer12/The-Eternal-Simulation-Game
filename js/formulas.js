@@ -301,18 +301,16 @@ export function calculateProcessorBonusUnit(state, config) {
 }
 
 /**
- * Aggregated Processor effectiveness with Cross-Calculator Bus Synergy:
- * E_P = 1 + unitBonus * P * (1 + ln(1 + C))
- * Processors accelerate the clock speed/frequency (E_P) of every thread,
- * scaling synergistically across the calculator fleet with smoothly diminishing logarithmic returns.
+ * Aggregated Processor effectiveness:
+ * E_P = 1 + unitBonus * P
+ * Each processor adds direct, objective efficiency to computational and fabrication systems.
+ * Amplified by CMU (1.2^M), Setup Optimization D(S), and Overclockers.
  */
 export function calculateProcessorEfficiencyMultiplier(state, config) {
   const processors = state.devices?.processors ?? 0;
   if (processors <= 0) return 1;
-  const calculators = Math.max(1, state.devices?.autoCalculators ?? 1);
   const unitBonus = calculateProcessorBonusUnit(state, config);
-  const busFactor = 1 + Math.log(1 + calculators);
-  return 1 + unitBonus * processors * busFactor;
+  return 1 + unitBonus * processors;
 }
 
 /**

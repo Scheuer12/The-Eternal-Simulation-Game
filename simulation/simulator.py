@@ -156,8 +156,7 @@ def processor_effectiveness(run: RunState, config: dict) -> float:
         * d_s
         * oc_mult
     )
-    bus_factor = 1.0 + math.log(1.0 + max(1, run.auto_calculators))
-    return 1.0 + unit_bonus * run.processors * bus_factor
+    return 1.0 + unit_bonus * run.processors
 
 
 def auto_calculator_speed_multiplier(run: RunState, config: dict) -> float:
