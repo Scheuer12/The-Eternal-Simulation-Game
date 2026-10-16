@@ -623,11 +623,11 @@ function getResetPreviewData(state, config, resetType) {
       type: "setup",
       title: "Confirm Setup Optimization",
       gain: `Setup Optimization ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-      lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+      lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
       preserved:
-        "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
+        "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
       warnings:
-        "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
+        "High-impact Hard Reset! Computational fleet and accumulated Stored Energy will be cleared.",
       isEligible: eligible,
     };
   }
@@ -1733,7 +1733,7 @@ function renderSetupOptimization(state, config) {
 
   return `
     <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, CRCs and hardware except Power Cells. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
+      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Hard Reset")}
         <span class="card-subsystem text--danger">Facility Reconfiguration</span>
@@ -2651,7 +2651,7 @@ function renderEnergyTab(state, config, developmentMode) {
               <p class="panel__label">ENERGY STORAGE</p>
               <h2>Containment & Capacity</h2>
             </div>
-            <p>Power Cells preserve energy across Setup Optimizations; Power Modules scale bulk capacity.</p>
+            <p>Power Cells and Power Modules are preserved across Setup Optimizations.</p>
           </div>
           <div class="section-stack">
             <div class="energy-storage-section" data-subregion="energy-storage">

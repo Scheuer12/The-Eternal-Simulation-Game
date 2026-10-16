@@ -8485,11 +8485,27 @@ const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "powerCellCost" },
     visibleWhen: [
-      { kind: "truthy", path: "devices.softDataDisplay" },
       {
-        kind: "stateAtLeast",
-        path: "upgrades",
-        configPath: "powerCell.algorithmUpgradesRequired",
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "powerCells", value: 2 },
+          { kind: "stateAtLeast", path: "powerModules", value: 1 },
+          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
+          { kind: "truthy", path: "devices.softDataDisplay" },
+        ],
+      },
+      {
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "powerCells", value: 2 },
+          { kind: "stateAtLeast", path: "powerModules", value: 1 },
+          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
+          {
+            kind: "stateAtLeast",
+            path: "upgrades",
+            configPath: "powerCell.algorithmUpgradesRequired",
+          },
+        ],
       },
     ],
     enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
@@ -11634,11 +11650,11 @@ class GameEngine {
         type: "setup",
         title: "Confirm Setup Optimization",
         gain: `Setup Optimization ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-        lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+        lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
         preserved:
-          "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
+          "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
         warnings:
-          "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
+          "High-impact Hard Reset! Computational fleet and accumulated Stored Energy will be cleared.",
         isEligible: this.canClaimSetupOptimization(),
       };
     }
@@ -11894,7 +11910,7 @@ class GameEngine {
       kind: "Milestones",
       title: `Setup Optimization #${this.state.setupOptimizations}`,
       summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}.`,
-      body: `Lower energy layer physical infrastructure has been dismantled and re-architected. Power Cells and scientific progress are preserved while device performance scales to D(S) = 1 + 2 ln(1+S).`,
+      body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = 1 + 2 ln(1+S).`,
     });
     this.addLog(
       `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
@@ -11937,17 +11953,20 @@ class GameEngine {
   resetHardwareForSetupOptimization() {
     this.state.energy = big(0);
     this.state.peakEnergy = big(0);
+    const hadCrcBlueprint = Boolean(this.state.discoveries.crcBlueprint);
     this.resetAllStudies();
+    if (hadCrcBlueprint || this.state.crcCount > 1) {
+      this.state.discoveries.crcBlueprint = true;
+    }
     this.state.calculationMethods = 0;
     this.state.devices.softDataDisplay = false;
     this.state.devices.t2SoftDataDisplay = false;
     this.state.devices.autoCalculators = 0;
     this.state.devices.processors = 0;
     this.state.devices.overclockers = 0;
-    this.state.powerModules = 0;
+    // powerCells, powerModules and crcCount are intentionally preserved
     this.state.overclocker.active = false;
     this.state.overclocker.activeSeconds = 0;
-    this.state.crcCount = this.config.energy.initialCrcCount;
     this.state.construction.active = false;
     this.state.construction.elapsed = 0;
     this.state.construction.duration = 0;
@@ -12814,11 +12833,11 @@ function getResetPreviewData(state, config, resetType) {
       type: "setup",
       title: "Confirm Setup Optimization",
       gain: `Setup Optimization ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-      lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+      lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
       preserved:
-        "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
+        "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
       warnings:
-        "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
+        "High-impact Hard Reset! Computational fleet and accumulated Stored Energy will be cleared.",
       isEligible: eligible,
     };
   }
@@ -13924,7 +13943,7 @@ function renderSetupOptimization(state, config) {
 
   return `
     <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, CRCs and hardware except Power Cells. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
+      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Hard Reset")}
         <span class="card-subsystem text--danger">Facility Reconfiguration</span>
@@ -14842,7 +14861,7 @@ function renderEnergyTab(state, config, developmentMode) {
               <p class="panel__label">ENERGY STORAGE</p>
               <h2>Containment & Capacity</h2>
             </div>
-            <p>Power Cells preserve energy across Setup Optimizations; Power Modules scale bulk capacity.</p>
+            <p>Power Cells and Power Modules are preserved across Setup Optimizations.</p>
           </div>
           <div class="section-stack">
             <div class="energy-storage-section" data-subregion="energy-storage">

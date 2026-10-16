@@ -116,11 +116,27 @@ export const COMPONENT_REGISTRY = {
     ownedMode: "count",
     cost: { kind: "formula", name: "powerCellCost" },
     visibleWhen: [
-      { kind: "truthy", path: "devices.softDataDisplay" },
       {
-        kind: "stateAtLeast",
-        path: "upgrades",
-        configPath: "powerCell.algorithmUpgradesRequired",
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "powerCells", value: 2 },
+          { kind: "stateAtLeast", path: "powerModules", value: 1 },
+          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
+          { kind: "truthy", path: "devices.softDataDisplay" },
+        ],
+      },
+      {
+        kind: "any",
+        rules: [
+          { kind: "stateAtLeast", path: "powerCells", value: 2 },
+          { kind: "stateAtLeast", path: "powerModules", value: 1 },
+          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
+          {
+            kind: "stateAtLeast",
+            path: "upgrades",
+            configPath: "powerCell.algorithmUpgradesRequired",
+          },
+        ],
       },
     ],
     enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
