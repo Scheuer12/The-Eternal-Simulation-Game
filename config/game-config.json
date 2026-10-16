@@ -28,7 +28,7 @@
     "arrayCostGrowthMultiplier": 1.06
   },
   "powerModule": {
-    "cellsPerModule": 100,
+    "cellsPerModule": 20,
     "baseCost": 100,
     "costGrowth": 3.2,
     "costGrowthExponent": 1.18,
@@ -160,7 +160,7 @@
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
     "methodUpgradesRequiredGrowth": 1,
-    "methodUpgradesRequiredQuadratic": 0.4
+    "methodUpgradesRequiredQuadratic": 0.2
   },
   "development": {
     "durationMultiplier": 0.05,
@@ -186,9 +186,10 @@
       "automatedDurationGrowthPower": 1.1
     },
     "autoCalculators": {
-      "baseSpeedPerThread": 1.5,
+      "baseSpeedPerThread": 2.0,
       "threadBonus": 1.0,
-      "perUnitSpeedBonus": 1.0
+      "perUnitSpeedBonus": 1.0,
+      "setupOptimizationExponent": 0.72
     },
     "processors": {
       "perUnitBonus": 0.25

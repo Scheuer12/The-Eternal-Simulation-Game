@@ -121,8 +121,8 @@ export const SCIENCE_PERKS = [
     cost: 1,
     requires: ["fiftyGCalculator"],
     effect:
-      "Allows the Calculator to automate Calculation Method Upgrades (CMUs).",
-    summary: "Automates Calculation Method Upgrades.",
+      "Allows the Calculator to automate Setup Improvements (SI).",
+    summary: "Automates Setup Improvements.",
   },
   {
     id: "roboticArms",

@@ -17,7 +17,7 @@ export const AUTOMATION_DEFINITIONS = [
     id: "aiCalculationSupport",
     name: "AI Calculation Support",
     description:
-      "Lets Auto Calculator claim Calculation Method Upgrades as soon as they are ready.",
+      "Lets Auto Calculator claim Setup Improvements as soon as they are ready.",
     isAcquired: (state) =>
       Boolean(state.science?.perks?.aiCalculationSupport),
   },

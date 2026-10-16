@@ -1491,12 +1491,12 @@ export class GameEngine {
     this.recordHistory({
       eventId: `milestone-cmu-${this.state.calculationMethods}`,
       kind: "Milestones",
-      title: `Calculation Method Upgrade #${this.state.calculationMethods}`,
+      title: `Setup Improvement #${this.state.calculationMethods}`,
       summary: `Processor bonus amplified by 1.2^${this.state.calculationMethods}. Studies reset.`,
       body: `The facility's fundamental mathematical frameworks have been re-engineered. All Processors now achieve a 1.2^${this.state.calculationMethods} scaling multiplier across all calculation tasks.`,
     });
     this.addLog(
-      `Calculation Method Upgrade ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
+      `Setup Improvement ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
       "milestone",
     );
     this.notify();
@@ -1633,8 +1633,8 @@ export class GameEngine {
       );
       return {
         type: "cmu",
-        title: "Confirm Calculation Method Upgrade",
-        gain: `Calculation Method Upgrade ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
+        title: "Confirm Setup Improvement",
+        gain: `Setup Improvement ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
         lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
         preserved:
           "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
@@ -1651,9 +1651,9 @@ export class GameEngine {
       const nextD = calculateSetupDevicePerformance(nextSetup, this.config);
       return {
         type: "setup",
-        title: "Confirm Setup Optimization",
-        gain: `Setup Optimization ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-        lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+        title: "Confirm Setup Upgrade",
+        gain: `Setup Upgrade ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
+        lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and Setup Improvements to 0.",
         preserved:
           "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
         warnings:
@@ -1680,7 +1680,7 @@ export class GameEngine {
         type: "synthesis",
         title: "Confirm Particle Synthesis",
         gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
-        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
+        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, Setup Improvements, and Setup Upgrades.",
         preserved:
           "Preserves Science Points, Quarks, Science Perks, and History.",
         warnings:
@@ -1911,12 +1911,12 @@ export class GameEngine {
     this.recordHistory({
       eventId: `milestone-setup-${this.state.setupOptimizations}`,
       kind: "Milestones",
-      title: `Setup Optimization #${this.state.setupOptimizations}`,
+      title: `Setup Upgrade #${this.state.setupOptimizations}`,
       summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}x.`,
       body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = ${D_S.toFixed(2)}x.`,
     });
     this.addLog(
-      `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
+      `Setup Upgrade ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
       "milestone",
     );
     this.notify();

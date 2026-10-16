@@ -5698,7 +5698,7 @@
     "arrayCostGrowthMultiplier": 1.06
   },
   "powerModule": {
-    "cellsPerModule": 100,
+    "cellsPerModule": 20,
     "baseCost": 100,
     "costGrowth": 3.2,
     "costGrowthExponent": 1.18,
@@ -5830,7 +5830,7 @@
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
     "methodUpgradesRequiredGrowth": 1,
-    "methodUpgradesRequiredQuadratic": 0.4
+    "methodUpgradesRequiredQuadratic": 0.2
   },
   "development": {
     "durationMultiplier": 0.05,
@@ -5856,9 +5856,10 @@
       "automatedDurationGrowthPower": 1.1
     },
     "autoCalculators": {
-      "baseSpeedPerThread": 1.5,
+      "baseSpeedPerThread": 2,
       "threadBonus": 1,
-      "perUnitSpeedBonus": 1
+      "perUnitSpeedBonus": 1,
+      "setupOptimizationExponent": 0.72
     },
     "processors": {
       "perUnitBonus": 0.25
@@ -7304,10 +7305,6 @@ function calculatePowerModuleCapacityMultiplier(state, config) {
  * Total = Capacity_cells * M_cap
  */
 function calculateStableEnergyCapacity(state, config) {
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
   let resonance = 1;
   if (hasSciencePerk(state, "powerCellResonance")) {
     resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
@@ -7316,7 +7313,6 @@ function calculateStableEnergyCapacity(state, config) {
   const baseCapacity = config.energy.powerCellCapacity;
   const cellCapacity = big(Math.max(1, state.powerCells))
     .mul(baseCapacity)
-    .mul(setupPerformance)
     .mul(resonance);
 
   return cellCapacity.mul(calculatePowerModuleCapacityMultiplier(state, config));
@@ -7485,11 +7481,19 @@ function calculateAutoCalculatorSpeedMultiplier(state, config) {
   if (calculators <= 0) return 1;
 
   const baseSpeedPerThread =
-    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 1.5;
+    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 2.0;
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  const setupExp =
+    config?.economyV2?.autoCalculators?.setupOptimizationExponent ?? 0.72;
+  const setupMultiplier = setupPerformance ** setupExp;
   const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
     ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
     : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
-  const effectiveThreads = calculators * baseSpeedPerThread * threadBonus;
+  const effectiveThreads =
+    calculators * baseSpeedPerThread * setupMultiplier * threadBonus;
 
   const ep = calculateProcessorEfficiencyMultiplier(state, config);
 
@@ -7989,16 +7993,11 @@ function calculateProduction(state, config, developmentMode = false) {
   const c = Math.max(0, state.crcCount ?? 0);
   const i = Math.max(0, state.improvements ?? 0);
   const u = Math.max(0, state.upgrades ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
 
   let production = big(baseRate)
     .mul(c)
     .mul(1 + i)
-    .mul(big(2).pow(u))
-    .mul(setupPerformance);
+    .mul(big(2).pow(u));
 
   production = production.mul(calculateCrcExponentialMultiplier(state, config));
   production = production.mul(calculateCrcProcessorBonusMultiplier(state, config));
@@ -8026,18 +8025,14 @@ function calculateProductionBreakdown(
   const c = Math.max(0, state.crcCount ?? 0);
   const i = Math.max(0, state.improvements ?? 0);
   const u = Math.max(0, state.upgrades ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
 
-  const baseFromCrcs = big(baseRate).mul(c).mul(setupPerformance);
+  const baseFromCrcs = big(baseRate).mul(c);
   let running = baseFromCrcs;
 
   rows.push({
     id: "crc-base",
     label: "Base from CRCs",
-    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each (Setup: x${setupPerformance.toFixed(2)})`,
+    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each`,
     multiplierLabel: `x${c}`,
     value: baseFromCrcs,
     output: baseFromCrcs,
@@ -8776,7 +8771,7 @@ const COMPONENT_REGISTRY = {
     uiSection: "breakthroughs",
     uiType: "study",
     resetKind: "soft",
-    label: "Calculation Method Upgrade",
+    label: "Setup Improvement",
     action: "claim-method",
     ownedPath: "calculationMethods",
     ownedMode: "count",
@@ -8802,7 +8797,7 @@ const COMPONENT_REGISTRY = {
     uiType: "study",
     resetKind: "hard",
     subcategory: "reset",
-    label: "Setup Optimization",
+    label: "Setup Upgrade",
     action: "claim-setup",
     ownedPath: "setupOptimizations",
     ownedMode: "count",
@@ -8948,8 +8943,8 @@ const SCIENCE_PERKS = [
     cost: 1,
     requires: ["fiftyGCalculator"],
     effect:
-      "Allows the Calculator to automate Calculation Method Upgrades (CMUs).",
-    summary: "Automates Calculation Method Upgrades.",
+      "Allows the Calculator to automate Setup Improvements (SI).",
+    summary: "Automates Setup Improvements.",
   },
   {
     id: "roboticArms",
@@ -9272,7 +9267,7 @@ const AUTOMATION_DEFINITIONS = [
     id: "aiCalculationSupport",
     name: "AI Calculation Support",
     description:
-      "Lets Auto Calculator claim Calculation Method Upgrades as soon as they are ready.",
+      "Lets Auto Calculator claim Setup Improvements as soon as they are ready.",
     isAcquired: (state) =>
       Boolean(state.science?.perks?.aiCalculationSupport),
   },
@@ -11568,12 +11563,12 @@ class GameEngine {
     this.recordHistory({
       eventId: `milestone-cmu-${this.state.calculationMethods}`,
       kind: "Milestones",
-      title: `Calculation Method Upgrade #${this.state.calculationMethods}`,
+      title: `Setup Improvement #${this.state.calculationMethods}`,
       summary: `Processor bonus amplified by 1.2^${this.state.calculationMethods}. Studies reset.`,
       body: `The facility's fundamental mathematical frameworks have been re-engineered. All Processors now achieve a 1.2^${this.state.calculationMethods} scaling multiplier across all calculation tasks.`,
     });
     this.addLog(
-      `Calculation Method Upgrade ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
+      `Setup Improvement ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
       "milestone",
     );
     this.notify();
@@ -11710,8 +11705,8 @@ class GameEngine {
       );
       return {
         type: "cmu",
-        title: "Confirm Calculation Method Upgrade",
-        gain: `Calculation Method Upgrade ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
+        title: "Confirm Setup Improvement",
+        gain: `Setup Improvement ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
         lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
         preserved:
           "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
@@ -11728,9 +11723,9 @@ class GameEngine {
       const nextD = calculateSetupDevicePerformance(nextSetup, this.config);
       return {
         type: "setup",
-        title: "Confirm Setup Optimization",
-        gain: `Setup Optimization ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-        lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+        title: "Confirm Setup Upgrade",
+        gain: `Setup Upgrade ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
+        lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and Setup Improvements to 0.",
         preserved:
           "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
         warnings:
@@ -11757,7 +11752,7 @@ class GameEngine {
         type: "synthesis",
         title: "Confirm Particle Synthesis",
         gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
-        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
+        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, Setup Improvements, and Setup Upgrades.",
         preserved:
           "Preserves Science Points, Quarks, Science Perks, and History.",
         warnings:
@@ -11988,12 +11983,12 @@ class GameEngine {
     this.recordHistory({
       eventId: `milestone-setup-${this.state.setupOptimizations}`,
       kind: "Milestones",
-      title: `Setup Optimization #${this.state.setupOptimizations}`,
+      title: `Setup Upgrade #${this.state.setupOptimizations}`,
       summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}x.`,
       body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = ${D_S.toFixed(2)}x.`,
     });
     this.addLog(
-      `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
+      `Setup Upgrade ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
       "milestone",
     );
     this.notify();
@@ -12740,7 +12735,7 @@ function calculateNextMilestone(state, config) {
   const reqCMU = calculateCalculationMethodRequirement(state, config);
   if (state.calculationMethods === 0 && state.upgrades < reqCMU) {
     return {
-      title: "Calculation Method Upgrade 1",
+      title: "Setup Improvement 1",
       requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
       progress: clamp(state.upgrades / reqCMU, 0, 1),
       tab: "energy",
@@ -12750,7 +12745,7 @@ function calculateNextMilestone(state, config) {
 
   if (state.calculationMethods < 2) {
     return {
-      title: "Calculation Method Upgrade 2",
+      title: "Setup Improvement 2",
       requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
       progress: clamp(state.upgrades / reqCMU, 0, 1),
       tab: "energy",
@@ -12816,8 +12811,8 @@ function calculateNextMilestone(state, config) {
     state.calculationMethods < reqSetup
   ) {
     return {
-      title: "Setup Optimization 1",
-      requirement: `${state.calculationMethods} / ${reqSetup} Method Upgrades`,
+      title: "Setup Upgrade 1",
+      requirement: `${state.calculationMethods} / ${reqSetup} Setup Improvements`,
       progress: clamp(state.calculationMethods / reqSetup, 0, 1),
       tab: "energy",
       tabLabel: "Energy",
@@ -12888,8 +12883,8 @@ function getResetPreviewData(state, config, resetType) {
     ).enabled;
     return {
       type: "cmu",
-      title: "Confirm Calculation Method Upgrade",
-      gain: `Calculation Method Upgrade ${state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
+      title: "Confirm Setup Improvement",
+      gain: `Setup Improvement ${state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
       lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
       preserved:
         "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
@@ -12911,9 +12906,9 @@ function getResetPreviewData(state, config, resetType) {
     ).enabled;
     return {
       type: "setup",
-      title: "Confirm Setup Optimization",
-      gain: `Setup Optimization ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-      lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
+      title: "Confirm Setup Upgrade",
+      gain: `Setup Upgrade ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
+      lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and Setup Improvements to 0.",
       preserved:
         "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
       warnings:
@@ -12939,7 +12934,7 @@ function getResetPreviewData(state, config, resetType) {
       type: "synthesis",
       title: "Confirm Particle Synthesis",
       gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
-      lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
+      lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, Setup Improvements, and Setup Upgrades.",
       preserved:
         "Preserves Science Points, Quarks, Science Perks, and History.",
       warnings:
@@ -13926,7 +13921,7 @@ function renderProcessor(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("Each Processor adds multiplicative efficiency to computational and fabrication systems. Amplified by CMU.")}
+      ${helpNote("Each Processor adds multiplicative efficiency to computational and fabrication systems. Amplified by Setup Improvements (SI).")}
       <div class="panel__header-row">
         ${renderCardTags("Device", "Hardware")}
         <span class="card-subsystem">Processing Core</span>
@@ -13983,25 +13978,25 @@ function renderCalculationMethod(state, config) {
 
   return `
     <article class="panel method-card ${ready ? "method-card--ready" : ""}">
-      ${helpNote("A Calculation Method Upgrade requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and amplifies Processor unit bonus by 1.2^M.")}
+      ${helpNote("A Setup Improvement requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and amplifies Processor unit bonus by 1.2^M.")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Soft Reset")}
         <span class="card-subsystem text--amber">Tier 1 Reset</span>
       </div>
       <div class="panel__heading">
         <div>
-          <h2>Calculation Method Upgrade</h2>
+          <h2>Setup Improvement</h2>
         </div>
-        ${headingAction("Perform CMU", "claim-method", {
+        ${headingAction("Claim Improvement", "claim-method", {
           count: state.calculationMethods,
           disabled: !availability.enabled,
           variant: availability.enabled ? "primary" : "ghost",
         })}
       </div>
       <p class="muted">A whole new method. Starts studies over, but amplifies Processor effectiveness by 1.2^M.</p>
-      ${progressBar(progress, "Calculation Method Upgrade readiness", "study")}
+      ${progressBar(progress, "Setup Improvement readiness", "study")}
       <div class="progress-caption">
-        <span>${ready ? "METHOD UPGRADE READY" : `${Math.min(state.upgrades, required)} / ${required} Algorithm Upgrades`}</span>
+        <span>${ready ? "SETUP IMPROVEMENT READY" : `${Math.min(state.upgrades, required)} / ${required} Algorithm Upgrades`}</span>
         <span>Scaling multiplier ×${(1.2 ** state.calculationMethods).toFixed(2)}</span>
       </div>
     </article>
@@ -14024,25 +14019,25 @@ function renderSetupOptimization(state, config) {
 
   return `
     <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S).")}
+      ${helpNote("Setup Upgrade costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S).")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Hard Reset")}
         <span class="card-subsystem text--danger">Facility Reconfiguration</span>
       </div>
       <div class="panel__heading">
         <div>
-          <h2>Setup Optimization</h2>
+          <h2>Setup Upgrade</h2>
         </div>
-        ${headingAction("Optimize Setup", "claim-setup", {
+        ${headingAction("Upgrade Setup", "claim-setup", {
           count: state.setupOptimizations,
           disabled: !availability.enabled,
           variant: availability.enabled ? "danger" : "ghost",
         })}
       </div>
       <p class="muted">A whole new setup. Discards lower hardware and stored energy, but permanently amplifies device performance.</p>
-      ${progressBar(progress, "Setup Optimization readiness", "discovery")}
+      ${progressBar(progress, "Setup Upgrade readiness", "discovery")}
       <div class="progress-caption">
-        <span>${ready ? "SETUP READY" : `${Math.min(state.calculationMethods, required)} / ${required} Method Upgrades`}</span>
+        <span>${ready ? "SETUP UPGRADE READY" : `${Math.min(state.calculationMethods, required)} / ${required} Setup Improvements`}</span>
         <span>Device scale D(S): ${currentD.toFixed(1)}x → ${nextD.toFixed(1)}x</span>
       </div>
     </article>
@@ -15028,7 +15023,7 @@ function renderEnergyTab(state, config, developmentMode) {
               <p class="panel__label">ENERGY STORAGE</p>
               <h2>Containment & Capacity</h2>
             </div>
-            <p>Power Cells and Power Modules are preserved across Setup Optimizations.</p>
+            <p>Power Cells and Power Modules are preserved across Setup Upgrades.</p>
           </div>
           <div class="section-stack">
             <div class="energy-storage-section" data-subregion="energy-storage">
@@ -15712,7 +15707,7 @@ function renderResetConfirmationModal(state, config) {
             data-action="confirm-reset-modal"
             ${preview.isEligible ? "" : "disabled"}
           >
-            Confirm ${preview.type === "cmu" ? "Upgrade" : preview.type === "setup" ? "Optimization" : "Synthesis"}
+            Confirm ${preview.type === "cmu" ? "Improvement" : preview.type === "setup" ? "Upgrade" : "Synthesis"}
           </button>
         </div>
       </section>

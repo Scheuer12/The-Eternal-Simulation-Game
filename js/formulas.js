@@ -184,10 +184,6 @@ export function calculatePowerModuleCapacityMultiplier(state, config) {
  * Total = Capacity_cells * M_cap
  */
 export function calculateStableEnergyCapacity(state, config) {
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
   let resonance = 1;
   if (hasSciencePerk(state, "powerCellResonance")) {
     resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
@@ -196,7 +192,6 @@ export function calculateStableEnergyCapacity(state, config) {
   const baseCapacity = config.energy.powerCellCapacity;
   const cellCapacity = big(Math.max(1, state.powerCells))
     .mul(baseCapacity)
-    .mul(setupPerformance)
     .mul(resonance);
 
   return cellCapacity.mul(calculatePowerModuleCapacityMultiplier(state, config));
@@ -365,11 +360,19 @@ export function calculateAutoCalculatorSpeedMultiplier(state, config) {
   if (calculators <= 0) return 1;
 
   const baseSpeedPerThread =
-    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 1.5;
+    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 2.0;
+  const setupPerformance = calculateSetupDevicePerformance(
+    state.setupOptimizations,
+    config,
+  );
+  const setupExp =
+    config?.economyV2?.autoCalculators?.setupOptimizationExponent ?? 0.72;
+  const setupMultiplier = setupPerformance ** setupExp;
   const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
     ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
     : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
-  const effectiveThreads = calculators * baseSpeedPerThread * threadBonus;
+  const effectiveThreads =
+    calculators * baseSpeedPerThread * setupMultiplier * threadBonus;
 
   const ep = calculateProcessorEfficiencyMultiplier(state, config);
 
@@ -869,16 +872,11 @@ export function calculateProduction(state, config, developmentMode = false) {
   const c = Math.max(0, state.crcCount ?? 0);
   const i = Math.max(0, state.improvements ?? 0);
   const u = Math.max(0, state.upgrades ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
 
   let production = big(baseRate)
     .mul(c)
     .mul(1 + i)
-    .mul(big(2).pow(u))
-    .mul(setupPerformance);
+    .mul(big(2).pow(u));
 
   production = production.mul(calculateCrcExponentialMultiplier(state, config));
   production = production.mul(calculateCrcProcessorBonusMultiplier(state, config));
@@ -906,18 +904,14 @@ export function calculateProductionBreakdown(
   const c = Math.max(0, state.crcCount ?? 0);
   const i = Math.max(0, state.improvements ?? 0);
   const u = Math.max(0, state.upgrades ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
 
-  const baseFromCrcs = big(baseRate).mul(c).mul(setupPerformance);
+  const baseFromCrcs = big(baseRate).mul(c);
   let running = baseFromCrcs;
 
   rows.push({
     id: "crc-base",
     label: "Base from CRCs",
-    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each (Setup: x${setupPerformance.toFixed(2)})`,
+    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each`,
     multiplierLabel: `x${c}`,
     value: baseFromCrcs,
     output: baseFromCrcs,
