@@ -186,6 +186,7 @@ export const COMPONENT_REGISTRY = {
             configPath: "particleLab.doorEnergyRequired",
           },
           { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
+          { kind: "truthy", path: "particleSynthesizer.awakened" },
         ],
       },
     ],

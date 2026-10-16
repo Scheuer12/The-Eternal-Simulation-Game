@@ -287,11 +287,12 @@ export class GameEngine {
       this.state.stats.totalEnergyCollected,
     ).add(collected);
     this.emitEvent("energy-collected", { amount: collected });
+    this.checkParticleSynthesizerAwakening();
   }
 
   tick(deltaSeconds) {
     if (this.state.introState !== "active") return;
-    if (this.state.ui?.particleSynthesisModal) return;
+    if (this.state.ui?.particleSynthesisModal || this.state.ui?.synthesizerAwakenedModal) return;
 
     const delta = clamp(deltaSeconds, 0, this.config.timing.maximumTickSeconds);
     if (delta <= 0) return;
@@ -466,6 +467,7 @@ export class GameEngine {
         break;
       }
     }
+    this.checkParticleSynthesizerAwakening();
   }
 
   addEnergy(amount, notify = true) {
@@ -492,6 +494,7 @@ export class GameEngine {
     if (collected.gt(0)) {
       this.emitEvent("energy-collected", { amount: collected });
     }
+    this.checkParticleSynthesizerAwakening();
 
     if (notify) this.notify();
     return collected;
@@ -1528,6 +1531,59 @@ export class GameEngine {
     if (this.state.ui.resetModal !== "setup") return false;
     this.state.ui.resetModal = null;
     return this.claimSetupOptimization();
+  }
+
+  checkParticleSynthesizerAwakening() {
+    if (this.state.particleSynthesizer?.awakened) return;
+    if ((this.state.science?.syntheses ?? 0) > 0) {
+      if (this.state.particleSynthesizer) {
+        this.state.particleSynthesizer.awakened = true;
+      }
+      return;
+    }
+    const req = this.config.particleLab.synthesizerEnergyRequired;
+    if (big(this.state.peakEnergy).gte(req) || big(this.state.energy).gte(req)) {
+      if (!this.state.particleSynthesizer) {
+        this.state.particleSynthesizer = { activated: false };
+      }
+      this.state.particleSynthesizer.awakened = true;
+      if (!this.state.ui) this.state.ui = {};
+      this.state.ui.synthesizerAwakenedModal = true;
+      this.recordHistory({
+        eventId: "narrative-synthesizer-awakening",
+        kind: "Narrative",
+        title: "Chamber Awakening // Particle Synthesizer",
+        summary: "The colossal Particle Synthesizer in the adjacent chamber has awakened.",
+        body: "A resonant shudder vibrates through the concrete foundation. In the adjoining chamber beyond the reinforced glass, massive high-voltage contactors slam closed in rapid succession.\n\nOverhead floodlights flicker to life, illuminating the monumental circular vacuum chamber of the Particle Synthesizer. Superconducting lines hiss with coolant as auxiliary power surges through the accelerator ring.\n\nThe particle synthesis console is now active in the Science Division. The facility has accumulated sufficient energy to breach the atomic barrier.",
+      });
+      this.addLog(
+        "The Particle Synthesizer in the adjacent chamber has awakened. Controls online in the Science Tab.",
+        "milestone",
+      );
+      this.emitEvent("particle-synthesizer-awakened", {
+        energy: this.state.energy,
+        peakEnergy: this.state.peakEnergy,
+      });
+      this.notify();
+    }
+  }
+
+  enterSynthesizerChamber() {
+    if (this.state.ui) {
+      this.state.ui.synthesizerAwakenedModal = false;
+      this.state.ui.activeTab = "science";
+      this.state.ui.activeScienceSubtab = "devices";
+    }
+    this.notify();
+    return true;
+  }
+
+  closeSynthesizerAwakenedModal() {
+    if (this.state.ui) {
+      this.state.ui.synthesizerAwakenedModal = false;
+    }
+    this.notify();
+    return true;
   }
 
   canActivateParticleSynthesizer() {

@@ -48,6 +48,7 @@ export function createInitialState(config) {
     powerModules: 0,
     particleSynthesizer: {
       activated: false,
+      awakened: false,
     },
     ui: {
       activeTab: "energy",
@@ -59,6 +60,7 @@ export function createInitialState(config) {
       resetModal: null,
       historyModalEntry: null,
       particleSynthesisModal: null,
+      synthesizerAwakenedModal: false,
       hideCompletedPurchases: false,
       seenComponents: {},
       newsDismissed: false,
@@ -293,6 +295,10 @@ export function normalizeState(candidate, config) {
     particleSynthesizer: {
       ...initial.particleSynthesizer,
       ...candidate.particleSynthesizer,
+      awakened: Boolean(
+        candidate.particleSynthesizer?.awakened ||
+          (candidate.science?.syntheses ?? 0) > 0,
+      ),
     },
     history: Array.isArray(candidate.history)
       ? [...candidate.history]
@@ -302,6 +308,7 @@ export function normalizeState(candidate, config) {
       ...candidate.ui,
       activeTab: tabMapping[candidate.ui?.activeTab] ?? initial.ui.activeTab,
       particleSynthesisModal: null,
+      synthesizerAwakenedModal: false,
       resetModal: null,
       historyModalEntry: null,
       buyMode: candidate.ui?.buyMode ?? initial.ui.buyMode,

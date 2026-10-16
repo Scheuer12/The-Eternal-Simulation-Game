@@ -572,6 +572,7 @@ export function canPurchasePowerCell(state, config) {
 export function canAccessParticleLab(state, config) {
   return (
     big(state.peakEnergy).gte(config.particleLab.doorEnergyRequired) ||
+    Boolean(state.particleSynthesizer?.awakened) ||
     (state.science?.syntheses ?? 0) > 0
   );
 }

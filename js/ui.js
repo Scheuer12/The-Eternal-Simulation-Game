@@ -2208,9 +2208,9 @@ function renderScienceTree(state, config) {
 }
 
 function renderParticleSynthesizerDevice(state, config) {
-  if ((state.science?.syntheses ?? 0) <= 0) return "";
-
   const availability = evaluateComponent("particleSynthesizer", state, config);
+  if (!availability.visible && !canAccessParticleLab(state, config)) return "";
+
   const progress = calculateParticleSynthesizerProgress(state, config);
   const nextSciencePointCost = calculateSciencePointCost(
     state.science?.totalScienceEarned ?? 0,
@@ -2222,25 +2222,39 @@ function renderParticleSynthesizerDevice(state, config) {
     config,
   );
   const projectedQuarks = calculateQuarksGenerated(state.energy, config);
+  const isReady = availability.enabled;
 
   return `
     <article class="panel science-panel">
       ${helpNote("Activation always spends 100 GJ. Science Points and quarks are calculated from the Stored Energy held at activation.")}
       <div class="panel__header-row">
-        ${renderCardTags("Science", "Hardware")}
+        ${renderCardTags("Science", isReady ? "Ready" : "Standby")}
         <span class="card-subsystem">Synthesis Core</span>
       </div>
       <div class="panel__heading">
         <div>
+          <p class="panel__label">CHAMBER APPARATUS</p>
           <h2>Particle Sintetizer</h2>
         </div>
-        ${headingAction("Activate", "open-particle-synthesis", {
-          cost: availability.cost,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
+        ${headingAction(
+          isReady ? "Activate" : "Charging",
+          "open-particle-synthesis",
+          {
+            cost: availability.cost,
+            disabled: !isReady,
+            variant: isReady ? "primary" : "ghost",
+          },
+        )}
       </div>
-      <p class="muted">The laboratory control route is stable enough to initiate another full-energy synthesis.</p>
+      <p class="muted">
+        ${
+          (state.science?.syntheses ?? 0) > 0
+            ? "The laboratory control route is stable enough to initiate another full-energy synthesis."
+            : state.particleSynthesizer?.awakened
+              ? "The monumental toroidal accelerator in the adjacent chamber is humming with contained power, ready to breach the atomic barrier."
+              : "Inside the adjacent chamber, dormant machines surround the massive circular vacuum apparatus, waiting for sufficient charge to awaken."
+        }
+      </p>
       ${progressBar(progress, "Particle Sintetizer activation charge", "door", "particle-synthesizer-device")}
       ${progressBar(big(state.energy).div(nextSciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
       <div class="metric-row">
@@ -2248,17 +2262,65 @@ function renderParticleSynthesizerDevice(state, config) {
         <strong>${formatEnergy(calculateParticleSynthesizerCost(state, config))}</strong>
       </div>
       <div class="metric-row">
+        <span>Stored Energy</span>
+        <strong>${formatEnergy(state.energy)}</strong>
+      </div>
+      <div class="metric-row">
         <span>SP gained on Sintetization</span>
         <strong data-field="science-sp-on-synthesis">${projectedSciencePoints}</strong>
       </div>
       <div class="metric-row">
         <span>Energy threshold for next SP</span>
-        <strong>${formatEnergy(nextSciencePointCost)}</strong>
+        <strong data-field="science-point-cost">${formatEnergy(nextSciencePointCost)}</strong>
       </div>
       <div class="metric-row">
         <span>Quarks gained on Sintetization</span>
         <strong data-field="device-quarks-on-synthesis">${projectedQuarks}</strong>
       </div>
+    </article>
+  `;
+}
+
+function renderParticleLabTelemetry(state, config) {
+  const availability = evaluateComponent("particleSynthesizer", state, config);
+  const isAwakened = Boolean(
+    state.particleSynthesizer?.awakened || (state.science?.syntheses ?? 0) > 0,
+  );
+  const isReady = availability.enabled;
+
+  return `
+    <article class="panel">
+      <div class="panel__header-row">
+        ${renderCardTags("Telemetry", isAwakened ? "Online" : "Standby")}
+        <span class="card-subsystem">Sector B Chamber</span>
+      </div>
+      <div class="panel__heading">
+        <div>
+          <p class="panel__label">CHAMBER STATUS</p>
+          <h2>Laboratory Telemetry</h2>
+        </div>
+        ${statusPill(
+          isReady ? "ONLINE" : isAwakened ? "PRIMED" : "DORMANT",
+          isReady ? "online" : "locked",
+        )}
+      </div>
+      <div class="metric-row">
+        <span>Synthesizer Status</span>
+        <strong>${isReady ? "Ready for Activation" : isAwakened ? "Charging" : "Dormant"}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Activation Threshold</span>
+        <strong>${formatEnergy(calculateParticleSynthesizerCost(state, config))}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Stored Energy</span>
+        <strong>${formatEnergy(state.energy)}</strong>
+      </div>
+      <div class="metric-row">
+        <span>Total Syntheses</span>
+        <strong>${state.science?.syntheses ?? 0}</strong>
+      </div>
+      <p class="muted">Particle Synthesis channels accumulated Stored Energy through the toroidal accelerator to forge Science Points and Quarks, resetting the physical Energy Layer.</p>
     </article>
   `;
 }
@@ -2624,17 +2686,41 @@ function renderEnergyResetsSection(state, config) {
 
 function renderEnergyLabSection(state, config) {
   if (!canAccessParticleLab(state, config)) return "";
+  const isAwakened = Boolean(
+    state.particleSynthesizer?.awakened || (state.science?.syntheses ?? 0) > 0,
+  );
   return `
     <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
       <div class="device-group__heading">
         <div>
           <p class="panel__label">PARTICLE LABORATORY</p>
-          <h2>Laboratory Threshold</h2>
+          <h2>Adjacent Chamber</h2>
         </div>
-        <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
+        <p>High-energy conduits link to the Particle Synthesizer in the adjacent wing.</p>
       </div>
       <div class="section-stack">
-        ${renderParticleLabDetails(state, config)}
+        <article class="panel">
+          <div class="panel__header-row">
+            ${renderCardTags("Chamber", isAwakened ? "Online" : "Standby")}
+            <span class="card-subsystem">Sector B</span>
+          </div>
+          <div class="panel__heading">
+            <div>
+              <p class="panel__label">CHAMBER INTERFACE</p>
+              <h2>Particle Synthesizer</h2>
+            </div>
+            <button class="button button--primary" data-action="set-tab" data-tab="science" type="button">
+              Access in Science Tab →
+            </button>
+          </div>
+          <p class="muted">
+            ${
+              isAwakened
+                ? "The colossal Particle Synthesizer in the adjacent room is powered and humming. Telemetry, controls, and synthesis activation are managed in the Science tab."
+                : `High-voltage conduits lead into the dark chamber next door. The apparatus will awaken once power reaches ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.`
+            }
+          </p>
+        </article>
       </div>
     </section>
   `;
@@ -2924,7 +3010,9 @@ function renderScienceSubtabs(state) {
 
 function renderScienceTab(state, config) {
   const labReadable = canAccessParticleLab(state, config);
-  const activeSubtab = state.ui?.activeScienceSubtab ?? "tree";
+  const activeSubtab =
+    state.ui?.activeScienceSubtab ??
+    ((state.science?.syntheses ?? 0) > 0 ? "tree" : "devices");
   const treeContent = `
     <div class="device-group__heading">
       <div>
@@ -2977,17 +3065,13 @@ function renderScienceTab(state, config) {
             <p class="panel__label">LAB</p>
             <h2>Particle Laboratory</h2>
           </div>
-          <p>The central panel remains the bridge into the next reset.</p>
+          <p>Sector B Chamber & Telemetry.</p>
         </div>
         <div class="section-stack">
           ${
             !labReadable
               ? '<p class="empty-note">Particle Laboratory signal is not readable in this run yet.</p>'
-              : (state.science?.syntheses ?? 0) > 0
-                ? '<p class="empty-note">The laboratory remains open. Particle Sintetizer controls have moved to Science Devices.</p>'
-                : renderComponent("particleSynthesizer", state, config, () =>
-                    renderParticleLabDetails(state, config),
-                  )
+              : renderParticleLabTelemetry(state, config)
           }
         </div>
       </aside>
@@ -3988,11 +4072,56 @@ function updateDynamicFields(
   updateInteractiveElements(app, state, config);
 }
 
+function renderSynthesizerAwakeningModal(state, config) {
+  if (!state.ui?.synthesizerAwakenedModal) return "";
+  const cost = calculateParticleSynthesizerCost(state, config);
+  const projectedSP = calculateSciencePointReward(
+    state.energy,
+    state.science?.totalScienceEarned ?? 0,
+    config,
+  );
+  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
+
+  return `
+    <div class="modal-backdrop">
+      <section class="synthesis-modal narrative-awakening-modal" role="dialog" aria-modal="true" aria-labelledby="awakening-modal-title">
+        <div class="panel__header-row">
+          <span class="card-tag card-tag--science">TELEMETRY</span>
+          <span class="card-subsystem">CHAMBER 02 // SECTOR B</span>
+        </div>
+        <p class="panel__label">SECTOR B AWAKENING // THE ADJACENT ROOM</p>
+        <h2 id="awakening-modal-title">The Device Next Door Awakens</h2>
+        
+        <div class="synthesis-modal__narrative">
+          <p>A deep, low-frequency tremor hums through the reinforced concrete floorboards. In the adjoining chamber beyond the blast glass, massive high-voltage contactors slam closed with gunshot-like claps.</p>
+          <p>Overhead industrial floodlights flicker to life in sequence, casting harsh amber beams across a monumental toroidal apparatus—the <strong>Particle Synthesizer</strong>. Auxiliary coolant loops whistle as liquid nitrogen surges into superconducting electromagnetic coils.</p>
+          <p>For the first time since the facility went online, the adjacent wing is fully powered. The particle accelerator ring is primed, hums with contained power, and its controls are now live in the <strong>Science Tab</strong>.</p>
+        </div>
+
+        <div class="synthesis-modal__era">
+          <h3>Laboratory Route Online</h3>
+          <p>The facility has stored sufficient power (${formatEnergy(cost)}) to trigger high-energy particle synthesis. Synthesizing will focus your stored energy into the chamber core, collapsing the Energy Era to forge <strong>Science Points</strong> (${projectedSP} SP) and <strong>Quarks</strong> (${projectedQuarks}).</p>
+        </div>
+
+        <div class="synthesis-modal__actions">
+          <button class="button button--ghost" data-action="close-awakening-modal" type="button">
+            Dismiss
+          </button>
+          <button class="button button--primary" data-action="enter-synthesizer-chamber" type="button">
+            Enter Particle Laboratory →
+          </button>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderModalsContent(state, config) {
   return `
     ${renderResetConfirmationModal(state, config)}
     ${renderHistoryReadingModal(state)}
     ${renderParticleSynthesisModal(state, config)}
+    ${renderSynthesizerAwakeningModal(state, config)}
   `;
 }
 
@@ -4052,6 +4181,7 @@ function getTabContentSignature(
       algUpgradeActive: state.algorithmUpgradeStudy.active,
       labReadable: canAccessParticleLab(state, config),
       synthesizerActivated: state.particleSynthesizer.activated,
+      synthesizerAwakened: Boolean(state.particleSynthesizer?.awakened),
       pcVis: evaluateComponent("powerCell", state, config).visible,
       pmVis: evaluateComponent("powerModule", state, config).visible,
       crcVis: evaluateComponent("crcBlueprint", state, config).visible,
@@ -4094,6 +4224,8 @@ function getTabContentSignature(
       quarkCages: state.scienceDevices?.quarkCages ?? 0,
       fiftyG: state.science?.fiftyGCalculator ?? false,
       syntheses: state.science?.syntheses ?? 0,
+      synthesizerAwakened: Boolean(state.particleSynthesizer?.awakened),
+      synthesizerReady: evaluateComponent("particleSynthesizer", state, config).enabled,
     });
   }
 
@@ -4164,6 +4296,7 @@ function updateEnergySubregions(
   const labSig = JSON.stringify({
     labReadable: canAccessParticleLab(state, config),
     synthesizerActivated: state.particleSynthesizer.activated,
+    awakened: Boolean(state.particleSynthesizer?.awakened),
   });
   if (labSig !== lastSubSigs.energyLab) {
     const el = tabContentEl.querySelector('[data-subregion="energy-lab"]');
@@ -4322,6 +4455,7 @@ export function createRenderer(
       resetModal: state.ui?.resetModal ?? null,
       historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
       particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
+      synthesizerAwakenedModal: Boolean(state.ui?.synthesizerAwakenedModal),
     });
 
     const sigTabContent = getTabContentSignature(

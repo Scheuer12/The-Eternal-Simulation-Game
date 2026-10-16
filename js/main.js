@@ -103,6 +103,8 @@ function bindActions(app, engine, saveActions, config) {
       "confirm-particle-synthesis": () => engine.confirmParticleSynthesis(),
       "close-particle-synthesis-narrative": () =>
         engine.closeParticleSynthesisModal(),
+      "enter-synthesizer-chamber": () => engine.enterSynthesizerChamber(),
+      "close-awakening-modal": () => engine.closeSynthesizerAwakenedModal(),
       "cancel-reset-modal": () => engine.closeResetModal(),
       "confirm-reset-modal": () => {
         if (engine.state.ui.resetModal === "cmu") {
