@@ -5806,9 +5806,9 @@
   },
   "processor": {
     "baseCost": 6e-7,
-    "costGrowth": 6,
-    "costGrowthExponent": 1.2,
-    "deviceEfficiencyMultiplier": 1.2
+    "costGrowth": 8,
+    "costGrowthExponent": 1.25,
+    "deviceEfficiencyMultiplier": 1.25
   },
   "overclocker": {
     "baseCost": 2,
@@ -5861,7 +5861,7 @@
       "perUnitSpeedBonus": 1
     },
     "processors": {
-      "perUnitBonus": 0.15
+      "perUnitBonus": 0.25
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
@@ -7416,7 +7416,7 @@ function calculateProcessorBonusUnit(state, config) {
     config.economyV2?.processors?.perUnitBonus ??
     (config.processor?.deviceEfficiencyMultiplier
       ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.15);
+      : 0.25);
   return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
 }
 

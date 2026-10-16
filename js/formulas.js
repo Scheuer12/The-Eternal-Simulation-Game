@@ -296,7 +296,7 @@ export function calculateProcessorBonusUnit(state, config) {
     config.economyV2?.processors?.perUnitBonus ??
     (config.processor?.deviceEfficiencyMultiplier
       ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.15);
+      : 0.25);
   return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
 }
 

@@ -179,16 +179,17 @@ test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   const state = createInitialState(config);
   state.devices.processors = 1;
 
+  const baseBonus = 0.25;
   const unitBonus0 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus0, 0.15, 1e-12);
+  assertBigClose(unitBonus0, baseBonus, 1e-12);
 
   state.calculationMethods = 1;
   const unitBonus1 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus1, 0.15 * 1.2, 1e-12);
+  assertBigClose(unitBonus1, baseBonus * 1.2, 1e-12);
 
   state.calculationMethods = 2;
   const unitBonus2 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus2, 0.15 * 1.44, 1e-12);
+  assertBigClose(unitBonus2, baseBonus * 1.44, 1e-12);
 
   // When P=0, CMU has zero effect on Auto Calculator speed
   state.devices.processors = 0;
@@ -203,11 +204,11 @@ test("Processor aggregated effectiveness E_P (direct linear: E_P = 1 + unitBonus
   state.devices.processors = 2;
   state.devices.autoCalculators = 2;
 
-  const unitBonus = 0.15;
-  const ep = 1 + unitBonus * 2; // 1 + 0.30 = 1.30
+  const unitBonus = 0.25;
+  const ep = 1 + unitBonus * 2; // 1 + 0.50 = 1.50
   assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
 
-  // 2 calculators = 2 nominal threads at speed = 2 * 1.5 * ep = 3.90
+  // 2 calculators = 2 nominal threads at speed = 2 * 1.5 * ep = 4.50
   const expectedFleetSpeed = 2 * 1.5 * ep;
   assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedFleetSpeed, 1e-12);
 });
@@ -221,7 +222,7 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
   // Inactive
   assert.equal(calculateOverclockerSpeedMultiplier(state, config), 1);
   assertBigEqual(calculateOverclockerDrainPerSecond(state, config), 0);
-  assertBigClose(calculateProcessorBonusUnit(state, config), 0.15, 1e-12);
+  assertBigClose(calculateProcessorBonusUnit(state, config), 0.25, 1e-12);
 
   // Active: O_0(1) = 5
   state.overclocker.active = true;
@@ -230,8 +231,8 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
     calculateOverclockerDrainPerSecond(state, config),
     config.overclocker.baseEnergyDrainPerSecond,
   );
-  // Processor unit bonus becomes 0.15 * 5 = 0.75
-  assertBigClose(calculateProcessorBonusUnit(state, config), 0.75, 1e-12);
+  // Processor unit bonus becomes 0.25 * 5 = 1.25
+  assertBigClose(calculateProcessorBonusUnit(state, config), 1.25, 1e-12);
 
   // 2 Overclockers: O_0(2) = 5 * 1.5 = 7.5
   state.devices.overclockers = 2;

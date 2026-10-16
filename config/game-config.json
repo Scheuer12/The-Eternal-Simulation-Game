@@ -136,9 +136,9 @@
   },
   "processor": {
     "baseCost": 6e-7,
-    "costGrowth": 6,
-    "costGrowthExponent": 1.2,
-    "deviceEfficiencyMultiplier": 1.2
+    "costGrowth": 8,
+    "costGrowthExponent": 1.25,
+    "deviceEfficiencyMultiplier": 1.25
   },
   "overclocker": {
     "baseCost": 2,
@@ -191,7 +191,7 @@
       "perUnitSpeedBonus": 1.0
     },
     "processors": {
-      "perUnitBonus": 0.15
+      "perUnitBonus": 0.25
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
