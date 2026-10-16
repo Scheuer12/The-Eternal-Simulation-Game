@@ -119,10 +119,10 @@
   },
   "autoCalculator": {
     "baseCost": 1.2e-7,
-    "costGrowth": 60,
-    "costGrowthExponent": 1.25,
-    "firstSpeedMultiplier": 2,
-    "additionalSpeedMultiplier": 2
+    "costGrowth": 3.2,
+    "costGrowthExponent": 1.08,
+    "firstSpeedMultiplier": 1,
+    "additionalSpeedMultiplier": 1
   },
   "blueprint": {
     "revealAtPeakEnergy": 10,
@@ -138,7 +138,7 @@
     "baseCost": 6e-7,
     "costGrowth": 6,
     "costGrowthExponent": 1.2,
-    "deviceEfficiencyMultiplier": 1.08
+    "deviceEfficiencyMultiplier": 1.2
   },
   "overclocker": {
     "baseCost": 2,
@@ -185,10 +185,11 @@
       "automatedDurationGrowthPower": 1.1
     },
     "autoCalculators": {
-      "perUnitSpeedBonus": 0.5
+      "threadBonus": 1.0,
+      "perUnitSpeedBonus": 1.0
     },
     "processors": {
-      "perUnitBonus": 0.08
+      "perUnitBonus": 0.2
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
@@ -203,7 +204,7 @@
     },
     "scienceRebalance": {
       "calculatorUpgradeResearchLogCoefficient": 0.2,
-      "calculatorEnhancedBonus": 0.7,
+      "calculatorEnhancedBonus": 1.4,
       "quantumSuperpositionLogCoefficient": 0.02,
       "powerCellResonanceLogCoefficient": 0.02
     }

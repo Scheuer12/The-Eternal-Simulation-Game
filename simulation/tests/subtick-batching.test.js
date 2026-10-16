@@ -169,7 +169,7 @@ test("rates above 60/s are fully executed and never truncated by tick rate", () 
   const { engine, state } = createActiveEngine();
   state.devices.autoCalculators = 20;
   state.devices.processors = 10;
-  state.improvements = 200;
+  state.improvements = 30;
 
   // Measure study duration: should be well under 1/60s (~16.6ms)
   const duration = calculateStudyDuration(state, config);

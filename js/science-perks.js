@@ -254,12 +254,12 @@ export const SCIENCE_PERKS = [
   },
   {
     id: "calculatorBonusX2ToX22",
-    name: "Calculator Bonus +50% → +70%",
+    name: "Calculator Overthreading +40%",
     branch: "studies",
     cost: 2,
     requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases the Auto Calculator base unit bonus from +50% to +70%.",
-    summary: "Raises Calculator unit bonus from +50% to +70%.",
+    effect: "Increases each Auto Calculator thread execution throughput by +40% (1.0x → 1.4x per core).",
+    summary: "Raises Calculator thread throughput by +40%.",
   },
   {
     id: "processorBonusAppliesAImprovementSpeed",

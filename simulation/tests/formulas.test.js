@@ -180,39 +180,37 @@ test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   state.devices.processors = 1;
 
   const unitBonus0 = calculateProcessorBonusUnit(state, config);
-  assert.equal(unitBonus0, 0.08);
+  assert.equal(unitBonus0, 0.2);
 
   state.calculationMethods = 1;
   const unitBonus1 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus1, 0.08 * 1.2, 1e-12);
+  assertBigClose(unitBonus1, 0.2 * 1.2, 1e-12);
 
   state.calculationMethods = 2;
   const unitBonus2 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus2, 0.08 * 1.44, 1e-12);
+  assertBigClose(unitBonus2, 0.2 * 1.44, 1e-12);
 
   // When P=0, CMU has zero effect on Auto Calculator speed
   state.devices.processors = 0;
   state.devices.autoCalculators = 1;
-  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 1.5);
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 2);
+  state.devices.autoCalculators = 2;
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 4);
 });
 
-test("Processor aggregated effectiveness E_P = (1 + unitBonus)^P compounds into each Calculator", () => {
+test("Processor aggregated effectiveness E_P = (1 + unitBonus)^P scales Calculator fleet speed linearly by threads", () => {
   const state = createInitialState(config);
   state.devices.processors = 2;
   state.devices.autoCalculators = 2;
 
-  const unitBonus = 0.08;
-  const ep = (1 + unitBonus) ** 2; // 1.08^2 = 1.1664
+  const unitBonus = 0.2;
+  const ep = (1 + unitBonus) ** 2; // 1.20^2 = 1.44
   assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
 
-  // Each calculator has baseUnitBonus = 0.5. With EP, unit bonus is 0.5 * EP.
-  // Fleet speed = (1 + 0.5 * EP)^2
-  const expectedFleetSpeed = (1 + 0.5 * ep) ** 2;
+  // 2 calculators = 2 threads at 2x base speed = 4x base thread speed.
+  // Fleet speed = 4 * ep
+  const expectedFleetSpeed = 4 * ep;
   assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedFleetSpeed, 1e-12);
-
-  // Crucial test from spec §11.1: verify difference between compounding E_P into each calculator vs multiplying at the end
-  const wrongMultiplyAtEnd = ((1 + 0.5) ** 2) * ep;
-  assert.notEqual(expectedFleetSpeed, wrongMultiplyAtEnd);
 });
 
 test("Overclocker acts on Processor bonus while active, not directly on fleet speed", () => {
@@ -224,7 +222,7 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
   // Inactive
   assert.equal(calculateOverclockerSpeedMultiplier(state, config), 1);
   assertBigEqual(calculateOverclockerDrainPerSecond(state, config), 0);
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.08);
+  assert.equal(calculateProcessorBonusUnit(state, config), 0.2);
 
   // Active: O_0(1) = 5
   state.overclocker.active = true;
@@ -233,8 +231,8 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
     calculateOverclockerDrainPerSecond(state, config),
     config.overclocker.baseEnergyDrainPerSecond,
   );
-  // Processor unit bonus becomes 0.08 * 5 = 0.40
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.4);
+  // Processor unit bonus becomes 0.20 * 5 = 1.0
+  assert.equal(calculateProcessorBonusUnit(state, config), 1);
 
   // 2 Overclockers: O_0(2) = 5 * 1.5 = 7.5
   state.devices.overclockers = 2;

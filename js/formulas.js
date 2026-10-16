@@ -349,26 +349,27 @@ export function calculateCrcExponentialMultiplier(state, config) {
 }
 
 /**
- * Auto Calculator fleet speed multiplier:
- * V_A = (1 + B_A * D(S) * E_P)^A
- * where B_A is 0.5 (or 0.7 with calculatorBonusX2ToX22 perk)
+ * Auto Calculator fleet speed multiplier (Parallel Threads Model):
+ * Each Auto Calculator runs an independent execution thread.
+ * V_A = C_eff * E_P
+ * where C_eff = calculators * threadBonus (1.0 base, or 1.4 with calculatorBonusX2ToX22 perk).
+ * Processors accelerate the clock speed/frequency (E_P) of every thread.
  */
 export function calculateAutoCalculatorSpeedMultiplier(state, config) {
   const calculators = state.devices?.autoCalculators ?? 0;
   if (calculators <= 0) return 1;
 
-  const baseUnitBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
-    ? (config.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 0.7)
-    : (config.economyV2?.autoCalculators?.perUnitSpeedBonus ?? 0.5);
+  // The first calculator automates studies at 2x base speed.
+  // Each additional calculator adds an independent parallel execution thread.
+  const baseSpeedPerThread = 2.0;
+  const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
+    ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
+    : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
+  const effectiveThreads = calculators * baseSpeedPerThread * threadBonus;
 
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
   const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  const unitBonus = baseUnitBonus * setupPerformance * ep;
 
-  return (1 + unitBonus) ** calculators;
+  return effectiveThreads * ep;
 }
 
 export function calculateRedundancyEffectiveCycles(improvements, config) {

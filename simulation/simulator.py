@@ -159,11 +159,13 @@ def processor_effectiveness(run: RunState, config: dict) -> float:
 def auto_calculator_speed_multiplier(run: RunState, config: dict) -> float:
     if run.auto_calculators <= 0:
         return 1.0
-    base_bonus = config["economyV2"]["autoCalculators"]["perUnitSpeedBonus"]
-    d_s = device_performance_setup(run)
+    thread_bonus = (
+        config.get("economyV2", {}).get("scienceRebalance", {}).get("calculatorEnhancedBonus", 1.4)
+        if run.perks.get("calculatorBonusX2ToX22")
+        else config.get("economyV2", {}).get("autoCalculators", {}).get("threadBonus", 1.0)
+    )
     e_p = processor_effectiveness(run, config)
-    unit_bonus = base_bonus * d_s * e_p
-    return (1.0 + unit_bonus) ** run.auto_calculators
+    return float(run.auto_calculators * thread_bonus * e_p)
 
 
 def algorithm_improvement_speed(run: RunState, config: dict) -> float:

@@ -1305,7 +1305,7 @@ function renderAutoCalculator(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("The first Auto Calculator automates Algorithm Improvements and runs them 2x faster than manual runs. Each additional calculator doubles Algorithm Improvement speed again.")}
+      ${helpNote("Auto Calculators automate Algorithm Improvements. Each unit runs an independent execution thread in parallel, accelerated by Processor efficiency.")}
       <div class="panel__header-row">
         ${renderCardTags("Device", "Automation")}
         <span class="card-subsystem">Autonomous Processing</span>
@@ -1332,7 +1332,7 @@ function renderAutoCalculator(state, config) {
               isAutoCalculatorAutomationActive(state)
                 ? "AUTOMATION ACTIVE"
                 : "AUTOMATION PAUSED"
-            } // STUDY SPEED x${speedMultiplier.toFixed(2)}</p>`
+            } // ${owned} THREAD${owned === 1 ? "" : "S"} (${speedMultiplier.toFixed(2)}x SPEED)</p>`
           : ""
       }
     </article>

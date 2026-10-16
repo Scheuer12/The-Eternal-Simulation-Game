@@ -5789,10 +5789,10 @@
   },
   "autoCalculator": {
     "baseCost": 1.2e-7,
-    "costGrowth": 60,
-    "costGrowthExponent": 1.25,
-    "firstSpeedMultiplier": 2,
-    "additionalSpeedMultiplier": 2
+    "costGrowth": 3.2,
+    "costGrowthExponent": 1.08,
+    "firstSpeedMultiplier": 1,
+    "additionalSpeedMultiplier": 1
   },
   "blueprint": {
     "revealAtPeakEnergy": 10,
@@ -5808,7 +5808,7 @@
     "baseCost": 6e-7,
     "costGrowth": 6,
     "costGrowthExponent": 1.2,
-    "deviceEfficiencyMultiplier": 1.08
+    "deviceEfficiencyMultiplier": 1.2
   },
   "overclocker": {
     "baseCost": 2,
@@ -5855,10 +5855,11 @@
       "automatedDurationGrowthPower": 1.1
     },
     "autoCalculators": {
-      "perUnitSpeedBonus": 0.5
+      "threadBonus": 1,
+      "perUnitSpeedBonus": 1
     },
     "processors": {
-      "perUnitBonus": 0.08
+      "perUnitBonus": 0.2
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
@@ -5873,7 +5874,7 @@
     },
     "scienceRebalance": {
       "calculatorUpgradeResearchLogCoefficient": 0.2,
-      "calculatorEnhancedBonus": 0.7,
+      "calculatorEnhancedBonus": 1.4,
       "quantumSuperpositionLogCoefficient": 0.02,
       "powerCellResonanceLogCoefficient": 0.02
     }
@@ -7462,26 +7463,27 @@ function calculateCrcExponentialMultiplier(state, config) {
 }
 
 /**
- * Auto Calculator fleet speed multiplier:
- * V_A = (1 + B_A * D(S) * E_P)^A
- * where B_A is 0.5 (or 0.7 with calculatorBonusX2ToX22 perk)
+ * Auto Calculator fleet speed multiplier (Parallel Threads Model):
+ * Each Auto Calculator runs an independent execution thread.
+ * V_A = C_eff * E_P
+ * where C_eff = calculators * threadBonus (1.0 base, or 1.4 with calculatorBonusX2ToX22 perk).
+ * Processors accelerate the clock speed/frequency (E_P) of every thread.
  */
 function calculateAutoCalculatorSpeedMultiplier(state, config) {
   const calculators = state.devices?.autoCalculators ?? 0;
   if (calculators <= 0) return 1;
 
-  const baseUnitBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
-    ? (config.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 0.7)
-    : (config.economyV2?.autoCalculators?.perUnitSpeedBonus ?? 0.5);
+  // The first calculator automates studies at 2x base speed.
+  // Each additional calculator adds an independent parallel execution thread.
+  const baseSpeedPerThread = 2.0;
+  const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
+    ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
+    : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
+  const effectiveThreads = calculators * baseSpeedPerThread * threadBonus;
 
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
   const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  const unitBonus = baseUnitBonus * setupPerformance * ep;
 
-  return (1 + unitBonus) ** calculators;
+  return effectiveThreads * ep;
 }
 
 function calculateRedundancyEffectiveCycles(improvements, config) {
@@ -9064,12 +9066,12 @@ const SCIENCE_PERKS = [
   },
   {
     id: "calculatorBonusX2ToX22",
-    name: "Calculator Bonus +50% → +70%",
+    name: "Calculator Overthreading +40%",
     branch: "studies",
     cost: 2,
     requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases the Auto Calculator base unit bonus from +50% to +70%.",
-    summary: "Raises Calculator unit bonus from +50% to +70%.",
+    effect: "Increases each Auto Calculator thread execution throughput by +40% (1.0x → 1.4x per core).",
+    summary: "Raises Calculator thread throughput by +40%.",
   },
   {
     id: "processorBonusAppliesAImprovementSpeed",
@@ -13515,7 +13517,7 @@ function renderAutoCalculator(state, config) {
 
   return `
     <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("The first Auto Calculator automates Algorithm Improvements and runs them 2x faster than manual runs. Each additional calculator doubles Algorithm Improvement speed again.")}
+      ${helpNote("Auto Calculators automate Algorithm Improvements. Each unit runs an independent execution thread in parallel, accelerated by Processor efficiency.")}
       <div class="panel__header-row">
         ${renderCardTags("Device", "Automation")}
         <span class="card-subsystem">Autonomous Processing</span>
@@ -13542,7 +13544,7 @@ function renderAutoCalculator(state, config) {
               isAutoCalculatorAutomationActive(state)
                 ? "AUTOMATION ACTIVE"
                 : "AUTOMATION PAUSED"
-            } // STUDY SPEED x${speedMultiplier.toFixed(2)}</p>`
+            } // ${owned} THREAD${owned === 1 ? "" : "S"} (${speedMultiplier.toFixed(2)}x SPEED)</p>`
           : ""
       }
     </article>
