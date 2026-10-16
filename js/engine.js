@@ -34,6 +34,7 @@ import {
   calculateQuarksGenerated,
   calculateQuarkDecay,
   calculateStableEnergyCapacity,
+  calculateSetupDevicePerformance,
   calculateStudyDuration,
   canResearchBlueprint,
   clamp,
@@ -1646,8 +1647,8 @@ export class GameEngine {
 
     if (resetType === "setup") {
       const nextSetup = this.state.setupOptimizations + 1;
-      const currentD = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
-      const nextD = 1 + 2 * Math.log(1 + nextSetup);
+      const currentD = calculateSetupDevicePerformance(this.state.setupOptimizations, this.config);
+      const nextD = calculateSetupDevicePerformance(nextSetup, this.config);
       return {
         type: "setup",
         title: "Confirm Setup Optimization",
@@ -1903,7 +1904,7 @@ export class GameEngine {
 
     this.state.setupOptimizations += 1;
     this.resetHardwareForSetupOptimization();
-    const D_S = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
+    const D_S = calculateSetupDevicePerformance(this.state.setupOptimizations, this.config);
     this.emitEvent("setup-optimized", {
       count: this.state.setupOptimizations,
     });
@@ -1911,8 +1912,8 @@ export class GameEngine {
       eventId: `milestone-setup-${this.state.setupOptimizations}`,
       kind: "Milestones",
       title: `Setup Optimization #${this.state.setupOptimizations}`,
-      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}.`,
-      body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = 1 + 2 ln(1+S).`,
+      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}x.`,
+      body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = ${D_S.toFixed(2)}x.`,
     });
     this.addLog(
       `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,

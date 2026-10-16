@@ -25,7 +25,7 @@
     "baseCapacityCostMultiplier": 1.5,
     "costGrowthScale": 4,
     "costGrowthPower": 1.25,
-    "arrayCostGrowthMultiplier": 1.04
+    "arrayCostGrowthMultiplier": 1.06
   },
   "powerModule": {
     "cellsPerModule": 100,
@@ -159,7 +159,8 @@
   },
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
-    "methodUpgradesRequiredGrowth": 2
+    "methodUpgradesRequiredGrowth": 1,
+    "methodUpgradesRequiredQuadratic": 0.4
   },
   "development": {
     "durationMultiplier": 0.05,
@@ -185,17 +186,22 @@
       "automatedDurationGrowthPower": 1.1
     },
     "autoCalculators": {
+      "baseSpeedPerThread": 1.5,
       "threadBonus": 1.0,
       "perUnitSpeedBonus": 1.0
     },
     "processors": {
-      "perUnitBonus": 0.2
+      "perUnitBonus": 0.15
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
     },
     "setupOptimizations": {
-      "devicePerformanceLogCoefficient": 2
+      "linearBonus": 5,
+      "quadraticBonus": 2
+    },
+    "powerModules": {
+      "setupExponent": 0.7
     },
     "overclockers": {
       "firstProcessorBonusMultiplier": 5,

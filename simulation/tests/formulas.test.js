@@ -118,7 +118,7 @@ test("reset layer requirements rise as configured", () => {
         config,
       ),
     ),
-    [2, 4, 6, 8],
+    [2, 3, 5, 8],
   );
 });
 
@@ -161,12 +161,12 @@ test("production breakdown shows active production contributors matching total",
   assertBigEqual(total, calculateProduction(state, config));
 });
 
-test("Setup Optimization device performance D(S) = 1 + 2 ln(1+S)", () => {
+test("Setup Optimization device performance D(S) = 1 + 5*S + 2*S^2", () => {
   assert.equal(calculateSetupDevicePerformance(0, config), 1);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(1, config) - 2.38629) < 0.001);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(2, config) - 3.19722) < 0.001);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(5, config) - 4.58351) < 0.001);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(10, config) - 5.79579) < 0.001);
+  assert.equal(calculateSetupDevicePerformance(1, config), 8);
+  assert.equal(calculateSetupDevicePerformance(2, config), 19);
+  assert.equal(calculateSetupDevicePerformance(5, config), 76);
+  assert.equal(calculateSetupDevicePerformance(10, config), 251);
 
   // Setup performance increases CRC base production
   const state = createInitialState(config);
@@ -180,36 +180,36 @@ test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   state.devices.processors = 1;
 
   const unitBonus0 = calculateProcessorBonusUnit(state, config);
-  assert.equal(unitBonus0, 0.2);
+  assertBigClose(unitBonus0, 0.15, 1e-12);
 
   state.calculationMethods = 1;
   const unitBonus1 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus1, 0.2 * 1.2, 1e-12);
+  assertBigClose(unitBonus1, 0.15 * 1.2, 1e-12);
 
   state.calculationMethods = 2;
   const unitBonus2 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus2, 0.2 * 1.44, 1e-12);
+  assertBigClose(unitBonus2, 0.15 * 1.44, 1e-12);
 
   // When P=0, CMU has zero effect on Auto Calculator speed
   state.devices.processors = 0;
   state.devices.autoCalculators = 1;
-  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 2);
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 1.5);
   state.devices.autoCalculators = 2;
-  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 4);
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 3);
 });
 
-test("Processor aggregated effectiveness E_P = (1 + unitBonus)^P scales Calculator fleet speed linearly by threads", () => {
+test("Processor aggregated effectiveness E_P with cross-calculator bus synergy", () => {
   const state = createInitialState(config);
   state.devices.processors = 2;
   state.devices.autoCalculators = 2;
 
-  const unitBonus = 0.2;
-  const ep = (1 + unitBonus) ** 2; // 1.20^2 = 1.44
+  const unitBonus = 0.15;
+  const busFactor = 1 + Math.log(1 + 2); // 1 + ln(3)
+  const ep = 1 + unitBonus * 2 * busFactor;
   assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
 
-  // 2 calculators = 2 threads at 2x base speed = 4x base thread speed.
-  // Fleet speed = 4 * ep
-  const expectedFleetSpeed = 4 * ep;
+  // 2 calculators = 2 nominal threads at speed = 2 * 1.5 * ep
+  const expectedFleetSpeed = 2 * 1.5 * ep;
   assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedFleetSpeed, 1e-12);
 });
 
@@ -222,7 +222,7 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
   // Inactive
   assert.equal(calculateOverclockerSpeedMultiplier(state, config), 1);
   assertBigEqual(calculateOverclockerDrainPerSecond(state, config), 0);
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.2);
+  assertBigClose(calculateProcessorBonusUnit(state, config), 0.15, 1e-12);
 
   // Active: O_0(1) = 5
   state.overclocker.active = true;
@@ -231,8 +231,8 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
     calculateOverclockerDrainPerSecond(state, config),
     config.overclocker.baseEnergyDrainPerSecond,
   );
-  // Processor unit bonus becomes 0.20 * 5 = 1.0
-  assert.equal(calculateProcessorBonusUnit(state, config), 1);
+  // Processor unit bonus becomes 0.15 * 5 = 0.75
+  assertBigClose(calculateProcessorBonusUnit(state, config), 0.75, 1e-12);
 
   // 2 Overclockers: O_0(2) = 5 * 1.5 = 7.5
   state.devices.overclockers = 2;

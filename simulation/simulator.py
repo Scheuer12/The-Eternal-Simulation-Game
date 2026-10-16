@@ -63,14 +63,17 @@ class RunState:
 
 
 def device_performance_setup(run: RunState) -> float:
-    return 1.0 + 2.0 * math.log(1.0 + run.setup_optimizations)
+    s = run.setup_optimizations
+    return 1.0 + 5.0 * s + 2.0 * (s ** 2)
 
 
 def stable_energy_capacity(run: RunState, config: dict) -> float:
     base_cap = config["energy"]["powerCellCapacity"]
-    setup_mult = 1.0 + 0.5 * math.log(1.0 + run.setup_optimizations)
-    module_mult = 1.0 + 0.5 * run.power_modules
-    cell_cap = base_cap * run.power_cells * setup_mult
+    d_s = device_performance_setup(run)
+    setup_exp = config.get("economyV2", {}).get("powerModules", {}).get("setupExponent", 0.7)
+    unit_mult = 1.0 + 0.35 * (d_s ** setup_exp)
+    module_mult = unit_mult ** run.power_modules
+    cell_cap = base_cap * run.power_cells * d_s
     if run.perks.get("powerCellResonance"):
         cell_cap *= 1.0 + 0.02 * math.log10(1.0 + max(1, run.power_cells))
     return cell_cap * module_mult
@@ -81,7 +84,7 @@ def power_cell_cost(run: RunState, config: dict) -> float:
     owned = max(1, run.power_cells)
     current_capacity = config["energy"]["powerCellCapacity"] * owned
     completed_arrays = owned // config["powerModule"]["cellsPerModule"]
-    array_pressure = (config["powerCell"].get("arrayCostGrowthMultiplier", 1.0)) ** completed_arrays
+    array_pressure = (config["powerCell"].get("arrayCostGrowthMultiplier", 1.06)) ** completed_arrays
     multiplier = (
         settings["baseCapacityCostMultiplier"]
         * (1.0 + (owned - 1.0) / settings["costGrowthScale"]) ** settings["costGrowthPower"]
@@ -153,19 +156,22 @@ def processor_effectiveness(run: RunState, config: dict) -> float:
         * d_s
         * oc_mult
     )
-    return (1.0 + unit_bonus) ** run.processors
+    bus_factor = 1.0 + math.log(1.0 + max(1, run.auto_calculators))
+    return 1.0 + unit_bonus * run.processors * bus_factor
 
 
 def auto_calculator_speed_multiplier(run: RunState, config: dict) -> float:
     if run.auto_calculators <= 0:
         return 1.0
+    base_speed = config.get("economyV2", {}).get("autoCalculators", {}).get("baseSpeedPerThread", 1.5)
     thread_bonus = (
         config.get("economyV2", {}).get("scienceRebalance", {}).get("calculatorEnhancedBonus", 1.4)
         if run.perks.get("calculatorBonusX2ToX22")
         else config.get("economyV2", {}).get("autoCalculators", {}).get("threadBonus", 1.0)
     )
+    effective_threads = run.auto_calculators * base_speed * thread_bonus
     e_p = processor_effectiveness(run, config)
-    return float(run.auto_calculators * thread_bonus * e_p)
+    return float(effective_threads * e_p)
 
 
 def algorithm_improvement_speed(run: RunState, config: dict) -> float:
@@ -252,9 +258,11 @@ def cmu_requirement(run: RunState, config: dict) -> int:
 
 
 def setup_requirement(run: RunState, config: dict) -> int:
+    s = run.setup_optimizations
     initial = config["setupOptimization"]["initialMethodUpgradesRequired"]
-    growth = config["setupOptimization"]["methodUpgradesRequiredGrowth"]
-    return initial + run.setup_optimizations * growth
+    linear = config["setupOptimization"]["methodUpgradesRequiredGrowth"]
+    quad = config["setupOptimization"].get("methodUpgradesRequiredQuadratic", 0.4)
+    return int(initial + linear * s + quad * (s ** 2))
 
 
 def simulate_run(
@@ -313,7 +321,7 @@ def simulate_run(
 
         # CMU Trigger: reset studies when required Algorithm Upgrades reached
         req_cmu = cmu_requirement(run, config)
-        if run.method_upgrades < 2 and run.upgrades >= req_cmu:
+        if run.upgrades >= req_cmu:
             run.method_upgrades += 1
             if "first_cmu" not in run.milestones:
                 run.milestones["first_cmu"] = run.elapsed
@@ -323,10 +331,21 @@ def simulate_run(
             run.improvements = 0
             run.study_remaining = None
 
-        # Setup Optimization Trigger: used for deep runs when power cells are well-established
+        # Setup Optimization Trigger: 3-act natural progression
         req_setup = setup_requirement(run, config)
-        if run.method_upgrades >= req_setup and run.power_cells >= 50 and run.peak_energy >= 1e12:
+        can_setup = run.method_upgrades >= req_setup
+        should_setup = False
+        if run.setup_optimizations == 0 and can_setup and run.energy >= 0.005:
+            should_setup = True
+        elif run.setup_optimizations == 1 and can_setup and run.energy >= 10.0:
+            should_setup = True
+        elif run.setup_optimizations >= 2 and can_setup and run.energy >= 1e11:
+            should_setup = True
+
+        if should_setup:
             run.setup_optimizations += 1
+            if f"setup_{run.setup_optimizations}" not in run.milestones:
+                run.milestones[f"setup_{run.setup_optimizations}"] = run.elapsed
             run.energy = 0.0
             run.improvements = 0
             run.upgrades = 0

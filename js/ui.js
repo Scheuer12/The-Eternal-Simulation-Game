@@ -612,8 +612,8 @@ function getResetPreviewData(state, config, resetType) {
 
   if (resetType === "setup") {
     const nextSetup = state.setupOptimizations + 1;
-    const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
-    const nextD = 1 + 2 * Math.log(1 + nextSetup);
+    const currentD = calculateSetupDevicePerformance(state.setupOptimizations, config);
+    const nextD = calculateSetupDevicePerformance(nextSetup, config);
     const eligible = evaluateComponent(
       "setupOptimization",
       state,
@@ -1729,11 +1729,12 @@ function renderSetupOptimization(state, config) {
   const ready = state.calculationMethods >= required;
   const availability = evaluateComponent("setupOptimization", state, config);
   const progress = state.calculationMethods / required;
-  const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
+  const currentD = calculateSetupDevicePerformance(state.setupOptimizations, config);
+  const nextD = calculateSetupDevicePerformance(state.setupOptimizations + 1, config);
 
   return `
     <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
+      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S).")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Hard Reset")}
         <span class="card-subsystem text--danger">Facility Reconfiguration</span>
@@ -1752,7 +1753,7 @@ function renderSetupOptimization(state, config) {
       ${progressBar(progress, "Setup Optimization readiness", "discovery")}
       <div class="progress-caption">
         <span>${ready ? "SETUP READY" : `${Math.min(state.calculationMethods, required)} / ${required} Method Upgrades`}</span>
-        <span>Device scale D(S): ${currentD.toFixed(2)}</span>
+        <span>Device scale D(S): ${currentD.toFixed(1)}x → ${nextD.toFixed(1)}x</span>
       </div>
     </article>
   `;

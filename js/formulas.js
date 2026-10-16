@@ -130,13 +130,15 @@ export function calculatePowerModuleCost(ownedPowerModules, config) {
 
 /**
  * Setup Optimization device performance multiplier:
- * D(S) = 1 + 2 * ln(1 + S)
+ * D(S) = 1 + linear * S + quadratic * S^2
  */
 export function calculateSetupDevicePerformance(setupOptimizations = 0, config = {}) {
   const s = Math.max(0, setupOptimizations ?? 0);
-  const coeff =
-    config?.economyV2?.setupOptimizations?.devicePerformanceLogCoefficient ?? 2;
-  return 1 + coeff * Math.log(1 + s);
+  const linear =
+    config?.economyV2?.setupOptimizations?.linearBonus ?? 5;
+  const quadratic =
+    config?.economyV2?.setupOptimizations?.quadraticBonus ?? 2;
+  return 1 + linear * s + quadratic * (s ** 2);
 }
 
 /**
@@ -152,7 +154,7 @@ export function calculatePowerCellResonanceMultiplier(powerCellsOwned, config = 
 
 /**
  * Power Module capacity multiplier:
- * M_cap = [1 + 0.35 * D(S)]^N_eff
+ * M_cap = [1 + 0.35 * D(S)^setupExponent]^N_eff
  */
 export function calculatePowerModuleCapacityMultiplier(state, config) {
   const modules = Math.max(0, state.powerModules ?? 0);
@@ -170,7 +172,8 @@ export function calculatePowerModuleCapacityMultiplier(state, config) {
   }
 
   const baseGrowth = (config.powerModule?.capacityMultiplier ?? 1.35) - 1; // 0.35
-  const unitMultiplier = 1 + baseGrowth * setupPerformance;
+  const setupExp = config?.economyV2?.powerModules?.setupExponent ?? 0.7;
+  const unitMultiplier = 1 + baseGrowth * (setupPerformance ** setupExp);
 
   return big(unitMultiplier).pow(effectiveModules);
 }
@@ -293,19 +296,23 @@ export function calculateProcessorBonusUnit(state, config) {
     config.economyV2?.processors?.perUnitBonus ??
     (config.processor?.deviceEfficiencyMultiplier
       ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.08);
+      : 0.15);
   return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
 }
 
 /**
- * Aggregated Processor effectiveness:
- * E_P = (1 + unitBonus)^P
+ * Aggregated Processor effectiveness with Cross-Calculator Bus Synergy:
+ * E_P = 1 + unitBonus * P * (1 + ln(1 + C))
+ * Processors accelerate the clock speed/frequency (E_P) of every thread,
+ * scaling synergistically across the calculator fleet with smoothly diminishing logarithmic returns.
  */
 export function calculateProcessorEfficiencyMultiplier(state, config) {
   const processors = state.devices?.processors ?? 0;
   if (processors <= 0) return 1;
+  const calculators = Math.max(1, state.devices?.autoCalculators ?? 1);
   const unitBonus = calculateProcessorBonusUnit(state, config);
-  return (1 + unitBonus) ** processors;
+  const busFactor = 1 + Math.log(1 + calculators);
+  return 1 + unitBonus * processors * busFactor;
 }
 
 /**
@@ -349,19 +356,18 @@ export function calculateCrcExponentialMultiplier(state, config) {
 }
 
 /**
- * Auto Calculator fleet speed multiplier (Parallel Threads Model):
- * Each Auto Calculator runs an independent execution thread.
+ * Auto Calculator fleet speed multiplier (Parallel Threads Model with Nominal Gains):
+ * Each Auto Calculator runs an independent parallel execution thread (+1 thread per unit).
  * V_A = C_eff * E_P
- * where C_eff = calculators * threadBonus (1.0 base, or 1.4 with calculatorBonusX2ToX22 perk).
- * Processors accelerate the clock speed/frequency (E_P) of every thread.
+ * where C_eff = calculators * threadBonus (1.0 base nominal, or 1.4 with calculatorBonusX2ToX22 perk).
+ * Processors accelerate the clock speed/frequency (E_P) of all threads.
  */
 export function calculateAutoCalculatorSpeedMultiplier(state, config) {
   const calculators = state.devices?.autoCalculators ?? 0;
   if (calculators <= 0) return 1;
 
-  // The first calculator automates studies at 2x base speed.
-  // Each additional calculator adds an independent parallel execution thread.
-  const baseSpeedPerThread = 2.0;
+  const baseSpeedPerThread =
+    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 1.5;
   const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
     ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
     : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
@@ -528,11 +534,14 @@ export function calculateCalculationMethodRequirement(state, config) {
 }
 
 export function calculateSetupOptimizationRequirement(state, config) {
-  return (
-    config.setupOptimization.initialMethodUpgradesRequired +
-    config.setupOptimization.methodUpgradesRequiredGrowth *
-      state.setupOptimizations
-  );
+  const s = Math.max(0, state.setupOptimizations ?? 0);
+  const initial =
+    config?.setupOptimization?.initialMethodUpgradesRequired ?? 2;
+  const linear =
+    config?.setupOptimization?.methodUpgradesRequiredGrowth ?? 1;
+  const quadratic =
+    config?.setupOptimization?.methodUpgradesRequiredQuadratic ?? 0.4;
+  return Math.floor(initial + linear * s + quadratic * (s ** 2));
 }
 
 export function calculateBlueprintResearchDuration(

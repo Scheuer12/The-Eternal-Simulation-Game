@@ -5695,7 +5695,7 @@
     "baseCapacityCostMultiplier": 1.5,
     "costGrowthScale": 4,
     "costGrowthPower": 1.25,
-    "arrayCostGrowthMultiplier": 1.04
+    "arrayCostGrowthMultiplier": 1.06
   },
   "powerModule": {
     "cellsPerModule": 100,
@@ -5829,7 +5829,8 @@
   },
   "setupOptimization": {
     "initialMethodUpgradesRequired": 2,
-    "methodUpgradesRequiredGrowth": 2
+    "methodUpgradesRequiredGrowth": 1,
+    "methodUpgradesRequiredQuadratic": 0.4
   },
   "development": {
     "durationMultiplier": 0.05,
@@ -5855,17 +5856,22 @@
       "automatedDurationGrowthPower": 1.1
     },
     "autoCalculators": {
+      "baseSpeedPerThread": 1.5,
       "threadBonus": 1,
       "perUnitSpeedBonus": 1
     },
     "processors": {
-      "perUnitBonus": 0.2
+      "perUnitBonus": 0.15
     },
     "calculationMethods": {
       "processorBonusMultiplierPerCMU": 1.2
     },
     "setupOptimizations": {
-      "devicePerformanceLogCoefficient": 2
+      "linearBonus": 5,
+      "quadraticBonus": 2
+    },
+    "powerModules": {
+      "setupExponent": 0.7
     },
     "overclockers": {
       "firstProcessorBonusMultiplier": 5,
@@ -7244,13 +7250,15 @@ function calculatePowerModuleCost(ownedPowerModules, config) {
 
 /**
  * Setup Optimization device performance multiplier:
- * D(S) = 1 + 2 * ln(1 + S)
+ * D(S) = 1 + linear * S + quadratic * S^2
  */
 function calculateSetupDevicePerformance(setupOptimizations = 0, config = {}) {
   const s = Math.max(0, setupOptimizations ?? 0);
-  const coeff =
-    config?.economyV2?.setupOptimizations?.devicePerformanceLogCoefficient ?? 2;
-  return 1 + coeff * Math.log(1 + s);
+  const linear =
+    config?.economyV2?.setupOptimizations?.linearBonus ?? 5;
+  const quadratic =
+    config?.economyV2?.setupOptimizations?.quadraticBonus ?? 2;
+  return 1 + linear * s + quadratic * (s ** 2);
 }
 
 /**
@@ -7266,7 +7274,7 @@ function calculatePowerCellResonanceMultiplier(powerCellsOwned, config = {}) {
 
 /**
  * Power Module capacity multiplier:
- * M_cap = [1 + 0.35 * D(S)]^N_eff
+ * M_cap = [1 + 0.35 * D(S)^setupExponent]^N_eff
  */
 function calculatePowerModuleCapacityMultiplier(state, config) {
   const modules = Math.max(0, state.powerModules ?? 0);
@@ -7284,7 +7292,8 @@ function calculatePowerModuleCapacityMultiplier(state, config) {
   }
 
   const baseGrowth = (config.powerModule?.capacityMultiplier ?? 1.35) - 1; // 0.35
-  const unitMultiplier = 1 + baseGrowth * setupPerformance;
+  const setupExp = config?.economyV2?.powerModules?.setupExponent ?? 0.7;
+  const unitMultiplier = 1 + baseGrowth * (setupPerformance ** setupExp);
 
   return big(unitMultiplier).pow(effectiveModules);
 }
@@ -7407,19 +7416,23 @@ function calculateProcessorBonusUnit(state, config) {
     config.economyV2?.processors?.perUnitBonus ??
     (config.processor?.deviceEfficiencyMultiplier
       ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.08);
+      : 0.15);
   return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
 }
 
 /**
- * Aggregated Processor effectiveness:
- * E_P = (1 + unitBonus)^P
+ * Aggregated Processor effectiveness with Cross-Calculator Bus Synergy:
+ * E_P = 1 + unitBonus * P * (1 + ln(1 + C))
+ * Processors accelerate the clock speed/frequency (E_P) of every thread,
+ * scaling synergistically across the calculator fleet with smoothly diminishing logarithmic returns.
  */
 function calculateProcessorEfficiencyMultiplier(state, config) {
   const processors = state.devices?.processors ?? 0;
   if (processors <= 0) return 1;
+  const calculators = Math.max(1, state.devices?.autoCalculators ?? 1);
   const unitBonus = calculateProcessorBonusUnit(state, config);
-  return (1 + unitBonus) ** processors;
+  const busFactor = 1 + Math.log(1 + calculators);
+  return 1 + unitBonus * processors * busFactor;
 }
 
 /**
@@ -7463,19 +7476,18 @@ function calculateCrcExponentialMultiplier(state, config) {
 }
 
 /**
- * Auto Calculator fleet speed multiplier (Parallel Threads Model):
- * Each Auto Calculator runs an independent execution thread.
+ * Auto Calculator fleet speed multiplier (Parallel Threads Model with Nominal Gains):
+ * Each Auto Calculator runs an independent parallel execution thread (+1 thread per unit).
  * V_A = C_eff * E_P
- * where C_eff = calculators * threadBonus (1.0 base, or 1.4 with calculatorBonusX2ToX22 perk).
- * Processors accelerate the clock speed/frequency (E_P) of every thread.
+ * where C_eff = calculators * threadBonus (1.0 base nominal, or 1.4 with calculatorBonusX2ToX22 perk).
+ * Processors accelerate the clock speed/frequency (E_P) of all threads.
  */
 function calculateAutoCalculatorSpeedMultiplier(state, config) {
   const calculators = state.devices?.autoCalculators ?? 0;
   if (calculators <= 0) return 1;
 
-  // The first calculator automates studies at 2x base speed.
-  // Each additional calculator adds an independent parallel execution thread.
-  const baseSpeedPerThread = 2.0;
+  const baseSpeedPerThread =
+    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 1.5;
   const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
     ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
     : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
@@ -7642,11 +7654,14 @@ function calculateCalculationMethodRequirement(state, config) {
 }
 
 function calculateSetupOptimizationRequirement(state, config) {
-  return (
-    config.setupOptimization.initialMethodUpgradesRequired +
-    config.setupOptimization.methodUpgradesRequiredGrowth *
-      state.setupOptimizations
-  );
+  const s = Math.max(0, state.setupOptimizations ?? 0);
+  const initial =
+    config?.setupOptimization?.initialMethodUpgradesRequired ?? 2;
+  const linear =
+    config?.setupOptimization?.methodUpgradesRequiredGrowth ?? 1;
+  const quadratic =
+    config?.setupOptimization?.methodUpgradesRequiredQuadratic ?? 0.4;
+  return Math.floor(initial + linear * s + quadratic * (s ** 2));
 }
 
 function calculateBlueprintResearchDuration(
@@ -11711,8 +11726,8 @@ class GameEngine {
 
     if (resetType === "setup") {
       const nextSetup = this.state.setupOptimizations + 1;
-      const currentD = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
-      const nextD = 1 + 2 * Math.log(1 + nextSetup);
+      const currentD = calculateSetupDevicePerformance(this.state.setupOptimizations, this.config);
+      const nextD = calculateSetupDevicePerformance(nextSetup, this.config);
       return {
         type: "setup",
         title: "Confirm Setup Optimization",
@@ -11968,7 +11983,7 @@ class GameEngine {
 
     this.state.setupOptimizations += 1;
     this.resetHardwareForSetupOptimization();
-    const D_S = 1 + 2 * Math.log(1 + this.state.setupOptimizations);
+    const D_S = calculateSetupDevicePerformance(this.state.setupOptimizations, this.config);
     this.emitEvent("setup-optimized", {
       count: this.state.setupOptimizations,
     });
@@ -11976,8 +11991,8 @@ class GameEngine {
       eventId: `milestone-setup-${this.state.setupOptimizations}`,
       kind: "Milestones",
       title: `Setup Optimization #${this.state.setupOptimizations}`,
-      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}.`,
-      body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = 1 + 2 ln(1+S).`,
+      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}x.`,
+      body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = ${D_S.toFixed(2)}x.`,
     });
     this.addLog(
       `Setup Optimization ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
@@ -12889,8 +12904,8 @@ function getResetPreviewData(state, config, resetType) {
 
   if (resetType === "setup") {
     const nextSetup = state.setupOptimizations + 1;
-    const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
-    const nextD = 1 + 2 * Math.log(1 + nextSetup);
+    const currentD = calculateSetupDevicePerformance(state.setupOptimizations, config);
+    const nextD = calculateSetupDevicePerformance(nextSetup, config);
     const eligible = evaluateComponent(
       "setupOptimization",
       state,
@@ -14006,11 +14021,12 @@ function renderSetupOptimization(state, config) {
   const ready = state.calculationMethods >= required;
   const availability = evaluateComponent("setupOptimization", state, config);
   const progress = state.calculationMethods / required;
-  const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
+  const currentD = calculateSetupDevicePerformance(state.setupOptimizations, config);
+  const nextD = calculateSetupDevicePerformance(state.setupOptimizations + 1, config);
 
   return `
     <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
+      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S).")}
       <div class="panel__header-row">
         ${renderCardTags("Study", "Hard Reset")}
         <span class="card-subsystem text--danger">Facility Reconfiguration</span>
@@ -14029,7 +14045,7 @@ function renderSetupOptimization(state, config) {
       ${progressBar(progress, "Setup Optimization readiness", "discovery")}
       <div class="progress-caption">
         <span>${ready ? "SETUP READY" : `${Math.min(state.calculationMethods, required)} / ${required} Method Upgrades`}</span>
-        <span>Device scale D(S): ${currentD.toFixed(2)}</span>
+        <span>Device scale D(S): ${currentD.toFixed(1)}x → ${nextD.toFixed(1)}x</span>
       </div>
     </article>
   `;
