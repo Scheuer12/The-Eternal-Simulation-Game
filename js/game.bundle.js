@@ -5669,221 +5669,102 @@
 (() => {
   "use strict";
   globalThis.__TES_GAME_CONFIG__ = {
-  "version": 1,
+  "version": "sandbox-rebuild-v1",
   "timing": {
-    "baseTickSeconds": 1,
-    "simulationStepMs": 100,
-    "renderIntervalMs": 100,
+    "baseTickSeconds": 0.05,
+    "simulationStepMs": 50,
+    "renderIntervalMs": 50,
     "autosaveIntervalMs": 5000,
     "maximumTickSeconds": 1
   },
   "offlineProgress": {
-    "maxOfflineSeconds": 28800,
+    "maxOfflineSeconds": 86400,
     "stepSeconds": 0.25,
-    "maxSteps": 120000
+    "maxSteps": 345600
   },
-  "energy": {
-    "baseProductionPerSecond": 1e-12,
-    "powerCellCapacity": 1,
-    "initialPowerCells": 1,
-    "initialCrcCount": 1,
+  "economy": {
+    "algorithmBaseStrength": 1e-15,
+    "algorithmConversionFactor": 12,
+    "conversionPerformanceRatio": 2,
+    "initialComputerLevel": 1,
+    "computerPerformanceBase": 1.5,
+    "baseStudyDurationSeconds": 0.5,
+    "initialEnergy": 0
+  },
+  "decay": {
     "overflowDecayRate": 0.009,
     "overflowDecayPower": 1.35
   },
-  "powerCell": {
-    "algorithmUpgradesRequired": 3,
-    "baseCapacityCostMultiplier": 1.5,
-    "costGrowthScale": 4,
-    "costGrowthPower": 1.25,
-    "arrayCostGrowthMultiplier": 1.06
-  },
-  "powerModule": {
-    "cellsPerModule": 20,
-    "baseCost": 100,
-    "costGrowth": 3.2,
-    "costGrowthExponent": 1.18,
-    "capacityMultiplier": 1.35
-  },
-  "particleLab": {
-    "doorEnergyRequired": 100,
-    "synthesizerEnergyRequired": 100000000000
-  },
-  "science": {
-    "redundancyElimination": {
-      "researchSpeedBonusPerUpgradePerCycle": 0.005,
-      "softcapStartsAtImprovements": 50,
-      "postSoftcapCycleRate": 0.08,
-      "postSoftcapMaximumExtraCycles": 4,
-      "hardcapStartsAtImprovements": 100
-    },
-    "energyPerks": {
-      "powerModuleScalingPerOwnedModule": 0.0085,
-      "crcExponentialProductionPerCrc": 1.005,
-      "processorBonusExponentForCrc": 0.15
-    },
-    "quantumPerks": {
-      "calculationSpeedLogCoefficient": 0.015,
-      "calculationSpeedSoftcapRaw": 0.15,
-      "calculationSpeedPostSoftcapSlope": 0.25,
-      "calculationSpeedMaximumBonus": 0.3,
-      "superpositionRetentionLogCoefficient": 0.01,
-      "superpositionMaximumRetention": 0.1,
-      "revealAtAllocatedSciencePoints": 3,
-      "particleGeneratorStoredEnergyRequired": 1e+36
-    },
-    "studyPerks": {
-      "processorBonusImprovementSpeedExponent": 1.07
-    },
-    "automationPerks": {
-      "motherboardModuleStoredEnergyRequired": 1e+23
-    },
-    "fiftyGCalculator": {
-      "cost": 1
-    },
-    "sciencePointCost": {
-      "baseExponent": 11,
-      "linearExponentGrowth": 0.9,
-      "quadraticExponentGrowth": 0.055
-    },
-    "quarks": {
-      "energyPerQuark": 100000000000,
-      "decayRate": 0.12,
-      "decayPower": 1.7
-    },
-    "quarkCage": {
-      "baseCostExponent": 11,
-      "costExponentGrowth": 1,
-      "capacityPerCage": 10,
-      "startingCagesAfterSynthesis": 1
+  "dataXP": {
+    "aImpData": 1,
+    "aUpgData": 9,
+    "aRecData": 81,
+    "machineLearning": {
+      "baseRequirement": 693,
+      "scaleMultiplier": 2304,
+      "powerExponent": 1.6643485138
     }
   },
-  "study": {
-    "baseDurationSeconds": 1.5,
-    "durationGrowthCoefficient": 0.1315,
-    "durationGrowthPower": 2,
-    "durationEarlyLoadMultiplier": 0.7,
-    "durationEarlyLoadUntil": 10,
-    "durationFullLoadAt": 15,
-    "durationLoadMultiplierPerSetup": 0.86,
-    "onboardingImprovements": 15,
-    "onboardingInitialBonus": 9,
-    "baselineBonus": 0.05,
-    "onboardingDecayShape": 1.55,
-    "bonusCurveSmoothing": 0.001,
-    "bonusDecayRate": 0.0062,
-    "effectPenaltyMultiplierPerMethod": 0.9
+  "facilityOptimization": {
+    "initialLevelRequired": 9,
+    "levelIncrement": 3,
+    "deviceMultiplierBase": 1.09
   },
-  "algorithmUpgrade": {
-    "baseDurationSeconds": 10,
-    "durationGrowthCoefficient": 0.16,
-    "durationGrowthPower": 1.1,
-    "initialImprovementsRequired": 12,
-    "improvementsRequiredGrowth": 5,
-    "productionMultiplier": 2
-  },
-  "softDataDisplay": {
-    "cost": 1e-9
-  },
-  "t2SoftDataDisplay": {
-    "cost": 0.002
-  },
-  "autoCalculator": {
-    "baseCost": 1.2e-7,
-    "costGrowth": 3.2,
-    "costGrowthExponent": 1.08,
-    "firstSpeedMultiplier": 1,
-    "additionalSpeedMultiplier": 1
-  },
-  "blueprint": {
-    "revealAtPeakEnergy": 10,
-    "researchDurationSeconds": 60
-  },
-  "crcConstruction": {
-    "baseCost": 2,
-    "costGrowth": 2.5,
-    "costGrowthExponent": 1.12,
-    "durationSeconds": 20
-  },
-  "processor": {
-    "baseCost": 6e-7,
-    "costGrowth": 8,
-    "costGrowthExponent": 1.25,
-    "deviceEfficiencyMultiplier": 1.25
-  },
-  "overclocker": {
-    "baseCost": 2,
-    "costGrowth": 10,
-    "costGrowthExponent": 1.35,
-    "processorsRequired": 3,
-    "powerCellsRequired": 3,
-    "baseCalculatorSpeedMultiplier": 5,
-    "additionalCalculatorSpeedMultiplier": 1.5,
-    "baseEnergyDrainPerSecond": 0.005,
-    "energyDrainGrowth": 6,
-    "runtimeDrainGrowthBase": 1.75,
-    "coolingDurationMultiplier": 2
-  },
-  "calculationMethodUpgrade": {
-    "initialAlgorithmUpgradesRequired": 15,
-    "algorithmUpgradesRequiredGrowth": 8
-  },
-  "setupOptimization": {
-    "initialMethodUpgradesRequired": 2,
-    "methodUpgradesRequiredGrowth": 1,
-    "methodUpgradesRequiredQuadratic": 0.2
-  },
-  "development": {
-    "durationMultiplier": 0.05,
-    "productionMultiplier": 1000
-  },
-  "economyV2": {
-    "crc": {
-      "baseProductionPerSecond": 1e-12,
-      "improvementLinearBonus": 1
+  "devices": {
+    "chip": {
+      "initialCost": 3e-11,
+      "costMultiplier": 4,
+      "defaultTarget": "AImp"
     },
-    "improvements": {
-      "baseDurationSeconds": 0.5,
-      "durationGrowthCoefficient": 0.0012,
-      "durationGrowthPower": 2
+    "transistorBoard": {
+      "initialCost": 2e-10,
+      "unique": true
     },
-    "algorithmUpgrades": {
-      "productionMultiplierPerUpgrade": 2,
-      "initialRequiredImprovements": 12,
-      "linearRequirementGrowth": 5,
-      "quadraticRequirementCoefficient": 0.25,
-      "automatedBaseDurationSeconds": 10,
-      "automatedDurationGrowthCoefficient": 0.16,
-      "automatedDurationGrowthPower": 1.1
+    "transistor": {
+      "initialCost": 3e-11,
+      "costMultiplier": 1.4,
+      "speedBonusPerUnit": 0.05
     },
-    "autoCalculators": {
-      "baseSpeedPerThread": 2,
-      "threadBonus": 1,
-      "perUnitSpeedBonus": 1,
-      "setupOptimizationExponent": 0.72
+    "microprocessor": {
+      "initialCost": 3e-9,
+      "unique": true,
+      "multiplierBase": 1.12,
+      "defaultTarget": "AImp",
+      "transistorsRequiredToUnlock": 4
     },
-    "processors": {
-      "perUnitBonus": 0.25
+    "overclocker": {
+      "initialCost": 9e-8,
+      "unique": true,
+      "minTransistors": 2,
+      "durationBase": 1.5,
+      "bonusDivisor": 3
     },
-    "calculationMethods": {
-      "processorBonusMultiplierPerCMU": 1.2
+    "crcGadget": {
+      "initialCost": 1e-8,
+      "unique": true,
+      "productionMultiplier": 2
     },
-    "setupOptimizations": {
-      "linearBonus": 5,
-      "quadraticBonus": 2
+    "capacitor": {
+      "initialCost": 1e-8,
+      "costMultiplier": 5,
+      "bonusPerUnit": 0.5
     },
-    "powerModules": {
-      "setupExponent": 0.7
+    "processor": {
+      "initialCost": 0.0001,
+      "costMultiplier": 2,
+      "bonusPerUnit": 0.03
     },
-    "overclockers": {
-      "firstProcessorBonusMultiplier": 5,
-      "additionalProcessorBonusMultiplier": 1.5,
-      "blueprintResearchBaseDurationSeconds": 45
+    "hardDisk": {
+      "initialCost": 0.00001,
+      "costMultiplier": 9,
+      "dataRatePerDisk": 3,
+      "baseEnergyDrainPerSecond": 1e-10,
+      "drainTimeConstant": 60
     },
-    "scienceRebalance": {
-      "calculatorUpgradeResearchLogCoefficient": 0.2,
-      "calculatorEnhancedBonus": 1.4,
-      "quantumSuperpositionLogCoefficient": 0.02,
-      "powerCellResonanceLogCoefficient": 0.02
+    "powerCell": {
+      "initialCost": 1,
+      "costMultiplier": 2.25,
+      "baseCapacity": 0.001
     }
   }
 };
@@ -6947,42 +6828,6 @@
   }
 ];
 
-// ---- content/texts.js ----
-const TEXT = Object.freeze({
-  intro: {
-    eyebrow: "ABANDONED FACILITY // UNKNOWN SECTOR",
-    title: "The room has been waiting.",
-    paragraphs: [
-      "Dust hangs motionless in the air. Every panel is dark, every instrument silent.",
-      "At the center of the chamber, a single button emits a faint blue pulse.",
-      "You cannot remember why you entered this place — only that something behind these walls was never meant to be forgotten."
-    ],
-    press: "Press the button",
-    leave: "Leave the room"
-  },
-  ending: {
-    eyebrow: "SIGNAL LOST",
-    title: "You leave the room untouched.",
-    body: "Perhaps you made the right choice. Perhaps humanity will never learn what was waiting behind those panels.",
-    restart: "Return to the room"
-  },
-  crcBriefing: {
-    eyebrow: "FIRST SYSTEM // COSMIC RADIATION CONDENSER",
-    title: "The first machine wakes by pulling energy out of noise.",
-    paragraphs: [
-      "The screen identifies the device as a Cosmic Radiation Condenser: a damaged instrument built to catch background cosmic radiation and compress it into usable Stored Energy.",
-      "Its output is almost nothing at first. The facility expects you to improve the algorithm, not to operate the machine by hand.",
-      "A Power Cell below the floor begins accepting charge. Every system you recover will either improve the condenser, automate the study cycle, or prepare the next layer of the facility."
-    ],
-    continue: "Open facility control"
-  },
-  activation: "A low vibration passes through the floor. One screen flickers awake.",
-  record: "14.3 BILLION YEARS",
-  processorComplete:
-    "A new processing core joins the facility network. The system responds before you finish issuing the command. This is only the beginning."
-});
-
-
 // ---- js/numeric.js ----
 
 const BigNum = Decimal;
@@ -7126,2827 +6971,2175 @@ function formatEngineering(value, suffix = "") {
   return `${sign}${trimFixed(mantissa)}e${formatExponent(exponent)}${suffix}`;
 }
 
-
-// ---- js/formulas.js ----
-
-function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-/**
- * In Economy V2, each completed Improvement gives a linear +1 nominal factor
- * to CRC base production.
- */
-function calculateImprovementBonus(
-  completedImprovements,
-  config,
-  calculationMethodUpgrades = 0,
-) {
-  return config?.economyV2?.crc?.improvementLinearBonus ?? 1;
-}
-
-/**
- * Direct unmultiplied base production rate added by a single Algorithm Improvement cycle.
- * This represents the raw unamplified rate (nominally 1e-12 J/s) added directly before CRC-level
- * multipliers (such as CRC count C, Upgrades 2^U, Setup D(S)).
- * If an active perk/modifier affects Improvement strength directly, it scales here.
- */
-function calculateImprovementBaseOutput(config, state = null) {
-  const baseRate =
-    config?.economyV2?.crc?.baseProductionPerSecond ??
-    config?.energy?.baseProductionPerSecond ??
-    1e-12;
-  const linearBonus = config?.economyV2?.crc?.improvementLinearBonus ?? 1;
-
-  let directMultiplier = 1;
-  if (state && hasSciencePerk(state, "improvementStrengthMultiplier")) {
-    directMultiplier *= state.improvementStrengthMultiplier ?? 1;
-  }
-
-  return big(baseRate).mul(linearBonus).mul(directMultiplier);
-}
-
-/**
- * Total direct base output generated by all completed improvements combined.
- */
-function calculateTotalImprovementDirectOutput(state, config) {
-  const basePerImp = calculateImprovementBaseOutput(config, state);
-  const count = Math.max(0, state?.improvements ?? 0);
-  return basePerImp.mul(count);
-}
-
-function calculateEscalatingCost(baseCost, growth, exponent, ownedCount) {
-  if (ownedCount <= 0) return big(baseCost);
-  return big(baseCost).mul(big(growth).pow(ownedCount ** exponent));
-}
-
-function calculateAutoCalculatorCost(ownedCalculators, config) {
-  return calculateEscalatingCost(
-    config.autoCalculator.baseCost,
-    config.autoCalculator.costGrowth,
-    config.autoCalculator.costGrowthExponent,
-    ownedCalculators,
-  );
-}
-
-function calculateProcessorCost(ownedProcessors, config) {
-  return calculateEscalatingCost(
-    config.processor.baseCost,
-    config.processor.costGrowth,
-    config.processor.costGrowthExponent,
-    ownedProcessors,
-  );
-}
-
-function calculateOverclockerCost(ownedOverclockers, config) {
-  return calculateEscalatingCost(
-    config.overclocker.baseCost,
-    config.overclocker.costGrowth,
-    config.overclocker.costGrowthExponent,
-    ownedOverclockers,
-  );
-}
-
-function calculateCrcCost(state, config) {
-  const purchasedCrcs = Math.max(
-    0,
-    state.crcCount - config.energy.initialCrcCount,
-  );
-
-  return calculateEscalatingCost(
-    config.crcConstruction.baseCost,
-    config.crcConstruction.costGrowth,
-    config.crcConstruction.costGrowthExponent,
-    purchasedCrcs,
-  );
-}
-
-function calculatePowerCellCost(ownedPowerCells, config) {
-  const owned = Math.max(1, ownedPowerCells);
-  const currentCapacity = config.energy.powerCellCapacity * owned;
-  const completedArrays = Math.floor(owned / config.powerModule.cellsPerModule);
-  const arrayPressure =
-    (config.powerCell.arrayCostGrowthMultiplier ?? 1) ** completedArrays;
-  const multiplier =
-    config.powerCell.baseCapacityCostMultiplier *
-    (1 + (owned - 1) / config.powerCell.costGrowthScale) **
-      config.powerCell.costGrowthPower *
-    arrayPressure;
-
-  return big(currentCapacity).mul(multiplier);
-}
-
-function calculatePowerModuleRequirement(ownedPowerModules, config) {
-  return (ownedPowerModules + 1) * config.powerModule.cellsPerModule;
-}
-
-function calculatePowerModuleCost(ownedPowerModules, config) {
-  return calculateEscalatingCost(
-    config.powerModule.baseCost,
-    config.powerModule.costGrowth,
-    config.powerModule.costGrowthExponent,
-    ownedPowerModules,
-  );
-}
-
-/**
- * Setup Optimization device performance multiplier:
- * D(S) = 1 + linear * S + quadratic * S^2
- */
-function calculateSetupDevicePerformance(setupOptimizations = 0, config = {}) {
-  const s = Math.max(0, setupOptimizations ?? 0);
-  const linear =
-    config?.economyV2?.setupOptimizations?.linearBonus ?? 5;
-  const quadratic =
-    config?.economyV2?.setupOptimizations?.quadraticBonus ?? 2;
-  return 1 + linear * s + quadratic * (s ** 2);
-}
-
-/**
- * Science perk: Power Cell Resonance (replaces legacy Stored Energy Preservation)
- * Capacity multiplier: 1 + 0.02 * log10(1 + powerCellsOwned)
- */
-function calculatePowerCellResonanceMultiplier(powerCellsOwned, config = {}) {
-  const coeff =
-    config?.economyV2?.scienceRebalance?.powerCellResonanceLogCoefficient ?? 0.02;
-  const count = Math.max(0, powerCellsOwned ?? 0);
-  return 1 + coeff * Math.log10(1 + count);
-}
-
-/**
- * Power Module capacity multiplier:
- * M_cap = [1 + 0.35 * D(S)^setupExponent]^N_eff
- */
-function calculatePowerModuleCapacityMultiplier(state, config) {
-  const modules = Math.max(0, state.powerModules ?? 0);
-  if (modules <= 0) return big(1);
-
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  let effectiveModules = modules;
-  if (hasSciencePerk(state, "powerModulesScaling")) {
-    const scaling =
-      config.science?.energyPerks?.powerModuleScalingPerOwnedModule ?? 0.0085;
-    effectiveModules = modules * (1 + modules * scaling);
-  }
-
-  const baseGrowth = (config.powerModule?.capacityMultiplier ?? 1.35) - 1; // 0.35
-  const setupExp = config?.economyV2?.powerModules?.setupExponent ?? 0.7;
-  const unitMultiplier = 1 + baseGrowth * (setupPerformance ** setupExp);
-
-  return big(unitMultiplier).pow(effectiveModules);
-}
-
-/**
- * Stable Energy Capacity:
- * Capacity_cells = powerCellsOwned * baseCapacity * D(S) * resonanceEffect
- * Total = Capacity_cells * M_cap
- */
-function calculateStableEnergyCapacity(state, config) {
-  let resonance = 1;
-  if (hasSciencePerk(state, "powerCellResonance")) {
-    resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
-  }
-
-  const baseCapacity = config.energy.powerCellCapacity;
-  const cellCapacity = big(Math.max(1, state.powerCells))
-    .mul(baseCapacity)
-    .mul(resonance);
-
-  return cellCapacity.mul(calculatePowerModuleCapacityMultiplier(state, config));
-}
-
-function calculateEnergyOverflowDecay(state, config) {
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const energy = big(state.energy);
-  if (capacity.lte(0) || energy.lte(capacity)) return big(0);
-
-  const overflowRatio = energy.sub(capacity).div(capacity);
-  return capacity
-    .mul(config.energy.overflowDecayRate)
-    .mul(overflowRatio.pow(config.energy.overflowDecayPower));
-}
-
-function calculateEnergyRetention(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const production = calculateProduction(state, config, developmentMode);
-  if (production.lte(0))
-    return big(state.energy).gt(calculateStableEnergyCapacity(state, config))
-      ? 0
-      : 1;
-
-  return clamp(
-    production
-      .sub(calculateEnergyOverflowDecay(state, config))
-      .div(production)
-      .toNumber(),
-    0,
-    1,
-  );
-}
-
-/**
- * Overclocker amplification on Processor bonus:
- * O_0(K) = 5 * 1.5^(K-1) when active, else 1
- * O_eff(K,S) = 1 + (O_0(K) - 1) * D(S)
- */
-function calculateOverclockerSpeedMultiplier(state, config) {
-  const overclockers = state.devices?.overclockers ?? 0;
-  if (overclockers <= 0 || !state.overclocker?.active) return 1;
-
-  const first =
-    config.economyV2?.overclockers?.firstProcessorBonusMultiplier ??
-    config.overclocker?.baseCalculatorSpeedMultiplier ??
-    5;
-  const additional =
-    config.economyV2?.overclockers?.additionalProcessorBonusMultiplier ??
-    config.overclocker?.additionalCalculatorSpeedMultiplier ??
-    1.5;
-  const o0 = first * additional ** (overclockers - 1);
-
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  return 1 + (o0 - 1) * setupPerformance;
-}
-
-function calculateOverclockerDrainPerSecond(state, config) {
-  const overclockers = state.devices?.overclockers ?? 0;
-  if (overclockers <= 0 || !state.overclocker?.active) return big(0);
-  const activeSeconds = Math.max(0, state.overclocker.activeSeconds ?? 0);
-  const runtimeMultiplier = config.overclocker.runtimeDrainGrowthBase
-    ? big(config.overclocker.runtimeDrainGrowthBase).pow(activeSeconds)
-    : big(1).add(
-        big(config.overclocker.runtimeDrainGrowthCoefficient).mul(
-          activeSeconds ** config.overclocker.runtimeDrainGrowthPower,
-        ),
-      );
-
-  return big(config.overclocker.baseEnergyDrainPerSecond)
-    .mul(big(config.overclocker.energyDrainGrowth).pow(overclockers - 1))
-    .mul(runtimeMultiplier);
-}
-
-/**
- * Processor unit bonus:
- * 0.15 * G_M(M) * D(S) * O_eff(K,S)
- * where G_M(M) = 1.2^M
- */
-function calculateProcessorBonusUnit(state, config) {
-  const cmu = state.calculationMethods ?? 0;
-  const cmuMultiplier =
-    (config.economyV2?.calculationMethods?.processorBonusMultiplierPerCMU ?? 1.2) **
-    cmu;
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  const overclockMultiplier = calculateOverclockerSpeedMultiplier(state, config);
-  const baseBonus =
-    config.economyV2?.processors?.perUnitBonus ??
-    (config.processor?.deviceEfficiencyMultiplier
-      ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.25);
-  return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
-}
-
-/**
- * Aggregated Processor effectiveness:
- * E_P = 1 + unitBonus * P
- * Each processor adds direct, objective efficiency to computational and fabrication systems.
- * Amplified by CMU (1.2^M), Setup Optimization D(S), and Overclockers.
- */
-function calculateProcessorEfficiencyMultiplier(state, config) {
-  const processors = state.devices?.processors ?? 0;
-  if (processors <= 0) return 1;
-  const unitBonus = calculateProcessorBonusUnit(state, config);
-  return 1 + unitBonus * processors;
-}
-
-/**
- * Backwards compatibility alias for calculateProcessorEfficiencyMultiplier.
- */
-function calculateDeviceEfficiencyMultiplier(state, config) {
-  return big(calculateProcessorEfficiencyMultiplier(state, config));
-}
-
-function hasSciencePerk(state, perkId) {
-  return Boolean(state.science?.perks?.[perkId]);
-}
-
-/**
- * Direct Processor -> CRC production perk:
- * E_P^0.15
- */
-function calculateCrcProcessorBonusMultiplier(state, config) {
-  if (!hasSciencePerk(state, "processorBonusAppliesCRC")) return big(1);
-  const exponent =
-    config.science?.energyPerks?.processorBonusExponentForCrc ?? 0.15;
-  const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  return big(ep).pow(exponent);
-}
-
-/**
- * Science-Powered Energy Production perk:
- * 1 + totalScienceEarned
- */
-function calculateScienceProductionMultiplier(state) {
-  if (!hasSciencePerk(state, "sciencePoweredEnergyProduction")) return big(1);
-  const earned = Math.max(0, state.science?.totalScienceEarned ?? 0);
-  return big(1).add(earned);
-}
-
-function calculateCrcExponentialMultiplier(state, config) {
-  if (!hasSciencePerk(state, "crcExponentialScaling")) return big(1);
-  const perCrc =
-    config.science?.energyPerks?.crcExponentialProductionPerCrc ?? 1.005;
-  return big(perCrc).pow(Math.max(0, state.crcCount));
-}
-
-/**
- * Auto Calculator fleet speed multiplier (Parallel Threads Model with Nominal Gains):
- * Each Auto Calculator runs an independent parallel execution thread (+1 thread per unit).
- * V_A = C_eff * E_P
- * where C_eff = calculators * threadBonus (1.0 base nominal, or 1.4 with calculatorBonusX2ToX22 perk).
- * Processors accelerate the clock speed/frequency (E_P) of all threads.
- */
-function calculateAutoCalculatorSpeedMultiplier(state, config) {
-  const calculators = state.devices?.autoCalculators ?? 0;
-  if (calculators <= 0) return 1;
-
-  const baseSpeedPerThread =
-    config?.economyV2?.autoCalculators?.baseSpeedPerThread ?? 2.0;
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  const setupExp =
-    config?.economyV2?.autoCalculators?.setupOptimizationExponent ?? 0.72;
-  const setupMultiplier = setupPerformance ** setupExp;
-  const threadBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
-    ? (config?.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 1.4)
-    : (config?.economyV2?.autoCalculators?.threadBonus ?? 1.0);
-  const effectiveThreads =
-    calculators * baseSpeedPerThread * setupMultiplier * threadBonus;
-
-  const ep = calculateProcessorEfficiencyMultiplier(state, config);
-
-  return effectiveThreads * ep;
-}
-
-function calculateRedundancyEffectiveCycles(improvements, config) {
-  const settings = config.science?.redundancyElimination ?? {};
-  const softcapStart = settings.softcapStartsAtImprovements ?? 50;
-  const hardcapStart = settings.hardcapStartsAtImprovements ?? 100;
-  const postSoftcapRate = settings.postSoftcapCycleRate ?? 0.08;
-  const maxExtra = settings.postSoftcapMaximumExtraCycles ?? 4;
-
-  const count = Math.max(0, improvements ?? 0);
-  if (count <= softcapStart) {
-    return count;
-  }
-
-  const clampedCount = Math.min(count, hardcapStart);
-  const postSoftcap = clampedCount - softcapStart;
-  const extraCycles = Math.min(maxExtra, postSoftcap * postSoftcapRate);
-  return softcapStart + extraCycles;
-}
-
-function calculateRedundancyEliminationSpeedMultiplier(state, config) {
-  if (!hasSciencePerk(state, "redundancyElimination")) return 1;
-  const effectiveCycles = calculateRedundancyEffectiveCycles(
-    state.improvements,
-    config,
-  );
-  const bonusPerUpgradeCycle =
-    config.science?.redundancyElimination
-      ?.researchSpeedBonusPerUpgradePerCycle ?? 0.005;
-  return (1 + bonusPerUpgradeCycle) ** ((state.upgrades ?? 0) * effectiveCycles);
-}
-
-/**
- * Direct Processor -> Improvement speed perk:
- * V_direct = E_P^1.07
- */
-function calculateProcessorImprovementSpeedMultiplier(state, config) {
-  if (!hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) return 1;
-  const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  const exp =
-    config.science?.studyPerks?.processorBonusImprovementSpeedExponent ?? 1.07;
-  return ep ** exp;
-}
-
-function calculateQuantumCalculationBonus(totalQuarks, config) {
-  const settings = config.science?.quantumPerks ?? {};
-  const raw = bigMax(0, totalQuarks)
-    .add(1)
-    .log10()
-    .mul(settings.calculationSpeedLogCoefficient ?? 0.015);
-  const softcap = settings.calculationSpeedSoftcapRaw ?? 0.15;
-  const slope = settings.calculationSpeedPostSoftcapSlope ?? 0.25;
-  const maximum = settings.calculationSpeedMaximumBonus ?? 0.3;
-  const effective = raw.lte(softcap)
-    ? raw
-    : big(softcap).add(raw.sub(softcap).mul(slope));
-  return 1 + bigMin(maximum, effective).toNumber();
-}
-
-/**
- * Legacy compatibility: Quantum Superposition retention is removed in V2.
- */
-function calculateQuantumSuperpositionRetention(totalQuarks, config) {
-  return 0;
-}
-
-/**
- * Quantum Superposition in V2:
- * V_quantum = 1 + 0.02 * log10(1 + totalQuarksEarned)
- */
-function calculateQuantumSuperpositionSpeedMultiplier(totalQuarks, config) {
-  const coeff =
-    config?.economyV2?.scienceRebalance?.quantumSuperpositionLogCoefficient ??
-    0.02;
-  const quarks = bigMax(0, totalQuarks);
-  const logQuarks = quarks.add(1).log10().toNumber();
-  return 1 + coeff * logQuarks;
-}
-
-function calculateDeviceDurationMultiplier(state, config) {
-  return toFiniteNumber(
-    big(1).div(calculateProcessorEfficiencyMultiplier(state, config)),
-    0,
-  );
-}
-
-/**
- * Algorithm Upgrade requirement:
- * R(U) = ceil(10 + 5U + (0.25/2)*U*(U-1))
- */
-function calculateAlgorithmUpgradeRequirement(state, config) {
-  const u = Math.max(0, state.upgrades ?? 0);
-  const initial =
-    config.economyV2?.algorithmUpgrades?.initialRequiredImprovements ??
-    config.algorithmUpgrade?.initialImprovementsRequired ??
-    10;
-  const linear =
-    config.economyV2?.algorithmUpgrades?.linearRequirementGrowth ??
-    config.algorithmUpgrade?.improvementsRequiredGrowth ??
-    5;
-  const quadCoeff =
-    config.economyV2?.algorithmUpgrades?.quadraticRequirementCoefficient ?? 0.25;
-  return Math.ceil(initial + linear * u + (quadCoeff / 2) * u * (u - 1));
-}
-
-function calculateAlgorithmUpgradeDuration(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const u = Math.max(0, state.upgrades ?? 0);
-  const baseSec =
-    config.economyV2?.algorithmUpgrades?.automatedBaseDurationSeconds ??
-    config.algorithmUpgrade?.baseDurationSeconds ??
-    10;
-  const coeff =
-    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthCoefficient ??
-    config.algorithmUpgrade?.durationGrowthCoefficient ??
-    0.16;
-  const power =
-    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthPower ??
-    config.algorithmUpgrade?.durationGrowthPower ??
-    1.1;
-
-  let duration = baseSec * (1 + coeff * (u ** power));
-
-  if (hasSciencePerk(state, "calculatorBonusAppliesAUpgrades")) {
-    const va = calculateAutoCalculatorSpeedMultiplier(state, config);
-    const logCoeff =
-      config.economyV2?.scienceRebalance
-        ?.calculatorUpgradeResearchLogCoefficient ?? 0.2;
-    const vu = 1 + logCoeff * Math.log10(1 + va);
-    if (vu > 0) duration /= vu;
-  }
-
-  if (hasSciencePerk(state, "quantumCalculationPrinciples")) {
-    duration /= calculateQuantumCalculationBonus(
-      state.quarks?.totalEarned ?? 0,
-      config,
-    );
-  }
-
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
-  }
-
-  return duration;
-}
-
-function calculateCalculationMethodRequirement(state, config) {
-  return (
-    config.calculationMethodUpgrade.initialAlgorithmUpgradesRequired +
-    config.calculationMethodUpgrade.algorithmUpgradesRequiredGrowth *
-      state.calculationMethods
-  );
-}
-
-function calculateSetupOptimizationRequirement(state, config) {
-  const s = Math.max(0, state.setupOptimizations ?? 0);
-  const initial =
-    config?.setupOptimization?.initialMethodUpgradesRequired ?? 2;
-  const linear =
-    config?.setupOptimization?.methodUpgradesRequiredGrowth ?? 1;
-  const quadratic =
-    config?.setupOptimization?.methodUpgradesRequiredQuadratic ?? 0.4;
-  return Math.floor(initial + linear * s + quadratic * (s ** 2));
-}
-
-function calculateBlueprintResearchDuration(
-  state,
-  config,
-  developmentMode = false,
-) {
-  let duration = config.blueprint.researchDurationSeconds;
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
-  }
-
-  return duration;
-}
-
-function calculateOverclockerBlueprintDuration(state, config) {
-  return (
-    config.economyV2?.overclockers?.blueprintResearchBaseDurationSeconds ?? 45
-  );
-}
-
-function canResearchBlueprint(state, config) {
-  return (
-    !state.discoveries.crcBlueprint &&
-    big(state.peakEnergy).gte(config.blueprint.revealAtPeakEnergy)
-  );
-}
-
-function canPurchasePowerCell(state, config) {
-  const requiredAlgorithmUpgrades =
-    config?.powerCell?.algorithmUpgradesRequired ?? 3;
-  return (
-    state.devices.softDataDisplay && state.upgrades >= requiredAlgorithmUpgrades
-  );
-}
-
-function canAccessParticleLab(state, config) {
-  return (
-    big(state.peakEnergy).gte(config.particleLab.doorEnergyRequired) ||
-    Boolean(state.particleSynthesizer?.awakened) ||
-    (state.science?.syntheses ?? 0) > 0
-  );
-}
-
-function calculateSciencePointCost(totalScienceEarned, config) {
-  const settings = config.science?.sciencePointCost ?? {};
-  const earned = Math.max(0, totalScienceEarned ?? 0);
-  const exponent =
-    (settings.baseExponent ?? 11) +
-    (settings.linearExponentGrowth ?? 0.9) * earned +
-    (settings.quadraticExponentGrowth ?? 0.055) * earned ** 2;
-
-  return big(10).pow(exponent);
-}
-
-function calculateParticleSynthesizerCost(state, config) {
-  return big(config.particleLab.synthesizerEnergyRequired);
-}
-
-function calculateParticleSynthesizerProgress(state, config) {
-  return big(state.energy)
-    .div(calculateParticleSynthesizerCost(state, config))
-    .toNumber();
-}
-
-/**
- * Closed-form threshold inversion for Science Point rewards:
- * C(s) = 10^(a + b*s + c*s^2), a=11, b=0.9, c=0.055
- * s* = 2*(log10(E) - a) / (b + sqrt(b^2 + 4c(log10(E) - a)))
- * SP_gained = max(0, floor(s*) - H + 1)
- */
-function calculateSciencePointReward(
-  energy,
-  totalScienceEarned,
-  config,
-) {
-  const settings = config.science?.sciencePointCost ?? {};
-  const a = settings.baseExponent ?? 11;
-  const b = settings.linearExponentGrowth ?? 0.9;
-  const c = settings.quadraticExponentGrowth ?? 0.055;
-
-  if (![a, b, c].every(Number.isFinite) || c < 0 || b < 0) {
-    throw new RangeError("Science Point cost must be non-decreasing");
-  }
-  if (c === 0 && b === 0) {
-    throw new RangeError("Science Point cost must increase");
-  }
-
-  const available = big(energy);
-  if (!available.gt(0)) return 0;
-
-  const logEnergy = available.log10().toNumber();
-  if (!Number.isFinite(logEnergy) || logEnergy < a) return 0;
-
-  let maximumThreshold;
-  if (c === 0) {
-    maximumThreshold = Math.floor((logEnergy - a) / b);
-  } else {
-    const discriminant = b ** 2 + 4 * c * (logEnergy - a);
-    if (discriminant < 0) return 0;
-
-    const root = (2 * (logEnergy - a)) / (b + Math.sqrt(discriminant));
-    maximumThreshold = Math.floor(root);
-  }
-
-  if (maximumThreshold < 0) return 0;
-
-  const thresholdIsAvailable = (threshold) =>
-    big(available).gte(calculateSciencePointCost(threshold, config));
-
-  while (maximumThreshold >= 0 && !thresholdIsAvailable(maximumThreshold)) {
-    maximumThreshold -= 1;
-  }
-  while (thresholdIsAvailable(maximumThreshold + 1)) {
-    maximumThreshold += 1;
-  }
-
-  const earned = Math.max(0, Math.floor(totalScienceEarned ?? 0));
-  return Math.max(0, maximumThreshold - earned + 1);
-}
-
-function calculateQuarksGenerated(energy, config) {
-  const unit = config.science?.quarks?.energyPerQuark ?? 100000000000;
-  return bigFloorDiv(energy, unit);
-}
-
-function calculateQuarkCageCapacity(ownedCages, config) {
-  const capacityPerCage = config.science?.quarkCage?.capacityPerCage ?? 10;
-  const owned = Math.max(0, ownedCages ?? 0);
-  return owned > 0 ? capacityPerCage * owned : 1;
-}
-
-function calculateQuarkCapacity(state, config) {
-  return big(
-    calculateQuarkCageCapacity(
-      state.scienceDevices?.quarkCages ?? 0,
-      config,
-    ),
-  );
-}
-
-function calculateQuarkCageCost(ownedCages, config) {
-  const settings = config.science?.quarkCage ?? {};
-  const baseExponent = settings.baseCostExponent ?? 11;
-  const exponentGrowth = settings.costExponentGrowth ?? 1;
-  return big(10).pow(
-    baseExponent + exponentGrowth * Math.max(0, ownedCages ?? 0),
-  );
-}
-
-function calculateQuarkDecay(state, config) {
-  const available = big(state.quarks?.available ?? 0);
-  const capacity = calculateQuarkCapacity(state, config);
-  if (capacity.lte(0) || available.lte(capacity)) return big(0);
-
-  const settings = config.science?.quarks ?? {};
-  const overflowRatio = available.sub(capacity).div(capacity);
-  return capacity
-    .mul(settings.decayRate ?? 0.12)
-    .mul(overflowRatio.pow(settings.decayPower ?? 1.7));
-}
-
-function getDevelopmentDurationMultiplier(state, config) {
-  return (
-    state.devSettings?.durationMultiplier ??
-    config.development.durationMultiplier
-  );
-}
-
-function getDevelopmentProductionMultiplier(state, config) {
-  return (
-    state.devSettings?.productionMultiplier ??
-    config.development.productionMultiplier
-  );
-}
-
-/**
- * Quadratic Algorithm Improvement duration:
- * T_I(I) = 0.5 * (1 + 0.015 * I^2) / (V_A * V_R * V_direct * V_quantum)
- */
-function calculateStudyDuration(state, config, developmentMode = false) {
-  const i = Math.max(0, state.improvements ?? 0);
-  const baseSec = config.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const coeff =
-    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
-  const power = config.economyV2?.improvements?.durationGrowthPower ?? 2;
-
-  const baseCurve = baseSec * (1 + coeff * (i ** power));
-
-  const totalSpeed = calculateAlgorithmImprovementSpeedMultiplier(state, config);
-  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
-
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
-  }
-
-  return duration;
-}
-
-function calculateImprovementRatePerSecond(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const duration = calculateStudyDuration(state, config, developmentMode);
-  return duration > 0 ? 1 / duration : 0;
-}
-
-function calculateAlgorithmImprovementSpeedMultiplier(state, config) {
-  const va = calculateAutoCalculatorSpeedMultiplier(state, config);
-  const vr = calculateRedundancyEliminationSpeedMultiplier(state, config);
-
-  let vDirect = 1;
-  if (hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) {
-    vDirect = calculateProcessorImprovementSpeedMultiplier(state, config);
-  }
-
-  let vQuantum = 1;
-  if (hasSciencePerk(state, "quantumSuperposition")) {
-    vQuantum = calculateQuantumSuperpositionSpeedMultiplier(
-      state.quarks?.totalEarned ?? 0,
-      config,
-    );
-  }
-
-  return va * vr * vDirect * vQuantum;
-}
-
-function sumOfIntegers(x) {
-  if (x < 0) return big(0);
-  const bx = big(x);
-  return bx.mul(bx.add(1)).div(2);
-}
-
-function sumOfSquares(x) {
-  if (x < 0) return big(0);
-  const bx = big(x);
-  return bx.mul(bx.add(1)).mul(bx.mul(2).add(1)).div(6);
-}
-
-function sumOfCubes(x) {
-  if (x < 0) return big(0);
-  const bx = big(x);
-  const f1 = bx.mul(bx.add(1)).div(2);
-  return f1.pow(2);
-}
-
-function calculateBatchDuration(j, n, V, config) {
-  if (n <= 0) return big(0);
-  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
-  const bn = big(n);
-  const end = big(j).add(bn).sub(1);
-  const start = big(j).sub(1);
-  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
-  const inner = bn.add(sigma2.mul(b));
-  return inner.mul(baseSec).div(V);
-}
-
-function calculateBatchEnergy(j, n, V, Q, config) {
-  if (n <= 0) return big(0);
-  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
-  const bn = big(n);
-  const end = big(j).add(bn).sub(1);
-  const start = big(j).sub(1);
-
-  const sigma1 = sumOfIntegers(end).sub(sumOfIntegers(start));
-  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
-  const sigma3 = sumOfCubes(end).sub(sumOfCubes(start));
-
-  const inner = bn.add(sigma1).add(sigma2.add(sigma3).mul(b));
-  return big(Q).mul(baseSec).div(V).mul(inner);
-}
-
-function calculateMaxBatchImprovements(
-  j,
-  V,
-  dtAvailable,
-  nLimit = Infinity,
-  config,
-) {
-  if (dtAvailable <= 0 || nLimit <= 0) return 0;
-  if (calculateBatchDuration(j, 1, V, config).gt(dtAvailable)) return 0;
-  if (nLimit === 1) return 1;
-
-  let step = 1;
-  while (
-    step * 2 <= nLimit &&
-    calculateBatchDuration(j, step * 2, V, config).lte(dtAvailable)
-  ) {
-    step *= 2;
-  }
-
-  let low = step;
-  let high = Math.min(step * 2, nLimit);
-  let best = low;
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (calculateBatchDuration(j, mid, V, config).lte(dtAvailable)) {
-      best = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return best;
-}
-
-function calculateStudyDurationLoad(
-  completedImprovements,
-  setupOptimizations,
-  config,
-) {
-  return completedImprovements;
-}
-
-/**
- * CRC Production rate:
- * P_CRC = 10^-12 * C * (1 + I) * 2^U * D(S) * SciencePerks
- */
-function calculateProduction(state, config, developmentMode = false) {
-  const baseRate =
-    config.economyV2?.crc?.baseProductionPerSecond ??
-    config.energy?.baseProductionPerSecond ??
-    1e-12;
-  const c = Math.max(0, state.crcCount ?? 0);
-  const i = Math.max(0, state.improvements ?? 0);
-  const u = Math.max(0, state.upgrades ?? 0);
-
-  let production = big(baseRate)
-    .mul(c)
-    .mul(1 + i)
-    .mul(big(2).pow(u));
-
-  production = production.mul(calculateCrcExponentialMultiplier(state, config));
-  production = production.mul(calculateCrcProcessorBonusMultiplier(state, config));
-  production = production.mul(calculateScienceProductionMultiplier(state));
-
-  if (developmentMode) {
-    production = production.mul(
-      getDevelopmentProductionMultiplier(state, config),
-    );
-  }
-
-  return production.lt(0) || !production.isFinite() ? big(0) : production;
-}
-
-function calculateProductionBreakdown(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const rows = [];
-  const baseRate =
-    config.economyV2?.crc?.baseProductionPerSecond ??
-    config.energy?.baseProductionPerSecond ??
-    1e-12;
-  const c = Math.max(0, state.crcCount ?? 0);
-  const i = Math.max(0, state.improvements ?? 0);
-  const u = Math.max(0, state.upgrades ?? 0);
-
-  const baseFromCrcs = big(baseRate).mul(c);
-  let running = baseFromCrcs;
-
-  rows.push({
-    id: "crc-base",
-    label: "Base from CRCs",
-    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each`,
-    multiplierLabel: `x${c}`,
-    value: baseFromCrcs,
-    output: baseFromCrcs,
-  });
-
-  const improvementFactor = 1 + i;
-  if (improvementFactor > 1) {
-    const improved = running.mul(improvementFactor);
-    rows.push({
-      id: "algorithm-improvements",
-      label: "From Algorithm Improvements",
-      detail: `${i} Improvements (+1 base per CRC each · x${improvementFactor} factor)`,
-      multiplierLabel: `x${improvementFactor}`,
-      value: improved.sub(running),
-      output: improved,
-    });
-    running = improved;
-  }
-
-  const upgradeMultiplier = big(2).pow(u);
-  if (upgradeMultiplier.gt(1)) {
-    const upgraded = running.mul(upgradeMultiplier);
-    rows.push({
-      id: "algorithm-upgrades",
-      label: "From Algorithm Upgrades",
-      detail: `${u} completed Upgrade${u === 1 ? "" : "s"} (x2 each)`,
-      multiplierLabel: `x${formatEngineering(upgradeMultiplier)}`,
-      value: upgraded.sub(running),
-      output: upgraded,
-    });
-    running = upgraded;
-  }
-
-  const crcExponentialMultiplier = calculateCrcExponentialMultiplier(
-    state,
-    config,
-  );
-  if (crcExponentialMultiplier.gt(1)) {
-    const scaled = running.mul(crcExponentialMultiplier);
-    rows.push({
-      id: "crc-exponential-scaling",
-      label: "From CRC exponential scaling",
-      detail: "Permanent Science scaling applied per active CRC",
-      multiplierLabel: `x${formatEngineering(crcExponentialMultiplier)}`,
-      value: scaled.sub(running),
-      output: scaled,
-    });
-    running = scaled;
-  }
-
-  const processorBonusMultiplier = calculateCrcProcessorBonusMultiplier(
-    state,
-    config,
-  );
-  if (processorBonusMultiplier.gt(1)) {
-    const boosted = running.mul(processorBonusMultiplier);
-    rows.push({
-      id: "processor-crc-bonus",
-      label: "From Processor bonus",
-      detail: "Processor efficiency exponent (E_P^0.15) applied to CRC output",
-      multiplierLabel: `x${formatEngineering(processorBonusMultiplier)}`,
-      value: boosted.sub(running),
-      output: boosted,
-    });
-    running = boosted;
-  }
-
-  const scienceMultiplier = calculateScienceProductionMultiplier(state);
-  if (scienceMultiplier.gt(1)) {
-    const boosted = running.mul(scienceMultiplier);
-    rows.push({
-      id: "science-powered-production",
-      label: "From Science Points",
-      detail: "Total Science earned converted into an energy multiplier (1 + SP)",
-      multiplierLabel: `x${formatEngineering(scienceMultiplier)}`,
-      value: boosted.sub(running),
-      output: boosted,
-    });
-    running = boosted;
-  }
-
-  if (developmentMode) {
-    const developmentMultiplier = getDevelopmentProductionMultiplier(
-      state,
-      config,
-    );
-    if (developmentMultiplier !== 1) {
-      const developed = running.mul(developmentMultiplier);
-      rows.push({
-        id: "development-production",
-        label: "From Development mode",
-        detail: "Global development production override",
-        multiplierLabel: `x${formatEngineering(developmentMultiplier)}`,
-        value: developed.sub(running),
-        output: developed,
-      });
+const SI_UNITS_HIGH = {
+  15: "PJ",
+  18: "EJ",
+  21: "ZJ",
+  24: "YJ",
+};
+
+function formatEnergy(value, precision = 2) {
+  const d = big(value);
+  if (!d.isFinite()) return "SIGNAL ERROR";
+  if (d.eq(0)) return "0.00 pJ";
+
+  // Layer 0 SI handling
+  if (d.layer === 0) {
+    const num = d.toNumber();
+    const abs = Math.abs(num);
+
+    if (abs >= 1e24) return `${(num / 1e24).toFixed(precision)} YJ`;
+    if (abs >= 1e21) return `${(num / 1e21).toFixed(precision)} ZJ`;
+    if (abs >= 1e18) return `${(num / 1e18).toFixed(precision)} EJ`;
+    if (abs >= 1e15) return `${(num / 1e15).toFixed(precision)} PJ`;
+    if (abs >= 1e12) return `${(num / 1e12).toFixed(precision)} TJ`;
+    if (abs >= 1e9) return `${(num / 1e9).toFixed(precision)} GJ`;
+    if (abs >= 1e6) return `${(num / 1e6).toFixed(precision)} MJ`;
+    if (abs >= 1e3) return `${(num / 1e3).toFixed(precision)} kJ`;
+    if (abs >= 1) return `${num.toFixed(precision)} J`;
+    if (abs >= 1e-3) return `${(num * 1e3).toFixed(precision)} mJ`;
+    if (abs >= 1e-6) return `${(num * 1e6).toFixed(precision)} µJ`;
+    if (abs >= 1e-9) return `${(num * 1e9).toFixed(precision)} nJ`;
+    if (abs >= 1e-12) return `${(num * 1e12).toFixed(precision)} pJ`;
+    if (abs >= 1e-15) return `${(num * 1e15).toFixed(precision)} fJ`;
+    if (abs >= 1e-18) return `${(num * 1e18).toFixed(precision)} aJ`;
+  } else if (d.layer === 1 && d.mag < 27) {
+    const group = Math.floor(d.mag / 3) * 3;
+    const unit = SI_UNITS_HIGH[group];
+    if (unit) {
+      const mantissa = 10 ** (d.mag - group);
+      return `${mantissa.toFixed(precision)} ${unit}`;
     }
   }
 
-  return rows;
+  return formatEngineering(d, " J");
 }
 
-function calculateEffectiveProduction(
-  state,
-  config,
-  developmentMode = false,
-) {
-  return calculateProduction(state, config, developmentMode).sub(
-    calculateEnergyOverflowDecay(state, config),
-  );
+function formatRate(value, precision = 2) {
+  const d = big(value);
+  const prefix = d.gte(0) ? "+" : "";
+  return `${prefix}${formatEnergy(d, precision)}/s`;
 }
 
-function calculateEffectiveEnergyGain(state, rawGain, config) {
-  const gain = big(rawGain);
-  if (gain.lte(0)) return big(0);
-  return gain;
-}
-
-function calculateDoorProgress(state, config) {
-  return bigClamp(
-    big(state.peakEnergy).div(config.particleLab.doorEnergyRequired),
-    0,
-    1,
-  ).toNumber();
-}
-
-function formatEnergy(value) {
-  return formatEngineering(value, " J");
-}
-
-function formatRate(value) {
-  return `${formatEnergy(value).replace(" J", "")} J/s`;
-}
-
-function formatPercent(value, digits = 2) {
-  return `${(value * 100).toFixed(digits)}%`;
+function formatInteger(value) {
+  const num = Math.floor(Number(value) || 0);
+  return num.toLocaleString("en-US");
 }
 
 function formatDuration(seconds) {
-  seconds = toFiniteNumber(seconds, Number.MAX_VALUE);
-  if (seconds === Number.MAX_VALUE) return "ETERNAL";
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.round(seconds % 60);
-  return `${minutes}m ${remainder}s`;
+  const s = Math.max(0, Number(seconds ?? 0));
+  if (s < 60) return `${s.toFixed(1)}s`;
+  if (s < 3600) {
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    return `${mins}m ${secs}s`;
+  }
+  const hours = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  return `${hours}h ${mins}m`;
 }
 
 
-// ---- js/news.js ----
-const DEFAULT_NEWS = [
-  {
-    id: "processing_network_online",
-    text: "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
-    category: "NETWORK",
-    rarity: 1,
-    weight: 80,
-  },
-  {
-    id: "solar_wind_shift",
-    text: "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
-    category: "TELEMETRY",
-    rarity: 1,
-    weight: 100,
-  },
-  {
-    id: "thermal_equilibrium",
-    text: "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
-    category: "SYSTEM",
-    rarity: 1,
-    weight: 90,
-  },
-  {
-    id: "subspace_resonance",
-    text: "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
-    category: "ENERGY",
-    rarity: 1,
-    weight: 85,
-  },
-  {
-    id: "clock_sync",
-    text: "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
-    category: "CHRONO",
-    rarity: 2,
-    weight: 50,
-  },
-  {
-    id: "packet_echo",
-    text: "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
-    category: "NETWORK",
-    rarity: 2,
-    weight: 45,
-  },
-  {
-    id: "stray_signal",
-    text: "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
-    category: "ANOMALY",
-    rarity: 3,
-    weight: 20,
-  },
-  {
-    id: "temporal_leak",
-    text: "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
-    category: "ANOMALY",
-    rarity: 4,
-    weight: 6,
-  },
-  {
-    id: "simulation_breach",
-    text: "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
-    category: "SYSTEM FAULT",
-    rarity: 5,
-    weight: 2,
-  },
-  {
-    id: "cosmic_whisper",
-    text: "The universe is not expanding. It is just making room for the next calculation.",
-    category: "TRANSMISSION",
-    rarity: 5,
-    weight: 1,
-  },
+
+// ---- js/formula-registry.js ----
+/**
+ * FormulaRegistry
+ * Maintains named, pure mathematical formulas accessible by ID.
+ * Follows the architectural contract: pure mathematical functions without mutating state.
+ */
+
+class FormulaRegistry {
+  constructor() {
+    this.formulas = new Map();
+  }
+
+  register(formulaId, formulaFn) {
+    if (typeof formulaId !== "string" || !formulaId) {
+      throw new Error("Formula ID must be a non-empty string");
+    }
+    if (typeof formulaFn !== "function") {
+      throw new Error(`Formula for "${formulaId}" must be a function`);
+    }
+    this.formulas.set(formulaId, formulaFn);
+  }
+
+  get(formulaId) {
+    return this.formulas.get(formulaId) ?? null;
+  }
+
+  has(formulaId) {
+    return this.formulas.has(formulaId);
+  }
+
+  execute(formulaId, ...args) {
+    const fn = this.get(formulaId);
+    if (!fn) {
+      throw new Error(`Formula "${formulaId}" not registered`);
+    }
+    return fn(...args);
+  }
+
+  getAllFormulaIds() {
+    return Array.from(this.formulas.keys());
+  }
+
+  clear() {
+    this.formulas.clear();
+  }
+}
+
+const defaultFormulaRegistry = new FormulaRegistry();
+
+
+// ---- js/formulas.js ----
+/**
+ * formulas.js
+ * Pure mathematical formulas for The Eternal Simulation (Rebuild specification).
+ * Strictly decoupled from state mutation and UI.
+ * Registers formulas in FormulaRegistry.
+ */
+
+
+// ============================================================================
+// 1. ALGORITHM STRENGTHS & PERFORMANCE
+// ============================================================================
+
+function calculateAlgorithmBaseStrengths(config = {}) {
+  const base = config.economy?.algorithmBaseStrength ?? 1e-15;
+  const factor = config.economy?.algorithmConversionFactor ?? 12;
+  const ratio = config.economy?.conversionPerformanceRatio ?? 2;
+
+  const aImp = base;
+  const aUpg = aImp * factor * ratio; // 1e-15 * 12 * 2 = 24e-15
+  const aRec = aUpg * factor * ratio; // 24e-15 * 12 * 2 = 576e-15
+
+  return {
+    AImp: aImp,
+    AUpg: aUpg,
+    ARec: aRec,
+  };
+}
+
+function calculateComputerPerformanceMultiplier(computerLevel = 1, config = {}) {
+  const L = Math.max(1, Math.floor(computerLevel ?? 1));
+  const base = config.economy?.computerPerformanceBase ?? 1.5;
+  return base ** (L - 1);
+}
+
+function calculateCapacitorMultiplier(capacitorsOwned = 0, config = {}, deviceMultiplier = 1) {
+  const c = Math.max(0, Math.floor(capacitorsOwned ?? 0));
+  const bonusPerUnit = config.devices?.capacitor?.bonusPerUnit ?? 0.5;
+  return 1 + bonusPerUnit * c * deviceMultiplier;
+}
+
+function calculateAlgorithmPerformance(state = {}, config = {}, statResolver = null) {
+  const strengths = calculateAlgorithmBaseStrengths(config);
+  const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+  const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+  const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+
+  const capacitorMult = statResolver
+    ? statResolver.resolve("algorithms.AImp.capacitorMultiplier", { state, config })
+    : calculateCapacitorMultiplier(state.devices?.capacitors ?? 0, config, deviceMultiplier);
+
+  const aImpContrib = big(strengths.AImp).mul(aImpOwned).mul(capacitorMult);
+  const aUpgContrib = big(strengths.AUpg).mul(aUpgOwned);
+  const aRecContrib = big(strengths.ARec).mul(aRecOwned);
+
+  return aImpContrib.add(aUpgContrib).add(aRecContrib);
+}
+
+function calculateCrcMultiplier(state = {}, config = {}, deviceMultiplier = 1) {
+  const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+  if (!hasGadget) return 1.0;
+  const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
+  return 1.0 + (baseMult - 1.0) * deviceMultiplier;
+}
+
+function calculateEnergyProduction(state = {}, config = {}, statResolver = null) {
+  const ap = calculateAlgorithmPerformance(state, config, statResolver);
+  if (ap.lte(0)) return big(0);
+
+  const compMult = calculateComputerPerformanceMultiplier(state.computerLevel ?? 1, config);
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+
+  const crcMult = statResolver
+    ? statResolver.resolve("devices.crc.multiplier", { state, config })
+    : calculateCrcMultiplier(state, config, deviceMultiplier);
+
+  return ap.mul(compMult).mul(crcMult);
+}
+
+function calculateEnergyOverflowDecay(storedEnergy = 0, stableCapacity = 0, config = {}) {
+  const energy = big(storedEnergy);
+  const cap = big(stableCapacity);
+  const overflow = bigMax(0, energy.sub(cap));
+  if (overflow.lte(0)) return big(0);
+
+  const rate = config.decay?.overflowDecayRate ?? 0.009;
+  const power = config.decay?.overflowDecayPower ?? 1.35;
+  return big(rate).mul(overflow.pow(power));
+}
+
+// ============================================================================
+// 2. DATA (XP) & COMPUTER LEVEL PROGRESSION
+// ============================================================================
+
+function calculateDataFromAlgorithms(state = {}, config = {}) {
+  const aImpVal = config.dataXP?.aImpData ?? 1;
+  const aUpgVal = config.dataXP?.aUpgData ?? 9;
+  const aRecVal = config.dataXP?.aRecData ?? 81;
+
+  const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+  const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+  const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+
+  return aImpOwned * aImpVal + aUpgOwned * aUpgVal + aRecOwned * aRecVal;
+}
+
+function calculateAvailableData(state = {}, config = {}) {
+  const fromAlgorithms = calculateDataFromAlgorithms(state, config);
+  const fromHardDisk = state.devices?.hardDisks?.buffer ?? state.hardDiskBuffer ?? 0;
+  return fromAlgorithms + fromHardDisk;
+}
+
+function calculateRequiredDataForNextComputerLevel(currentLevel = 1, config = {}) {
+  const k = Math.max(1, Math.floor(currentLevel ?? 1));
+  const base = config.dataXP?.machineLearning?.baseRequirement ?? 693;
+  const scale = config.dataXP?.machineLearning?.scaleMultiplier ?? 2304;
+  const exp = config.dataXP?.machineLearning?.powerExponent ?? 1.6643485138;
+  return Math.ceil(base + scale * ((k - 1) ** exp));
+}
+
+// ============================================================================
+// 3. FACILITY OPTIMIZATION & DEVICE AMPLIFIERS
+// ============================================================================
+
+function calculateFacilityOptimizationRequirement(completedCount = 0, config = {}) {
+  const H = Math.max(0, Math.floor(completedCount ?? 0));
+  const initial = config.facilityOptimization?.initialLevelRequired ?? 9;
+  const step = config.facilityOptimization?.levelIncrement ?? 3;
+  return initial + step * H;
+}
+
+function calculateFacilityDeviceMultiplier(completedCount = 0, config = {}) {
+  const H = Math.max(0, Math.floor(completedCount ?? 0));
+  const base = config.facilityOptimization?.deviceMultiplierBase ?? 1.09;
+  return base ** H;
+}
+
+function calculateProcessorDeviceMultiplier(processorsOwned = 0, config = {}) {
+  const P = Math.max(0, Math.floor(processorsOwned ?? 0));
+  const bonusPerUnit = config.devices?.processor?.bonusPerUnit ?? 0.03;
+  return 1 + bonusPerUnit * P;
+}
+
+function calculateTotalDeviceMultiplier(state = {}, config = {}) {
+  const facilityMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
+  const procMult = calculateProcessorDeviceMultiplier(state.devices?.processors ?? 0, config);
+  return facilityMult * procMult;
+}
+
+// ============================================================================
+// 4. STUDY SPEED, TRANSISTORS, MICROPROCESSOR & OVERCLOCK
+// ============================================================================
+
+function calculateTransistorStudySpeedMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1) {
+  const T = Math.max(0, Math.floor(transistorsAllocated ?? 0));
+  const rate = config.devices?.transistor?.speedBonusPerUnit ?? 0.05;
+  return 1 + rate * T * deviceMultiplier;
+}
+
+function calculateMicroprocessorStudyMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1) {
+  const T = Math.max(0, Math.floor(transistorsAllocated ?? 0));
+  const base = config.devices?.microprocessor?.multiplierBase ?? 1.12;
+  const rawBonus = base ** T - 1;
+  return 1 + rawBonus * deviceMultiplier;
+}
+
+function calculateOverclockDuration(transistorsConsumed = 2, config = {}) {
+  const T = Math.max(2, Math.floor(transistorsConsumed ?? 2));
+  const base = config.devices?.overclocker?.durationBase ?? 1.5;
+  return Math.log(T) / Math.log(base);
+}
+
+function calculateOverclockBonusMultiplier(transistorsConsumed = 2, config = {}) {
+  const T = Math.max(2, Math.floor(transistorsConsumed ?? 2));
+  const div = config.devices?.overclocker?.bonusDivisor ?? 3.0;
+  return 1 + T / div;
+}
+
+function calculateEffectiveStudySpeed(featureId = "AImp", state = {}, config = {}, statResolver = null) {
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+
+  const T = state.devices?.transistorAllocations?.[featureId] ?? 0;
+  const transistorSpeed = calculateTransistorStudySpeedMultiplier(T, config, deviceMultiplier);
+
+  let microMult = 1.0;
+  const microTarget = state.devices?.microprocessor?.target ?? "AImp";
+  const hasMicro = (state.devices?.microprocessor?.owned ?? 0) > 0;
+
+  if (hasMicro && microTarget === featureId) {
+    const overclock = state.devices?.overclocker;
+    if (overclock?.active && overclock.target === featureId) {
+      const consumedT = overclock.consumedTransistors ?? 2;
+      const baseMicroBonus = (config.devices?.microprocessor?.multiplierBase ?? 1.12) ** consumedT - 1;
+      const ocBonus = calculateOverclockBonusMultiplier(consumedT, config);
+      microMult = 1 + baseMicroBonus * ocBonus * deviceMultiplier;
+    } else {
+      microMult = calculateMicroprocessorStudyMultiplier(T, config, deviceMultiplier);
+    }
+  }
+
+  return Math.max(0.01, transistorSpeed * microMult);
+}
+
+function calculateEffectiveStudyDuration(featureId = "AImp", state = {}, config = {}, statResolver = null) {
+  const baseDuration = config.economy?.baseStudyDurationSeconds ?? 0.5;
+  const speed = calculateEffectiveStudySpeed(featureId, state, config, statResolver);
+  return speed > 0 ? baseDuration / speed : baseDuration;
+}
+
+// ============================================================================
+// 5. POWER CELLS & OPERATIONAL CAPACITY
+// ============================================================================
+
+function calculatePowerCellCost(ownedCount = 0, config = {}) {
+  const N = Math.max(0, Math.floor(ownedCount ?? 0));
+  if (N === 0) return big(config.devices?.powerCell?.initialCost ?? 1.0);
+  const base = config.devices?.powerCell?.initialCost ?? 1.0;
+  const mult = config.devices?.powerCell?.costMultiplier ?? 2.25;
+  return big(base).mul(big(mult).pow(N));
+}
+
+function calculatePowerCellCapacity(ownedCount = 0, state = {}, config = {}, statResolver = null) {
+  const count = Math.max(0, Math.floor(ownedCount ?? 0));
+  const baseCap = config.devices?.powerCell?.baseCapacity ?? 1e-3;
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+  return big(count).mul(baseCap).mul(deviceMultiplier);
+}
+
+// ============================================================================
+// 6. HARD DISK DRAIN & DATA GENERATION
+// ============================================================================
+
+function calculateHardDiskXpRate(activeDisks = 0, state = {}, config = {}, statResolver = null) {
+  const disks = Math.max(0, Math.floor(activeDisks ?? 0));
+  const baseRate = config.devices?.hardDisk?.dataRatePerDisk ?? 3.0;
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+  return disks * baseRate * deviceMultiplier;
+}
+
+function calculateHardDiskEnergyDrain(activeDisks = 0, activeSeconds = 0, config = {}) {
+  const disks = Math.max(0, Math.floor(activeDisks ?? 0));
+  if (disks <= 0) return big(0);
+  const baseDrain = config.devices?.hardDisk?.baseEnergyDrainPerSecond ?? 1e-10;
+  const timeConstant = config.devices?.hardDisk?.drainTimeConstant ?? 60.0;
+  const growth = 1 + activeSeconds / timeConstant;
+  return big(baseDrain).mul(disks).mul(growth);
+}
+
+// ============================================================================
+// 7. GENERIC DEVICE PRICING & BULK CALCULATIONS
+// ============================================================================
+
+function calculateGeometricCost(initialCost, multiplier, currentOwned) {
+  const N = Math.max(0, Math.floor(currentOwned ?? 0));
+  return big(initialCost).mul(big(multiplier).pow(N));
+}
+
+function calculateBulkGeometricCost(initialCost, multiplier, currentOwned, count = 1) {
+  const k = Math.max(1, Math.floor(count ?? 1));
+  const N = Math.max(0, Math.floor(currentOwned ?? 0));
+
+  if (k === 1) {
+    return calculateGeometricCost(initialCost, multiplier, N);
+  }
+
+  // Exact summation with BigNum
+  const r = big(multiplier);
+  if (r.eq(1)) {
+    return big(initialCost).mul(k);
+  }
+
+  // Cost(N) = C0 * r^N * (r^k - 1) / (r - 1)
+  const c0 = big(initialCost);
+  const rPowN = r.pow(N);
+  const rPowK = r.pow(k);
+  const numerator = rPowK.sub(1);
+  const denominator = r.sub(1);
+
+  return c0.mul(rPowN).mul(numerator).div(denominator);
+}
+
+function calculateDeviceCost(type, owned = 0, config = {}) {
+  switch (type) {
+    case "chip": {
+      const init = config.devices?.chip?.initialCost ?? 3e-11;
+      const mult = config.devices?.chip?.costMultiplier ?? 4.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "transistorBoard": {
+      return big(config.devices?.transistorBoard?.initialCost ?? 2e-10);
+    }
+    case "transistor": {
+      const init = config.devices?.transistor?.initialCost ?? 3e-11;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "microprocessor": {
+      return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
+    }
+    case "overclocker": {
+      return big(config.devices?.overclocker?.initialCost ?? 9e-8);
+    }
+    case "crcGadget": {
+      return big(config.devices?.crcGadget?.initialCost ?? 1e-8);
+    }
+    case "capacitor": {
+      const init = config.devices?.capacitor?.initialCost ?? 1e-8;
+      const mult = config.devices?.capacitor?.costMultiplier ?? 5.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "processor": {
+      const init = config.devices?.processor?.initialCost ?? 1e-4;
+      const mult = config.devices?.processor?.costMultiplier ?? 2.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "hardDisk": {
+      const init = config.devices?.hardDisk?.initialCost ?? 1e-5;
+      const mult = config.devices?.hardDisk?.costMultiplier ?? 9.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "powerCell": {
+      return calculatePowerCellCost(owned, config);
+    }
+    default:
+      return big(0);
+  }
+}
+
+function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {}) {
+  const kCount = Math.max(1, Math.floor(count ?? 1));
+
+  switch (type) {
+    case "chip": {
+      const init = config.devices?.chip?.initialCost ?? 3e-11;
+      const mult = config.devices?.chip?.costMultiplier ?? 4.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "transistorBoard":
+    case "microprocessor":
+    case "overclocker":
+    case "crcGadget": {
+      return calculateDeviceCost(type, currentOwned, config);
+    }
+    case "transistor": {
+      const init = config.devices?.transistor?.initialCost ?? 3e-11;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "capacitor": {
+      const init = config.devices?.capacitor?.initialCost ?? 1e-8;
+      const mult = config.devices?.capacitor?.costMultiplier ?? 5.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "processor": {
+      const init = config.devices?.processor?.initialCost ?? 1e-4;
+      const mult = config.devices?.processor?.costMultiplier ?? 2.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "hardDisk": {
+      const init = config.devices?.hardDisk?.initialCost ?? 1e-5;
+      const mult = config.devices?.hardDisk?.costMultiplier ?? 9.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "powerCell": {
+      let total = big(0);
+      for (let i = 0; i < kCount; i++) {
+        total = total.add(calculatePowerCellCost(currentOwned + i, config));
+      }
+      return total;
+    }
+    default:
+      return big(0);
+  }
+}
+
+// ============================================================================
+// REGISTER FORMULAS IN DEFAULT FORMULA REGISTRY
+// ============================================================================
+
+defaultFormulaRegistry.register("algorithmBaseStrengths", calculateAlgorithmBaseStrengths);
+defaultFormulaRegistry.register("computerPerformanceMultiplier", calculateComputerPerformanceMultiplier);
+defaultFormulaRegistry.register("capacitorMultiplier", calculateCapacitorMultiplier);
+defaultFormulaRegistry.register("algorithmPerformance", calculateAlgorithmPerformance);
+defaultFormulaRegistry.register("crcMultiplier", calculateCrcMultiplier);
+defaultFormulaRegistry.register("energyProduction", calculateEnergyProduction);
+defaultFormulaRegistry.register("energyOverflowDecay", calculateEnergyOverflowDecay);
+defaultFormulaRegistry.register("dataFromAlgorithms", calculateDataFromAlgorithms);
+defaultFormulaRegistry.register("availableData", calculateAvailableData);
+defaultFormulaRegistry.register("requiredDataForNextComputerLevel", calculateRequiredDataForNextComputerLevel);
+defaultFormulaRegistry.register("facilityOptimizationRequirement", calculateFacilityOptimizationRequirement);
+defaultFormulaRegistry.register("facilityDeviceMultiplier", calculateFacilityDeviceMultiplier);
+defaultFormulaRegistry.register("processorDeviceMultiplier", calculateProcessorDeviceMultiplier);
+defaultFormulaRegistry.register("totalDeviceMultiplier", calculateTotalDeviceMultiplier);
+defaultFormulaRegistry.register("transistorStudySpeedMultiplier", calculateTransistorStudySpeedMultiplier);
+defaultFormulaRegistry.register("microprocessorStudyMultiplier", calculateMicroprocessorStudyMultiplier);
+defaultFormulaRegistry.register("overclockDuration", calculateOverclockDuration);
+defaultFormulaRegistry.register("overclockBonusMultiplier", calculateOverclockBonusMultiplier);
+defaultFormulaRegistry.register("effectiveStudySpeed", calculateEffectiveStudySpeed);
+defaultFormulaRegistry.register("effectiveStudyDuration", calculateEffectiveStudyDuration);
+defaultFormulaRegistry.register("powerCellCost", calculatePowerCellCost);
+defaultFormulaRegistry.register("powerCellCapacity", calculatePowerCellCapacity);
+defaultFormulaRegistry.register("hardDiskXpRate", calculateHardDiskXpRate);
+defaultFormulaRegistry.register("hardDiskEnergyDrain", calculateHardDiskEnergyDrain);
+defaultFormulaRegistry.register("deviceCost", calculateDeviceCost);
+defaultFormulaRegistry.register("bulkDeviceCost", calculateBulkDeviceCost);
+
+// Compatibility aliases
+const calculateProduction = calculateEnergyProduction;
+
+
+
+
+// ---- js/effect-registry.js ----
+/**
+ * EffectRegistry
+ * Indexes effect definitions by targetStatId (N:N relationship).
+ * Any layer can register effects modifying any statId without hardcoded switches.
+ */
+
+class EffectRegistry {
+  constructor() {
+    this.effectsById = new Map();
+    this.effectsByTarget = new Map();
+  }
+
+  register(effect) {
+    if (!effect || !effect.id || !effect.targetStatId) {
+      throw new Error("Effect must specify id and targetStatId");
+    }
+
+    if (this.effectsById.has(effect.id)) {
+      this.unregister(effect.id);
+    }
+
+    this.effectsById.set(effect.id, effect);
+
+    const target = effect.targetStatId;
+    if (!this.effectsByTarget.has(target)) {
+      this.effectsByTarget.set(target, []);
+    }
+    this.effectsByTarget.get(target).push(effect);
+  }
+
+  registerAll(effects) {
+    for (const effect of effects) {
+      this.register(effect);
+    }
+  }
+
+  unregister(effectId) {
+    const effect = this.effectsById.get(effectId);
+    if (!effect) return false;
+
+    this.effectsById.delete(effectId);
+    const list = this.effectsByTarget.get(effect.targetStatId);
+    if (list) {
+      const index = list.findIndex((e) => e.id === effectId);
+      if (index !== -1) {
+        list.splice(index, 1);
+      }
+      if (list.length === 0) {
+        this.effectsByTarget.delete(effect.targetStatId);
+      }
+    }
+    return true;
+  }
+
+  getEffectsForTarget(targetStatId) {
+    return this.effectsByTarget.get(targetStatId) ?? [];
+  }
+
+  getAllEffects() {
+    return Array.from(this.effectsById.values());
+  }
+
+  getTargets() {
+    return Array.from(this.effectsByTarget.keys());
+  }
+
+  clear() {
+    this.effectsById.clear();
+    this.effectsByTarget.clear();
+  }
+}
+
+const defaultEffectRegistry = new EffectRegistry();
+
+
+// ---- js/effect-engine.js ----
+/**
+ * EffectEngine
+ * Deterministically applies and composes effects following the explicit pipeline:
+ * base -> add -> multiply -> power -> log -> cap/floor -> override
+ * Resolves operands using context, with tie-breaking by priority (descending) and effectId.
+ */
+
+
+const PIPELINE_ORDER = [
+  "base",
+  "add",
+  "multiply",
+  "power",
+  "log",
+  "cap",
+  "floor",
+  "override",
 ];
 
-function getRarityLabel(rarity) {
-  switch (Number(rarity)) {
-    case 5:
-      return "LEGENDARY";
-    case 4:
-      return "VERY RARE";
-    case 3:
-      return "RARE";
-    case 2:
-      return "UNCOMMON";
-    case 1:
-    default:
-      return "COMMON";
-  }
+const OPERATION_ALIASES = {
+  mult: "multiply",
+  pow: "power",
+  hardcap: "cap",
+  softcap: "cap",
+};
+
+function normalizeOperation(op) {
+  const lower = String(op).toLowerCase();
+  return OPERATION_ALIASES[lower] ?? lower;
 }
 
-function getRarityClass(rarity) {
-  switch (Number(rarity)) {
-    case 5:
-      return "news-rarity--legendary";
-    case 4:
-      return "news-rarity--very-rare";
-    case 3:
-      return "news-rarity--rare";
-    case 2:
-      return "news-rarity--uncommon";
-    case 1:
-    default:
-      return "news-rarity--common";
-  }
-}
-
-function selectNextNews(newsList, currentNewsId = null, randomFn = Math.random) {
-  const items = Array.isArray(newsList) && newsList.length > 0 ? newsList : DEFAULT_NEWS;
-  if (items.length === 1) return items[0];
-
-  const candidates = items.filter((item) => item.id !== currentNewsId);
-  const pool = candidates.length > 0 ? candidates : items;
-
-  let totalWeight = 0;
-  for (const item of pool) {
-    const w = Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 1;
-    totalWeight += w;
+class EffectEngine {
+  constructor({ customOperations = {} } = {}) {
+    this.customOperations = customOperations;
   }
 
-  const roll = randomFn() * totalWeight;
-  let accumulated = 0;
-  for (const item of pool) {
-    const w = Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 1;
-    accumulated += w;
-    if (roll < accumulated) {
-      return item;
-    }
-  }
+  /**
+   * Sorts effects according to pipeline order, then priority (descending), then effectId (lexicographical).
+   */
+  sortEffects(effects) {
+    return [...effects].sort((a, b) => {
+      const opA = normalizeOperation(a.operation);
+      const opB = normalizeOperation(b.operation);
 
-  return pool[pool.length - 1];
-}
+      const phaseA = PIPELINE_ORDER.indexOf(opA);
+      const phaseB = PIPELINE_ORDER.indexOf(opB);
 
-function getNewsItem(newsList, id) {
-  const items = Array.isArray(newsList) && newsList.length > 0 ? newsList : DEFAULT_NEWS;
-  if (!id) return selectNextNews(items);
-  return items.find((item) => item.id === id) || items[0];
-}
+      const rankA = phaseA === -1 ? 999 : phaseA;
+      const rankB = phaseB === -1 ? 999 : phaseB;
 
+      if (rankA !== rankB) return rankA - rankB;
 
-// ---- js/effect-system.js ----
+      const priorityA = Number(a.priority ?? 0);
+      const priorityB = Number(b.priority ?? 0);
+      if (priorityA !== priorityB) return priorityB - priorityA;
 
-function getProductionEffects(state, config, developmentMode = false) {
-  const effects = [
-    {
-      id: "base-crc-production",
-      label: "Base CRC signal",
-      target: "crc.production",
-      operation: "base",
-      value: config.energy.baseProductionPerSecond
-    },
-    {
-      id: "crc-count",
-      label: "Active CRCs",
-      target: "crc.production",
-      operation: "multiply",
-      value: state.crcCount
-    },
-    {
-      id: "algorithm-improvements",
-      label: "Algorithm Improvements",
-      target: "crc.production",
-      operation: "multiply",
-      value: 1 + Math.max(0, state.improvements ?? 0)
-    },
-    {
-      id: "algorithm-upgrades",
-      label: "Algorithm Upgrades",
-      target: "crc.production",
-      operation: "multiply",
-      value: big(config.algorithmUpgrade.productionMultiplier).pow(
-        state.upgrades,
-      )
-    }
-  ];
-
-  if (developmentMode) {
-    effects.push({
-      id: "development-production",
-      label: "Development multiplier",
-      target: "crc.production",
-      operation: "multiply",
-      value: getDevelopmentProductionMultiplier(state, config)
+      return String(a.id).localeCompare(String(b.id));
     });
   }
 
-  return effects;
+  /**
+   * Resolves the operand value from an effect definition in the given context.
+   */
+  resolveOperand(effect, context) {
+    if (typeof effect.value === "function") {
+      return effect.value(context);
+    }
+    return effect.value;
+  }
+
+  /**
+   * Evaluates if an effect should be active in the given context.
+   */
+  isEffectActive(effect, context) {
+    if (effect.condition === undefined) return true;
+    if (typeof effect.condition === "function") {
+      return Boolean(effect.condition(context));
+    }
+    return Boolean(effect.condition);
+  }
+
+  /**
+   * Computes the final stat value from a list of effects and an optional starting base value.
+   * Produces a structured trace of all steps.
+   */
+  compute({ baseValue = 1, effects = [], context = {} } = {}) {
+    const sorted = this.sortEffects(effects);
+    let current = big(baseValue);
+    const trace = [];
+
+    for (const effect of sorted) {
+      const active = this.isEffectActive(effect, context);
+      if (!active) {
+        trace.push({
+          effectId: effect.id,
+          label: effect.label ?? effect.id,
+          source: effect.source,
+          operation: effect.operation,
+          active: false,
+          valueBefore: current,
+          valueAfter: current,
+        });
+        continue;
+      }
+
+      const op = normalizeOperation(effect.operation);
+      const rawOperand = this.resolveOperand(effect, context);
+      const before = current;
+
+      switch (op) {
+        case "base": {
+          current = big(rawOperand);
+          break;
+        }
+        case "add": {
+          current = current.add(big(rawOperand));
+          break;
+        }
+        case "multiply": {
+          current = current.mul(big(rawOperand));
+          break;
+        }
+        case "power": {
+          current = current.pow(big(rawOperand));
+          break;
+        }
+        case "log": {
+          const base = effect.logBase ? big(effect.logBase).toNumber() : 10;
+          if (base === 10) {
+            current = current.gt(0) ? current.log10() : big(0);
+          } else if (base === Math.E) {
+            current = current.gt(0) ? current.ln() : big(0);
+          } else {
+            current = current.gt(0) ? current.log(base) : big(0);
+          }
+          break;
+        }
+        case "cap": {
+          current = bigMin(current, big(rawOperand));
+          break;
+        }
+        case "floor": {
+          current = bigMax(current, big(rawOperand));
+          break;
+        }
+        case "override": {
+          current = big(rawOperand);
+          break;
+        }
+        default: {
+          if (this.customOperations[op]) {
+            current = this.customOperations[op](current, rawOperand, context);
+          } else {
+            throw new Error(`Unknown effect operation: "${effect.operation}"`);
+          }
+          break;
+        }
+      }
+
+      trace.push({
+        effectId: effect.id,
+        label: effect.label ?? effect.id,
+        source: effect.source,
+        operation: op,
+        operand: rawOperand,
+        active: true,
+        valueBefore: before,
+        valueAfter: current,
+      });
+    }
+
+    return {
+      value: current,
+      trace,
+    };
+  }
 }
 
-function applyProductionEffects(effects) {
-  const base = effects.find((effect) => effect.operation === "base")?.value ?? 0;
-  return effects
-    .filter((effect) => effect.operation === "multiply")
-    .reduce((value, effect) => value.mul(effect.value), big(base));
+const defaultEffectEngine = new EffectEngine();
+
+
+// ---- js/effect-system.js ----
+/**
+ * effect-system.js
+ * Declarative effects for The Eternal Simulation (Rebuild specification).
+ * Binds origins (Devices, Upgrades, Resets) to destination statIds via EffectRegistry.
+ */
+
+
+function createStandardEffects(config = {}) {
+  return [
+    // 1. Facility Optimization multiplier on global device performance
+    {
+      id: "facility-optimization-multiplier",
+      label: "Facility Optimization Multiplier",
+      source: "facilityOptimization",
+      targetStatId: "devices.globalMultiplier",
+      operation: "multiply",
+      value: (context) => {
+        const H = context.state?.facilityOptimizations ?? 0;
+        return calculateFacilityDeviceMultiplier(H, context.config ?? config);
+      },
+    },
+
+    // 2. Processor multiplier on global device performance
+    {
+      id: "processor-device-multiplier",
+      label: "Processor Device Multiplier",
+      source: "processor",
+      targetStatId: "devices.globalMultiplier",
+      operation: "multiply",
+      value: (context) => {
+        const P = context.state?.devices?.processors ?? 0;
+        return calculateProcessorDeviceMultiplier(P, context.config ?? config);
+      },
+    },
+
+    // 3. CRC Gadget multiplier on CRC production
+    {
+      id: "crc-gadget-multiplier",
+      label: "CRC Gadget Multiplier",
+      source: "crcGadget",
+      targetStatId: "devices.crc.multiplier",
+      operation: "multiply",
+      value: (context) => {
+        const devMult = context.resolve
+          ? context.resolve("devices.globalMultiplier")
+          : 1.0;
+        return calculateCrcMultiplier(context.state, context.config ?? config, devMult);
+      },
+    },
+
+    // 4. Capacitor multiplier on A.Improvement energy contribution
+    {
+      id: "capacitor-aimp-multiplier",
+      label: "Capacitor AImp Multiplier",
+      source: "capacitor",
+      targetStatId: "algorithms.AImp.capacitorMultiplier",
+      operation: "base",
+      value: (context) => {
+        const devMult = context.resolve
+          ? context.resolve("devices.globalMultiplier")
+          : 1.0;
+        const caps = context.state?.devices?.capacitors ?? 0;
+        return calculateCapacitorMultiplier(caps, context.config ?? config, devMult);
+      },
+    },
+
+    // 5. Study speeds for AImp, AUpg, ARec
+    {
+      id: "study-speed-aimp",
+      label: "A.Improvement Study Speed",
+      source: "studyFleet",
+      targetStatId: "studies.AImp.speed",
+      operation: "base",
+      value: (context) => calculateEffectiveStudySpeed("AImp", context.state, context.config ?? config),
+    },
+    {
+      id: "study-speed-aupg",
+      label: "A.Upgrade Study Speed",
+      source: "studyFleet",
+      targetStatId: "studies.AUpg.speed",
+      operation: "base",
+      value: (context) => calculateEffectiveStudySpeed("AUpg", context.state, context.config ?? config),
+    },
+    {
+      id: "study-speed-arec",
+      label: "A.Recalculation Study Speed",
+      source: "studyFleet",
+      targetStatId: "studies.ARec.speed",
+      operation: "base",
+      value: (context) => calculateEffectiveStudySpeed("ARec", context.state, context.config ?? config),
+    },
+  ];
+}
+
+function registerStandardEffects(registry = defaultEffectRegistry, config = {}) {
+  const effects = createStandardEffects(config);
+  registry.registerAll(effects);
+  return registry;
+}
+
+
+// ---- js/stat-resolver.js ----
+/**
+ * StatResolver
+ * Resolves stat values by querying EffectRegistry and computing via EffectEngine.
+ * Implements DAG dependency tracking, cycle detection, trace production,
+ * and optional revision-based caching.
+ */
+
+
+const MANDATORY_STAT_IDS = Object.freeze({
+  ALGORITHM_PERFORMANCE: "algorithms.performance",
+  CRC_PRODUCTION_RATE: "devices.crc.productionRate",
+  CRC_MULTIPLIER: "devices.crc.multiplier",
+  AIMP_CAPACITOR_MULTIPLIER: "algorithms.AImp.capacitorMultiplier",
+  GLOBAL_DEVICE_MULTIPLIER: "devices.globalMultiplier",
+  FACILITY_DEVICE_MULTIPLIER: "facility.deviceMultiplier",
+  PROCESSOR_DEVICE_MULTIPLIER: "devices.processor.deviceMultiplier",
+  STUDY_SPEED_AIMP: "studies.AImp.speed",
+  STUDY_SPEED_AUPG: "studies.AUpg.speed",
+  STUDY_SPEED_AREC: "studies.ARec.speed",
+  POWER_CELL_CAPACITY: "devices.powerCell.capacity",
+
+  // Architecture contract compatibility keys
+  CRC_IMPROVEMENT_FACTOR: "devices.crc.improvementFactor",
+  CRC_UPGRADE_FACTOR: "devices.crc.upgradeFactor",
+  PROCESSOR_UNIT_BONUS: "devices.processor.unitBonus",
+  PROCESSOR_CALC_AMPLIFICATION: "devices.processor.calculatorAmplification",
+  AUTOCALC_UNIT_BONUS: "devices.autoCalculator.unitBonus",
+  AUTOCALC_RESEARCH_SPEED: "devices.autoCalculator.researchSpeed",
+  ALGO_IMP_SPEED_MULT: "studies.algorithmImprovement.speedMultiplier",
+  SETUP_DEVICE_PERFORMANCE: "setup.devicePerformance",
+});
+
+class StatResolver {
+  constructor({
+    registry = defaultEffectRegistry,
+    engine = defaultEffectEngine,
+  } = {}) {
+    this.registry = registry;
+    this.engine = engine;
+    this.statDefinitions = new Map();
+    this.cache = new Map();
+    this.revision = 0;
+  }
+
+  registerStat(statId, { baseValue = 1, baseFormula = null, description = "" } = {}) {
+    this.statDefinitions.set(statId, {
+      id: statId,
+      baseValue,
+      baseFormula,
+      description,
+    });
+  }
+
+  invalidateCache() {
+    this.cache.clear();
+    this.revision += 1;
+  }
+
+  resolve(statId, context = {}, { trace = false } = {}) {
+    const callStack = new Set();
+    return this._resolveInternal(statId, context, callStack, trace);
+  }
+
+  _resolveInternal(statId, context, callStack, traceEnabled) {
+    if (callStack.has(statId)) {
+      const chain = Array.from(callStack).join(" -> ") + " -> " + statId;
+      throw new Error(`Cyclic dependency detected: ${chain}`);
+    }
+
+    if (!traceEnabled && this.cache.has(statId)) {
+      return this.cache.get(statId);
+    }
+
+    callStack.add(statId);
+
+    const statDef = this.statDefinitions.get(statId);
+    let baseValue = statDef?.baseValue ?? 1;
+    if (statDef?.baseFormula && typeof statDef.baseFormula === "function") {
+      baseValue = statDef.baseFormula(context);
+    }
+
+    const effects = this.registry.getEffectsForTarget(statId);
+
+    const nestedContext = {
+      ...context,
+      resolve: (depStatId, options = {}) =>
+        this._resolveInternal(
+          depStatId,
+          nestedContext,
+          callStack,
+          options.trace ?? false,
+        ),
+      statId,
+    };
+
+    const result = this.engine.compute({
+      baseValue,
+      effects,
+      context: nestedContext,
+    });
+
+    callStack.delete(statId);
+
+    if (!traceEnabled) {
+      this.cache.set(statId, result.value);
+      return result.value;
+    }
+
+    return result;
+  }
+
+  getTrace(statId, context = {}) {
+    return this.resolve(statId, context, { trace: true });
+  }
+}
+
+const defaultStatResolver = new StatResolver();
+
+
+// ---- js/audit-logger.js ----
+/**
+ * audit-logger.js
+ * Comprehensive purchase and action audit logging for The Eternal Simulation.
+ * Captures detailed transactional setup snapshots, exportable to JSON and CSV.
+ */
+
+
+function recordPurchaseAudit(state, config, {
+  actionType = "PURCHASE",
+  itemKey,
+  itemName,
+  requestedQuantity = 1,
+  purchasedQuantity = 1,
+  nominalCost = null,
+  currencyDebited = null,
+  isForced = false,
+  isBypassed = false,
+  energyBefore,
+  energyAfter,
+  metadata = {},
+} = {}) {
+  const now = new Date();
+  const timeStr = now.toTimeString().split(" ")[0];
+  const simTime = Math.round((state.stats?.gameTime ?? 0) * 100) / 100;
+
+  const dataBefore = calculateAvailableData({ ...state, energy: energyBefore }, config);
+  const dataAfter = calculateAvailableData(state, config);
+  const prodBefore = calculateEnergyProduction({ ...state, energy: energyBefore }, config);
+  const prodAfter = calculateEnergyProduction(state, config);
+
+  const entry = {
+    id: (state.auditLogs.length > 0 ? state.auditLogs[state.auditLogs.length - 1].id + 1 : 1),
+    timestamp: timeStr,
+    simulationTimestamp: simTime,
+    actionType,
+    itemKey,
+    itemName: itemName || itemKey,
+    requestedQuantity,
+    purchasedQuantity,
+    nominalCost: nominalCost !== null && nominalCost !== undefined ? serializeBig(nominalCost) : "TBD",
+    nominalCostFormatted: nominalCost !== null && nominalCost !== undefined ? formatEnergy(nominalCost) : "TBD",
+    currencyDebited: currencyDebited !== null && currencyDebited !== undefined ? serializeBig(currencyDebited) : "0",
+    currencyDebitedFormatted: currencyDebited !== null && currencyDebited !== undefined ? formatEnergy(currencyDebited) : "0.00 pJ",
+    isForced,
+    isBypassed,
+    ruleStatus: isForced || isBypassed ? "DEV_BYPASS" : "RULE_ELIGIBLE",
+    computerLevel: state.computerLevel ?? 1,
+    facilityOptimizations: state.facilityOptimizations ?? 0,
+    energyBefore: serializeBig(energyBefore),
+    energyBeforeFormatted: formatEnergy(energyBefore),
+    energyAfter: serializeBig(energyAfter),
+    energyAfterFormatted: formatEnergy(energyAfter),
+    availableDataBefore: dataBefore,
+    availableDataAfter: dataAfter,
+    productionBeforeFormatted: formatRate(prodBefore),
+    productionAfterFormatted: formatRate(prodAfter),
+    setupSnapshot: {
+      computerLevel: state.computerLevel ?? 1,
+      facilityOptimizations: state.facilityOptimizations ?? 0,
+      computerMultiplier: calculateComputerPerformanceMultiplier(state.computerLevel ?? 1, config),
+      facilityMultiplier: calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config),
+      processorMultiplier: calculateProcessorDeviceMultiplier(state.devices?.processors ?? 0, config),
+      algorithms: {
+        AImp: state.algorithms?.AImp?.owned ?? 0,
+        AUpg: state.algorithms?.AUpg?.owned ?? 0,
+        ARec: state.algorithms?.ARec?.owned ?? 0,
+      },
+      devices: {
+        chips: state.devices?.chips?.owned ?? 0,
+        transistorBoard: Boolean(state.devices?.transistorBoard?.owned),
+        transistorsPurchased: state.devices?.transistorsPurchased ?? 0,
+        transistorAllocations: { ...(state.devices?.transistorAllocations ?? {}) },
+        microprocessor: state.devices?.microprocessor?.owned ?? 0,
+        microTarget: state.devices?.microprocessor?.target ?? "AImp",
+        overclocker: state.devices?.overclocker?.owned ?? 0,
+        overclockActive: Boolean(state.devices?.overclocker?.active),
+        crcGadget: state.devices?.crcGadget?.owned ?? 0,
+        capacitors: state.devices?.capacitors ?? 0,
+        processors: state.devices?.processors ?? 0,
+        hardDisks: state.devices?.hardDisks?.owned ?? 0,
+        hardDiskState: state.devices?.hardDisks?.state ?? "off",
+        hardDiskBuffer: state.devices?.hardDisks?.buffer ?? 0,
+        powerCells: state.powerCells ?? 0,
+      },
+    },
+    metadata,
+  };
+
+  if (!state.auditLogs) state.auditLogs = [];
+  state.auditLogs.push(entry);
+
+  const maxLogs = 1000;
+  if (state.auditLogs.length > maxLogs) {
+    state.auditLogs.splice(0, state.auditLogs.length - maxLogs);
+  }
+
+  return entry;
+}
+
+function exportAuditLogsAsJSON(state) {
+  return JSON.stringify(state.auditLogs ?? [], null, 2);
+}
+
+function exportAuditLogsAsCSV(state) {
+  const logs = state.auditLogs ?? [];
+  if (logs.length === 0) return "";
+
+  const headers = [
+    "ID",
+    "Timestamp",
+    "Sim_Time_s",
+    "Action",
+    "Item",
+    "Req_Qty",
+    "Purchased_Qty",
+    "Nominal_Cost",
+    "Debited",
+    "Rule_Status",
+    "Computer_Level",
+    "Facility_Optimizations",
+    "Energy_Before",
+    "Energy_After",
+    "Data_After",
+    "AImp_Owned",
+    "AUpg_Owned",
+    "ARec_Owned",
+    "Chips",
+    "Transistors",
+    "Microprocessors",
+    "Overclocker_Active",
+    "Capacitors",
+    "Processors",
+    "Hard_Disks",
+    "Power_Cells",
+  ];
+
+  const rows = logs.map((log) => [
+    log.id,
+    `"${log.timestamp}"`,
+    log.simulationTimestamp,
+    `"${log.actionType}"`,
+    `"${log.itemName}"`,
+    log.requestedQuantity,
+    log.purchasedQuantity,
+    `"${log.nominalCostFormatted}"`,
+    `"${log.currencyDebitedFormatted}"`,
+    log.ruleStatus,
+    log.computerLevel,
+    log.facilityOptimizations,
+    `"${log.energyBeforeFormatted}"`,
+    `"${log.energyAfterFormatted}"`,
+    log.availableDataAfter,
+    log.setupSnapshot?.algorithms?.AImp ?? 0,
+    log.setupSnapshot?.algorithms?.AUpg ?? 0,
+    log.setupSnapshot?.algorithms?.ARec ?? 0,
+    log.setupSnapshot?.devices?.chips ?? 0,
+    log.setupSnapshot?.devices?.transistorsPurchased ?? 0,
+    log.setupSnapshot?.devices?.microprocessor ?? 0,
+    log.setupSnapshot?.devices?.overclockActive ? "TRUE" : "FALSE",
+    log.setupSnapshot?.devices?.capacitors ?? 0,
+    log.setupSnapshot?.devices?.processors ?? 0,
+    log.setupSnapshot?.devices?.hardDisks ?? 0,
+    log.setupSnapshot?.devices?.powerCells ?? 0,
+  ]);
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
 }
 
 
 // ---- js/component-registry.js ----
-const COMPONENT_REGISTRY = {
-  softDataDisplay: {
-    id: "softDataDisplay",
-    type: "device",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "instrumentation",
-    uiType: "device",
-    subcategory: "computational",
-    label: "Soft Display",
-    action: "buy-soft-display",
-    ownedPath: "devices.softDataDisplay",
-    ownedMode: "boolean",
-    completedWhenOwned: true,
-    cost: { kind: "config", path: "softDataDisplay.cost" },
-    visibleWhen: [],
-    enabledWhen: [
-      { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "energy" },
-    ],
-  },
-  t2SoftDataDisplay: {
-    id: "t2SoftDataDisplay",
-    type: "device",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "instrumentation",
-    uiType: "device",
-    subcategory: "computational",
-    label: "T2 Soft Display",
-    action: "buy-t2-soft-display",
-    ownedPath: "devices.t2SoftDataDisplay",
-    ownedMode: "boolean",
-    completedWhenOwned: true,
-    cost: { kind: "config", path: "t2SoftDataDisplay.cost" },
-    visibleWhen: [{ kind: "truthy", path: "devices.softDataDisplay" }],
-    enabledWhen: [
-      { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "energy" },
-    ],
-  },
-  autoCalculator: {
-    id: "autoCalculator",
-    type: "device",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "fleet",
-    uiType: "device",
-    subcategory: "computational",
-    label: "Auto Calculator",
-    action: "buy-auto",
-    ownedPath: "devices.autoCalculators",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "autoCalculatorCost" },
-    visibleWhen: [],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
-  },
-  processor: {
-    id: "processor",
-    type: "device",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "fleet",
-    uiType: "device",
-    subcategory: "computational",
-    label: "Processor",
-    action: "buy-processor",
-    ownedPath: "devices.processors",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "processorCost" },
-    visibleWhen: [],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
-  },
-  overclocker: {
-    id: "overclocker",
-    type: "device",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "fleet",
-    uiType: "device",
-    subcategory: "computational",
-    label: "Overclocker",
-    action: "buy-overclocker",
-    ownedPath: "devices.overclockers",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "overclockerCost" },
-    visibleWhen: [
-      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
-      {
-        kind: "stateAtLeast",
-        path: "devices.processors",
-        configPath: "overclocker.processorsRequired",
-      },
-      {
-        kind: "stateAtLeast",
-        path: "powerCells",
-        configPath: "overclocker.powerCellsRequired",
-      },
-    ],
-    enabledWhen: [
-      { kind: "truthy", path: "discoveries.overclockerBlueprint" },
-      { kind: "resourceAtLeastCost", resource: "energy" },
-    ],
-  },
-  powerCell: {
-    id: "powerCell",
-    type: "device",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "storage",
-    uiType: "device",
-    subcategory: "energy",
-    label: "Power Cell",
-    action: "buy-power-cell",
-    ownedPath: "powerCells",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "powerCellCost" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "stateAtLeast", path: "powerCells", value: 2 },
-          { kind: "stateAtLeast", path: "powerModules", value: 1 },
-          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
-          { kind: "truthy", path: "devices.softDataDisplay" },
-        ],
-      },
-      {
-        kind: "any",
-        rules: [
-          { kind: "stateAtLeast", path: "powerCells", value: 2 },
-          { kind: "stateAtLeast", path: "powerModules", value: 1 },
-          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
-          {
-            kind: "stateAtLeast",
-            path: "upgrades",
-            configPath: "powerCell.algorithmUpgradesRequired",
-          },
-        ],
-      },
-    ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
-  },
-  powerModule: {
-    id: "powerModule",
-    type: "device",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "storage",
-    uiType: "device",
-    subcategory: "energy",
-    label: "Power Module",
-    action: "buy-power-module",
-    ownedPath: "powerModules",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "powerModuleCost" },
-    requirement: { kind: "formula", name: "powerModuleRequirement" },
-    visibleWhen: [{ kind: "stateAtLeastRequirement", path: "powerCells" }],
-    enabledWhen: [
-      { kind: "stateAtLeastRequirement", path: "powerCells" },
-      { kind: "resourceAtLeastCost", resource: "energy" },
-    ],
-  },
-  particleSynthesizer: {
-    id: "particleSynthesizer",
-    type: "device",
-    tab: "science",
-    functionalTab: "science",
-    uiSection: "particle-lab",
-    uiType: "device",
-    resetKind: "synthesis",
-    subcategory: "energy",
-    label: "Particle Sintetizer",
-    action: "open-particle-synthesis",
-    ownedPath: "particleSynthesizer.activated",
-    ownedMode: "boolean",
-    completedWhenOwned: true,
-    cost: { kind: "formula", name: "particleSynthesizerCost" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          {
-            kind: "stateAtLeast",
-            path: "peakEnergy",
-            configPath: "particleLab.doorEnergyRequired",
-          },
-          { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
-          { kind: "truthy", path: "particleSynthesizer.awakened" },
-        ],
-      },
-    ],
-    enabledWhen: [
-      { kind: "notOwned" },
-      { kind: "resourceAtLeastCost", resource: "energy" },
-    ],
-  },
-  quarkCage: {
-    id: "quarkCage",
-    type: "device",
-    tab: "science",
-    functionalTab: "science",
-    uiSection: "devices",
-    uiType: "device",
-    subcategory: "science-device",
-    label: "Quarks Cage",
-    action: "buy-quark-cage",
-    ownedPath: "scienceDevices.quarkCages",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "quarkCageCost" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "stateAtLeast", path: "science.syntheses", value: 1 },
-          { kind: "stateAtLeast", path: "quarks.totalEarned", value: 1 },
-          { kind: "stateAtLeast", path: "scienceDevices.quarkCages", value: 1 },
-        ],
-      },
-    ],
-    enabledWhen: [{ kind: "resourceAtLeastCost", resource: "energy" }],
-  },
-  fiftyGCalculator: {
-    id: "fiftyGCalculator",
-    type: "science",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "automations",
-    uiType: "science",
-    label: "50G Calculator",
-    action: "buy-fifty-g-calculator",
-    ownedPath: "science.fiftyGCalculator",
-    ownedMode: "boolean",
-    completedWhenOwned: true,
-    cost: {
-      kind: "config",
-      path: "science.fiftyGCalculator.cost",
-      resource: "sciencePoints",
-    },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "truthy", path: "science.perks.redundancyElimination" },
-          { kind: "truthy", path: "science.fiftyGCalculator" },
-        ],
-      },
-    ],
-    enabledWhen: [
-      { kind: "notOwned" },
-      { kind: "truthy", path: "science.perks.redundancyElimination" },
-      { kind: "resourceAtLeastCost", resource: "sciencePoints" },
-    ],
-  },
-  crcBlueprint: {
-    id: "crcBlueprint",
-    type: "study",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "production",
-    uiType: "study",
-    label: "CRC Blueprint",
-    action: "start-blueprint-research",
-    ownedPath: "discoveries.crcBlueprint",
-    ownedMode: "boolean",
-    completedWhenOwned: true,
-    cost: { kind: "none" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "truthy", path: "discoveries.crcBlueprint" },
-          { kind: "truthy", path: "blueprintStudy.active" },
-          {
-            kind: "stateAtLeast",
-            path: "peakEnergy",
-            configPath: "blueprint.revealAtPeakEnergy",
-          },
-        ],
-      },
-    ],
-    enabledWhen: [
-      { kind: "falsy", path: "discoveries.crcBlueprint" },
-      { kind: "falsy", path: "blueprintStudy.active" },
-      {
-        kind: "stateAtLeast",
-        path: "peakEnergy",
-        configPath: "blueprint.revealAtPeakEnergy",
-      },
-    ],
-  },
-  overclockerBlueprint: {
-    id: "overclockerBlueprint",
-    type: "study",
-    tab: "automation",
-    functionalTab: "automation",
-    uiSection: "fleet",
-    uiType: "study",
-    label: "Overclocker Blueprint",
-    action: "start-overclocker-blueprint-research",
-    ownedPath: "discoveries.overclockerBlueprint",
-    ownedMode: "boolean",
-    completedWhenOwned: true,
-    cost: { kind: "none" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "truthy", path: "discoveries.overclockerBlueprint" },
-          { kind: "truthy", path: "overclockerBlueprintStudy.active" },
-          {
-            kind: "stateAtLeast",
-            path: "devices.processors",
-            configPath: "overclocker.processorsRequired",
-          },
-        ],
-      },
-      {
-        kind: "stateAtLeast",
-        path: "powerCells",
-        configPath: "overclocker.powerCellsRequired",
-      },
-    ],
-    enabledWhen: [
-      { kind: "falsy", path: "discoveries.overclockerBlueprint" },
-      { kind: "falsy", path: "overclockerBlueprintStudy.active" },
-      {
-        kind: "stateAtLeast",
-        path: "devices.processors",
-        configPath: "overclocker.processorsRequired",
-      },
-      {
-        kind: "stateAtLeast",
-        path: "powerCells",
-        configPath: "overclocker.powerCellsRequired",
-      },
-    ],
-  },
-  crcConstruction: {
-    id: "crcConstruction",
-    type: "device",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "production",
-    uiType: "device",
-    subcategory: "energy",
-    label: "Cosmic Radiation Condenser",
-    action: "construct-crc",
-    ownedPath: "crcCount",
-    ownedMode: "count",
-    cost: { kind: "formula", name: "crcCost" },
-    visibleWhen: [{ kind: "truthy", path: "discoveries.crcBlueprint" }],
-    enabledWhen: [
-      { kind: "falsy", path: "construction.active" },
-      { kind: "resourceAtLeastCost", resource: "energy" },
-    ],
-  },
-  algorithmUpgrade: {
-    id: "algorithmUpgrade",
-    type: "study",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "production",
-    uiType: "study",
-    resetKind: "none",
-    label: "Algorithm Upgrade",
-    action: "start-algorithm-upgrade",
-    ownedPath: "upgrades",
-    ownedMode: "count",
-    cost: { kind: "none" },
-    requirement: { kind: "formula", name: "algorithmUpgradeRequirement" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "stateAtLeast", path: "upgrades", value: 1 },
-          { kind: "stateAtLeastRequirement", path: "improvements" },
-        ],
-      },
-    ],
-    enabledWhen: [
-      { kind: "falsy", path: "algorithmUpgradeStudy.active" },
-      { kind: "stateAtLeastRequirement", path: "improvements" },
-    ],
-  },
-  calculationMethodUpgrade: {
-    id: "calculationMethodUpgrade",
-    type: "reset",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "breakthroughs",
-    uiType: "study",
-    resetKind: "soft",
-    label: "Setup Improvement",
-    action: "claim-method",
-    ownedPath: "calculationMethods",
-    ownedMode: "count",
-    cost: { kind: "none" },
-    requirement: { kind: "formula", name: "calculationMethodRequirement" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "stateAtLeast", path: "upgrades", value: 1 },
-          { kind: "stateAtLeast", path: "calculationMethods", value: 1 },
-        ],
-      },
-    ],
-    enabledWhen: [{ kind: "stateAtLeastRequirement", path: "upgrades" }],
-  },
-  setupOptimization: {
-    id: "setupOptimization",
-    type: "reset",
-    tab: "energy",
-    functionalTab: "energy",
-    uiSection: "breakthroughs",
-    uiType: "study",
-    resetKind: "hard",
-    subcategory: "reset",
-    label: "Setup Upgrade",
-    action: "claim-setup",
-    ownedPath: "setupOptimizations",
-    ownedMode: "count",
-    cost: { kind: "none" },
-    requirement: { kind: "formula", name: "setupOptimizationRequirement" },
-    visibleWhen: [
-      {
-        kind: "any",
-        rules: [
-          { kind: "stateAtLeast", path: "upgrades", value: 1 },
-          { kind: "stateAtLeast", path: "calculationMethods", value: 1 },
-          { kind: "stateAtLeast", path: "setupOptimizations", value: 1 },
-        ],
-      },
-    ],
-    enabledWhen: [
-      { kind: "stateAtLeastRequirement", path: "calculationMethods" },
-    ],
-  },
-};
+/**
+ * component-registry.js
+ * Component Registry for The Eternal Simulation (Rebuild specification).
+ * Declarative definitions for Devices, Storage, and Prestige Resets.
+ */
 
 
-// ---- js/science-perks.js ----
+const ELEMENT_REGISTRY = new Map();
 
-const SCIENCE_PERKS = [
-  {
-    id: "redundancyElimination",
-    name: "Redundancy Elimination",
-    branch: "layer",
-    cost: 1,
-    requires: [],
-    effect:
-      "Algorithm Upgrades compound Algorithm Improvement research speed across successive cycles. The bonus applies fully through 50 Improvements, weakens sharply after that, and stops growing at 100 Improvements. Opens the main Science Tree branches.",
-    summary:
-      "Compounds A. Improvement research speed, softcapped at 50 and hardcapped at 100 Improvements.",
-  },
-  {
-    id: "particleGenerator",
-    name: "Particle Generator",
-    branch: "layer",
-    cost: 1,
-    requires: [
-      "redundancyElimination",
-      "quantumCalculationPrinciples",
-      "quantumSuperposition",
-    ],
-    effect:
-      "Unlocks the Particle Generator and begins the transition to the Particles Era, with new particle manipulation systems.",
-    revealHint: "Reach 1e36 J Stored Energy to reveal this technology.",
-    storedEnergyRequiredConfigPath:
-      "science.quantumPerks.particleGeneratorStoredEnergyRequired",
-    summary: "Opens particle generation and the Particles Era.",
-  },
-  {
-    id: "quantumCalculationPrinciples",
-    name: "Quantum Calculation Principles",
-    branch: "quantum",
-    cost: 1,
-    requires: ["redundancyElimination"],
-    revealedAtAllocatedSciencePointsConfigPath:
-      "science.quantumPerks.revealAtAllocatedSciencePoints",
-    revealHint: "Allocate 3 Science Points to reveal this technology.",
-    effect:
-      "Algorithm Upgrade execution becomes faster based on Total Quarks Earned, with a logarithmic bonus, softcap and hardcap.",
-    summary: "Quarks provide a capped A. Upgrade speed bonus.",
-  },
-  {
-    id: "quantumSuperposition",
-    name: "Quantum Superposition",
-    branch: "quantum",
-    cost: 1,
-    requires: ["redundancyElimination"],
-    revealedAtAllocatedSciencePointsConfigPath:
-      "science.quantumPerks.revealAtAllocatedSciencePoints",
-    revealHint: "Allocate 3 Science Points to reveal this technology.",
-    effect:
-      "Quarks accelerate Algorithm Improvement research directly by a logarithmic curve (V_quantum = 1 + 0.02 * log10(1 + Quarks)).",
-    summary: "Quarks accelerate Algorithm Improvement research.",
-  },
-  {
-    id: "processorBonusAppliesCRC",
-    name: "Processor Bonus applies to CRC",
-    branch: "energy",
-    cost: 1,
-    requires: ["redundancyElimination"],
-    effect:
-      "Applies the Processor bonus to CRC production at reduced strength: the total Processor bonus raised to the 0.15 power.",
-    summary: "Adds a reduced Processor bonus to CRC output.",
-  },
-  {
-    id: "powerModulesScaling",
-    name: "Power Modules Scaling",
-    branch: "energy",
-    cost: 1,
-    requires: ["processorBonusAppliesCRC"],
-    effect: "Power Modules become slightly stronger as you own more of them.",
-    summary: "Each Power Module scales the next ones slightly.",
-  },
-  {
-    id: "powerCellResonance",
-    name: "Power Cell Resonance",
-    branch: "energy",
-    cost: 2,
-    requires: ["powerModulesScaling"],
-    effect:
-      "Power Cell capacity is multiplied by 1 + 0.02 * log10(1 + Power Cells owned).",
-    summary: "Expands Power Cell capacity based on owned cells.",
-  },
-  {
-    id: "sciencePoweredEnergyProduction",
-    name: "Science-Powered Energy Production",
-    branch: "energy",
-    cost: 2,
-    requires: ["processorBonusAppliesCRC"],
-    effect:
-      "Multiplies Energy production by the total number of Science Points ever earned.",
-    summary: "More lifetime Science Points mean more Energy.",
-  },
-  {
-    id: "crcExponentialScaling",
-    name: "CRC Exponential Scaling",
-    branch: "energy",
-    cost: 3,
-    requires: ["sciencePoweredEnergyProduction"],
-    effect:
-      "Each CRC adds a small 1.005 exponential multiplier to base Energy production.",
-    summary: "More CRCs slightly amplify base production.",
-  },
-  {
-    id: "fiftyGCalculator",
-    name: "50G Calculator",
-    branch: "automation",
-    costPath: "science.fiftyGCalculator.cost",
-    requires: ["redundancyElimination"],
-    effect:
-      "Automates Algorithm Upgrades using timed research and applicable study-speed bonuses. Manual Algorithm Upgrades remain instant.",
-    summary: "Automates A. Upgrades through timed research.",
-  },
-  {
-    id: "aiCalculationSupport",
-    name: "AI Calculation Support",
-    branch: "automation",
-    cost: 1,
-    requires: ["fiftyGCalculator"],
-    effect:
-      "Allows the Calculator to automate Setup Improvements (SI).",
-    summary: "Automates Setup Improvements.",
-  },
-  {
-    id: "roboticArms",
-    name: "Robotic Arms",
-    branch: "automation",
-    cost: 1,
-    requires: ["fiftyGCalculator"],
-    effect: "Unlocks the Power Cells Auto Installer.",
-    summary: "Installs Power Cells automatically.",
-  },
-  {
-    id: "roboticPinch",
-    name: "Robotic Pinch",
-    branch: "automation",
-    cost: 1,
-    requires: ["roboticArms"],
-    effect: "Unlocks the Processor Auto Installer.",
-    summary: "Installs Processors automatically.",
-  },
-  {
-    id: "roboticArmT2",
-    name: "Robotic Arm T2",
-    branch: "automation",
-    cost: 1,
-    requires: ["roboticPinch"],
-    effect: "Unlocks the Calculator Auto Installer.",
-    summary: "Installs Calculators automatically.",
-  },
-  {
-    id: "roboticArmT3",
-    name: "Robotic Arm T3",
-    branch: "automation",
-    cost: 1,
-    requires: ["roboticArmT2"],
-    effect: "Unlocks the Power Module Auto Installer.",
-    summary: "Installs Power Modules automatically.",
-  },
-  {
-    id: "assemblyLine",
-    name: "Assembly Line",
-    branch: "automation",
-    cost: 3,
-    requires: ["roboticArmT3"],
-    effect:
-      "Unlocks the Assembly Line tab and Assembly Units for automated device fabrication. Also unlocks the CRC Auto Installer and enables Auto Crafter perks.",
-    summary: "Opens Assembly Units and device fabrication.",
-  },
-  {
-    id: "powerCellsAutoCrafter",
-    name: "Power Cells Auto Crafter",
-    branch: "automation",
-    cost: 1,
-    requires: ["assemblyLine"],
-    effect:
-      "Unlocks the Power Cells Auto Crafter, Power Cells module crafting, and the CRC Auto Installer motherboard module.",
-    summary: "Unlocks Power Cell and CRC module crafting.",
-  },
-  {
-    id: "processorAutoCrafter",
-    name: "Processor Auto Crafter",
-    branch: "automation",
-    cost: 1,
-    requires: ["assemblyLine"],
-    effect: "Unlocks the Processor Auto Crafter and its module crafting.",
-    summary: "Unlocks Processor crafting.",
-  },
-  {
-    id: "calculatorAutoCrafter",
-    name: "Calculator Auto Crafter",
-    branch: "automation",
-    cost: 1,
-    requires: ["assemblyLine"],
-    effect: "Unlocks the Calculator Auto Crafter and its module crafting.",
-    summary: "Unlocks Calculator crafting.",
-  },
-  {
-    id: "motherboardModuleAutoCrafter",
-    name: "Motherboard Module Autocrafter for CRC Auto Installer",
-    branch: "automation",
-    cost: 1,
-    requires: ["powerCellsAutoCrafter"],
-    revealHint: "Reach 100e21 J Stored Energy to reveal this technology.",
-    storedEnergyRequiredConfigPath:
-      "science.automationPerks.motherboardModuleStoredEnergyRequired",
-    effect: "Enables motherboard-module crafting for the CRC Auto Installer.",
-    summary: "Crafts CRC installer motherboard modules.",
-  },
-  {
-    id: "powerCellsModuleAutoCrafter",
-    name: "Power Cells Module Auto Crafter",
-    branch: "automation",
-    cost: 1,
-    requires: ["powerCellsAutoCrafter"],
-    revealWhenPerkOwned: ["motherboardModuleAutoCrafter"],
-    revealHint: "Acquire the Motherboard Module Autocrafter first.",
-    effect: "Enables Power Cells module crafting.",
-    summary: "Crafts Power Cell modules.",
-  },
-  {
-    id: "processorModuleAutoCrafter",
-    name: "Processor Module Auto Crafter",
-    branch: "automation",
-    cost: 1,
-    requires: ["processorAutoCrafter"],
-    revealWhenPerkOwned: ["motherboardModuleAutoCrafter"],
-    revealHint: "Acquire the Motherboard Module Autocrafter first.",
-    effect: "Enables Processor module crafting.",
-    summary: "Crafts Processor modules.",
-  },
-  {
-    id: "calculatorModuleAutoCrafter",
-    name: "Calculator Module Auto Crafter",
-    branch: "automation",
-    cost: 1,
-    requires: ["calculatorAutoCrafter"],
-    revealWhenPerkOwned: ["motherboardModuleAutoCrafter"],
-    revealHint: "Acquire the Motherboard Module Autocrafter first.",
-    effect: "Enables Calculator module crafting.",
-    summary: "Crafts Calculator modules.",
-  },
-  {
-    id: "calculatorBonusAppliesAUpgrades",
-    name: "Calculator Bonus applies to A. Upgrades",
-    branch: "studies",
-    cost: 1,
-    requires: ["redundancyElimination"],
-    effect: "Accelerates automated Algorithm Upgrades by 1 + 0.2 * log10(1 + V_A).",
-    summary: "Scales Calculator fleet speed to accelerate A. Upgrades.",
-  },
-  {
-    id: "calculatorBonusX2ToX22",
-    name: "Calculator Overthreading +40%",
-    branch: "studies",
-    cost: 2,
-    requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases each Auto Calculator thread execution throughput by +40% (1.0x → 1.4x per core).",
-    summary: "Raises Calculator thread throughput by +40%.",
-  },
-  {
-    id: "processorBonusAppliesAImprovementSpeed",
-    name: "Processor Bonus applies to A. Improvements speed",
-    branch: "studies",
-    cost: 2,
-    requires: ["calculatorBonusX2ToX22", "redundancyElimination"],
-    effect:
-      "Applies the Processor bonus to Algorithm Improvement research speed, raised to the 1.07 power.",
-    summary: "Boosts A. Improvement research speed.",
-  },
-];
-
-const SCIENCE_PERK_BRANCHES = [
-  {
-    id: "energy",
-    title: "Energy",
-    tone: "energy",
-    tiers: [
-      ["processorBonusAppliesCRC"],
-      ["powerModulesScaling", "sciencePoweredEnergyProduction"],
-      ["powerCellResonance", "crcExponentialScaling"],
-    ],
-  },
-  {
-    id: "automation",
-    title: "Automation & Life Quality",
-    tone: "automation",
-    tiers: [
-      ["fiftyGCalculator"],
-      ["aiCalculationSupport", "roboticArms"],
-      ["roboticPinch"],
-      ["roboticArmT2"],
-      ["roboticArmT3"],
-      ["assemblyLine"],
-      [
-        "powerCellsAutoCrafter",
-        "processorAutoCrafter",
-        "calculatorAutoCrafter",
-      ],
-      [
-        "motherboardModuleAutoCrafter",
-        "powerCellsModuleAutoCrafter",
-        "processorModuleAutoCrafter",
-        "calculatorModuleAutoCrafter",
-      ],
-    ],
-  },
-  {
-    id: "studies",
-    title: "Studies",
-    tone: "studies",
-    tiers: [
-      ["calculatorBonusAppliesAUpgrades"],
-      ["calculatorBonusX2ToX22"],
-      ["processorBonusAppliesAImprovementSpeed"],
-    ],
-  },
-];
-
-const SCIENCE_PERKS_BY_ID = new Map(
-  SCIENCE_PERKS.map((perk) => [perk.id, perk]),
-);
-
-function readConfigPath(config, path) {
-  return path.split(".").reduce((value, key) => value?.[key], config);
+function registerElement(definition) {
+  if (!definition.id) throw new Error("Element must have an id");
+  ELEMENT_REGISTRY.set(definition.id, definition);
 }
 
-function getSciencePerk(id) {
-  return SCIENCE_PERKS_BY_ID.get(id) ?? null;
+function getElement(id) {
+  return ELEMENT_REGISTRY.get(id) ?? null;
 }
 
-function getSciencePerkCost(perk, config) {
-  if (perk.costPath) return readConfigPath(config, perk.costPath);
-  return perk.cost;
+function getAllElements() {
+  return Array.from(ELEMENT_REGISTRY.values());
 }
 
-function getSciencePerkStoredEnergyRequirement(perk, config) {
-  if (!perk.storedEnergyRequiredConfigPath) {
-    return perk.storedEnergyRequired ?? 0;
-  }
-  return readConfigPath(config, perk.storedEnergyRequiredConfigPath) ?? 0;
-}
-
-function isSciencePerkOwned(state, id) {
-  if (id === "fiftyGCalculator") {
-    return Boolean(state.science?.[id]);
-  }
-  return Boolean(state.science?.perks?.[id]);
-}
-
-function getAllocatedSciencePoints(state) {
-  return Math.max(
-    0,
-    (state.science?.totalScienceEarned ?? 0) - (state.sciencePoints ?? 0),
-  );
-}
-
-function isSciencePerkRevealed(perk, state, config) {
-  if (isSciencePerkOwned(state, perk.id)) return true;
-  const allocatedSciencePointRequirement =
-    perk.revealedAtAllocatedSciencePointsConfigPath
-      ? readConfigPath(config, perk.revealedAtAllocatedSciencePointsConfigPath)
-      : perk.revealedAtAllocatedSciencePoints;
-  if (
-    allocatedSciencePointRequirement &&
-    getAllocatedSciencePoints(state) < allocatedSciencePointRequirement
-  ) {
-    return false;
-  }
-  const storedEnergyRequired = getSciencePerkStoredEnergyRequirement(
-    perk,
-    config,
-  );
-  if (storedEnergyRequired) {
-    const hasReachedStoredEnergy =
-      Boolean(state.science?.revealedPerks?.[perk.id]) ||
-      big(state.energy).gte(storedEnergyRequired);
-    if (!hasReachedStoredEnergy) return false;
-  }
-  return (perk.revealWhenPerkOwned ?? []).every((requiredPerkId) =>
-    isSciencePerkOwned(state, requiredPerkId),
-  );
-}
-
-function evaluateSciencePerk(id, state, config) {
-  const perk = getSciencePerk(id);
-  if (!perk) return null;
-
-  const missingPrerequisites = perk.requires.filter(
-    (prerequisiteId) => !isSciencePerkOwned(state, prerequisiteId),
-  );
-  const owned = isSciencePerkOwned(state, id);
-  const cost = getSciencePerkCost(perk, config);
-  const hasEnoughScience = state.sciencePoints >= cost;
-  const storedEnergyRequirement = getSciencePerkStoredEnergyRequirement(
-    perk,
-    config,
-  );
-  const energyRequirementMet =
-    (!perk.peakEnergyRequired ||
-      big(state.peakEnergy).gte(perk.peakEnergyRequired)) &&
-    (!storedEnergyRequirement ||
-      Boolean(state.science?.revealedPerks?.[perk.id]) ||
-      big(state.energy).gte(storedEnergyRequirement));
-  const revealed = isSciencePerkRevealed(perk, state, config);
-
-  return {
-    perk,
-    cost,
-    owned,
-    revealed,
-    missingPrerequisites,
-    hasEnoughScience,
-    energyRequirementMet,
-    canPurchase:
-      !owned &&
-      revealed &&
-      missingPrerequisites.length === 0 &&
-      hasEnoughScience &&
-      energyRequirementMet,
-  };
-}
-
-
-// ---- js/automations.js ----
-const AUTOMATION_DEFINITIONS = [
-  {
-    id: "autoCalculator",
-    name: "Auto Calculator",
-    description:
-      "Automatically runs Algorithm Improvements. Owned Calculators still grant their study-speed bonus while this is paused.",
-    isAcquired: (state) => (state.devices?.autoCalculators ?? 0) > 0,
+// ----------------------------------------------------------------------------
+// 1. AutoCalculator Chip
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "chip",
+  name: "AutoCalculator Chip",
+  category: "automation",
+  description: "Automates studies of one selected A-Feature. Independent worker respecting conversion costs and duration.",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, count, config),
+  getOwned: (state) => state.devices?.chips?.owned ?? 0,
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.chips) return true;
+    const aupgDone = (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
+    return aupgDone;
   },
-  {
-    id: "fiftyGCalculator",
-    name: "50G Calculator",
-    description:
-      "Extends Auto Calculator routing to timed Algorithm Upgrades when their requirements are met.",
-    isAcquired: (state) => Boolean(state.science?.fiftyGCalculator),
+  isEligible: (state, config, count = 1) => {
+    const strictUnlocked = (state.unlocks?.chips) ||
+      (state.algorithms?.AUpg?.produced ?? 0) > 0 ||
+      (state.algorithms?.AUpg?.owned ?? 0) > 0;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, count, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires completing your first A.Upgrade study");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
   },
-  {
-    id: "aiCalculationSupport",
-    name: "AI Calculation Support",
-    description:
-      "Lets Auto Calculator claim Setup Improvements as soon as they are ready.",
-    isAcquired: (state) =>
-      Boolean(state.science?.perks?.aiCalculationSupport),
-  },
-];
-
-const AUTOMATIONS_BY_ID = new Map(
-  AUTOMATION_DEFINITIONS.map((automation) => [automation.id, automation]),
-);
-
-function getAutomation(id) {
-  return AUTOMATIONS_BY_ID.get(id) ?? null;
-}
-
-function createAutomationState() {
-  return {
-    unlocked: {},
-    enabled: {},
-  };
-}
-
-function ensureAutomationState(state) {
-  if (!state.automations) {
-    state.automations = createAutomationState();
-  }
-  if (!state.automations.unlocked) state.automations.unlocked = {};
-  if (!state.automations.enabled) state.automations.enabled = {};
-  return state.automations;
-}
-
-function isAutomationUnlocked(state, id) {
-  const automation = getAutomation(id);
-  if (!automation) return false;
-  return (
-    Boolean(state.automations?.unlocked?.[id]) || automation.isAcquired(state)
-  );
-}
-
-function isAutomationEnabled(state, id) {
-  return state.automations?.enabled?.[id] !== false;
-}
-
-function listUnlockedAutomations(state) {
-  return AUTOMATION_DEFINITIONS.filter((automation) =>
-    isAutomationUnlocked(state, automation.id),
-  );
-}
-
-function hasUnlockedAutomations(state) {
-  return listUnlockedAutomations(state).length > 0;
-}
-
-function unlockAutomation(state, id) {
-  if (!getAutomation(id)) return false;
-  const automations = ensureAutomationState(state);
-  automations.unlocked[id] = true;
-  if (automations.enabled[id] === undefined) {
-    automations.enabled[id] = true;
-  }
-  return true;
-}
-
-function setAutomationEnabled(state, id, enabled) {
-  if (!isAutomationUnlocked(state, id)) return false;
-  const automations = ensureAutomationState(state);
-  automations.unlocked[id] = true;
-  automations.enabled[id] = Boolean(enabled);
-  return true;
-}
-
-function isAutoCalculatorAutomationActive(state) {
-  return (
-    (state.devices?.autoCalculators ?? 0) > 0 &&
-    isAutomationEnabled(state, "autoCalculator")
-  );
-}
-
-function isFiftyGCalculatorAutomationActive(state) {
-  return (
-    Boolean(state.science?.fiftyGCalculator) &&
-    isAutomationEnabled(state, "fiftyGCalculator") &&
-    isAutoCalculatorAutomationActive(state)
-  );
-}
-
-function isAiCalculationSupportAutomationActive(state) {
-  return (
-    Boolean(state.science?.perks?.aiCalculationSupport) &&
-    isAutomationEnabled(state, "aiCalculationSupport") &&
-    isAutoCalculatorAutomationActive(state)
-  );
-}
-
-function inferUnlockedAutomations(state) {
-  const unlocked = { ...(state.automations?.unlocked ?? {}) };
-  for (const automation of AUTOMATION_DEFINITIONS) {
-    if (unlocked[automation.id] || automation.isAcquired(state)) {
-      unlocked[automation.id] = true;
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, k, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
     }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + k;
+    // Newly acquired chips default to AImp
+    state.devices.chips.allocations.AImp = (state.devices.chips.allocations.AImp ?? 0) + k;
+    state.unlocks.chips = true;
+    state.unlocks.transistorBoard = true; // Purchasing first chip reveals Transistor Board
+    return { newCount: state.devices.chips.owned, cost, count: k };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 2. Transistor Board
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "transistorBoard",
+  name: "Transistor Board",
+  category: "efficiency",
+  description: "Provides infrastructure to purchase and allocate Transistors among study types.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("transistorBoard", 0, config),
+  getOwned: (state) => (state.devices?.transistorBoard?.owned ? 1 : 0),
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.transistorBoard) return true;
+    return (state.devices?.chips?.owned ?? 0) >= 1;
+  },
+  isEligible: (state, config) => {
+    const strictUnlocked = (state.unlocks?.transistorBoard) || (state.devices?.chips?.owned ?? 0) >= 1;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("transistorBoard", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = !state.devices?.transistorBoard?.owned;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires purchasing at least 1 AutoCalculator Chip");
+    if (!notOwned) reasons.push("Already owned (unique)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("transistorBoard", 0, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.transistorBoard.owned = true;
+    state.unlocks.transistorBoard = true;
+    return { newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 3. Transistor
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "transistor",
+  name: "Transistor",
+  category: "efficiency",
+  description: "Adds +5% Study Speed per unit allocated to an A-Feature. Shared global purchase cost.",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, count, config),
+  getOwned: (state) => state.devices?.transistorsPurchased ?? 0,
+  isUnlocked: (state, config) => Boolean(state.devices?.transistorBoard?.owned),
+  isEligible: (state, config, count = 1) => {
+    const strictUnlocked = Boolean(state.devices?.transistorBoard?.owned);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, count, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires Transistor Board");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { count = 1, isForced = false, target = "AImp" } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, k, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.transistorsPurchased = (state.devices.transistorsPurchased ?? 0) + k;
+    const dest = ["AImp", "AUpg", "ARec"].includes(target) ? target : "AImp";
+    state.devices.transistorAllocations[dest] = (state.devices.transistorAllocations[dest] ?? 0) + k;
+
+    // Check Microprocessor unlock: Board + 4 Transistors
+    if (state.devices.transistorBoard.owned && state.devices.transistorsPurchased >= 4) {
+      state.unlocks.microprocessor = true;
+    }
+
+    return { newCount: state.devices.transistorsPurchased, cost, count: k };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 4. Microprocessor
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "microprocessor",
+  name: "Microprocessor",
+  category: "efficiency",
+  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors).",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("microprocessor", 0, config),
+  getOwned: (state) => state.devices?.microprocessor?.owned ?? 0,
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.microprocessor) return true;
+    return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4;
+  },
+  isEligible: (state, config) => {
+    const strictUnlocked = (state.unlocks?.microprocessor) ||
+      (Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("microprocessor", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.microprocessor?.owned ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires Transistor Board and at least 4 Transistors");
+    if (!notOwned) reasons.push("Already owned (unique)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("microprocessor", 0, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.microprocessor.owned = 1;
+    state.unlocks.microprocessor = true;
+    return { newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 5. Overclocker
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "overclocker",
+  name: "Overclocker",
+  category: "efficiency",
+  description: "Sacrifices Transistors to temporarily amplify Microprocessor bonus: (1 + T/3) for log(T)/log(1.5) seconds.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("overclocker", 0, config),
+  getOwned: (state) => state.devices?.overclocker?.owned ?? 0,
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.overclocker) return true;
+    const microOwned = (state.devices?.microprocessor?.owned ?? 0) > 0;
+    const target = state.devices?.microprocessor?.target ?? "AImp";
+    const tCount = state.devices?.transistorAllocations?.[target] ?? 0;
+    return microOwned && tCount >= 2;
+  },
+  isEligible: (state, config) => {
+    const microOwned = (state.devices?.microprocessor?.owned ?? 0) > 0;
+    const target = state.devices?.microprocessor?.target ?? "AImp";
+    const tCount = state.devices?.transistorAllocations?.[target] ?? 0;
+    const strictUnlocked = (state.unlocks?.overclocker) || (microOwned && tCount >= 2);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("overclocker", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.overclocker?.owned ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires Microprocessor and at least 2 Transistors allocated to its target");
+    if (!notOwned) reasons.push("Already owned (unique)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("overclocker", 0, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.overclocker.owned = 1;
+    state.unlocks.overclocker = true;
+    return { newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 6. CRC Gadget
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "crcGadget",
+  name: "CRC Gadget",
+  category: "energy",
+  description: "Multiplies total CRC Energy Production by 2x.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("crcGadget", 0, config),
+  getOwned: (state) => state.devices?.crcGadget?.owned ?? 0,
+  isUnlocked: () => true,
+  isEligible: (state, config) => {
+    const cost = calculateDeviceCost("crcGadget", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.crcGadget?.owned ?? 0) === 0;
+    const reasons = [];
+    if (!notOwned) reasons.push("Already owned (unique)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: canAfford && notOwned,
+      isUnlocked: true,
+      strictUnlocked: true,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("crcGadget", 0, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.crcGadget.owned = 1;
+    return { newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 7. Capacitor
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "capacitor",
+  name: "Capacitor",
+  category: "energy",
+  description: "Increases the Energy contribution of A.Improvements by +50% per unit (1 + 0.5 * C).",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, count, config),
+  getOwned: (state) => state.devices?.capacitors ?? 0,
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.capacitor) return true;
+    return (state.computerLevel ?? 1) >= 2;
+  },
+  isEligible: (state, config, count = 1) => {
+    const strictUnlocked = (state.unlocks?.capacitor) || (state.computerLevel ?? 1) >= 2;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, count, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires completing your first Machine Learning operation (Computer Level 2)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, k, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.capacitors = (state.devices.capacitors ?? 0) + k;
+    state.unlocks.capacitor = true;
+    return { newCount: state.devices.capacitors, cost, count: k };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 8. Processor
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "processor",
+  name: "Processor",
+  category: "efficiency",
+  description: "Slightly improves the performance of other eligible Devices by +3% per unit (1 + 0.03 * P).",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, count, config),
+  getOwned: (state) => state.devices?.processors ?? 0,
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.processor) return true;
+    return (state.facilityOptimizations ?? 0) >= 1;
+  },
+  isEligible: (state, config, count = 1) => {
+    const strictUnlocked = (state.unlocks?.processor) || (state.facilityOptimizations ?? 0) >= 1;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, count, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Unlocked only after the first Facility Optimization");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, k, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.processors = (state.devices.processors ?? 0) + k;
+    state.unlocks.processor = true;
+    return { newCount: state.devices.processors, cost, count: k };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 9. Hard Disk
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "hardDisk",
+  name: "Hard Disk",
+  category: "learning",
+  description: "Consumes Energy continuously to produce +3 Data/s per active Disk into a temporary buffer.",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, count, config),
+  getOwned: (state) => state.devices?.hardDisks?.owned ?? 0,
+  isUnlocked: (state, config) => {
+    if (state.unlocks?.hardDisk) return true;
+    return (state.facilityOptimizations ?? 0) >= 1;
+  },
+  isEligible: (state, config, count = 1) => {
+    const strictUnlocked = (state.unlocks?.hardDisk) || (state.facilityOptimizations ?? 0) >= 1;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, count, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Unlocked only after the first Facility Optimization");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, k, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.hardDisks.owned = (state.devices.hardDisks.owned ?? 0) + k;
+    if (state.devices.hardDisks.state === "off") {
+      state.devices.hardDisks.state = "active";
+    }
+    state.unlocks.hardDisk = true;
+    return { newCount: state.devices.hardDisks.owned, cost, count: k };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 10. Power Cell
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "powerCell",
+  name: "Power Cell",
+  category: "storage",
+  description: "Provides operational Energy capacity (1 mJ/cell). Persists through Facility Optimization.",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, count, config),
+  getOwned: (state) => state.powerCells ?? 0,
+  isUnlocked: () => true,
+  isEligible: (state, config, count = 1) => {
+    const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, count, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: canAfford,
+      isUnlocked: true,
+      strictUnlocked: true,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, k, config);
+    if (!isForced || big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.powerCells = (state.powerCells ?? 0) + k;
+    state.unlocks.powerCell = true;
+    return { newCount: state.powerCells, cost, count: k };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 11. Run Machine Learning (Soft Reset)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "machineLearning",
+  name: "Run Machine Learning",
+  category: "reset",
+  description: "Advances global Computer Level (+50% AP per level). Clears A-Feature inventories; keeps hardware and energy.",
+  unique: false,
+  getCost: () => null,
+  getOwned: (state) => state.computerLevel ?? 1,
+  isUnlocked: () => true,
+  isEligible: (state, config) => {
+    const currentData = calculateAvailableData(state, config);
+    const requiredData = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+    const naturallyEligible = currentData >= requiredData;
+    const eligible = naturallyEligible || Boolean(state.devMode);
+    const reasons = [];
+    if (!naturallyEligible) {
+      reasons.push(`Requires ${requiredData} Available Data (have ${currentData})`);
+    }
+    return {
+      eligible,
+      isUnlocked: true,
+      strictUnlocked: naturallyEligible,
+      canAfford: true,
+      cost: null,
+      reasons,
+      meta: { currentData, requiredData },
+    };
+  },
+  applyPurchase: (state, config) => {
+    state.computerLevel = (state.computerLevel ?? 1) + 1;
+    // Reset algorithm inventories and cycle stats
+    state.algorithms.AImp.owned = 0;
+    state.algorithms.AImp.produced = 0;
+    state.algorithms.AUpg.owned = 0;
+    state.algorithms.AUpg.produced = 0;
+    state.algorithms.ARec.owned = 0;
+    state.algorithms.ARec.produced = 0;
+
+    // Clear study queues and pending worker reservations
+    state.studyQueues.AImp = 0;
+    state.studyQueues.AUpg = 0;
+    state.studyQueues.ARec = 0;
+    state.reservedInputs.AImp = 0;
+    state.reservedInputs.AUpg = 0;
+    state.manualStudy.active = false;
+    state.manualStudy.elapsed = 0;
+
+    // Clear accumulated Hard Disk data buffer
+    state.devices.hardDisks.buffer = 0;
+
+    // Cancel temporary overclocker
+    state.devices.overclocker.active = false;
+    state.devices.overclocker.remainingDuration = 0;
+
+    // Check unlocks (e.g. Capacitor unlocks after 1st ML)
+    if (state.computerLevel >= 2) {
+      state.unlocks.capacitor = true;
+    }
+
+    state.stats.totalMachineLearnings = (state.stats.totalMachineLearnings ?? 0) + 1;
+
+    return { newCount: state.computerLevel, cost: null, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
+// 12. Facility Optimization (Hard Reset)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "facilityOptimization",
+  name: "Facility Optimization",
+  category: "reset",
+  description: "Improves all operational Devices by +9% permanent compounding multiplier (1.09^H). Preserves Computer Level & Power Cells.",
+  unique: false,
+  getCost: () => null,
+  getOwned: (state) => state.facilityOptimizations ?? 0,
+  isUnlocked: (state, config) => {
+    return (state.computerLevel ?? 1) >= calculateFacilityOptimizationRequirement(state.facilityOptimizations ?? 0, config);
+  },
+  isEligible: (state, config) => {
+    const requiredLevel = calculateFacilityOptimizationRequirement(state.facilityOptimizations ?? 0, config);
+    const currentLevel = state.computerLevel ?? 1;
+    const naturallyEligible = currentLevel >= requiredLevel;
+    const eligible = naturallyEligible || Boolean(state.devMode);
+    const reasons = [];
+    if (!naturallyEligible) {
+      reasons.push(`Requires Computer Level ${requiredLevel} (current Level: ${currentLevel})`);
+    }
+    return {
+      eligible,
+      isUnlocked: eligible,
+      strictUnlocked: naturallyEligible,
+      canAfford: true,
+      cost: null,
+      reasons,
+      meta: { currentLevel, requiredLevel },
+    };
+  },
+  applyPurchase: (state, config) => {
+    state.facilityOptimizations = (state.facilityOptimizations ?? 0) + 1;
+
+    // 1. Reset A-Feature inventories
+    state.algorithms.AImp.owned = 0;
+    state.algorithms.AImp.produced = 0;
+    state.algorithms.AUpg.owned = 0;
+    state.algorithms.AUpg.produced = 0;
+    state.algorithms.ARec.owned = 0;
+    state.algorithms.ARec.produced = 0;
+
+    // 2. Clear pending studies and reservations
+    state.studyQueues.AImp = 0;
+    state.studyQueues.AUpg = 0;
+    state.studyQueues.ARec = 0;
+    state.reservedInputs.AImp = 0;
+    state.reservedInputs.AUpg = 0;
+    state.manualStudy.active = false;
+    state.manualStudy.elapsed = 0;
+
+    // 3. Reset Stored Energy to zero
+    state.energy = big(0);
+
+    // 4. Reset Hard Disk buffer
+    state.devices.hardDisks.buffer = 0;
+
+    // 5. Remove conventional purchased hardware
+    state.devices.chips.owned = 0;
+    state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0 };
+    state.devices.transistorBoard.owned = false;
+    state.devices.transistorsPurchased = 0;
+    state.devices.transistorAllocations = { AImp: 0, AUpg: 0, ARec: 0 };
+    state.devices.microprocessor.owned = 0;
+    state.devices.microprocessor.target = "AImp";
+    state.devices.overclocker.owned = 0;
+    state.devices.overclocker.active = false;
+    state.devices.overclocker.remainingDuration = 0;
+    state.devices.overclocker.consumedTransistors = 0;
+    state.devices.crcGadget.owned = 0;
+    state.devices.capacitors = 0;
+    state.devices.processors = 0;
+    state.devices.hardDisks.owned = 0;
+    state.devices.hardDisks.state = "off";
+    state.devices.hardDisks.activeSeconds = 0;
+
+    // 6. Reset Power Cell charge to zero (owned cells are preserved!)
+    state.powerCellCharge = big(0);
+
+    // 7. Tech unlocks: Unlock ARec and Processor permanently!
+    state.unlocks.ARec = true;
+    state.unlocks.processor = true;
+    state.unlocks.hardDisk = true;
+    // Chips and Board need to be rebought, but tech unlock flags for ARec/Processor stay permanent
+
+    state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
+
+    return { newCount: state.facilityOptimizations, cost: null, count: 1 };
+  },
+});
+
+function evaluateElement(element, state, config, count = 1) {
+  const k = Math.max(1, Math.floor(count ?? 1));
+  const check = element.isEligible(state, config, k);
+  const cost = element.getCost ? element.getCost(state, config, k) : null;
+  const owned = element.getOwned ? element.getOwned(state) : 0;
+
+  const naturallyEligible = Boolean(check.strictUnlocked && check.canAfford);
+  const isDevMode = Boolean(state.devMode);
+
+  let visualStatus = "eligible";
+  let canClick = naturallyEligible;
+
+  if (naturallyEligible) {
+    visualStatus = "eligible";
+    canClick = true;
+  } else if (isDevMode) {
+    visualStatus = "dev-bypass";
+    canClick = true;
+  } else {
+    visualStatus = "locked";
+    canClick = false;
   }
-  return unlocked;
-}
-
-
-// ---- js/availability.js ----
-
-function readPath(source, path) {
-  return path.split(".").reduce((value, key) => value?.[key], source);
-}
-
-function readConfigValue(config, rule) {
-  if (rule.configPath) return readPath(config, rule.configPath);
-  return rule.value;
-}
-
-function calculateRequirement(spec, state, config) {
-  if (!spec.requirement) return null;
-
-  const formulas = {
-    algorithmUpgradeRequirement: () =>
-      calculateAlgorithmUpgradeRequirement(state, config),
-    calculationMethodRequirement: () =>
-      calculateCalculationMethodRequirement(state, config),
-    setupOptimizationRequirement: () =>
-      calculateSetupOptimizationRequirement(state, config),
-    powerModuleRequirement: () =>
-      calculatePowerModuleRequirement(state.powerModules, config)
-  };
-
-  return formulas[spec.requirement.name]?.() ?? null;
-}
-
-function calculateComponentCost(componentId, state, config) {
-  const spec = COMPONENT_REGISTRY[componentId];
-  if (!spec || !spec.cost || spec.cost.kind === "none") return 0;
-
-  if (spec.cost.kind === "config") {
-    return readPath(config, spec.cost.path);
-  }
-
-  const formulas = {
-    autoCalculatorCost: () =>
-      calculateAutoCalculatorCost(state.devices.autoCalculators, config),
-    processorCost: () =>
-      calculateProcessorCost(state.devices.processors, config),
-    overclockerCost: () =>
-      calculateOverclockerCost(state.devices.overclockers, config),
-    powerCellCost: () => calculatePowerCellCost(state.powerCells, config),
-    powerModuleCost: () => calculatePowerModuleCost(state.powerModules, config),
-    crcCost: () => calculateCrcCost(state, config),
-    particleSynthesizerCost: () => calculateParticleSynthesizerCost(state, config),
-    quarkCageCost: () => calculateQuarkCageCost(state.scienceDevices?.quarkCages ?? 0, config)
-  };
-
-  return formulas[spec.cost.name]?.() ?? 0;
-}
-
-function getOwnedCount(spec, state) {
-  if (!spec.ownedPath) return 0;
-  const value = readPath(state, spec.ownedPath);
-  if (spec.ownedMode === "boolean") return value ? 1 : 0;
-  return Number.isFinite(value) ? value : 0;
-}
-
-function evaluateRule(rule, spec, state, config, cost, requirement) {
-  if (rule.kind === "any") {
-    return rule.rules.some((child) =>
-      evaluateRule(child, spec, state, config, cost, requirement)
-    );
-  }
-
-  if (rule.kind === "truthy") return Boolean(readPath(state, rule.path));
-  if (rule.kind === "falsy") return !readPath(state, rule.path);
-  if (rule.kind === "notOwned") return getOwnedCount(spec, state) <= 0;
-
-  if (rule.kind === "resourceAtLeastCost") {
-    const resource = readPath(state, rule.resource);
-    return big(resource).gte(cost);
-  }
-
-  if (rule.kind === "stateAtLeast") {
-    return readPath(state, rule.path) >= readConfigValue(config, rule);
-  }
-
-  if (rule.kind === "stateAtLeastRequirement") {
-    return readPath(state, rule.path) >= requirement;
-  }
-
-  return false;
-}
-
-function describeBlockedRule(rule, state, config, cost, requirement) {
-  if (rule.kind === "resourceAtLeastCost") {
-    return `Needs ${formatEnergy(cost)}`;
-  }
-
-  if (rule.kind === "stateAtLeastRequirement") {
-    return `Needs ${requirement}`;
-  }
-
-  if (rule.kind === "stateAtLeast") {
-    return `Needs ${readConfigValue(config, rule)}`;
-  }
-
-  if (rule.kind === "notOwned") return "Already restored";
-  if (rule.kind === "falsy") return "Busy";
-  return "Locked";
-}
-
-function evaluateComponent(componentId, state, config) {
-  const spec = COMPONENT_REGISTRY[componentId];
-  if (!spec) throw new Error(`Unknown component: ${componentId}`);
-
-  const cost = calculateComponentCost(componentId, state, config);
-  const requirement = calculateRequirement(spec, state, config);
-  const visible = spec.visibleWhen.every((rule) =>
-    evaluateRule(rule, spec, state, config, cost, requirement)
-  );
-  const blockedRule = spec.enabledWhen.find(
-    (rule) => !evaluateRule(rule, spec, state, config, cost, requirement)
-  );
-
-  const resourceValue = spec.cost?.resource ? readPath(state, spec.cost.resource) : state.energy;
 
   return {
-    id: spec.id,
-    label: spec.label,
-    type: spec.type,
-    action: spec.action,
-    visible,
-    enabled: visible && !blockedRule,
-    affordable: big(cost).eq(0) || big(resourceValue).gte(cost),
+    element,
+    id: element.id,
+    name: element.name,
+    category: element.category,
+    description: element.description,
+    unique: element.unique ?? false,
+    owned,
     cost,
-    requirement,
-    owned: getOwnedCount(spec, state),
-    completed: Boolean(spec.completedWhenOwned && getOwnedCount(spec, state) > 0),
-    reason: blockedRule
-      ? describeBlockedRule(blockedRule, state, config, cost, requirement)
-      : ""
+    count: k,
+    isUnlocked: check.isUnlocked,
+    strictUnlocked: check.strictUnlocked,
+    canAfford: check.canAfford,
+    naturallyEligible,
+    visualStatus,
+    canClick,
+    reasons: check.reasons ?? [],
+    meta: check.meta ?? {},
   };
-}
-
-function buildAvailabilitySnapshot(state, config) {
-  return Object.fromEntries(
-    Object.keys(COMPONENT_REGISTRY).map((componentId) => [
-      componentId,
-      evaluateComponent(componentId, state, config)
-    ])
-  );
 }
 
 
 // ---- js/state.js ----
+/**
+ * state.js
+ * GameState — Single Source of Truth (SSoT) for The Eternal Simulation.
+ * Rebuilt for the Energy Era, Algorithm Learning, Devices & Facility Optimization spec.
+ */
 
-const SAVE_VERSION = 3;
 
-function createInitialState(config) {
+const SAVE_VERSION = 4;
+
+function createInitialState(config = {}) {
   return {
     saveVersion: SAVE_VERSION,
-    introState: "choice",
-    energy: big(0),
-    peakEnergy: big(0),
-    powerCells: config.energy.initialPowerCells,
-    improvements: 0,
-    improvementMultiplier: big(1),
-    preservedImprovementLog: big(0),
-    upgrades: 0,
-    calculationMethods: 0,
-    setupOptimizations: 0,
-    sciencePoints: 0,
-    science: {
-      fiftyGCalculator: false,
-      perks: {},
-      revealedPerks: Object.fromEntries(
-        SCIENCE_PERKS.filter(
-          (perk) => getSciencePerkStoredEnergyRequirement(perk, config) > 0,
-        ).map((perk) => [perk.id, false]),
-      ),
-      syntheses: 0,
-      totalScienceEarned: 0,
+
+    // Core Currencies
+    energy: big(config.economy?.initialEnergy ?? 0),
+    peakEnergy: big(config.economy?.initialEnergy ?? 0),
+    powerCells: 0,
+    powerCellCharge: big(0),
+
+    // Progression & Prestiges
+    computerLevel: config.economy?.initialComputerLevel ?? 1,
+    facilityOptimizations: 0,
+
+    // Exactly Three Algorithm Features
+    algorithms: {
+      AImp: { owned: 0, produced: 0 },
+      AUpg: { owned: 0, produced: 0 },
+      ARec: { owned: 0, produced: 0 },
     },
-    quarks: {
-      available: big(0),
-      totalEarned: big(0),
-      lastSynthesis: big(0),
+
+    // Study Execution State
+    manualStudy: {
+      target: null, // 'AImp' | 'AUpg' | 'ARec' | null
+      elapsed: 0,
+      active: false,
     },
-    scienceDevices: {
-      quarkCages: 0,
+    studyQueues: {
+      AImp: 0,
+      AUpg: 0,
+      ARec: 0,
     },
-    crcCount: config.energy.initialCrcCount,
-    powerModules: 0,
-    particleSynthesizer: {
-      activated: false,
-      awakened: false,
+    reservedInputs: {
+      AImp: 0,
+      AUpg: 0,
     },
+
+    // Devices & Infrastructure
+    devices: {
+      chips: {
+        owned: 0,
+        allocations: {
+          AImp: 0,
+          AUpg: 0,
+          ARec: 0,
+        },
+      },
+      transistorBoard: {
+        owned: false,
+      },
+      transistorsPurchased: 0,
+      transistorAllocations: {
+        AImp: 0,
+        AUpg: 0,
+        ARec: 0,
+      },
+      microprocessor: {
+        owned: 0,
+        target: "AImp",
+      },
+      overclocker: {
+        owned: 0,
+        active: false,
+        activeSeconds: 0,
+        remainingDuration: 0,
+        target: null,
+        consumedTransistors: 0,
+      },
+      crcGadget: {
+        owned: 0,
+      },
+      capacitors: 0,
+      processors: 0,
+      hardDisks: {
+        owned: 0,
+        state: "off", // 'active' | 'standby' | 'off'
+        activeSeconds: 0,
+        buffer: 0,
+      },
+    },
+
+    // Technological Unlock Milestones
+    unlocks: {
+      AImp: true,
+      AUpg: true,
+      ARec: false,
+      chips: false,
+      transistorBoard: false,
+      microprocessor: false,
+      overclocker: false,
+      crcGadget: true,
+      capacitor: false,
+      processor: false,
+      hardDisk: false,
+      powerCell: false,
+    },
+
+    // Statistics
+    stats: {
+      gameTime: 0,
+      totalEnergyProduced: big(0),
+      totalPurchases: 0,
+      totalMachineLearnings: 0,
+      totalFacilityOptimizations: 0,
+    },
+
+    // UI View State
     ui: {
       activeTab: "energy",
-      activeScienceSubtab: "tree",
-      buyMode: "1",
-      historyFilter: "all",
-      treeZoom: 1.0,
-      selectedSciencePerkId: null,
-      resetModal: null,
-      historyModalEntry: null,
-      particleSynthesisModal: null,
-      synthesizerAwakenedModal: false,
-      hideCompletedPurchases: false,
-      seenComponents: {},
-      newsDismissed: false,
-      currentNewsId: null,
-      newsTimer: 0,
-      newsHovered: false,
+      transistorBoardExpanded: true,
+      narrativeDismissed: false,
+      bulkMode: 1,
     },
-    devices: {
-      softDataDisplay: false,
-      t2SoftDataDisplay: false,
-      autoCalculators: 0,
-      processors: 0,
-      overclockers: 0,
-    },
-    overclocker: {
-      active: false,
-      activeSeconds: 0,
-    },
-    automations: createAutomationState(),
-    discoveries: {
-      crcBlueprint: false,
-      blueprintSource: null,
-      overclockerBlueprint: false,
-    },
-    study: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-      automated: false,
-      completedAt: null,
-    },
-    algorithmUpgradeStudy: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-      automated: false,
-    },
-    blueprintStudy: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-    },
-    overclockerBlueprintStudy: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-    },
-    construction: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-    },
-    devSettings: {
-      productionMultiplier: config.development.productionMultiplier,
-      durationMultiplier: config.development.durationMultiplier,
-    },
-    prototypeComplete: false,
-    stats: {
-      totalEnergyCollected: big(0),
-      totalPlayTime: 0,
-      runPlayTime: 0,
-    },
-    log: [],
-    history: [],
-    lastSavedAt: Date.now(),
+
+    // Developer Sandbox
+    devMode: true,
+    gameSpeed: 1.0,
+    auditLogs: [],
+    quicksaveSnapshot: null,
   };
 }
 
-function migrateSaveV2ToV3(candidate, config) {
-  if (!candidate) return createInitialState(config);
-
+function normalizeState(raw = {}, config = {}) {
   const initial = createInitialState(config);
-  const migrated = { ...candidate };
-  migrated.saveVersion = SAVE_VERSION;
+  if (!raw || typeof raw !== "object") return initial;
 
-  // 1. Improvements and linear multiplier
-  const improvements = Math.max(
-    0,
-    Number.isFinite(candidate.improvements) ? candidate.improvements : 0,
-  );
-  migrated.improvements = improvements;
-  migrated.improvementMultiplier = big(1 + improvements);
-  delete migrated.preservedImprovementLog;
-
-  // 2. Science perks: storedEnergyPreservation -> powerCellResonance, matrixMechanics -> redundancyElimination
-  const candidateScience = candidate.science ? { ...candidate.science } : {};
-  const perks = candidateScience.perks ? { ...candidateScience.perks } : {};
-  if (perks.storedEnergyPreservation) {
-    perks.powerCellResonance = true;
-    delete perks.storedEnergyPreservation;
-  }
-  if (candidateScience.matrixMechanics) {
-    perks.redundancyElimination = true;
-    delete candidateScience.matrixMechanics;
-  }
-  candidateScience.perks = perks;
-  migrated.science = candidateScience;
-
-  // 3. Active studies: migrate by percentage completed
-  if (candidate.study?.active && candidate.study?.duration > 0) {
-    const elapsed = Math.max(0, candidate.study.elapsed ?? 0);
-    const pct = Math.min(1, elapsed / candidate.study.duration);
-    const tempState = { ...migrated, ...candidate };
-    const newDuration = calculateStudyDuration(tempState, config);
-    migrated.study = {
-      ...candidate.study,
-      duration: newDuration,
-      elapsed: pct * newDuration,
-    };
-  }
-
-  // 4. Tab mapping
-  const tabMapping = {
-    hardware: "energy",
-    devices: "energy",
-    studies: "energy",
-    energy: "energy",
-    automation: "automation",
-    automations: "automation",
-    measure: "automation",
-    statistics: "automation",
-    science: "science",
-    history: "history",
-  };
-  const activeTab = candidate.ui?.activeTab;
-  migrated.ui = {
-    ...initial.ui,
-    ...candidate.ui,
-    activeTab: tabMapping[activeTab] ?? "energy",
-  };
-
-  migrated.history = Array.isArray(candidate.history)
-    ? [...candidate.history]
-    : [];
-
-  // 5. Discoveries
-  migrated.discoveries = {
-    ...initial.discoveries,
-    ...candidate.discoveries,
-    overclockerBlueprint: Boolean(candidate.discoveries?.overclockerBlueprint),
-  };
-  migrated.overclockerBlueprintStudy = {
-    ...initial.overclockerBlueprintStudy,
-    ...candidate.overclockerBlueprintStudy,
-  };
-
-  return migrated;
-}
-
-function normalizeState(candidate, config) {
-  const initial = createInitialState(config);
-
-  if (!candidate) {
-    return initial;
-  }
-
-  if (candidate.saveVersion && candidate.saveVersion < SAVE_VERSION) {
-    candidate = migrateSaveV2ToV3(candidate, config);
-  } else if (candidate.saveVersion !== SAVE_VERSION) {
-    return initial;
-  }
-
-  const tabMapping = {
-    hardware: "energy",
-    devices: "energy",
-    studies: "energy",
-    energy: "energy",
-    automation: "automation",
-    automations: "automation",
-    measure: "automation",
-    statistics: "automation",
-    science: "science",
-    history: "history",
-  };
-
-  const devices = {
-    ...initial.devices,
-    ...candidate.devices,
-    autoCalculators:
-      candidate.devices?.autoCalculators ??
-      (candidate.devices?.autoCalculator ? 1 : 0),
-    processors:
-      candidate.devices?.processors ?? (candidate.devices?.processor ? 1 : 0),
-    overclockers:
-      candidate.devices?.overclockers ??
-      (candidate.devices?.overclocker ? 1 : 0),
-  };
-
-  delete devices.autoCalculator;
-  delete devices.processor;
-  delete devices.overclocker;
-
-  let improvementMultiplier = big(candidate.improvementMultiplier);
-  if (improvementMultiplier.lte(0)) {
-    const completedImprovements = Number.isSafeInteger(candidate.improvements)
-      ? Math.max(0, candidate.improvements)
-      : 0;
-    improvementMultiplier = big(1 + completedImprovements);
-  }
-
-  const { matrixMechanics: legacyMatrixMechanics, ...candidateScience } =
-    candidate.science ?? {};
-  const candidatePerks = candidateScience.perks ?? {};
-  const revealedPerks = {
-    ...initial.science.revealedPerks,
-    ...candidateScience.revealedPerks,
-  };
-  for (const perk of SCIENCE_PERKS) {
-    const threshold = getSciencePerkStoredEnergyRequirement(perk, config);
-    if (threshold > 0 && big(candidate.energy).gte(threshold)) {
-      revealedPerks[perk.id] = true;
-    }
-  }
-
-  return {
+  const state = {
     ...initial,
-    ...candidate,
-    energy: big(candidate.energy).gte(0) ? big(candidate.energy) : big(0),
-    peakEnergy: big(candidate.peakEnergy).gte(0)
-      ? big(candidate.peakEnergy)
-      : big(0),
-    improvementMultiplier,
-    powerCells: Math.max(
-      initial.powerCells,
-      Number.isFinite(candidate.powerCells)
-        ? candidate.powerCells
-        : initial.powerCells,
-    ),
-    powerModules: Number.isFinite(candidate.powerModules)
-      ? candidate.powerModules
-      : 0,
-    particleSynthesizer: {
-      ...initial.particleSynthesizer,
-      ...candidate.particleSynthesizer,
-      awakened: Boolean(
-        candidate.particleSynthesizer?.awakened ||
-          (candidate.science?.syntheses ?? 0) > 0,
-      ),
+    saveVersion: SAVE_VERSION,
+    energy: big(raw.energy ?? initial.energy),
+    peakEnergy: big(raw.peakEnergy ?? initial.peakEnergy),
+    powerCells: Number(raw.powerCells ?? initial.powerCells),
+    powerCellCharge: big(raw.powerCellCharge ?? initial.powerCellCharge),
+    computerLevel: Math.max(1, Number(raw.computerLevel ?? initial.computerLevel)),
+    facilityOptimizations: Math.max(0, Number(raw.facilityOptimizations ?? initial.facilityOptimizations)),
+
+    algorithms: {
+      AImp: {
+        owned: Math.max(0, Number(raw.algorithms?.AImp?.owned ?? raw.improvements ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.AImp?.produced ?? 0)),
+      },
+      AUpg: {
+        owned: Math.max(0, Number(raw.algorithms?.AUpg?.owned ?? raw.upgrades ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.AUpg?.produced ?? 0)),
+      },
+      ARec: {
+        owned: Math.max(0, Number(raw.algorithms?.ARec?.owned ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.ARec?.produced ?? 0)),
+      },
     },
-    history: Array.isArray(candidate.history)
-      ? [...candidate.history]
-      : initial.history,
+
+    manualStudy: {
+      target: raw.manualStudy?.target ?? null,
+      elapsed: Number(raw.manualStudy?.elapsed ?? 0),
+      active: Boolean(raw.manualStudy?.active),
+    },
+    studyQueues: {
+      AImp: Math.max(0, Number(raw.studyQueues?.AImp ?? 0)),
+      AUpg: Math.max(0, Number(raw.studyQueues?.AUpg ?? 0)),
+      ARec: Math.max(0, Number(raw.studyQueues?.ARec ?? 0)),
+    },
+    reservedInputs: {
+      AImp: Math.max(0, Number(raw.reservedInputs?.AImp ?? 0)),
+      AUpg: Math.max(0, Number(raw.reservedInputs?.AUpg ?? 0)),
+    },
+
+    devices: {
+      chips: {
+        owned: Math.max(0, Number(raw.devices?.chips?.owned ?? raw.devices?.autoCalculators ?? 0)),
+        allocations: {
+          AImp: Math.max(0, Number(raw.devices?.chips?.allocations?.AImp ?? raw.devices?.autoCalculators ?? 0)),
+          AUpg: Math.max(0, Number(raw.devices?.chips?.allocations?.AUpg ?? 0)),
+          ARec: Math.max(0, Number(raw.devices?.chips?.allocations?.ARec ?? 0)),
+        },
+      },
+      transistorBoard: {
+        owned: Boolean(raw.devices?.transistorBoard?.owned),
+      },
+      transistorsPurchased: Math.max(0, Number(raw.devices?.transistorsPurchased ?? 0)),
+      transistorAllocations: {
+        AImp: Math.max(0, Number(raw.devices?.transistorAllocations?.AImp ?? 0)),
+        AUpg: Math.max(0, Number(raw.devices?.transistorAllocations?.AUpg ?? 0)),
+        ARec: Math.max(0, Number(raw.devices?.transistorAllocations?.ARec ?? 0)),
+      },
+      microprocessor: {
+        owned: Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0)),
+        target: raw.devices?.microprocessor?.target ?? "AImp",
+      },
+      overclocker: {
+        owned: Math.max(0, Number(raw.devices?.overclocker?.owned ?? 0)),
+        active: Boolean(raw.devices?.overclocker?.active),
+        activeSeconds: Number(raw.devices?.overclocker?.activeSeconds ?? 0),
+        remainingDuration: Number(raw.devices?.overclocker?.remainingDuration ?? 0),
+        target: raw.devices?.overclocker?.target ?? null,
+        consumedTransistors: Number(raw.devices?.overclocker?.consumedTransistors ?? 0),
+      },
+      crcGadget: {
+        owned: Math.max(0, Number(raw.devices?.crcGadget?.owned ?? 0)),
+      },
+      capacitors: Math.max(0, Number(raw.devices?.capacitors ?? 0)),
+      processors: Math.max(0, Number(raw.devices?.processors ?? 0)),
+      hardDisks: {
+        owned: Math.max(0, Number(raw.devices?.hardDisks?.owned ?? 0)),
+        state: ["active", "standby", "off"].includes(raw.devices?.hardDisks?.state)
+          ? raw.devices.hardDisks.state
+          : "off",
+        activeSeconds: Number(raw.devices?.hardDisks?.activeSeconds ?? 0),
+        buffer: Math.max(0, Number(raw.devices?.hardDisks?.buffer ?? 0)),
+      },
+    },
+
+    unlocks: {
+      ...initial.unlocks,
+      ...(raw.unlocks ?? {}),
+    },
+
+    stats: {
+      gameTime: Number(raw.stats?.gameTime ?? 0),
+      totalEnergyProduced: big(raw.stats?.totalEnergyProduced ?? 0),
+      totalPurchases: Number(raw.stats?.totalPurchases ?? 0),
+      totalMachineLearnings: Number(raw.stats?.totalMachineLearnings ?? 0),
+      totalFacilityOptimizations: Number(raw.stats?.totalFacilityOptimizations ?? 0),
+    },
+
     ui: {
       ...initial.ui,
-      ...candidate.ui,
-      activeTab: tabMapping[candidate.ui?.activeTab] ?? initial.ui.activeTab,
-      particleSynthesisModal: null,
-      synthesizerAwakenedModal: false,
-      resetModal: null,
-      historyModalEntry: null,
-      buyMode: candidate.ui?.buyMode ?? initial.ui.buyMode,
-      historyFilter: candidate.ui?.historyFilter ?? initial.ui.historyFilter,
-      treeZoom:
-        typeof candidate.ui?.treeZoom === "number"
-          ? candidate.ui.treeZoom
-          : initial.ui.treeZoom,
-      selectedSciencePerkId: candidate.ui?.selectedSciencePerkId ?? null,
-      seenComponents: {
-        ...initial.ui.seenComponents,
-        ...candidate.ui?.seenComponents,
-      },
-      newsDismissed: Boolean(candidate.ui?.newsDismissed),
-      currentNewsId: candidate.ui?.currentNewsId ?? null,
-      newsTimer:
-        typeof candidate.ui?.newsTimer === "number"
-          ? candidate.ui.newsTimer
-          : 0,
-      newsHovered: false,
+      ...(raw.ui ?? {}),
     },
-    setupOptimizations:
-      candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,
-    sciencePoints: Number.isFinite(candidate.sciencePoints)
-      ? candidate.sciencePoints
-      : 0,
-    preservedImprovementLog: big(candidate.preservedImprovementLog).gte(0)
-      ? big(candidate.preservedImprovementLog)
-      : big(0),
-    science: {
-      ...initial.science,
-      ...candidateScience,
-      perks: {
-        ...initial.science.perks,
-        ...candidatePerks,
-        redundancyElimination:
-          Boolean(candidatePerks.redundancyElimination) ||
-          Boolean(legacyMatrixMechanics),
-        powerCellResonance:
-          Boolean(candidatePerks.powerCellResonance) ||
-          Boolean(candidatePerks.storedEnergyPreservation),
-      },
-      revealedPerks,
-      totalScienceEarned: Number.isFinite(candidate.science?.totalScienceEarned)
-        ? candidate.science.totalScienceEarned
-        : Number.isFinite(candidate.sciencePoints)
-          ? candidate.sciencePoints
-          : 0,
-    },
-    quarks: {
-      ...initial.quarks,
-      ...candidate.quarks,
-      available: big(candidate.quarks?.available),
-      totalEarned: big(candidate.quarks?.totalEarned),
-      lastSynthesis: big(candidate.quarks?.lastSynthesis),
-    },
-    scienceDevices: {
-      ...initial.scienceDevices,
-      ...candidate.scienceDevices,
-      quarkCages:
-        (candidate.science?.syntheses ?? 0) > 0
-          ? Math.max(
-              config.science.quarkCage.startingCagesAfterSynthesis ?? 1,
-              candidate.scienceDevices?.quarkCages ?? 0,
-            )
-          : (candidate.scienceDevices?.quarkCages ?? 0),
-    },
-    devices,
-    discoveries: { ...initial.discoveries, ...candidate.discoveries },
-    study: { ...initial.study, ...candidate.study },
-    algorithmUpgradeStudy: {
-      ...initial.algorithmUpgradeStudy,
-      ...candidate.algorithmUpgradeStudy,
-    },
-    blueprintStudy: { ...initial.blueprintStudy, ...candidate.blueprintStudy },
-    overclockerBlueprintStudy: {
-      ...initial.overclockerBlueprintStudy,
-      ...candidate.overclockerBlueprintStudy,
-    },
-    construction: { ...initial.construction, ...candidate.construction },
-    overclocker: { ...initial.overclocker, ...candidate.overclocker },
-    automations: {
-      unlocked: inferUnlockedAutomations({
-        ...candidate,
-        devices,
-        science: {
-          ...initial.science,
-          ...candidateScience,
-          perks: {
-            ...initial.science.perks,
-            ...candidatePerks,
-          },
-        },
-        automations: candidate.automations,
-      }),
-      enabled: {
-        ...initial.automations.enabled,
-        ...candidate.automations?.enabled,
-      },
-    },
-    devSettings: { ...initial.devSettings, ...candidate.devSettings },
-    stats: {
-      totalEnergyCollected: big(candidate.stats?.totalEnergyCollected).gte(0)
-        ? big(candidate.stats?.totalEnergyCollected)
-        : big(0),
-      totalPlayTime: Number.isFinite(candidate.stats?.totalPlayTime)
-        ? Math.max(0, candidate.stats.totalPlayTime)
-        : 0,
-      runPlayTime: Number.isFinite(candidate.stats?.runPlayTime)
-        ? Math.max(0, candidate.stats.runPlayTime)
-        : 0,
-    },
-    log: Array.isArray(candidate.log) ? candidate.log.slice(0, 60) : [],
+
+    devMode: raw.devMode !== undefined ? Boolean(raw.devMode) : true,
+    gameSpeed: Number(raw.gameSpeed ?? 1.0),
+    auditLogs: Array.isArray(raw.auditLogs) ? raw.auditLogs : [],
+    quicksaveSnapshot: raw.quicksaveSnapshot ?? null,
   };
+
+  return state;
+}
+
+function serializeState(state) {
+  return JSON.stringify(state, (key, value) => {
+    if (value instanceof BigNum) {
+      return value.toString();
+    }
+    return value;
+  });
 }
 
 
 // ---- js/save-system.js ----
+/**
+ * save-system.js
+ * Robust persistence and snapshot facilities for The Eternal Simulation.
+ * Supports primary saves, automatic backups, recovery, Quicksave / Quick Restore.
+ */
+
 
 const NORMAL_SAVE_PREFIX = "the-eternal-simulation.save";
 const DEVELOPMENT_SAVE_PREFIX = "the-eternal-simulation.development";
+const QUICKSAVE_KEY = "the-eternal-simulation.quicksave";
 
 const SAVE_MODES = [
   { id: "normal", label: "Normal", developmentMode: false },
   { id: "development", label: "Development", developmentMode: true },
 ];
+
+const memoryStorage = new Map();
+function getStorage() {
+  if (typeof localStorage !== "undefined") return localStorage;
+  return {
+    getItem: (key) => memoryStorage.get(key) ?? null,
+    setItem: (key, val) => memoryStorage.set(key, String(val)),
+    removeItem: (key) => memoryStorage.delete(key),
+    clear: () => memoryStorage.clear(),
+    key: (index) => Array.from(memoryStorage.keys())[index] ?? null,
+    get length() {
+      return memoryStorage.size;
+    },
+  };
+}
 
 function getSavePrefix(developmentMode) {
   return developmentMode ? DEVELOPMENT_SAVE_PREFIX : NORMAL_SAVE_PREFIX;
@@ -9963,9 +9156,10 @@ function getSaveBackupKey(developmentMode) {
 function getSaveKeysForMode(developmentMode) {
   const prefix = `${getSavePrefix(developmentMode)}.v`;
   const keys = [];
+  const storage = getStorage();
 
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
     if (key?.startsWith(prefix)) keys.push(key);
   }
 
@@ -9973,23 +9167,22 @@ function getSaveKeysForMode(developmentMode) {
 }
 
 function loadState(config, developmentMode) {
+  const storage = getStorage();
   const saveKey = getSaveKey(developmentMode);
   try {
-    const primaryRaw = localStorage.getItem(saveKey);
-    const backupRaw = localStorage.getItem(getSaveBackupKey(developmentMode));
+    const primaryRaw = storage.getItem(saveKey);
+    const backupRaw = storage.getItem(getSaveBackupKey(developmentMode));
     let primaryCandidate = null;
     try {
       primaryCandidate = primaryRaw ? JSON.parse(primaryRaw) : null;
     } catch {
       // The backup is tried first when the primary JSON cannot be parsed.
     }
+
     const primaryNeedsRecovery =
       primaryCandidate?.saveVersion === SAVE_VERSION &&
-      (!isValidBig(primaryCandidate.energy) ||
-        !isValidBig(primaryCandidate.improvementMultiplier, {
-          positive: true,
-        }) ||
-        !isValidBig(primaryCandidate.stats?.totalEnergyCollected));
+      !isValidBig(primaryCandidate.energy);
+
     const candidates = primaryNeedsRecovery
       ? [
           [backupRaw, true],
@@ -10008,10 +9201,7 @@ function loadState(config, developmentMode) {
         if (candidate?.saveVersion === SAVE_VERSION) {
           const state = normalizeState(candidate, config);
           if (isBackup) {
-            localStorage.setItem(saveKey, JSON.stringify(state));
-          }
-          if (candidate?.science?.matrixMechanics) {
-            saveState(state, developmentMode);
+            storage.setItem(saveKey, serializeState(state));
           }
           return state;
         }
@@ -10025,18 +9215,18 @@ function loadState(config, developmentMode) {
       }
     }
 
-    // Check for previous save versions (v2, v1) and migrate seamlessly
+    // Check for previous save versions and migrate seamlessly
     for (let v = SAVE_VERSION - 1; v >= 1; v -= 1) {
       const legacyKey = `${getSavePrefix(developmentMode)}.v${v}`;
       const legacyBackupKey = `${legacyKey}.backup`;
       for (const key of [legacyKey, legacyBackupKey]) {
-        const raw = localStorage.getItem(key);
+        const raw = storage.getItem(key);
         if (!raw) continue;
         try {
           const candidate = JSON.parse(raw);
           if (candidate?.saveVersion && candidate.saveVersion < SAVE_VERSION) {
             const state = normalizeState(candidate, config);
-            localStorage.setItem(saveKey, JSON.stringify(state));
+            storage.setItem(saveKey, serializeState(state));
             return state;
           }
         } catch (error) {
@@ -10053,29 +9243,33 @@ function loadState(config, developmentMode) {
 }
 
 function saveState(state, developmentMode) {
+  const storage = getStorage();
   try {
+    if (!state.stats) state.stats = {};
     state.lastSavedAt = Date.now();
     const saveKey = getSaveKey(developmentMode);
-    const serialized = JSON.stringify(state);
-    const previous = localStorage.getItem(saveKey);
+    const serialized = serializeState(state);
+    const previous = storage.getItem(saveKey);
     if (previous) {
       try {
-        localStorage.setItem(getSaveBackupKey(developmentMode), previous);
+        storage.setItem(getSaveBackupKey(developmentMode), previous);
       } catch (error) {
         console.warn("The previous save could not be backed up.", error);
       }
     }
-    localStorage.setItem(saveKey, serialized);
+    storage.setItem(saveKey, serialized);
   } catch (error) {
     console.warn("The save could not be written.", error);
   }
 }
 
 function deleteState(developmentMode) {
+  const storage = getStorage();
   try {
     for (const key of getSaveKeysForMode(developmentMode)) {
-      localStorage.removeItem(key);
+      storage.removeItem(key);
     }
+    storage.removeItem(getSaveBackupKey(developmentMode));
   } catch (error) {
     console.warn("The save could not be deleted.", error);
   }
@@ -10088,14 +9282,15 @@ function deleteAllStates() {
 }
 
 function listSaveSlots() {
+  const storage = getStorage();
   return SAVE_MODES.map((mode) => {
     const key = getSaveKey(mode.developmentMode);
-    const raw = localStorage.getItem(key);
+    const raw = storage.getItem(key);
     let parsed = null;
 
     try {
       parsed = raw ? JSON.parse(raw) : null;
-    } catch (error) {
+    } catch {
       parsed = null;
     }
 
@@ -10104,99 +9299,83 @@ function listSaveSlots() {
       key,
       exists: Boolean(raw),
       lastSavedAt: parsed?.lastSavedAt ?? null,
-      totalPlayTime: parsed?.stats?.totalPlayTime ?? null,
+      totalPlayTime: parsed?.stats?.gameTime ?? null,
       energy: parsed?.energy ?? null,
     };
   });
 }
 
+// ----------------------------------------------------------------------------
+// Quicksave & Quick Restore
+// ----------------------------------------------------------------------------
+
+function quicksaveState(state) {
+  if (!state) return false;
+  const storage = getStorage();
+  try {
+    const serialized = serializeState(state);
+    storage.setItem(QUICKSAVE_KEY, serialized);
+    return true;
+  } catch (err) {
+    console.error("Quicksave failed:", err);
+    return false;
+  }
+}
+
+function loadQuicksaveState(config) {
+  const storage = getStorage();
+  try {
+    const raw = storage.getItem(QUICKSAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return normalizeState(parsed, config);
+  } catch (err) {
+    console.error("Quick Restore failed:", err);
+    return null;
+  }
+}
+
+function hasQuicksaveState() {
+  const storage = getStorage();
+  return Boolean(storage.getItem(QUICKSAVE_KEY));
+}
+
 
 // ---- js/engine.js ----
+/**
+ * engine.js
+ * GameEngine / CommandEngine for The Eternal Simulation (Rebuild specification).
+ * Deterministic simulation runner, event dispatch, action execution, and audit logging.
+ */
+
 
 class GameEngine {
   constructor({
-    state,
-    config,
-    developmentMode = false,
-    random = Math.random,
-    collectEvents = false,
-    suppressLogs = false,
-    news = null,
-  }) {
-    this.state = state;
+    state = null,
+    config = {},
+    statResolver = defaultStatResolver,
+    effectRegistry = defaultEffectRegistry,
+    developmentMode = true,
+  } = {}) {
     this.config = config;
+    this.statResolver = statResolver;
+    this.effectRegistry = effectRegistry;
     this.developmentMode = developmentMode;
-    this.random = random;
-    this.collectEvents = collectEvents;
-    this.suppressLogs = suppressLogs;
-    this.news =
-      Array.isArray(news) && news.length > 0
-        ? news
-        : globalThis.__TES_NEWS__ || DEFAULT_NEWS;
-    this.events = [];
+
+    // Register standard effects
+    registerStandardEffects(this.effectRegistry, this.config);
+
+    this.state = state ? normalizeState(state, this.config) : createInitialState(this.config);
+    if (developmentMode !== undefined) {
+      this.state.devMode = Boolean(developmentMode);
+    }
     this.listeners = new Set();
-
-    if (this.state.ui && !this.state.ui.currentNewsId) {
-      const initial = selectNextNews(this.news, null, this.random);
-      if (initial) {
-        this.state.ui.currentNewsId = initial.id;
-      }
-    }
-  }
-
-  getNewsList() {
-    return this.news;
-  }
-
-  setNewsList(newsList) {
-    if (Array.isArray(newsList) && newsList.length > 0) {
-      this.news = newsList;
-      if (!this.state.ui.currentNewsId) {
-        const next = selectNextNews(this.news, null, this.random);
-        if (next) this.state.ui.currentNewsId = next.id;
-      }
-    }
-  }
-
-  cycleNews(manual = false) {
-    if (!this.news || this.news.length === 0) return;
-    const next = selectNextNews(
-      this.news,
-      this.state.ui?.currentNewsId,
-      this.random,
-    );
-    if (next && this.state.ui) {
-      this.state.ui.currentNewsId = next.id;
-      this.state.ui.newsTimer = 0;
-      if (manual) this.notify();
-    }
-  }
-
-  dismissNewsSection() {
-    if (this.state.ui) {
-      this.state.ui.newsDismissed = true;
-      this.notify();
-    }
-  }
-
-  restoreNewsSection() {
-    if (this.state.ui) {
-      this.state.ui.newsDismissed = false;
-      this.notify();
-    }
-  }
-
-  toggleNewsSection() {
-    if (this.state.ui) {
-      this.state.ui.newsDismissed = !this.state.ui.newsDismissed;
-      this.notify();
-    }
-  }
-
-  setNewsHovered(isHovered) {
-    if (this.state.ui) {
-      this.state.ui.newsHovered = Boolean(isHovered);
-    }
+    this.autoSaveTimer = 0;
+    this.chipTimers = {
+      AImp: 0,
+      AUpg: 0,
+      ARec: 0,
+    };
   }
 
   subscribe(listener) {
@@ -10205,1964 +9384,514 @@ class GameEngine {
   }
 
   notify() {
-    for (const listener of this.listeners) listener(this.state);
-  }
-
-  emitEvent(type, payload = {}) {
-    if (!this.collectEvents) return;
-    this.events.push({
-      type,
-      at: this.state.stats.runPlayTime,
-      ...payload,
-    });
-  }
-
-  consumeEvents() {
-    const events = this.events;
-    this.events = [];
-    return events;
-  }
-
-  addLog(message, tone = "info") {
-    if (this.suppressLogs) return;
-
-    this.state.log.unshift({
-      id: `${Date.now()}-${Math.random()}`,
-      message,
-      tone,
-      at: this.state.stats.runPlayTime,
-    });
-    this.state.log = this.state.log.slice(0, 60);
-  }
-
-  recordHistory({ eventId, kind = "Narrative", title, summary, body }) {
-    if (!this.state.history) {
-      this.state.history = [];
-    }
-    const id = eventId;
-    if (this.state.history.some((e) => (e.id || e.eventId) === id)) {
-      return;
-    }
-    const entry = {
-      id,
-      eventId: id,
-      kind,
-      title,
-      summary,
-      body: body || summary,
-      timestamp: Date.now(),
-      runPlayTime: this.state.stats.runPlayTime,
-      seenAt: Date.now(),
-    };
-    this.state.history.unshift(entry);
-  }
-
-  openHistoryEntry(id) {
-    if (!this.state.history) return false;
-    const entry = this.state.history.find((e) => (e.id || e.eventId) === id);
-    if (!entry) return false;
-    this.state.ui.historyModalEntry = entry;
-    this.notify();
-    return true;
-  }
-
-  closeHistoryModal() {
-    if (!this.state.ui.historyModalEntry) return false;
-    this.state.ui.historyModalEntry = null;
-    this.notify();
-    return true;
-  }
-
-  pressButton() {
-    this.state.introState = "crc-briefing";
-    this.recordHistory({
-      eventId: "narrative-intro",
-      kind: "Narrative",
-      title: "The room has been waiting.",
-      summary: "Dust hangs motionless in the air. A single button emits a faint blue pulse.",
-      body: "Dust hangs motionless in the air. Every panel is dark, every instrument silent.\n\nAt the center of the chamber, a single button emits a faint blue pulse.\n\nYou cannot remember why you entered this place — only that something behind these walls was never meant to be forgotten.",
-    });
-    this.notify();
-  }
-
-  activateCrc() {
-    this.state.introState = "active";
-    this.recordHistory({
-      eventId: "narrative-crc-awakening",
-      kind: "Narrative",
-      title: "The first machine wakes by pulling energy out of noise.",
-      summary: "Cosmic Radiation Condenser online. Pulls background radiation into usable Stored Energy.",
-      body: "The screen identifies the device as a Cosmic Radiation Condenser: a damaged instrument built to catch background cosmic radiation and compress it into usable Stored Energy.\n\nIts output is almost nothing at first. The facility expects you to improve the algorithm, not to operate the machine by hand.\n\nA Power Cell below the floor begins accepting charge. Every system you recover will either improve the condenser, automate the study cycle, or prepare the next layer of the facility.",
-    });
-    this.addLog(
-      "Cosmic Radiation Condenser detected. Status: ONLINE.",
-      "discovery",
-    );
-    this.notify();
-  }
-
-  leaveRoom() {
-    this.state.introState = "left";
-    this.notify();
-  }
-
-  returnToRoom() {
-    this.state.introState = "choice";
-    this.notify();
-  }
-
-  advanceTimersAndEnergy(tau) {
-    if (tau <= 0) return;
-    const production = calculateProduction(
-      this.state,
-      this.config,
-      this.developmentMode,
-    );
-    this.advanceEnergy(production, tau);
-    this.advanceNonEnergyTimers(tau);
-  }
-
-  advanceNonEnergyTimers(tau) {
-    if (tau <= 0) return;
-    this.decayQuarks(tau, false);
-    this.drainOverclocker(tau, false);
-    this.coolOverclocker(tau, false);
-    this.tickBlueprintStudy(tau);
-    this.tickOverclockerBlueprintStudy(tau);
-    this.tickConstruction(tau);
-  }
-
-  advanceBatchEnergy(eBatch, dtBatch) {
-    if (dtBatch <= 0) return;
-    const overflowDecay = calculateEnergyOverflowDecay(
-      this.state,
-      this.config,
-    );
-    const netEnergy = bigMax(0, eBatch.sub(overflowDecay.mul(dtBatch)));
-    const collected = calculateEffectiveEnergyGain(
-      this.state,
-      netEnergy,
-      this.config,
-    );
-
-    this.state.energy = big(this.state.energy).add(collected);
-    this.state.peakEnergy = bigMax(this.state.peakEnergy, this.state.energy);
-    for (const perk of SCIENCE_PERKS) {
-      const threshold = getSciencePerkStoredEnergyRequirement(
-        perk,
-        this.config,
-      );
-      if (threshold > 0 && this.state.energy.gte(threshold)) {
-        this.state.science.revealedPerks[perk.id] = true;
+    this.statResolver.invalidateCache();
+    for (const listener of this.listeners) {
+      try {
+        listener(this.state);
+      } catch (err) {
+        console.error("Error in GameEngine listener:", err);
       }
     }
-    this.state.stats.totalEnergyCollected = big(
-      this.state.stats.totalEnergyCollected,
-    ).add(collected);
-    this.emitEvent("energy-collected", { amount: collected });
-    this.checkParticleSynthesizerAwakening();
   }
 
-  tick(deltaSeconds) {
-    if (this.state.introState !== "active") return;
-    if (this.state.ui?.particleSynthesisModal || this.state.ui?.synthesizerAwakenedModal) return;
+  // ==========================================================================
+  // TICK / SIMULATION RUNNER
+  // ==========================================================================
 
-    const delta = clamp(deltaSeconds, 0, this.config.timing.maximumTickSeconds);
+  tick(deltaSeconds = 0.05) {
+    const delta = Math.max(0, deltaSeconds * (this.state.gameSpeed ?? 1.0));
     if (delta <= 0) return;
 
-    this.state.stats.totalPlayTime += delta;
-    this.state.stats.runPlayTime += delta;
+    this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
 
-    if (this.state.ui) {
-      if (!this.state.ui.newsHovered) {
-        this.state.ui.newsTimer = (this.state.ui.newsTimer || 0) + delta;
-        const cycleInterval = 6;
-        if (this.state.ui.newsTimer >= cycleInterval) {
-          this.state.ui.newsTimer = 0;
-          this.cycleNews(false);
+    // 1. Energy Production & Overflow Decay
+    const stableCap = calculatePowerCellCapacity(this.state.powerCells ?? 0, this.state, this.config, this.statResolver);
+    const production = calculateEnergyProduction(this.state, this.config, this.statResolver);
+    const decay = calculateEnergyOverflowDecay(this.state.energy, stableCap, this.config);
+
+    const netRate = production.sub(decay);
+    const netEnergyDelta = netRate.mul(delta);
+    this.state.energy = bigMax(0, big(this.state.energy).add(netEnergyDelta));
+
+    if (production.gt(0)) {
+      this.state.stats.totalEnergyProduced = big(this.state.stats.totalEnergyProduced).add(production.mul(delta));
+    }
+    if (this.state.energy.gt(this.state.peakEnergy)) {
+      this.state.peakEnergy = this.state.energy;
+    }
+
+    // 2. Hard Disk Operation
+    const hardDisks = this.state.devices?.hardDisks;
+    if (hardDisks && hardDisks.owned > 0) {
+      if (hardDisks.state === "active") {
+        const drainPerSec = calculateHardDiskEnergyDrain(hardDisks.owned, hardDisks.activeSeconds, this.config);
+        const energyRequired = drainPerSec.mul(delta);
+
+        if (this.state.energy.gte(energyRequired)) {
+          this.state.energy = this.state.energy.sub(energyRequired);
+          hardDisks.activeSeconds += delta;
+          const xpRate = calculateHardDiskXpRate(hardDisks.owned, this.state, this.config, this.statResolver);
+          hardDisks.buffer = (hardDisks.buffer ?? 0) + xpRate * delta;
+        } else {
+          // Insufficient energy -> enter standby! (preserves buffer, stops consumption)
+          hardDisks.state = "standby";
+        }
+      } else if (hardDisks.state === "standby") {
+        // Check if sufficient energy exists to resume
+        const drainPerSec = calculateHardDiskEnergyDrain(hardDisks.owned, hardDisks.activeSeconds, this.config);
+        if (this.state.energy.gte(drainPerSec.mul(delta))) {
+          hardDisks.state = "active";
         }
       }
     }
 
-    let remainingTime = delta;
-    const maxSubSteps = 1000;
-    let subStepCount = 0;
-
-    while (remainingTime > 1e-9 && subStepCount < maxSubSteps) {
-      subStepCount += 1;
-
-      // 1. If Algorithm Upgrade study is active (running via 50G Calculator automation)
-      if (this.state.algorithmUpgradeStudy?.active) {
-        if (this.state.algorithmUpgradeStudy.automated !== true) {
-          this.completeAlgorithmUpgrade("legacy-manual");
-          continue;
-        }
-
-        const dur = this.state.algorithmUpgradeStudy.duration;
-        const el = this.state.algorithmUpgradeStudy.elapsed;
-        const tRem = Math.max(0, dur - el);
-        const tau = Math.min(remainingTime, tRem);
-
-        this.advanceTimersAndEnergy(tau);
-        this.state.algorithmUpgradeStudy.elapsed += tau;
-
-        if (this.state.algorithmUpgradeStudy.elapsed >= dur) {
-          this.completeAlgorithmUpgrade("automated");
-        }
-        remainingTime -= tau;
-        continue;
+    // 3. Overclocker Timer
+    const overclock = this.state.devices?.overclocker;
+    if (overclock && overclock.active) {
+      overclock.remainingDuration -= delta;
+      overclock.activeSeconds += delta;
+      if (overclock.remainingDuration <= 0) {
+        overclock.active = false;
+        overclock.remainingDuration = 0;
+        overclock.target = null;
       }
+    }
 
-      // 2. Check if automated AI Calculation Support can claim CMU
-      if (
-        isAiCalculationSupportAutomationActive(this.state) &&
-        this.canClaimCalculationMethodUpgrade()
-      ) {
-        this.claimCalculationMethodUpgrade();
-      }
+    // 4. Study Workers: Manual Study
+    this._tickManualStudy(delta);
 
-      // 3. Check if automated Algorithm Upgrade should start (via 50G Calculator)
-      if (
-        isFiftyGCalculatorAutomationActive(this.state) &&
-        this.canStartAlgorithmUpgradeStudy()
-      ) {
-        this.startAlgorithmUpgradeStudy({ automated: true });
-        continue;
-      }
+    // 5. Study Workers: AutoCalculator Chips
+    this._tickAutoChips(delta);
 
-      // 4. Algorithm Improvement study (manual or automated via Auto Calculators)
-      if (!this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
-        this.startNextAutomatedStudy();
-      }
+    // 6. Check Technological Unlock Milestones
+    this._evaluateUnlocks();
 
-      if (this.state.study.active) {
-        // Variable speed regime (Redundancy Elimination active and improvements < 100)
-        const isVariableSpeed =
-          Boolean(this.state.science?.perks?.redundancyElimination) &&
-          this.state.improvements < 100;
+    // 7. Auto-save every 5 seconds
+    this.autoSaveTimer += delta;
+    if (this.autoSaveTimer >= 5.0) {
+      this.autoSaveTimer = 0;
+      this.save();
+    }
 
-        if (isVariableSpeed) {
-          const dur = calculateStudyDuration(this.state, this.config, this.developmentMode);
-          this.state.study.duration = dur;
-          const tRem = Math.max(0, dur - this.state.study.elapsed);
-          const tau = Math.min(remainingTime, tRem);
+    this.notify();
+  }
 
-          this.advanceTimersAndEnergy(tau);
-          this.state.study.elapsed += tau;
+  _tickManualStudy(delta) {
+    const study = this.state.manualStudy;
+    if (!study || !study.active || !study.target) return;
 
-          if (this.state.study.elapsed >= dur) {
-            this.completeStudy();
-          }
-          remainingTime -= tau;
-          continue;
+    const target = study.target;
+    study.elapsed += delta;
+    const effectiveDur = calculateEffectiveStudyDuration(target, this.state, this.config, this.statResolver);
+
+    while (study.elapsed >= effectiveDur) {
+      const success = this._executeSingleStudyCompletion(target);
+      if (success) {
+        study.elapsed -= effectiveDur;
+        if (this.state.studyQueues[target] > 0) {
+          this.state.studyQueues[target] -= 1;
         }
-
-        // Constant speed regime (I >= 100 or no Redundancy Elimination)
-        let nLimit = Infinity;
-        if (isFiftyGCalculatorAutomationActive(this.state)) {
-          const req = calculateAlgorithmUpgradeRequirement(this.state, this.config);
-          nLimit = Math.max(0, req - this.state.improvements);
-          if (nLimit === 0) {
-            this.startAlgorithmUpgradeStudy({ automated: true });
-            continue;
-          }
-        }
-
-        // Finish any pending partial study first
-        if (this.state.study.elapsed > 0) {
-          const dur = calculateStudyDuration(this.state, this.config, this.developmentMode);
-          this.state.study.duration = dur;
-          const tRem = Math.max(0, dur - this.state.study.elapsed);
-
-          if (remainingTime < tRem) {
-            this.advanceTimersAndEnergy(remainingTime);
-            this.state.study.elapsed += remainingTime;
-            remainingTime = 0;
-            break;
-          }
-
-          this.advanceTimersAndEnergy(tRem);
-          this.completeStudy();
-          remainingTime -= tRem;
-          continue;
-        }
-
-        // Now elapsed === 0: execute closed-form batching
-        const j = this.state.improvements;
-        const V = calculateAlgorithmImprovementSpeedMultiplier(this.state, this.config);
-        const n = calculateMaxBatchImprovements(j, V, remainingTime, nLimit, this.config);
-
-        if (n > 0) {
-          const dtBatch = calculateBatchDuration(j, n, V, this.config).toNumber();
-          const curProd = calculateProduction(this.state, this.config, this.developmentMode);
-          const Q = curProd.div(1 + j);
-          const eBatch = calculateBatchEnergy(j, n, V, Q, this.config);
-
-          this.advanceBatchEnergy(eBatch, dtBatch);
-          this.advanceNonEnergyTimers(dtBatch);
-
-          this.state.improvements += n;
-          this.state.improvementMultiplier = big(1 + this.state.improvements);
-          this.emitEvent("algorithm-improvement-completed", {
-            count: this.state.improvements,
-            batchSize: n,
-            elapsed: dtBatch,
-          });
-          this.checkBlueprintGuarantee();
-
-          remainingTime -= dtBatch;
-
-          if (
-            isFiftyGCalculatorAutomationActive(this.state) &&
-            this.canStartAlgorithmUpgradeStudy()
-          ) {
-            this.startAlgorithmUpgradeStudy({ automated: true });
-            continue;
-          }
-        }
-
-        // Leftover time after batching: partial progress into next study
-        if (remainingTime > 1e-9) {
-          const nextDur = calculateStudyDuration(this.state, this.config, this.developmentMode);
-          this.state.study.active = true;
-          this.state.study.elapsed = remainingTime;
-          this.state.study.duration = nextDur;
-          this.state.study.automated = isAutoCalculatorAutomationActive(this.state);
-
-          this.advanceTimersAndEnergy(remainingTime);
-          remainingTime = 0;
+        if (this.state.studyQueues[target] <= 0) {
+          study.active = false;
+          study.elapsed = 0;
           break;
         }
       } else {
-        // No study active or automated
-        this.advanceTimersAndEnergy(remainingTime);
-        remainingTime = 0;
+        // Waits for required units at 100% progress
+        study.elapsed = effectiveDur;
         break;
       }
     }
-    this.checkParticleSynthesizerAwakening();
   }
 
-  addEnergy(amount, notify = true) {
-    const collected = calculateEffectiveEnergyGain(
-      this.state,
-      amount,
-      this.config,
-    );
-
-    this.state.energy = big(this.state.energy).add(collected);
-    this.state.peakEnergy = bigMax(this.state.peakEnergy, this.state.energy);
-    for (const perk of SCIENCE_PERKS) {
-      const threshold = getSciencePerkStoredEnergyRequirement(
-        perk,
-        this.config,
-      );
-      if (threshold > 0 && this.state.energy.gte(threshold)) {
-        this.state.science.revealedPerks[perk.id] = true;
-      }
-    }
-    this.state.stats.totalEnergyCollected = big(
-      this.state.stats.totalEnergyCollected,
-    ).add(collected);
-    if (collected.gt(0)) {
-      this.emitEvent("energy-collected", { amount: collected });
-    }
-    this.checkParticleSynthesizerAwakening();
-
-    if (notify) this.notify();
-    return collected;
-  }
-
-  advanceEnergy(production, delta) {
-    const capacity = calculateStableEnergyCapacity(this.state, this.config);
-    const energyBeforeTick = big(this.state.energy);
-    const collected = production.mul(delta);
-
-    this.addEnergy(collected, false);
-    const energyBeforeDecay = big(this.state.energy);
-    if (energyBeforeDecay.lte(capacity)) return;
-
-    // Solve E_next + decay(E_next) * dt = E_before_decay implicitly. The old
-    // explicit Euler step overshot this very stiff nonlinear decay at high
-    // output rates, deleting the entire overflow on every animation frame.
-    let low = capacity;
-    let high = energyBeforeDecay;
-    const decayRate = this.config.energy.overflowDecayRate;
-    const decayPower = this.config.energy.overflowDecayPower;
-
-    for (let iteration = 0; iteration < 100; iteration += 1) {
-      const midpoint = low.add(high.sub(low).div(2));
-      if (midpoint.eq(low) || midpoint.eq(high)) break;
-
-      const overflowRatio = midpoint.sub(capacity).div(capacity);
-      const decay = capacity
-        .mul(decayRate)
-        .mul(overflowRatio.pow(decayPower))
-        .mul(delta);
-      if (midpoint.add(decay).gt(energyBeforeDecay)) {
-        high = midpoint;
-      } else {
-        low = midpoint;
-      }
-    }
-
-    this.state.energy = low.add(high.sub(low).div(2));
-    const decayed = energyBeforeDecay.sub(this.state.energy);
-    if (decayed.gt(0)) {
-      this.emitEvent("energy-decayed", { amount: decayed });
-    }
-    // Preserve the prior peak calculation semantics: transient generated
-    // energy is still eligible for peak-energy unlocks before decay.
-    this.state.peakEnergy = bigMax(
-      this.state.peakEnergy,
-      energyBeforeTick.add(collected),
-    );
-  }
-
-  decayOverflowEnergy(delta, notify = true) {
-    const capacity = calculateStableEnergyCapacity(this.state, this.config);
-    if (big(this.state.energy).lte(capacity)) return big(0);
-
-    const decay = bigMin(
-      big(this.state.energy).sub(capacity),
-      calculateEnergyOverflowDecay(this.state, this.config).mul(delta),
-    );
-
-    const overflow = big(this.state.energy).sub(capacity);
-    // Avoid catastrophic cancellation when overflow dwarfs capacity: at large
-    // magnitudes, energy - overflow rounds to zero instead of to capacity.
-    this.state.energy = decay.gte(overflow)
-      ? capacity
-      : big(this.state.energy).sub(decay);
-    if (decay.gt(0)) {
-      this.emitEvent("energy-decayed", { amount: decay });
-    }
-    if (notify) this.notify();
-    return decay;
-  }
-
-  decayQuarks(delta, notify = true) {
-    const decayPerSecond = calculateQuarkDecay(this.state, this.config);
-    if (decayPerSecond.lte(0)) return big(0);
-
-    const decayed = bigMin(
-      this.state.quarks.available,
-      decayPerSecond.mul(delta),
-    );
-
-    this.state.quarks.available = bigMax(
-      0,
-      big(this.state.quarks.available).sub(decayed),
-    );
-    if (decayed.gt(0)) {
-      this.emitEvent("quarks-decayed", { amount: decayed });
-    }
-    if (notify) this.notify();
-    return decayed;
-  }
-
-  drainOverclocker(delta, notify = true) {
-    if (
-      this.state.devices.overclockers <= 0 ||
-      !this.state.overclocker.active
-    ) {
-      return 0;
-    }
-
-    const stableCapacity = calculateStableEnergyCapacity(
-      this.state,
-      this.config,
-    );
-    const availableExcess = bigMax(
-      0,
-      big(this.state.energy).sub(stableCapacity),
-    );
-    if (availableExcess.lte(0)) {
-      this.state.overclocker.active = false;
-      this.refreshAlgorithmImprovementDuration();
-      this.addLog(
-        "Overclocker lost excess feed. Cooling sequence started.",
-        "info",
-      );
-      if (notify) this.notify();
-      return big(0);
-    }
-
-    const drain = big(
-      calculateOverclockerDrainPerSecond(this.state, this.config),
-    ).mul(delta);
-    if (drain.lte(0)) return big(0);
-
-    const consumed = bigMin(availableExcess, drain);
-    this.state.energy = big(this.state.energy).sub(consumed);
-    if (consumed.gt(0)) {
-      this.emitEvent("overclocker-drained", { amount: consumed });
-    }
-
-    if (consumed.lt(drain) || this.state.energy.lte(stableCapacity)) {
-      this.state.energy = bigMax(stableCapacity, this.state.energy);
-      this.state.overclocker.active = false;
-      this.refreshAlgorithmImprovementDuration();
-      this.addLog(
-        "Overclocker lost excess feed. Cooling sequence started.",
-        "info",
-      );
-    } else {
-      this.state.overclocker.activeSeconds += delta;
-    }
-
-    if (notify) this.notify();
-    return consumed;
-  }
-
-  coolOverclocker(delta, notify = true) {
-    if (
-      this.state.devices.overclockers <= 0 ||
-      this.state.overclocker.active ||
-      this.state.overclocker.activeSeconds <= 0
-    ) {
-      return 0;
-    }
-
-    const coolingMultiplier =
-      this.config.overclocker.coolingDurationMultiplier ?? 2;
-    const cooling = Math.min(
-      this.state.overclocker.activeSeconds,
-      delta / Math.max(coolingMultiplier, Number.EPSILON),
-    );
-
-    this.state.overclocker.activeSeconds = Math.max(
-      0,
-      this.state.overclocker.activeSeconds - cooling,
-    );
-
-    if (notify) this.notify();
-    return cooling;
-  }
-
-  retimeActiveProgress(task, nextDuration) {
-    if (!task.active || nextDuration <= 0) return;
-
-    const progress =
-      task.duration > 0 ? clamp(task.elapsed / task.duration, 0, 1) : 0;
-
-    task.duration = nextDuration;
-    task.elapsed = Math.min(task.duration, progress * task.duration);
-  }
-
-  calculateCrcConstructionDuration() {
-    return (
-      this.config.crcConstruction.durationSeconds *
-      calculateDeviceDurationMultiplier(this.state, this.config) *
-      (this.developmentMode ? this.state.devSettings.durationMultiplier : 1)
-    );
-  }
-
-  refreshAlgorithmImprovementDuration() {
-    this.retimeActiveProgress(
-      this.state.study,
-      calculateStudyDuration(this.state, this.config, this.developmentMode),
-    );
-  }
-
-  refreshAllActiveDurations() {
-    this.refreshAlgorithmImprovementDuration();
-    this.retimeActiveProgress(
-      this.state.algorithmUpgradeStudy,
-      calculateAlgorithmUpgradeDuration(
-        this.state,
-        this.config,
-        this.developmentMode,
-      ),
-    );
-    this.retimeActiveProgress(
-      this.state.blueprintStudy,
-      calculateBlueprintResearchDuration(
-        this.state,
-        this.config,
-        this.developmentMode,
-      ),
-    );
-    this.retimeActiveProgress(
-      this.state.construction,
-      this.calculateCrcConstructionDuration(),
-    );
-  }
-
-  startStudy(automated = false) {
-    if (this.state.study.active || this.state.introState !== "active") {
-      return false;
-    }
-
-    this.state.study.active = true;
-    this.state.study.elapsed = 0;
-    this.state.study.completedAt = null;
-    this.state.study.duration = calculateStudyDuration(
-      this.state,
-      this.config,
-      this.developmentMode,
-    );
-    this.state.study.automated = automated;
-    this.notify();
-    return true;
-  }
-
-  tickStudy(delta) {
-    if (!this.state.study.active) {
-      this.startNextAutomatedStudy();
-      return;
-    }
-
-    this.state.study.elapsed += delta;
-    if (this.state.study.elapsed < this.state.study.duration) return;
-
-    this.completeStudy();
-  }
-
-  completeStudy() {
-    const bonus = calculateImprovementBonus(
-      this.state.improvements,
-      this.config,
-      this.state.calculationMethods,
-    );
-
-    this.state.improvements += 1;
-    this.state.improvementMultiplier = big(1 + this.state.improvements);
-    this.state.study.active = false;
-    this.state.study.elapsed = this.state.study.duration;
-    this.state.study.completedAt = Date.now();
-    this.emitEvent("algorithm-improvement-completed", {
-      count: this.state.improvements,
-      bonus,
-    });
-
-    if (!this.state.study.automated || this.state.improvements <= 5) {
-      this.addLog(
-        `Algorithm Improvement ${this.state.improvements} completed: +${(
-          bonus * 100
-        ).toFixed(2)}% efficiency.`,
-      );
-    }
-
-    this.checkBlueprintGuarantee();
-
-    if (isAutoCalculatorAutomationActive(this.state)) {
-      this.startNextAutomatedStudy();
-    } else {
-      this.notify();
-    }
-  }
-
-  startNextAutomatedStudy() {
-    if (
-      this.state.introState !== "active" ||
-      !isAutoCalculatorAutomationActive(this.state) ||
-      this.state.study.active ||
-      this.state.algorithmUpgradeStudy.active
-    ) {
-      return false;
-    }
-
-    if (
-      isAiCalculationSupportAutomationActive(this.state) &&
-      this.canClaimCalculationMethodUpgrade()
-    ) {
-      this.claimCalculationMethodUpgrade();
-      return this.startStudy(true);
-    }
-
-    if (
-      isFiftyGCalculatorAutomationActive(this.state) &&
-      this.canStartAlgorithmUpgradeStudy()
-    ) {
-      return this.startAlgorithmUpgradeStudy({ automated: true });
-    }
-
-    return this.startStudy(true);
-  }
-
-  checkBlueprintGuarantee() {
-    if (
-      canResearchBlueprint(this.state, this.config) &&
-      this.state.discoveries.blueprintSource !== "research-available"
-    ) {
-      this.state.discoveries.blueprintSource = "research-available";
-      this.addLog(
-        "CRC Blueprint signal isolated. A short reconstruction pass is now available.",
-        "discovery",
-      );
-      this.notify();
-    }
-  }
-
-  completeBlueprintResearch(source = "research") {
-    if (this.state.discoveries.crcBlueprint) return;
-    this.state.discoveries.crcBlueprint = true;
-    this.state.discoveries.blueprintSource = source;
-    this.emitEvent("blueprint-research-completed", { source });
-    this.recordHistory({
-      eventId: "discovery-crc-blueprint",
-      kind: "Discoveries",
-      title: "CRC Blueprint Recovered",
-      summary: "Specifications recovered for constructing additional Cosmic Radiation Condensers.",
-      body: "The facility has reconstructed the fabrication plan for additional Cosmic Radiation Condensers. Each new condenser constructed provides an independent, passive energy gathering point.",
-    });
-    this.addLog(
-      "CRC Blueprint reconstructed. New condensers can now be fabricated.",
-      "discovery",
-    );
-    this.notify();
-  }
-
-  canStartBlueprintResearch() {
-    return evaluateComponent("crcBlueprint", this.state, this.config).enabled;
-  }
-
-  startBlueprintResearch() {
-    if (!this.canStartBlueprintResearch()) return false;
-    this.state.blueprintStudy.active = true;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = calculateBlueprintResearchDuration(
-      this.state,
-      this.config,
-      this.developmentMode,
-    );
-    this.addLog("CRC Blueprint research started.", "device");
-    this.notify();
-    return true;
-  }
-
-  tickBlueprintStudy(delta) {
-    if (!this.state.blueprintStudy.active) return;
-    this.state.blueprintStudy.elapsed += delta;
-    if (
-      this.state.blueprintStudy.elapsed < this.state.blueprintStudy.duration
-    ) {
-      return;
-    }
-
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.completeBlueprintResearch("research");
-  }
-
-  canStartOverclockerBlueprintResearch() {
-    return evaluateComponent(
-      "overclockerBlueprint",
-      this.state,
-      this.config,
-    ).enabled;
-  }
-
-  startOverclockerBlueprintResearch() {
-    if (!this.canStartOverclockerBlueprintResearch()) return false;
-    this.state.overclockerBlueprintStudy.active = true;
-    this.state.overclockerBlueprintStudy.elapsed = 0;
-    this.state.overclockerBlueprintStudy.duration =
-      calculateOverclockerBlueprintDuration(this.state, this.config);
-    this.addLog("Overclocker Blueprint research started.", "device");
-    this.notify();
-    return true;
-  }
-
-  tickOverclockerBlueprintStudy(delta) {
-    if (!this.state.overclockerBlueprintStudy?.active) return;
-    this.state.overclockerBlueprintStudy.elapsed += delta;
-    if (
-      this.state.overclockerBlueprintStudy.elapsed <
-      this.state.overclockerBlueprintStudy.duration
-    ) {
-      return;
-    }
-
-    this.completeOverclockerBlueprintResearch();
-  }
-
-  completeOverclockerBlueprintResearch() {
-    this.state.overclockerBlueprintStudy.active = false;
-    this.state.overclockerBlueprintStudy.elapsed = 0;
-    this.state.discoveries.overclockerBlueprint = true;
-    this.emitEvent("blueprint-completed", { device: "overclocker" });
-    this.recordHistory({
-      eventId: "discovery-overclocker-blueprint",
-      kind: "Discoveries",
-      title: "Overclocker Blueprint Recovered",
-      summary: "Thermal routing plan recovered for overclocking calculator arrays.",
-      body: "Analysis of processor routing channels reveals an overclocking pathway. Excessive Stored Energy can be burned to dramatically accelerate Auto Calculator speed.",
-    });
-    this.addLog(
-      "Overclocker Blueprint research completed. Overclocker construction unlocked.",
-      "discovery",
-    );
-    this.notify();
-  }
-
-  canPurchaseAutoCalculator() {
-    return evaluateComponent("autoCalculator", this.state, this.config).enabled;
-  }
-
-  canPurchaseSoftDataDisplay() {
-    return evaluateComponent("softDataDisplay", this.state, this.config)
-      .enabled;
-  }
-
-  canPurchaseT2SoftDataDisplay() {
-    return evaluateComponent("t2SoftDataDisplay", this.state, this.config)
-      .enabled;
-  }
-
-  canPurchasePowerCell() {
-    return evaluateComponent("powerCell", this.state, this.config).enabled;
-  }
-
-  canPurchasePowerModule() {
-    return evaluateComponent("powerModule", this.state, this.config).enabled;
-  }
-
-  canPurchaseOverclocker() {
-    return evaluateComponent("overclocker", this.state, this.config).enabled;
-  }
-
-  purchasePowerCell() {
-    if (!this.canPurchasePowerCell()) return false;
-    const cost = evaluateComponent("powerCell", this.state, this.config).cost;
-
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.powerCells += 1;
-    this.emitEvent("device-purchased", {
-      device: "powerCell",
-      count: this.state.powerCells,
-      cost,
-    });
-    this.addLog(
-      `Power Cell ${this.state.powerCells} stabilized. Energy capacity expanded.`,
-      "device",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchasePowerCells(amount = 1) {
-    if (amount === "max") {
-      return this.purchaseMaxPowerCells();
-    }
-    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
-    if (count <= 1) {
-      return this.purchasePowerCell() ? 1 : 0;
-    }
-    let totalCost = big(0);
-    for (let i = 0; i < count; i++) {
-      totalCost = totalCost.add(
-        calculatePowerCellCost(
-          { ...this.state, powerCells: this.state.powerCells + i },
-          this.config,
-        ),
-      );
-    }
-    if (big(this.state.energy).lt(totalCost)) return 0;
-    this.state.energy = big(this.state.energy).sub(totalCost);
-    this.state.powerCells += count;
-    this.emitEvent("device-purchased", {
-      device: "powerCell",
-      count,
-      cost: totalCost,
-    });
-    this.addLog(`Power Cell Array expanded by ${count} cells.`, "device");
-    this.notify();
-    return count;
-  }
-
-  purchaseMaxPowerCells(maxPurchases = 100000) {
-    let purchased = 0;
-
-    while (purchased < maxPurchases) {
-      const availability = evaluateComponent(
-        "powerCell",
-        this.state,
-        this.config,
-      );
-      if (
-        !availability.enabled ||
-        big(availability.cost).lte(0) ||
-        big(this.state.energy).lt(availability.cost)
-      ) {
-        break;
-      }
-
-      this.state.energy = big(this.state.energy).sub(availability.cost);
-      this.state.powerCells += 1;
-      purchased += 1;
-      this.emitEvent("device-purchased", {
-        device: "powerCell",
-        count: this.state.powerCells,
-        cost: availability.cost,
-      });
-    }
-
-    if (purchased <= 0) return 0;
-
-    this.addLog(
-      `Power Cell Array expanded. ${purchased} cells stabilized.`,
-      "device",
-    );
-    this.notify();
-    return purchased;
-  }
-
-  purchasePowerModule() {
-    if (!this.canPurchasePowerModule()) return false;
-    const availability = evaluateComponent(
-      "powerModule",
-      this.state,
-      this.config,
-    );
-
-    this.state.energy = big(this.state.energy).sub(availability.cost);
-    this.state.powerModules += 1;
-    this.emitEvent("device-purchased", {
-      device: "powerModule",
-      count: this.state.powerModules,
-      cost: availability.cost,
-    });
-    this.addLog(
-      `Power Module ${this.state.powerModules} synchronized. Cell conduction capacity increased.`,
-      "device",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchasePowerModules(amount = 1) {
-    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
-    let purchased = 0;
-    const maxIterations = amount === "max" ? 1000 : count;
-    for (let i = 0; i < maxIterations; i++) {
-      if (!this.canPurchasePowerModule()) break;
-      const availability = evaluateComponent("powerModule", this.state, this.config);
-      if (big(this.state.energy).lt(availability.cost)) break;
-      this.state.energy = big(this.state.energy).sub(availability.cost);
-      this.state.powerModules += 1;
-      purchased++;
-    }
-    if (purchased > 0) {
-      this.emitEvent("device-purchased", {
-        device: "powerModule",
-        count: this.state.powerModules,
-      });
-      this.addLog(`${purchased} Power Module(s) synchronized.`, "device");
-      this.notify();
-    }
-    return purchased;
-  }
-
-  purchaseSoftDataDisplay() {
-    if (!this.canPurchaseSoftDataDisplay()) return false;
-    const cost = evaluateComponent(
-      "softDataDisplay",
-      this.state,
-      this.config,
-    ).cost;
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.devices.softDataDisplay = true;
-    this.emitEvent("device-purchased", {
-      device: "softDataDisplay",
-      count: 1,
-      cost,
-    });
-    this.recordHistory({
-      eventId: "discovery-soft-display",
-      kind: "Discoveries",
-      title: "Soft Data Display Restored",
-      summary: "Production telemetry and flow dynamics unlocked. Buy 10 enabled.",
-      body: "The primary monitoring display flickers to life. Real-time net flow, overflow decay rates, and stable cell thresholds are now legible across all facility sectors.",
-    });
-    this.addLog(
-      "Soft Display restored. Production telemetry is now readable.",
-      "device",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchaseT2SoftDataDisplay() {
-    if (!this.canPurchaseT2SoftDataDisplay()) return false;
-    const cost = evaluateComponent(
-      "t2SoftDataDisplay",
-      this.state,
-      this.config,
-    ).cost;
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.devices.t2SoftDataDisplay = true;
-    this.emitEvent("device-purchased", {
-      device: "t2SoftDataDisplay",
-      count: 1,
-      cost,
-    });
-    this.recordHistory({
-      eventId: "discovery-t2-soft-display",
-      kind: "Discoveries",
-      title: "T2 Soft Data Display Restored",
-      summary: "Output composition and mathematical trace unlocked. Buy Max enabled.",
-      body: "The auxiliary analysis matrix decodes high-frequency resonance patterns. Production breakdowns and multi-factor mathematical traces can now be inspected directly.",
-    });
-    this.addLog(
-      "T2 Soft Display restored. Condenser output composition is now readable.",
-      "device",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchaseOverclocker() {
-    if (!this.canPurchaseOverclocker()) return false;
-    const cost = evaluateComponent("overclocker", this.state, this.config).cost;
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.devices.overclockers += 1;
-    this.state.overclocker.active = false;
-    this.emitEvent("device-purchased", {
-      device: "overclocker",
-      count: this.state.devices.overclockers,
-      cost,
-    });
-    this.addLog(
-      `Overclocker ${this.state.devices.overclockers} installed. Stored Energy can now be burned to force faster calculations.`,
-      "device",
-    );
-    this.refreshAlgorithmImprovementDuration();
-    this.notify();
-    return true;
-  }
-
-  purchaseOverclockers(amount = 1) {
-    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
-    let purchased = 0;
-    const maxIterations = amount === "max" ? 1000 : count;
-    for (let i = 0; i < maxIterations; i++) {
-      if (!this.canPurchaseOverclocker()) break;
-      const cost = evaluateComponent("overclocker", this.state, this.config).cost;
-      if (big(this.state.energy).lt(cost)) break;
-      this.state.energy = big(this.state.energy).sub(cost);
-      this.state.devices.overclockers += 1;
-      this.state.overclocker.active = false;
-      purchased++;
-    }
-    if (purchased > 0) {
-      this.emitEvent("device-purchased", {
-        device: "overclocker",
-        count: this.state.devices.overclockers,
-      });
-      this.addLog(`${purchased} Overclocker(s) installed.`, "device");
-      this.refreshAlgorithmImprovementDuration();
-      this.notify();
-    }
-    return purchased;
-  }
-
-  toggleOverclocker() {
-    if (this.state.devices.overclockers <= 0) return false;
-
-    if (this.state.overclocker.active) {
-      this.state.overclocker.active = false;
-      this.refreshAlgorithmImprovementDuration();
-      this.addLog("Overclocker disengaged. Cooling sequence started.", "info");
-      this.notify();
-      return true;
-    }
-
-    if (
-      this.state.devices.autoCalculators <= 0 ||
-      big(this.state.energy).lte(
-        calculateStableEnergyCapacity(this.state, this.config),
-      )
-    ) {
-      return false;
-    }
-
-    this.state.overclocker.active = true;
-    this.refreshAlgorithmImprovementDuration();
-    this.addLog(
-      "Overclocker engaged. Auto Calculator speed increased.",
-      "device",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchaseAutoCalculator() {
-    if (!this.canPurchaseAutoCalculator()) return false;
-    const cost = evaluateComponent(
-      "autoCalculator",
-      this.state,
-      this.config,
-    ).cost;
-
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.devices.autoCalculators += 1;
-    unlockAutomation(this.state, "autoCalculator");
-    this.emitEvent("device-purchased", {
-      device: "autoCalculator",
-      count: this.state.devices.autoCalculators,
-      cost,
-    });
-    if (this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
-      this.state.study.automated = true;
-      this.refreshAlgorithmImprovementDuration();
-    }
-    this.addLog(
-      `Auto Calculator ${this.state.devices.autoCalculators} connected. Study automation improved.`,
-      "device",
-    );
-    if (!this.state.study.active) this.startNextAutomatedStudy();
-    this.notify();
-    return true;
-  }
-
-  purchaseAutoCalculators(amount = 1) {
-    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
-    let purchased = 0;
-    const maxIterations = amount === "max" ? 1000 : count;
-    for (let i = 0; i < maxIterations; i++) {
-      if (!this.canPurchaseAutoCalculator()) break;
-      const cost = evaluateComponent("autoCalculator", this.state, this.config).cost;
-      if (big(this.state.energy).lt(cost)) break;
-      this.state.energy = big(this.state.energy).sub(cost);
-      this.state.devices.autoCalculators += 1;
-      unlockAutomation(this.state, "autoCalculator");
-      purchased++;
-    }
-    if (purchased > 0) {
-      this.emitEvent("device-purchased", {
-        device: "autoCalculator",
-        count: this.state.devices.autoCalculators,
-      });
-      if (this.state.study.active && isAutoCalculatorAutomationActive(this.state)) {
-        this.state.study.automated = true;
-        this.refreshAlgorithmImprovementDuration();
-      }
-      this.addLog(`${purchased} Auto Calculator(s) connected.`, "device");
-      if (!this.state.study.active) this.startNextAutomatedStudy();
-      this.notify();
-    }
-    return purchased;
-  }
-
-  toggleAutomation(id, enabled) {
-    const nextEnabled =
-      typeof enabled === "boolean"
-        ? enabled
-        : this.state.automations?.enabled?.[id] === false;
-    if (!setAutomationEnabled(this.state, id, nextEnabled)) return false;
-    if (nextEnabled) this.startNextAutomatedStudy();
-    this.notify();
-    return true;
-  }
-
-  canConstructCrc() {
-    return evaluateComponent("crcConstruction", this.state, this.config)
-      .enabled;
-  }
-
-  startCrcConstruction() {
-    if (!this.canConstructCrc()) return false;
-    const cost = evaluateComponent(
-      "crcConstruction",
-      this.state,
-      this.config,
-    ).cost;
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.construction.active = true;
-    this.state.construction.elapsed = 0;
-    this.state.construction.duration = this.calculateCrcConstructionDuration();
-    this.emitEvent("construction-started", {
-      device: "crc",
-      cost,
-    });
-    this.addLog("CRC construction sequence initiated.", "device");
-    this.notify();
-    return true;
-  }
-
-  tickConstruction(delta) {
-    if (!this.state.construction.active) return;
-    this.state.construction.elapsed += delta;
-
-    if (this.state.construction.elapsed < this.state.construction.duration) {
-      return;
-    }
-
-    this.state.construction.active = false;
-    this.state.construction.elapsed = 0;
-    this.state.crcCount += 1;
-    this.emitEvent("construction-completed", {
-      device: "crc",
-      count: this.state.crcCount,
-    });
-    this.addLog(
-      `Cosmic Radiation Condenser ${this.state.crcCount} is online.`,
-      "discovery",
-    );
-    this.notify();
-  }
-
-  canPurchaseProcessor() {
-    return evaluateComponent("processor", this.state, this.config).enabled;
-  }
-
-  purchaseProcessor() {
-    if (!this.canPurchaseProcessor()) return false;
-    const cost = evaluateComponent("processor", this.state, this.config).cost;
-
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.devices.processors += 1;
-    if (!this.state.prototypeComplete) {
-      this.state.prototypeComplete = true;
-      if (this.state.ui) {
-        this.state.ui.newsDismissed = false;
-        this.state.ui.currentNewsId = "processing_network_online";
-      }
-    }
-    this.emitEvent("device-purchased", {
-      device: "processor",
-      count: this.state.devices.processors,
-      cost,
-    });
-    this.refreshAlgorithmImprovementDuration();
-    this.retimeActiveProgress(
-      this.state.construction,
-      this.calculateCrcConstructionDuration(),
-    );
-    this.addLog(
-      `Processor ${this.state.devices.processors} online. Device execution time reduced.`,
-      "milestone",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchaseProcessors(amount = 1) {
-    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
-    let purchased = 0;
-    const maxIterations = amount === "max" ? 1000 : count;
-    for (let i = 0; i < maxIterations; i++) {
-      if (!this.canPurchaseProcessor()) break;
-      const cost = evaluateComponent("processor", this.state, this.config).cost;
-      if (big(this.state.energy).lt(cost)) break;
-      this.state.energy = big(this.state.energy).sub(cost);
-      this.state.devices.processors += 1;
-      if (!this.state.prototypeComplete) {
-        this.state.prototypeComplete = true;
-        if (this.state.ui) {
-          this.state.ui.newsDismissed = false;
-          this.state.ui.currentNewsId = "processing_network_online";
+  _tickAutoChips(delta) {
+    const chips = this.state.devices?.chips;
+    if (!chips || chips.owned <= 0) return;
+
+    for (const target of ["AImp", "AUpg", "ARec"]) {
+      const workerCount = chips.allocations?.[target] ?? 0;
+      if (workerCount <= 0) continue;
+      if (target === "AUpg" && !this.state.unlocks.AUpg) continue;
+      if (target === "ARec" && !this.state.unlocks.ARec) continue;
+
+      const effectiveDur = calculateEffectiveStudyDuration(target, this.state, this.config, this.statResolver);
+      if (effectiveDur <= 0) continue;
+
+      this.chipTimers[target] = (this.chipTimers[target] ?? 0) + delta;
+
+      if (this.chipTimers[target] >= effectiveDur) {
+        const fullCycles = Math.floor(this.chipTimers[target] / effectiveDur);
+        const desiredUnits = fullCycles * workerCount;
+
+        if (target === "AImp") {
+          this.state.algorithms.AImp.owned += desiredUnits;
+          this.state.algorithms.AImp.produced += desiredUnits;
+          this.chipTimers[target] -= fullCycles * effectiveDur;
+        } else if (target === "AUpg") {
+          const factor = this.config.economy?.algorithmConversionFactor ?? 12;
+          const availableAImp = this.state.algorithms.AImp.owned;
+          const maxAffordable = Math.min(desiredUnits, Math.floor(availableAImp / factor));
+
+          if (maxAffordable > 0) {
+            this.state.algorithms.AImp.owned -= maxAffordable * factor;
+            this.state.algorithms.AUpg.owned += maxAffordable;
+            this.state.algorithms.AUpg.produced += maxAffordable;
+            const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
+            this.chipTimers[target] -= executedCycles * effectiveDur;
+          } else {
+            // Insufficient input units: worker waits without consuming or losing timer
+            this.chipTimers[target] = Math.min(this.chipTimers[target], effectiveDur);
+          }
+        } else if (target === "ARec") {
+          const factor = this.config.economy?.algorithmConversionFactor ?? 12;
+          const availableAUpg = this.state.algorithms.AUpg.owned;
+          const maxAffordable = Math.min(desiredUnits, Math.floor(availableAUpg / factor));
+
+          if (maxAffordable > 0) {
+            this.state.algorithms.AUpg.owned -= maxAffordable * factor;
+            this.state.algorithms.ARec.owned += maxAffordable;
+            this.state.algorithms.ARec.produced += maxAffordable;
+            const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
+            this.chipTimers[target] -= executedCycles * effectiveDur;
+          } else {
+            this.chipTimers[target] = Math.min(this.chipTimers[target], effectiveDur);
+          }
         }
       }
-      purchased++;
     }
-    if (purchased > 0) {
-      this.emitEvent("device-purchased", {
-        device: "processor",
-        count: this.state.devices.processors,
-      });
-      this.refreshAlgorithmImprovementDuration();
-      this.retimeActiveProgress(
-        this.state.construction,
-        this.calculateCrcConstructionDuration(),
-      );
-      this.addLog(`${purchased} Processor(s) integrated.`, "device");
-      this.notify();
-    }
-    return purchased;
   }
 
-  canStartAlgorithmUpgradeStudy() {
-    return evaluateComponent("algorithmUpgrade", this.state, this.config)
-      .enabled;
-  }
+  _executeSingleStudyCompletion(target) {
+    const factor = this.config.economy?.algorithmConversionFactor ?? 12;
 
-  startAlgorithmUpgradeStudy(options = {}) {
-    const automated =
-      typeof options === "boolean" ? options : Boolean(options.automated);
-    if (!this.canStartAlgorithmUpgradeStudy()) return false;
-
-    if (!automated) {
-      this.completeAlgorithmUpgrade("manual");
+    if (target === "AImp") {
+      this.state.algorithms.AImp.owned += 1;
+      this.state.algorithms.AImp.produced += 1;
       return true;
     }
 
-    this.state.algorithmUpgradeStudy.active = true;
-    this.state.algorithmUpgradeStudy.elapsed = 0;
-    this.state.algorithmUpgradeStudy.automated = true;
-    this.state.algorithmUpgradeStudy.duration =
-      calculateAlgorithmUpgradeDuration(
-        this.state,
-        this.config,
-        this.developmentMode,
-      );
-    this.addLog("Automated Algorithm Upgrade study started.", "device");
-    this.notify();
-    return true;
-  }
-
-  tickAlgorithmUpgradeStudy(delta) {
-    if (!this.state.algorithmUpgradeStudy.active) return;
-
-    // Saves created before manual Upgrades became instant do not have this flag.
-    // Their active study can only be a legacy manual run, so complete it now.
-    if (this.state.algorithmUpgradeStudy.automated !== true) {
-      this.completeAlgorithmUpgrade("legacy-manual");
-      return;
-    }
-
-    this.state.algorithmUpgradeStudy.elapsed += delta;
-    if (
-      this.state.algorithmUpgradeStudy.elapsed <
-      this.state.algorithmUpgradeStudy.duration
-    ) {
-      return;
-    }
-
-    this.completeAlgorithmUpgrade();
-  }
-
-  completeAlgorithmUpgrade(source = "automated") {
-    this.state.algorithmUpgradeStudy.active = false;
-    this.state.algorithmUpgradeStudy.elapsed = 0;
-    this.state.algorithmUpgradeStudy.duration = 0;
-    this.state.algorithmUpgradeStudy.automated = false;
-    this.state.upgrades += 1;
-    this.resetAlgorithmImprovements();
-    this.emitEvent("algorithm-upgrade-completed", {
-      count: this.state.upgrades,
-    });
-    this.addLog(
-      `Algorithm Upgrade ${this.state.upgrades} completed. CRC production doubled and Improvements were reset.`,
-      "milestone",
-    );
-    if (isAutoCalculatorAutomationActive(this.state)) {
-      this.startNextAutomatedStudy();
-    }
-    this.notify();
-  }
-
-  canClaimCalculationMethodUpgrade() {
-    return evaluateComponent(
-      "calculationMethodUpgrade",
-      this.state,
-      this.config,
-    ).enabled;
-  }
-
-  claimCalculationMethodUpgrade() {
-    if (!this.canClaimCalculationMethodUpgrade()) return false;
-
-    this.state.calculationMethods += 1;
-    this.resetAllStudies();
-    this.emitEvent("calculation-method-upgraded", {
-      count: this.state.calculationMethods,
-    });
-    this.recordHistory({
-      eventId: `milestone-cmu-${this.state.calculationMethods}`,
-      kind: "Milestones",
-      title: `Setup Improvement #${this.state.calculationMethods}`,
-      summary: `Processor bonus amplified by 1.2^${this.state.calculationMethods}. Studies reset.`,
-      body: `The facility's fundamental mathematical frameworks have been re-engineered. All Processors now achieve a 1.2^${this.state.calculationMethods} scaling multiplier across all calculation tasks.`,
-    });
-    this.addLog(
-      `Setup Improvement ${this.state.calculationMethods} completed. Improvement penalty scaling reduced.`,
-      "milestone",
-    );
-    this.notify();
-    return true;
-  }
-
-  openCalculationMethodUpgradeConfirmation() {
-    if (!this.canClaimCalculationMethodUpgrade()) return false;
-    this.state.ui.resetModal = "cmu";
-    this.notify();
-    return true;
-  }
-
-  confirmCalculationMethodUpgrade() {
-    if (this.state.ui.resetModal !== "cmu") return false;
-    this.state.ui.resetModal = null;
-    return this.claimCalculationMethodUpgrade();
-  }
-
-  canClaimSetupOptimization() {
-    return evaluateComponent("setupOptimization", this.state, this.config)
-      .enabled;
-  }
-
-  openSetupOptimizationConfirmation() {
-    if (!this.canClaimSetupOptimization()) return false;
-    this.state.ui.resetModal = "setup";
-    this.notify();
-    return true;
-  }
-
-  confirmSetupOptimization() {
-    if (this.state.ui.resetModal !== "setup") return false;
-    this.state.ui.resetModal = null;
-    return this.claimSetupOptimization();
-  }
-
-  checkParticleSynthesizerAwakening() {
-    if (this.state.particleSynthesizer?.awakened) return;
-    if ((this.state.science?.syntheses ?? 0) > 0) {
-      if (this.state.particleSynthesizer) {
-        this.state.particleSynthesizer.awakened = true;
+    if (target === "AUpg") {
+      if (this.state.algorithms.AImp.owned >= factor) {
+        this.state.algorithms.AImp.owned -= factor;
+        this.state.algorithms.AUpg.owned += 1;
+        this.state.algorithms.AUpg.produced += 1;
+        return true;
       }
-      return;
-    }
-    const req = this.config.particleLab.synthesizerEnergyRequired;
-    if (big(this.state.peakEnergy).gte(req) || big(this.state.energy).gte(req)) {
-      if (!this.state.particleSynthesizer) {
-        this.state.particleSynthesizer = { activated: false };
-      }
-      this.state.particleSynthesizer.awakened = true;
-      if (!this.state.ui) this.state.ui = {};
-      this.state.ui.synthesizerAwakenedModal = true;
-      this.recordHistory({
-        eventId: "narrative-synthesizer-awakening",
-        kind: "Narrative",
-        title: "Chamber Awakening // Particle Synthesizer",
-        summary: "The colossal Particle Synthesizer in the adjacent chamber has awakened.",
-        body: "A resonant shudder vibrates through the concrete foundation. In the adjoining chamber beyond the reinforced glass, massive high-voltage contactors slam closed in rapid succession.\n\nOverhead floodlights flicker to life, illuminating the monumental circular vacuum chamber of the Particle Synthesizer. Superconducting lines hiss with coolant as auxiliary power surges through the accelerator ring.\n\nThe particle synthesis console is now active in the Science Division. The facility has accumulated sufficient energy to breach the atomic barrier.",
-      });
-      this.addLog(
-        "The Particle Synthesizer in the adjacent chamber has awakened. Controls online in the Science Tab.",
-        "milestone",
-      );
-      this.emitEvent("particle-synthesizer-awakened", {
-        energy: this.state.energy,
-        peakEnergy: this.state.peakEnergy,
-      });
-      this.notify();
-    }
-  }
-
-  enterSynthesizerChamber() {
-    if (this.state.ui) {
-      this.state.ui.synthesizerAwakenedModal = false;
-      this.state.ui.activeTab = "science";
-      this.state.ui.activeScienceSubtab = "devices";
-    }
-    this.notify();
-    return true;
-  }
-
-  closeSynthesizerAwakenedModal() {
-    if (this.state.ui) {
-      this.state.ui.synthesizerAwakenedModal = false;
-    }
-    this.notify();
-    return true;
-  }
-
-  canActivateParticleSynthesizer() {
-    return evaluateComponent("particleSynthesizer", this.state, this.config)
-      .enabled;
-  }
-
-  openParticleSynthesisConfirmation() {
-    if (!this.canActivateParticleSynthesizer()) return false;
-    this.state.ui.particleSynthesisModal = "confirm";
-    this.state.ui.resetModal = "synthesis";
-    this.notify();
-    return true;
-  }
-
-  closeParticleSynthesisModal() {
-    this.state.ui.particleSynthesisModal = null;
-    this.state.ui.resetModal = null;
-    this.notify();
-    return true;
-  }
-
-  closeResetModal() {
-    return this.closeParticleSynthesisModal();
-  }
-
-  confirmParticleSynthesis() {
-    if (
-      this.state.ui.particleSynthesisModal !== "confirm" &&
-      this.state.ui.resetModal !== "synthesis"
-    ) {
       return false;
     }
-    this.state.ui.resetModal = null;
-    return this.activateParticleSynthesizer({ showNarrative: true });
-  }
 
-  getResetPreview(resetType) {
-    if (resetType === "cmu") {
-      const nextCMU = this.state.calculationMethods + 1;
-      const studyRunning = Boolean(
-        this.state.study?.active ||
-          this.state.algorithmUpgradeStudy?.active ||
-          this.state.blueprintStudy?.active ||
-          this.state.overclockerBlueprintStudy?.active,
-      );
-      return {
-        type: "cmu",
-        title: "Confirm Setup Improvement",
-        gain: `Setup Improvement ${this.state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
-        lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
-        preserved:
-          "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
-        warnings: studyRunning
-          ? "Warning: A research study or blueprint reconstruction is currently active and will be aborted!"
-          : null,
-        isEligible: this.canClaimCalculationMethodUpgrade(),
-      };
-    }
-
-    if (resetType === "setup") {
-      const nextSetup = this.state.setupOptimizations + 1;
-      const currentD = calculateSetupDevicePerformance(this.state.setupOptimizations, this.config);
-      const nextD = calculateSetupDevicePerformance(nextSetup, this.config);
-      return {
-        type: "setup",
-        title: "Confirm Setup Upgrade",
-        gain: `Setup Upgrade ${this.state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-        lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and Setup Improvements to 0.",
-        preserved:
-          "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
-        warnings:
-          "High-impact Hard Reset! Computational fleet and accumulated Stored Energy will be cleared.",
-        isEligible: this.canClaimSetupOptimization(),
-      };
-    }
-
-    if (resetType === "synthesis") {
-      const activationCost = calculateParticleSynthesizerCost(
-        this.state,
-        this.config,
-      );
-      const spReward = calculateSciencePointReward(
-        this.state.energy,
-        this.state.science?.totalScienceEarned ?? 0,
-        this.config,
-      );
-      const quarksReward = calculateQuarksGenerated(
-        this.state.energy,
-        this.config,
-      );
-      return {
-        type: "synthesis",
-        title: "Confirm Particle Synthesis",
-        gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
-        lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, Setup Improvements, and Setup Upgrades.",
-        preserved:
-          "Preserves Science Points, Quarks, Science Perks, and History.",
-        warnings:
-          "Complete reset of all physical devices, power cells, and stored energy.",
-        isEligible: this.canActivateParticleSynthesizer(),
-        activationCost,
-        spReward,
-        quarksReward,
-      };
-    }
-
-    return null;
-  }
-
-  activateParticleSynthesizer({ showNarrative = false } = {}) {
-    if (!this.canActivateParticleSynthesizer()) return false;
-    const firstSynthesis = this.state.science.syntheses === 0;
-    const activationCost = calculateParticleSynthesizerCost(
-      this.state,
-      this.config,
-    );
-    if (big(this.state.energy).lt(activationCost)) return false;
-    const energyAtSynthesis = big(this.state.energy);
-    const sciencePointsGained = calculateSciencePointReward(
-      energyAtSynthesis,
-      this.state.science.totalScienceEarned,
-      this.config,
-    );
-    const quarksGenerated = calculateQuarksGenerated(
-      energyAtSynthesis,
-      this.config,
-    );
-
-    this.state.energy = big(this.state.energy).sub(activationCost);
-    this.state.sciencePoints += sciencePointsGained;
-    this.state.science.syntheses += 1;
-    this.state.science.totalScienceEarned += sciencePointsGained;
-    this.state.quarks.available = big(this.state.quarks.available).add(
-      quarksGenerated,
-    );
-    this.state.quarks.totalEarned = big(this.state.quarks.totalEarned).add(
-      quarksGenerated,
-    );
-    this.state.quarks.lastSynthesis = quarksGenerated;
-    this.emitEvent("particle-synthesizer-activated", {
-      cost: activationCost,
-      energyAtSynthesis,
-      sciencePoints: sciencePointsGained,
-      quarksGenerated,
-    });
-    this.resetEnergyLayerForSynthesis();
-    this.recordHistory({
-      eventId: `milestone-synthesis-${this.state.science.syntheses}`,
-      kind: firstSynthesis ? "Narrative" : "Milestones",
-      title: firstSynthesis
-        ? "First Particle Synthesis"
-        : `Particle Synthesis #${this.state.science.syntheses}`,
-      summary: `Full Energy Layer reset yielding ${sciencePointsGained} SP and ${quarksGenerated} Quarks.`,
-      body: "The laboratory rings ignite in sequence. For a fraction of a second, the entire facility feeds one impossible concentration of energy into the central chamber.\n\nA new signature appears on the display. Then the Synthesizer overloads. Protection circuits sever every route at once, and the facility falls dark.\n\nWhen the first condenser returns, something survived the collapse: preserved scientific knowledge and the quarks formed during synthesis.",
-    });
-    this.state.ui.particleSynthesisModal =
-      showNarrative && firstSynthesis ? "narrative" : null;
-    this.state.ui.resetModal = null;
-    this.addLog(
-      `Particle Synthesizer activated. ${sciencePointsGained} Science Points and ${quarksGenerated} quarks preserved through a full Energy Layer reset.`,
-      "milestone",
-    );
-    this.notify();
-    return true;
-  }
-
-  canPurchaseQuarkCage() {
-    return evaluateComponent("quarkCage", this.state, this.config).enabled;
-  }
-
-  purchaseQuarkCage() {
-    if (!this.canPurchaseQuarkCage()) return false;
-    const cost = evaluateComponent("quarkCage", this.state, this.config).cost;
-
-    this.state.energy = big(this.state.energy).sub(cost);
-    this.state.scienceDevices.quarkCages += 1;
-    this.emitEvent("device-purchased", {
-      device: "quarkCage",
-      count: this.state.scienceDevices.quarkCages,
-      cost,
-    });
-    this.addLog(
-      `Quarks Cage ${this.state.scienceDevices.quarkCages} stabilized. Safe quark containment increased.`,
-      "device",
-    );
-    this.notify();
-    return true;
-  }
-
-  purchaseQuarkCages(amount = 1) {
-    const count = typeof amount === "number" ? amount : parseInt(amount, 10) || 1;
-    let purchased = 0;
-    const maxIterations = amount === "max" ? 1000 : count;
-    for (let i = 0; i < maxIterations; i++) {
-      if (!this.canPurchaseQuarkCage()) break;
-      const cost = evaluateComponent("quarkCage", this.state, this.config).cost;
-      if (big(this.state.energy).lt(cost)) break;
-      this.state.energy = big(this.state.energy).sub(cost);
-      this.state.scienceDevices.quarkCages += 1;
-      purchased++;
-    }
-    if (purchased > 0) {
-      this.emitEvent("device-purchased", {
-        device: "quarkCage",
-        count: this.state.scienceDevices.quarkCages,
-      });
-      this.addLog(`${purchased} Quarks Cage(s) stabilized.`, "device");
-      this.notify();
-    }
-    return purchased;
-  }
-
-  canPurchaseFiftyGCalculator() {
-    return evaluateSciencePerk("fiftyGCalculator", this.state, this.config)
-      .canPurchase;
-  }
-
-  purchaseFiftyGCalculator() {
-    if (!this.canPurchaseFiftyGCalculator()) return false;
-    const cost = evaluateComponent(
-      "fiftyGCalculator",
-      this.state,
-      this.config,
-    ).cost;
-
-    this.state.sciencePoints -= cost;
-    this.state.science.fiftyGCalculator = true;
-    unlockAutomation(this.state, "fiftyGCalculator");
-    this.emitEvent("science-upgrade-purchased", {
-      upgrade: "fiftyGCalculator",
-      cost,
-    });
-    this.addLog(
-      "50G Calculator acquired. Auto Calculators now run timed Algorithm Upgrade studies when their requirements are met.",
-      "milestone",
-    );
-    this.startNextAutomatedStudy();
-    this.notify();
-    return true;
-  }
-
-  canPurchaseSciencePerk(perkId) {
-    const perk = getSciencePerk(perkId);
-    if (!perk || perkId === "fiftyGCalculator") {
+    if (target === "ARec") {
+      if (this.state.algorithms.AUpg.owned >= factor) {
+        this.state.algorithms.AUpg.owned -= factor;
+        this.state.algorithms.ARec.owned += 1;
+        this.state.algorithms.ARec.produced += 1;
+        return true;
+      }
       return false;
     }
-    return evaluateSciencePerk(perkId, this.state, this.config).canPurchase;
+
+    return false;
   }
 
-  purchaseSciencePerk(perkId) {
-    if (perkId === "fiftyGCalculator") return this.purchaseFiftyGCalculator();
-    if (!this.canPurchaseSciencePerk(perkId)) return false;
+  _evaluateUnlocks() {
+    const a = this.state.algorithms;
+    const d = this.state.devices;
+    const u = this.state.unlocks;
 
-    const { cost, perk } = evaluateSciencePerk(perkId, this.state, this.config);
-    this.state.sciencePoints -= cost;
-    this.state.science.perks[perkId] = true;
-    if (perkId === "aiCalculationSupport") {
-      unlockAutomation(this.state, "aiCalculationSupport");
+    // AutoCalculator Chips reveal after first completed AUpg
+    if (!u.chips && ((a.AUpg?.produced ?? 0) > 0 || (a.AUpg?.owned ?? 0) > 0)) {
+      u.chips = true;
     }
-    if (perkId === "redundancyElimination") {
-      this.refreshAlgorithmImprovementDuration();
+
+    // Transistor Board reveals after first Chip
+    if (!u.transistorBoard && (d.chips?.owned ?? 0) > 0) {
+      u.transistorBoard = true;
     }
-    this.emitEvent("science-upgrade-purchased", { upgrade: perkId, cost });
-    this.addLog(`${perk.name} acquired.`, "milestone");
+
+    // Microprocessor reveals after Board + 4 Transistors
+    if (!u.microprocessor && d.transistorBoard?.owned && (d.transistorsPurchased ?? 0) >= 4) {
+      u.microprocessor = true;
+    }
+
+    // Overclocker reveals when Microprocessor exists + 2 Transistors allocated on target
+    const microTarget = d.microprocessor?.target ?? "AImp";
+    const tOnTarget = d.transistorAllocations?.[microTarget] ?? 0;
+    if (!u.overclocker && (d.microprocessor?.owned ?? 0) > 0 && tOnTarget >= 2) {
+      u.overclocker = true;
+    }
+
+    // Capacitor unlocks after 1st Machine Learning
+    if (!u.capacitor && (this.state.computerLevel ?? 1) >= 2) {
+      u.capacitor = true;
+    }
+
+    // Processor and Hard Disk unlock after 1st Facility Optimization
+    if (!u.processor && (this.state.facilityOptimizations ?? 0) >= 1) {
+      u.processor = true;
+    }
+    if (!u.hardDisk && (this.state.facilityOptimizations ?? 0) >= 1) {
+      u.hardDisk = true;
+    }
+    if (!u.ARec && (this.state.facilityOptimizations ?? 0) >= 1) {
+      u.ARec = true;
+    }
+  }
+
+  // ==========================================================================
+  // COMMANDS & USER ACTIONS
+  // ==========================================================================
+
+  startManualStudy(target, count = 1) {
+    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (target === "AUpg" && !this.state.unlocks.AUpg) return false;
+    if (target === "ARec" && !this.state.unlocks.ARec) return false;
+
+    const k = Math.max(1, Math.floor(count ?? 1));
+    this.state.studyQueues[target] = (this.state.studyQueues[target] ?? 0) + k;
+    this.state.manualStudy.target = target;
+    this.state.manualStudy.active = true;
     this.notify();
     return true;
   }
 
-  buySciencePerk(perkId) {
-    return this.purchaseSciencePerk(perkId);
+  pauseManualStudy() {
+    this.state.manualStudy.active = false;
+    this.notify();
   }
 
-  resetSciencePointAllocation() {
-    const totalScienceEarned = Math.max(
-      0,
-      this.state.science?.totalScienceEarned ?? 0,
-    );
-    const allocatedSciencePoints = Math.max(
-      0,
-      totalScienceEarned - (this.state.sciencePoints ?? 0),
-    );
-    if (allocatedSciencePoints <= 0) return false;
+  reassignChip(fromTarget, toTarget, count = 1) {
+    const allocations = this.state.devices?.chips?.allocations;
+    if (!allocations) return false;
+    if (!["AImp", "AUpg", "ARec"].includes(fromTarget)) return false;
+    if (!["AImp", "AUpg", "ARec"].includes(toTarget)) return false;
+    if (toTarget === "ARec" && !this.state.unlocks.ARec) return false;
 
-    this.state.sciencePoints = totalScienceEarned;
-    this.state.science.fiftyGCalculator = false;
-    this.state.science.perks = {};
+    const available = allocations[fromTarget] ?? 0;
+    const moveCount = Math.min(available, Math.max(1, Math.floor(count ?? 1)));
+    if (moveCount <= 0) return false;
 
-    if (this.state.algorithmUpgradeStudy.active) {
-      this.state.algorithmUpgradeStudy.active = false;
-      this.state.algorithmUpgradeStudy.elapsed = 0;
-      this.state.algorithmUpgradeStudy.duration = 0;
-      this.state.algorithmUpgradeStudy.automated = false;
-    }
-
-    this.refreshAlgorithmImprovementDuration();
-    if (
-      isAutoCalculatorAutomationActive(this.state) &&
-      !this.state.study.active
-    ) {
-      this.startNextAutomatedStudy();
-    }
-
-    this.emitEvent("science-points-reset", {
-      refunded: allocatedSciencePoints,
-    });
-    this.addLog(
-      `${allocatedSciencePoints} allocated Science Points returned for testing.`,
-      "milestone",
-    );
+    allocations[fromTarget] -= moveCount;
+    allocations[toTarget] = (allocations[toTarget] ?? 0) + moveCount;
     this.notify();
     return true;
   }
 
-  claimSetupOptimization() {
-    if (!this.canClaimSetupOptimization()) return false;
+  reassignTransistors(fromTarget, toTarget, count = 1) {
+    const allocations = this.state.devices?.transistorAllocations;
+    if (!allocations) return false;
+    if (!["AImp", "AUpg", "ARec"].includes(fromTarget)) return false;
+    if (!["AImp", "AUpg", "ARec"].includes(toTarget)) return false;
+    if (toTarget === "ARec" && !this.state.unlocks.ARec) return false;
 
-    this.state.setupOptimizations += 1;
-    this.resetHardwareForSetupOptimization();
-    const D_S = calculateSetupDevicePerformance(this.state.setupOptimizations, this.config);
-    this.emitEvent("setup-optimized", {
-      count: this.state.setupOptimizations,
-    });
-    this.recordHistory({
-      eventId: `milestone-setup-${this.state.setupOptimizations}`,
-      kind: "Milestones",
-      title: `Setup Upgrade #${this.state.setupOptimizations}`,
-      summary: `Lower energy layer reorganized. Device efficiency D(S) scaled to ${D_S.toFixed(2)}x.`,
-      body: `Lower energy layer physical infrastructure has been reorganized. Power Cells, Power Arrays, CRCs, and scientific progress are preserved while device performance scales to D(S) = ${D_S.toFixed(2)}x.`,
-    });
-    this.addLog(
-      `Setup Upgrade ${this.state.setupOptimizations} completed. Study time penalty scaling reduced.`,
-      "milestone",
-    );
+    const available = allocations[fromTarget] ?? 0;
+    const moveCount = Math.min(available, Math.max(1, Math.floor(count ?? 1)));
+    if (moveCount <= 0) return false;
+
+    allocations[fromTarget] -= moveCount;
+    allocations[toTarget] = (allocations[toTarget] ?? 0) + moveCount;
     this.notify();
     return true;
   }
 
-  resetAlgorithmImprovements() {
-    this.state.improvements = 0;
-    this.state.improvementMultiplier = big(1);
-    this.state.preservedImprovementLog = big(0);
-    this.state.study.active = false;
-    this.state.study.elapsed = 0;
-    this.state.study.duration = 0;
-    this.state.study.automated = false;
+  setMicroprocessorTarget(target) {
+    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (target === "ARec" && !this.state.unlocks.ARec) return false;
+    this.state.devices.microprocessor.target = target;
+    this.notify();
+    return true;
   }
 
-  resetAllStudies() {
-    this.resetAlgorithmImprovements();
-    this.state.upgrades = 0;
-    this.state.algorithmUpgradeStudy.active = false;
-    this.state.algorithmUpgradeStudy.elapsed = 0;
-    this.state.algorithmUpgradeStudy.duration = 0;
-    this.state.algorithmUpgradeStudy.automated = false;
-    this.state.blueprintStudy.active = false;
-    this.state.blueprintStudy.elapsed = 0;
-    this.state.blueprintStudy.duration = 0;
-    if (this.state.overclockerBlueprintStudy) {
-      this.state.overclockerBlueprintStudy.active = false;
-      this.state.overclockerBlueprintStudy.elapsed = 0;
-      this.state.overclockerBlueprintStudy.duration = 0;
+  activateOverclocker(target = null) {
+    const selectedTarget = target || this.state.devices?.microprocessor?.target || "AImp";
+    const microOwned = (this.state.devices?.microprocessor?.owned ?? 0) > 0;
+    const overclockerOwned = (this.state.devices?.overclocker?.owned ?? 0) > 0;
+    if (!microOwned || !overclockerOwned) return false;
+
+    const T = this.state.devices?.transistorAllocations?.[selectedTarget] ?? 0;
+    if (T < 2 && !this.state.devMode) return false;
+
+    const consumedT = Math.max(2, T);
+    // Atomically consume all T transistors allocated to selected study
+    this.state.devices.transistorAllocations[selectedTarget] = 0;
+    this.state.devices.transistorsPurchased = Math.max(0, (this.state.devices.transistorsPurchased ?? 0) - consumedT);
+
+    const duration = calculateOverclockDuration(consumedT, this.config);
+    this.state.devices.overclocker.active = true;
+    this.state.devices.overclocker.remainingDuration = duration;
+    this.state.devices.overclocker.activeSeconds = 0;
+    this.state.devices.overclocker.target = selectedTarget;
+    this.state.devices.overclocker.consumedTransistors = consumedT;
+
+    this.notify();
+    return true;
+  }
+
+  setHardDiskState(newState) {
+    if (!["active", "standby", "off"].includes(newState)) return false;
+    const hd = this.state.devices?.hardDisks;
+    if (!hd || hd.owned <= 0) return false;
+
+    if (newState === "off") {
+      hd.state = "off";
+      hd.buffer = 0; // Explicitly turning off loses accumulated buffer!
+      hd.activeSeconds = 0;
+    } else {
+      hd.state = newState;
     }
-    this.state.discoveries.crcBlueprint = false;
-    this.state.discoveries.overclockerBlueprint = false;
-    this.state.discoveries.blueprintSource = null;
+
+    this.notify();
+    return true;
   }
 
-  resetHardwareForSetupOptimization() {
-    this.state.energy = big(0);
-    this.state.peakEnergy = big(0);
-    const hadCrcBlueprint = Boolean(this.state.discoveries.crcBlueprint);
-    this.resetAllStudies();
-    if (hadCrcBlueprint || this.state.crcCount > 1) {
-      this.state.discoveries.crcBlueprint = true;
+  purchaseElement(elementId, count = 1, isForced = false) {
+    const element = getElement(elementId);
+    if (!element) {
+      console.warn(`Element '${elementId}' not found in registry.`);
+      return false;
     }
-    this.state.calculationMethods = 0;
-    this.state.devices.softDataDisplay = false;
-    this.state.devices.t2SoftDataDisplay = false;
-    this.state.devices.autoCalculators = 0;
-    this.state.devices.processors = 0;
-    this.state.devices.overclockers = 0;
-    // powerCells, powerModules and crcCount are intentionally preserved
-    this.state.overclocker.active = false;
-    this.state.overclocker.activeSeconds = 0;
-    this.state.construction.active = false;
-    this.state.construction.elapsed = 0;
-    this.state.construction.duration = 0;
-    this.state.prototypeComplete = false;
-  }
 
-  resetEnergyLayerForSynthesis() {
-    this.state.energy = big(0);
-    this.state.peakEnergy = big(0);
-    this.state.powerCells = this.config.energy.initialPowerCells;
-    this.state.powerModules = 0;
-    this.resetAllStudies();
-    this.state.calculationMethods = 0;
-    this.state.setupOptimizations = 0;
-    this.state.crcCount = this.config.energy.initialCrcCount;
-    this.state.devices.softDataDisplay = false;
-    this.state.devices.t2SoftDataDisplay = false;
-    this.state.devices.autoCalculators = 0;
-    this.state.devices.processors = 0;
-    this.state.devices.overclockers = 0;
-    this.state.overclocker.active = false;
-    this.state.overclocker.activeSeconds = 0;
-    this.state.construction.active = false;
-    this.state.construction.elapsed = 0;
-    this.state.construction.duration = 0;
-    this.state.particleSynthesizer.activated = false;
-    this.state.scienceDevices.quarkCages =
-      this.config.science.quarkCage.startingCagesAfterSynthesis ?? 1;
-    this.state.prototypeComplete = false;
-    this.state.stats.runPlayTime = 0;
-    this.state.ui.activeTab = "science";
-    this.state.ui.activeScienceSubtab = "devices";
-  }
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const evalResult = evaluateElement(element, this.state, this.config, k);
 
-  resetStudyProgression() {
-    this.resetAllStudies();
-    this.state.study.active = false;
-    this.state.study.elapsed = 0;
-    this.state.study.duration = 0;
-    this.state.study.automated = false;
-  }
-
-  developmentAddEnergy() {
-    if (!this.developmentMode) return;
-    this.addEnergy(this.config.energy.powerCellCapacity * 0.25);
-  }
-
-  developmentAddLargeEnergy() {
-    if (!this.developmentMode) return;
-    this.addEnergy(bigMax(1, this.state.energy));
-  }
-
-  developmentCompleteStudy() {
-    if (!this.developmentMode) return;
-    if (!this.state.study.active) this.startStudy(false);
-    this.completeStudy();
-  }
-
-  developmentCompleteAlgorithmUpgrade() {
-    if (!this.developmentMode) return;
-    if (!this.canStartAlgorithmUpgradeStudy()) {
-      this.state.improvements = calculateAlgorithmUpgradeRequirement(
-        this.state,
-        this.config,
-      );
+    if (!evalResult.canClick && !isForced && !this.state.devMode) {
+      console.warn(`Purchase blocked for '${elementId}'.`);
+      return false;
     }
-    this.completeAlgorithmUpgrade();
+
+    const energyBefore = big(this.state.energy);
+    const nominalCost = evalResult.cost;
+    const canAfford = evalResult.canAfford;
+
+    const forceApply = isForced || (this.state.devMode && !evalResult.naturallyEligible);
+    const { newCount, cost } = element.applyPurchase(this.state, this.config, {
+      count: k,
+      isForced: forceApply,
+    });
+    const energyAfter = big(this.state.energy);
+
+    const debited = energyBefore.sub(energyAfter);
+    this.state.stats.totalPurchases = (this.state.stats.totalPurchases ?? 0) + k;
+
+    // Log the transaction
+    recordPurchaseAudit(this.state, this.config, {
+      actionType: "PURCHASE",
+      itemKey: element.id,
+      itemName: element.name,
+      requestedQuantity: k,
+      purchasedQuantity: k,
+      nominalCost,
+      currencyDebited: debited,
+      isForced: forceApply,
+      isBypassed: forceApply,
+      energyBefore,
+      energyAfter,
+      metadata: evalResult.meta ?? {},
+    });
+
+    this.save();
+    this.notify();
+    return true;
   }
 
-  developmentForceBlueprint() {
-    if (!this.developmentMode) return;
-    this.completeBlueprintResearch("development");
+  runMachineLearning() {
+    const element = getElement("machineLearning");
+    return this.purchaseElement("machineLearning", 1);
   }
 
-  developmentCycleProductionMultiplier() {
-    if (!this.developmentMode) return;
-    const options = [1, 1000, 1_000_000, 1_000_000_000];
-    const current = this.state.devSettings.productionMultiplier;
-    const index = options.indexOf(current);
-    this.state.devSettings.productionMultiplier =
-      options[(index + 1) % options.length];
+  performFacilityOptimization() {
+    const element = getElement("facilityOptimization");
+    return this.purchaseElement("facilityOptimization", 1);
+  }
+
+  // ==========================================================================
+  // DEVELOPER CONTROLS & UTILITIES
+  // ==========================================================================
+
+  toggleDevMode() {
+    this.state.devMode = !this.state.devMode;
     this.notify();
   }
 
-  developmentCycleDurationMultiplier() {
-    if (!this.developmentMode) return;
-    const options = [1, 0.05, 0.005, 0.0005];
-    const current = this.state.devSettings.durationMultiplier;
-    const index = options.indexOf(current);
-    this.state.devSettings.durationMultiplier =
-      options[(index + 1) % options.length];
-    this.refreshAllActiveDurations();
+  setGameSpeed(speed = 1.0) {
+    this.state.gameSpeed = Math.max(0.1, Math.min(100.0, speed));
     this.notify();
   }
 
-  startAlgorithmUpgrade(options = {}) {
-    return this.startAlgorithmUpgradeStudy(options);
-  }
-
-  selectSciencePerk(perkId) {
-    if (!this.state.ui) this.state.ui = {};
-    this.state.ui.selectedSciencePerkId = perkId;
+  addEnergy(amount) {
+    const val = big(amount);
+    this.state.energy = big(this.state.energy).add(val);
+    if (this.state.energy.gt(this.state.peakEnergy)) {
+      this.state.peakEnergy = this.state.energy;
+    }
     this.notify();
   }
 
-  setTreeZoom(zoom) {
-    if (!this.state.ui) this.state.ui = {};
-    this.state.ui.treeZoom = Math.min(2.0, Math.max(0.5, Number(zoom) || 1.0));
+  setEnergy(amount) {
+    this.state.energy = big(amount);
+    if (this.state.energy.gt(this.state.peakEnergy)) {
+      this.state.peakEnergy = this.state.energy;
+    }
     this.notify();
   }
 
-  setBuyMode(mode) {
-    if (!this.state.ui) this.state.ui = {};
-    this.state.ui.buyMode = String(mode);
+  addAFeature(featureId, count = 1) {
+    if (!["AImp", "AUpg", "ARec"].includes(featureId)) return;
+    const k = Math.max(1, Math.floor(count ?? 1));
+    this.state.algorithms[featureId].owned += k;
+    this.state.algorithms[featureId].produced += k;
     this.notify();
   }
 
-  setHistoryFilter(filter) {
-    if (!this.state.ui) this.state.ui = {};
-    this.state.ui.historyFilter = String(filter);
+  addComputerLevel(count = 1) {
+    this.state.computerLevel = Math.max(1, (this.state.computerLevel ?? 1) + count);
     this.notify();
+  }
+
+  quicksave() {
+    return quicksaveState(this.state);
+  }
+
+  restoreQuicksave() {
+    const restored = loadQuicksaveState(this.config);
+    if (!restored) return false;
+    this.state = restored;
+    this.save();
+    this.notify();
+    return true;
+  }
+
+  hasQuicksave() {
+    return hasQuicksaveState();
+  }
+
+  resetCurrentRun() {
+    const initial = createInitialState(this.config);
+    // Preserves completed Facility Optimizations and Tech Unlocks
+    initial.facilityOptimizations = this.state.facilityOptimizations;
+    initial.computerLevel = this.state.computerLevel;
+    initial.powerCells = this.state.powerCells;
+    initial.unlocks = { ...this.state.unlocks };
+    this.state = initial;
+    this.save();
+    this.notify();
+  }
+
+  resetAllProgress() {
+    this.state = createInitialState(this.config);
+    this.save();
+    this.notify();
+  }
+
+  save() {
+    saveState(this.state, this.developmentMode);
+  }
+
+  exportAuditLogsJSON() {
+    return exportAuditLogsAsJSON(this.state);
+  }
+
+  exportAuditLogsCSV() {
+    return exportAuditLogsAsCSV(this.state);
   }
 }
 
@@ -12172,118 +9901,6 @@ class GameEngine {
 const DEFAULT_MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 const DEFAULT_STEP_SECONDS = 0.25;
 const DEFAULT_MAX_STEPS = 120000;
-
-function createSummary(offlineSeconds, simulatedSeconds, capped) {
-  return {
-    offlineSeconds,
-    simulatedSeconds,
-    capped,
-    energyProduced: big(0),
-    energyDecayed: big(0),
-    overclockerEnergySpent: big(0),
-    quarksDecayed: big(0),
-    netEnergy: big(0),
-    algorithmImprovementsCompleted: 0,
-    algorithmUpgradesCompleted: 0,
-    blueprintResearchCompleted: 0,
-    constructionsCompleted: 0,
-    purchases: {},
-    events: 0
-  };
-}
-
-function collectEvents(summary, events) {
-  summary.events += events.length;
-
-  for (const event of events) {
-    if (event.type === "energy-collected") {
-      summary.energyProduced = summary.energyProduced.add(event.amount);
-    }
-
-    if (event.type === "energy-decayed") {
-      summary.energyDecayed = summary.energyDecayed.add(event.amount);
-    }
-
-    if (event.type === "overclocker-drained") {
-      summary.overclockerEnergySpent = summary.overclockerEnergySpent.add(
-        event.amount,
-      );
-    }
-
-    if (event.type === "quarks-decayed") {
-      summary.quarksDecayed = summary.quarksDecayed.add(event.amount);
-    }
-
-    if (event.type === "algorithm-improvement-completed") {
-      summary.algorithmImprovementsCompleted += event.batchSize ?? 1;
-    }
-
-    if (event.type === "algorithm-upgrade-completed") {
-      summary.algorithmUpgradesCompleted += 1;
-    }
-
-    if (event.type === "blueprint-research-completed") {
-      summary.blueprintResearchCompleted += 1;
-    }
-
-    if (event.type === "construction-completed") {
-      summary.constructionsCompleted += 1;
-    }
-
-    if (event.type === "particle-synthesizer-activated") {
-      summary.particleSynthesizerActivated = true;
-    }
-
-    if (event.type === "device-purchased") {
-      summary.purchases[event.device] =
-        (summary.purchases[event.device] ?? 0) + 1;
-    }
-  }
-}
-
-function applyCurrentOfflineAutomation(engine) {
-  // Keep the same task selection policy online and offline, including Science
-  // perks that extend the Calculator to additional study types.
-  engine.startNextAutomatedStudy();
-}
-
-function writeOfflineLog(state, summary) {
-  if (summary.simulatedSeconds < 1 || summary.events <= 0) return;
-
-  const parts = [
-    `${formatDuration(summary.simulatedSeconds)} recovered`,
-    `+${formatEnergy(summary.netEnergy)} net`
-  ];
-
-  if (summary.algorithmImprovementsCompleted > 0) {
-    parts.push(`${summary.algorithmImprovementsCompleted} Improvements`);
-  }
-
-  if (summary.algorithmUpgradesCompleted > 0) {
-    parts.push(`${summary.algorithmUpgradesCompleted} Algorithm Upgrades`);
-  }
-
-  if (summary.blueprintResearchCompleted > 0) {
-    parts.push("Blueprint reconstructed");
-  }
-
-  if (summary.quarksDecayed.gt(0)) {
-    parts.push(`${formatEnergy(summary.quarksDecayed).replace(" J", "")} quarks decayed`);
-  }
-
-  if (summary.constructionsCompleted > 0) {
-    parts.push(`${summary.constructionsCompleted} CRCs completed`);
-  }
-
-  const message = `Offline recovery: ${parts.join(", ")}.`;
-  state.log.unshift({
-    id: `${Date.now()}-offline`,
-    message,
-    tone: "discovery",
-    at: state.stats.runPlayTime
-  });
-  state.log = state.log.slice(0, 60);
-}
 
 function simulateOfflineProgress(
   state,
@@ -12296,4612 +9913,1157 @@ function simulateOfflineProgress(
     : 0;
 
   const settings = config.offlineProgress ?? {};
-  const maxOfflineSeconds =
-    settings.maxOfflineSeconds ?? DEFAULT_MAX_OFFLINE_SECONDS;
+  const maxOfflineSeconds = settings.maxOfflineSeconds ?? DEFAULT_MAX_OFFLINE_SECONDS;
   const stepSeconds = settings.stepSeconds ?? DEFAULT_STEP_SECONDS;
   const maxSteps = settings.maxSteps ?? DEFAULT_MAX_STEPS;
   const simulatedSeconds = Math.min(offlineSeconds, maxOfflineSeconds);
   const capped = offlineSeconds > simulatedSeconds;
-  const startEnergy = state.energy;
-  const summary = createSummary(offlineSeconds, simulatedSeconds, capped);
+  const startEnergy = big(state.energy ?? 0);
 
-  if (
-    simulatedSeconds < 1 ||
-    state.introState !== "active" ||
-    stepSeconds <= 0 ||
-    maxSteps <= 0
-  ) {
+  if (simulatedSeconds < 1 || stepSeconds <= 0 || maxSteps <= 0) {
     state.lastSavedAt = now;
-    return summary;
+    return {
+      offlineSeconds,
+      simulatedSeconds: 0,
+      capped,
+      netEnergy: big(0),
+    };
   }
 
   const engine = new GameEngine({
     state,
     config,
     developmentMode,
-    collectEvents: true,
-    suppressLogs: true
   });
 
   let remaining = simulatedSeconds;
   let steps = 0;
 
   while (remaining > 0 && steps < maxSteps) {
-    applyCurrentOfflineAutomation(engine);
     const delta = Math.min(stepSeconds, remaining);
     engine.tick(delta);
-    collectEvents(summary, engine.consumeEvents());
     remaining -= delta;
     steps += 1;
   }
 
-  summary.simulatedSeconds -= remaining;
-  summary.netEnergy = big(state.energy).sub(startEnergy);
+  const actualSimulated = simulatedSeconds - remaining;
+  const netEnergy = big(state.energy ?? 0).sub(startEnergy);
   state.lastSavedAt = now;
-  writeOfflineLog(state, summary);
 
-  return summary;
+  if (actualSimulated >= 1 && Array.isArray(state.log)) {
+    state.log.unshift({
+      id: `${Date.now()}-offline`,
+      message: `Offline recovery: ${formatDuration(actualSimulated)} recovered, +${formatEnergy(netEnergy)} net.`,
+      tone: "discovery",
+      at: state.stats?.runPlayTime ?? 0,
+    });
+    state.log = state.log.slice(0, 60);
+  }
+
+  return {
+    offlineSeconds,
+    simulatedSeconds: actualSimulated,
+    capped,
+    netEnergy,
+  };
 }
 
 
 // ---- js/ui.js ----
+/**
+ * ui.js
+ * Clean, modern two-tab UI for The Eternal Simulation (Rebuild specification).
+ * Renders Energy and Efficiency & Automation tabs, sticky status bar, and Dev Sandbox controls.
+ */
 
-function button(label, action, options = {}) {
-  const {
-    disabled = false,
-    variant = "primary",
-    detail = "",
-    className = "",
-  } = options;
 
-  return `
-    <button
-      class="button button--${variant} ${className}"
-      data-action="${action}"
-      ${disabled ? "disabled" : ""}
-    >
-      <span>${label}</span>
-      ${detail ? `<small>${detail}</small>` : ""}
-    </button>
-  `;
-}
+function createRenderer(container, engine) {
+  let isMounted = false;
 
-function progressBar(value, label, tone = "energy", key = "") {
-  const percentage = clamp(value, 0, 1) * 100;
-  return `
-    <div class="progress" ${key ? `data-progress="${key}"` : ""} role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percentage.toFixed(1)}">
-      <div class="progress__fill progress__fill--${tone}" style="width:${percentage}%"></div>
-    </div>
-  `;
-}
-
-function helpNote(text) {
-  return `
-    <div class="help-note" tabindex="0" aria-label="${text}">
-      <span>?</span>
-      <p role="tooltip">${text}</p>
-    </div>
-  `;
-}
-
-function headingAction(label, action, options = {}) {
-  const {
-    cost = null,
-    costLabel = cost !== null ? formatEnergy(cost) : "",
-    count = null,
-    disabled = false,
-    variant = "primary",
-  } = options;
-  const countLabel = count === null ? "" : ` (${count})`;
-
-  return `
-    <div class="panel__action">
-      ${cost !== null ? `<small>${costLabel}</small>` : ""}
-      ${button(`${label}${countLabel}`, action, {
-        disabled,
-        variant,
-        className: "button--compact",
-      })}
-    </div>
-  `;
-}
-
-function statusPill(text, tone = "") {
-  return `<span class="status ${tone ? `status--${tone}` : ""}">${text}</span>`;
-}
-
-function renderCardTags(type, extra = null) {
-  const typeLabel = type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
-  const extraClass = extra ? extra.toLowerCase().replace(/\s+/g, "-") : "";
-  return `
-    <div class="card-tags">
-      <span class="card-tag card-tag--${(type || "device").toLowerCase()}">${typeLabel}</span>
-      ${extra ? `<span class="card-tag card-tag--${extraClass}">${extra}</span>` : ""}
-    </div>
-  `;
-}
-
-function getEffectiveBuyMode(state) {
-  const mode = state.ui?.buyMode ?? "1";
-  if (mode === "max") {
-    return state.devices.t2SoftDataDisplay ? "max" : "1";
-  }
-  if (mode === "10") {
-    return state.devices.softDataDisplay ? "10" : "1";
-  }
-  return "1";
-}
-
-function renderBuyModeSelector(state) {
-  const buyMode = state.ui?.buyMode ?? "1";
-  const hasSoft = Boolean(state.devices.softDataDisplay);
-  const hasT2 = Boolean(state.devices.t2SoftDataDisplay);
-  if (!hasSoft && !hasT2) return "";
-  return `
-    <div class="buy-mode-selector" role="group" aria-label="Purchase quantity">
-      <button class="buy-mode-btn ${buyMode === "1" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="1" type="button">Buy 1</button>
-      ${hasSoft ? `<button class="buy-mode-btn ${buyMode === "10" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="10" type="button">Buy 10</button>` : ""}
-      ${hasT2 ? `<button class="buy-mode-btn ${buyMode === "max" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="max" type="button">Buy Max</button>` : ""}
-    </div>
-  `;
-}
-
-const TAB_DEFINITIONS = [
-  { id: "energy", label: "Energy Production" },
-  { id: "automation", label: "Automation and Efficiency" },
-  {
-    id: "science",
-    label: "Science",
-    visible: (state, config) =>
-      canAccessParticleLab(state, config) ||
-      state.sciencePoints > 0 ||
-      (state.science?.syntheses ?? 0) > 0,
-  },
-  { id: "history", label: "History" },
-];
-
-function isTabVisible(tab, state, config) {
-  return tab.visible ? tab.visible(state, config) : true;
-}
-
-function getActiveTab(state, config) {
-  let requested = state.ui?.activeTab ?? "energy";
-  if (requested === "devices" || requested === "studies") requested = "energy";
-  if (
-    requested === "automations" ||
-    requested === "measure" ||
-    requested === "statistics" ||
-    requested === "save"
-  ) {
-    requested = "automation";
-  }
-  return TAB_DEFINITIONS.some(
-    (tab) => tab.id === requested && isTabVisible(tab, state, config),
-  )
-    ? requested
-    : "energy";
-}
-
-function getComponentsForTab(tabId) {
-  return Object.values(COMPONENT_REGISTRY).filter((spec) => {
-    if (tabId === "energy") {
-      return (
-        spec.functionalTab === "energy" ||
-        spec.tab === "energy" ||
-        spec.tab === "devices" ||
-        spec.tab === "studies"
-      );
+  function render() {
+    if (!isMounted) {
+      mountStructure();
     }
-    if (tabId === "automation") {
-      return (
-        spec.functionalTab === "automation" ||
-        spec.tab === "automation" ||
-        spec.tab === "automations" ||
-        spec.tab === "measure"
-      );
-    }
-    if (tabId === "science") {
-      return spec.functionalTab === "science" || spec.tab === "science";
-    }
-    return spec.functionalTab === tabId || spec.tab === tabId;
-  });
-}
-
-function getVisibleComponentIdsForTab(tabId, state, config) {
-  return getComponentsForTab(tabId)
-    .filter((spec) => evaluateComponent(spec.id, state, config).visible)
-    .map((spec) => spec.id);
-}
-
-function markTabComponentsSeen(state, config, tabId = null) {
-  const activeTab = tabId ?? getActiveTab(state, config);
-  if (!state.ui) return;
-
-  const seen = { ...state.ui.seenComponents };
-  for (const componentId of getVisibleComponentIdsForTab(
-    activeTab,
-    state,
-    config,
-  )) {
-    seen[componentId] = true;
-  }
-  state.ui.seenComponents = seen;
-}
-
-function getTabIndicators(tabId, state, config) {
-  const seen = state.ui?.seenComponents ?? {};
-  const availability = getComponentsForTab(tabId).map((spec) =>
-    evaluateComponent(spec.id, state, config),
-  );
-
-  return {
-    ready: availability.filter(
-      (item) => item.visible && item.enabled && !item.completed,
-    ).length,
-    newlyVisible: availability.filter((item) => item.visible && !seen[item.id])
-      .length,
-  };
-}
-
-function renderTabBarContent(state, config) {
-  const activeTab = getActiveTab(state, config);
-
-  return TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
-    .map((tab) => {
-      const indicators = getTabIndicators(tab.id, state, config);
-      return `
-        <button
-          class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
-          data-action="set-tab"
-          data-tab="${tab.id}"
-          type="button"
-        >
-          <span>${tab.label}</span>
-          ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
-          ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
-        </button>
-      `;
-    })
-    .join("");
-}
-
-function renderTabBar(state, config) {
-  return `
-    <nav class="tabbar" data-region="tabbar" aria-label="Facility sections">
-      ${renderTabBarContent(state, config)}
-    </nav>
-  `;
-}
-
-function renderTabTools(state) {
-  const hidden = Boolean(state.ui?.hideCompletedPurchases);
-
-  return `
-    <div class="tab-tools">
-      <button
-        class="toggle-control ${hidden ? "toggle-control--on" : ""}"
-        data-action="toggle-hide-completed"
-        type="button"
-        role="switch"
-        aria-checked="${hidden}"
-      >
-        <span aria-hidden="true"></span>
-        <strong>${hidden ? "Show completed" : "Hide completed"}</strong>
-      </button>
-    </div>
-  `;
-}
-
-function shouldHideCompletedComponent(componentId, state, config) {
-  if (!state.ui?.hideCompletedPurchases) return false;
-  const availability = evaluateComponent(componentId, state, config);
-  return availability.completed;
-}
-
-function renderComponent(componentId, state, config, render) {
-  return shouldHideCompletedComponent(componentId, state, config)
-    ? ""
-    : render();
-}
-
-function renderTelemetry(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const netProduction = calculateEffectiveProduction(
-    state,
-    config,
-    developmentMode,
-  );
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const overflowDecay = calculateEnergyOverflowDecay(state, config);
-  const remainingCapacity = bigMax(0, capacity.sub(state.energy));
-  const fillTime =
-    production.gt(0) && remainingCapacity.gt(0)
-      ? formatDuration(remainingCapacity.div(production))
-      : big(state.energy).gt(capacity)
-        ? "EQUILIBRATING"
-        : "FULL";
-
-  if (!state.devices.softDataDisplay) return "";
-
-  return `
-    <div class="telemetry-grid">
-      <div>
-        <span>Raw production</span>
-        <strong data-field="energy-rate">${formatRate(production)}</strong>
-      </div>
-      <div>
-        <span>Net flow</span>
-        <strong data-field="retained-rate">${formatRate(netProduction)}</strong>
-      </div>
-      <div>
-        <span>Stable fill estimate</span>
-        <strong data-field="fill-time">${fillTime}</strong>
-      </div>
-      <div>
-        <span>Overflow decay</span>
-        <strong data-field="energy-retention">${formatRate(overflowDecay)}</strong>
-      </div>
-      <div>
-        <span>Total condensed</span>
-        <strong data-field="total-energy">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
-      </div>
-    </div>
-  `;
-}
-
-function calculateNextMilestone(state, config) {
-  if (
-    state.crcCount === 1 &&
-    !state.discoveries.crcBlueprint &&
-    !state.blueprintStudy.active
-  ) {
-    const cost = config.blueprint?.revealAtPeakEnergy ?? 10;
-    return {
-      title: "CRC Blueprint Research",
-      requirement: `Reach ${formatEnergy(cost)} peak energy to reveal blueprint`,
-      progress: clamp(state.peakEnergy / cost, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
+    updateDynamicValues(engine.state);
   }
 
-  if (state.blueprintStudy?.active) {
-    const elapsed = state.blueprintStudy.elapsed;
-    const dur = state.blueprintStudy.duration;
-    return {
-      title: "Blueprint Reconstruction",
-      requirement: `Active research in progress (${formatDuration(Math.max(0, dur - elapsed))})`,
-      progress: dur > 0 ? clamp(elapsed / dur, 0, 1) : 0,
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.discoveries.crcBlueprint && state.crcCount === 1) {
-    const cost = calculateCrcCost(state.crcCount, config);
-    return {
-      title: "Fabricate 2nd CRC",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (!state.devices.softDataDisplay) {
-    const cost = config.softDataDisplay.cost;
-    return {
-      title: "Restore Soft Display",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (state.devices.autoCalculators === 0) {
-    const cost = config.autoCalculator.baseCost;
-    return {
-      title: "Activate Auto Calculator",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
-  if (state.upgrades === 0 && state.improvements < reqUpgrade) {
-    return {
-      title: "Algorithm Upgrade 1",
-      requirement: `${state.improvements} / ${reqUpgrade} Improvements completed`,
-      progress: clamp(state.improvements / reqUpgrade, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.devices.processors === 0) {
-    const cost = config.processor.baseCost;
-    return {
-      title: "Install Processor",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  const reqCMU = calculateCalculationMethodRequirement(state, config);
-  if (state.calculationMethods === 0 && state.upgrades < reqCMU) {
-    return {
-      title: "Setup Improvement 1",
-      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
-      progress: clamp(state.upgrades / reqCMU, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.calculationMethods < 2) {
-    return {
-      title: "Setup Improvement 2",
-      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
-      progress: clamp(state.upgrades / reqCMU, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (!state.devices.t2SoftDataDisplay) {
-    const cost = config.t2SoftDataDisplay.cost;
-    return {
-      title: "Restore T2 Soft Display",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (
-    !state.discoveries.overclockerBlueprint &&
-    !state.overclockerBlueprintStudy?.active &&
-    state.devices.processors >= 3
-  ) {
-    return {
-      title: "Overclocker Blueprint",
-      requirement: "Transistor overclocking blueprint ready for research",
-      progress: 1,
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (state.overclockerBlueprintStudy?.active) {
-    const elapsed = state.overclockerBlueprintStudy.elapsed;
-    const dur = state.overclockerBlueprintStudy.duration;
-    return {
-      title: "Overclocker Blueprint Research",
-      requirement: `Active research (${formatDuration(Math.max(0, dur - elapsed))})`,
-      progress: dur > 0 ? clamp(elapsed / dur, 0, 1) : 0,
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (
-    state.discoveries.overclockerBlueprint &&
-    state.devices.overclockers === 0
-  ) {
-    const cost = config.overclocker.baseCost;
-    return {
-      title: "Install Overclocker",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  const reqSetup = calculateSetupOptimizationRequirement(state, config);
-  if (
-    state.setupOptimizations === 0 &&
-    state.calculationMethods >= 1 &&
-    state.calculationMethods < reqSetup
-  ) {
-    return {
-      title: "Setup Upgrade 1",
-      requirement: `${state.calculationMethods} / ${reqSetup} Setup Improvements`,
-      progress: clamp(state.calculationMethods / reqSetup, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (!canAccessParticleLab(state, config)) {
-    const doorReq = config.particleLab.doorEnergyRequired;
-    return {
-      title: "Particle Laboratory Access",
-      requirement: `Charge to ${formatEnergy(doorReq)} Stored Energy`,
-      progress: calculateDoorProgress(state, config),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if ((state.science?.syntheses ?? 0) === 0) {
-    const synthCost = calculateParticleSynthesizerCost(state, config);
-    return {
-      title: "First Particle Synthesis",
-      requirement: `Synthesizer needs ${formatEnergy(synthCost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(synthCost).toNumber(), 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  // Science Era
-  const spCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  return {
-    title: "Next Science Point Threshold",
-    requirement: `Threshold: ${formatEnergy(spCost)} Stored Energy`,
-    progress: clamp(big(state.energy).div(spCost).toNumber(), 0, 1),
-    tab: "science",
-    tabLabel: "Science",
-  };
-}
-
-function getLastDiscovery(state) {
-  if (state.history?.length) {
-    const last = state.history.find(
-      (h) => h.kind === "Discoveries" || h.kind === "Milestones",
-    );
-    if (last) return last.title;
-  }
-  if (state.discoveries?.crcBlueprint) return "CRC Blueprint";
-  if (state.devices?.softDataDisplay) return "Soft Data Display";
-  return "Cosmic Radiation Condenser";
-}
-
-function getResetPreviewData(state, config, resetType) {
-  if (resetType === "cmu") {
-    const nextCMU = state.calculationMethods + 1;
-    const studyRunning = Boolean(
-      state.study?.active ||
-        state.algorithmUpgradeStudy?.active ||
-        state.blueprintStudy?.active ||
-        state.overclockerBlueprintStudy?.active,
-    );
-    const eligible = evaluateComponent(
-      "calculationMethodUpgrade",
-      state,
-      config,
-    ).enabled;
-    return {
-      type: "cmu",
-      title: "Confirm Setup Improvement",
-      gain: `Setup Improvement ${state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
-      lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
-      preserved:
-        "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
-      warnings: studyRunning
-        ? "Warning: A research study or blueprint reconstruction is currently active and will be aborted!"
-        : null,
-      isEligible: eligible,
-    };
-  }
-
-  if (resetType === "setup") {
-    const nextSetup = state.setupOptimizations + 1;
-    const currentD = calculateSetupDevicePerformance(state.setupOptimizations, config);
-    const nextD = calculateSetupDevicePerformance(nextSetup, config);
-    const eligible = evaluateComponent(
-      "setupOptimization",
-      state,
-      config,
-    ).enabled;
-    return {
-      type: "setup",
-      title: "Confirm Setup Upgrade",
-      gain: `Setup Upgrade ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-      lost: "HARD RESET: Stored Energy resets to 0. Resets Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and Setup Improvements to 0.",
-      preserved:
-        "Preserves Power Cells, Power Arrays, CRCs, Science Points, Quarks, Science Perks, and History.",
-      warnings:
-        "High-impact Hard Reset! Computational fleet and accumulated Stored Energy will be cleared.",
-      isEligible: eligible,
-    };
-  }
-
-  if (resetType === "synthesis") {
-    const activationCost = calculateParticleSynthesizerCost(state, config);
-    const spReward = calculateSciencePointReward(
-      state.energy,
-      state.science?.totalScienceEarned ?? 0,
-      config,
-    );
-    const quarksReward = calculateQuarksGenerated(state.energy, config);
-    const eligible = evaluateComponent(
-      "particleSynthesizer",
-      state,
-      config,
-    ).enabled;
-    return {
-      type: "synthesis",
-      title: "Confirm Particle Synthesis",
-      gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
-      lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, Setup Improvements, and Setup Upgrades.",
-      preserved:
-        "Preserves Science Points, Quarks, Science Perks, and History.",
-      warnings:
-        "Complete reset of all physical devices, power cells, and stored energy.",
-      isEligible: eligible,
-      activationCost,
-      spReward,
-      quarksReward,
-    };
-  }
-
-  return null;
-}
-
-function renderIntro() {
-  return `
-    <section class="screen intro-screen">
-      <div class="intro-atmosphere" aria-hidden="true"></div>
-      <div class="intro-copy panel panel--narrative">
-        <p class="eyebrow">${TEXT.intro.eyebrow}</p>
-        <h1>${TEXT.intro.title}</h1>
-        ${TEXT.intro.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("")}
-        <div class="button-row button-row--intro">
-          ${button(TEXT.intro.press, "press-button", { variant: "glow" })}
-          ${button(TEXT.intro.leave, "leave-room", { variant: "ghost" })}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function renderEnding() {
-  return `
-    <section class="screen screen--centered">
-      <div class="panel panel--narrative ending-card">
-        <p class="eyebrow eyebrow--warning">${TEXT.ending.eyebrow}</p>
-        <h1>${TEXT.ending.title}</h1>
-        <p>${TEXT.ending.body}</p>
-        ${button(TEXT.ending.restart, "return-to-room", { variant: "ghost" })}
-      </div>
-    </section>
-  `;
-}
-
-function renderCrcBriefing() {
-  return `
-    <section class="screen screen--centered">
-      <div class="panel panel--narrative system-briefing">
-        <p class="eyebrow">${TEXT.crcBriefing.eyebrow}</p>
-        <h1>${TEXT.crcBriefing.title}</h1>
-        ${TEXT.crcBriefing.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("")}
-        <div class="briefing-note">
-          <span>CRC</span>
-          <p>A condenser is passive infrastructure: once online, it gathers energy continuously.</p>
-        </div>
-        <div class="button-row button-row--intro">
-          ${button(TEXT.crcBriefing.continue, "activate-crc", { variant: "glow" })}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function renderHeaderContent(state, developmentMode) {
-  const showRestoreNews = Boolean(state.ui?.newsDismissed);
-
-  return `
-    <div>
-      <p class="eyebrow">THE ETERNAL SIMULATION</p>
-      <h1>Facility Control</h1>
-    </div>
-    <div class="topbar__actions">
-      ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
-      ${
-        developmentMode
-          ? button("Exit dev", "exit-dev-mode", { variant: "text" })
-          : button("Dev mode", "enter-dev-mode", { variant: "text" })
-      }
-      ${
-        showRestoreNews
-          ? button("News Feed", "restore-news-section", {
-              variant: "text",
-              className: "button--news-toggle",
-            })
-          : ""
-      }
-      ${button("Save now", "save-now", { variant: "text" })}
-      ${button("Reset current", "reset-current-save", { variant: "text" })}
-    </div>
-  `;
-}
-
-function renderHeader(state, developmentMode) {
-  return `
-    <header class="topbar" data-region="header">
-      ${renderHeaderContent(state, developmentMode)}
-    </header>
-  `;
-}
-
-function formatSaveTime(timestamp) {
-  if (!timestamp) return "EMPTY";
-  const savedAt = new Date(timestamp);
-  if (Number.isNaN(savedAt.getTime())) return "CORRUPT";
-  return savedAt.toLocaleString(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function renderSaveManagement(saveSlots, developmentMode) {
-  const slots = saveSlots?.length ? saveSlots : [];
-
-  return `
-    <article class="panel save-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">SAVE MANAGEMENT</p>
-          <h2>Simulation Memory</h2>
-        </div>
-      </div>
-      <div class="save-slots">
-        ${slots
-          .map(
-            (slot) => `
-              <div class="save-slot ${slot.developmentMode === developmentMode ? "save-slot--current" : ""}">
-                <span>${slot.label}</span>
-                <strong>${formatSaveTime(slot.lastSavedAt)}</strong>
-              </div>
-            `,
-          )
-          .join("")}
-      </div>
-      <div class="dev-actions save-actions">
-        ${button("Save now", "save-now", { variant: "secondary" })}
-        ${button("Reset current", "reset-current-save", { variant: "ghost" })}
-        ${button("Reset normal", "reset-normal-save", { variant: "ghost" })}
-        ${button("Reset dev", "reset-development-save", { variant: "ghost" })}
-        ${button("Reset all", "reset-all-saves", { variant: "ghost" })}
-      </div>
-    </article>
-  `;
-}
-
-function renderRecord() {
-  return `
-    <article class="ambient-record">
-      <p class="panel__label">BEST SIMULATION RECORD</p>
-      <strong>${TEXT.record}</strong>
-      <span>ORIGIN // UNKNOWN</span>
-      <p>The number repeats in recovered logs. It is not a task yet.</p>
-    </article>
-  `;
-}
-
-function renderGlobalHUD(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const netProduction = calculateEffectiveProduction(
-    state,
-    config,
-    developmentMode,
-  );
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const overflowDecay = calculateEnergyOverflowDecay(state, config);
-  const capacityProgress = big(state.energy).div(capacity).toNumber();
-  const displayTelemetry = Boolean(state.devices.softDataDisplay);
-  const overflowing = big(state.energy).gt(capacity);
-  const milestone = calculateNextMilestone(state, config);
-  const phase =
-    (state.science?.syntheses ?? 0) > 0
-      ? "Science Era // Particle Synthesis"
-      : "Energy Era // Cosmic Condensation";
-  const lastDiscovery = getLastDiscovery(state);
-
-  return `
-    <section class="global-hud" aria-label="Global status and next milestone">
-      <div class="global-hud__grid">
-        <article class="panel global-hud__primary">
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">STORED ENERGY</p>
-              <strong class="energy-readout" data-field="energy">${formatEnergy(state.energy)}</strong>
+  function mountStructure() {
+    container.innerHTML = `
+      <div class="sandbox-shell">
+        <!-- Persistent Sticky Status Bar (§17) -->
+        <header class="sticky-status-bar" id="sticky-hud">
+          <div class="status-pills">
+            <div class="status-pill">
+              <span class="status-pill__label">Stored Energy</span>
+              <span class="status-pill__value status-pill__value--energy" data-field="hud-energy">0.00 pJ</span>
             </div>
-            <div class="hud-rate-box">
-              <span class="panel__label">ENERGY / SECOND</span>
-              <strong class="rate-readout" data-field="energy-rate">${
-                displayTelemetry ? formatRate(production) : "UNREADABLE"
-              }</strong>
+            <div class="status-pill">
+              <span class="status-pill__label">Energy Production</span>
+              <span class="status-pill__value status-pill__value--rate" data-field="hud-production">+0.00 pJ/s</span>
+            </div>
+            <div class="status-pill" title="Also known as XP. Apparently, scientists still need experience points.">
+              <span class="status-pill__label">Available Data (XP)</span>
+              <span class="status-pill__value status-pill__value--data" data-field="hud-data">0</span>
+            </div>
+            <div class="status-pill">
+              <span class="status-pill__label">Computer Level</span>
+              <span class="status-pill__value status-pill__value--level" data-field="hud-level">1</span>
+            </div>
+            <div class="status-pill">
+              <span class="status-pill__label">Facility Optimizations</span>
+              <span class="status-pill__value" data-field="hud-optimizations" style="color: var(--cyan);">0</span>
             </div>
           </div>
-          ${progressBar(capacityProgress, "Stable Power Cell charge", "energy", "energy")}
-          <div class="hud-telemetry-row">
-            <div>
-              <span>Stable capacity:</span>
-              <strong data-field="stable-capacity">${
-                displayTelemetry ? formatEnergy(capacity) : "UNREADABLE"
-              }</strong>
-            </div>
-            <div>
-              <span>Net flow:</span>
-              <strong data-field="retained-rate-main">${
-                displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
-              }</strong>
-            </div>
-            <div class="hud-telemetry-row__status">
-              <span>Status:</span>
-              <strong data-field="hud-status" class="${overflowing ? "text--warning" : "text--online"}">${
-                overflowing
-                  ? displayTelemetry
-                    ? `EXCESS DECAY (${formatRate(overflowDecay)})`
-                    : "EXCESS UNSTABLE"
-                  : "CELL STABLE"
-              }</strong>
-            </div>
-          </div>
-        </article>
 
-        <article class="panel global-hud__milestone">
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">NEXT MILESTONE</p>
-              <h2 class="milestone-title">${milestone.title}</h2>
-            </div>
-            <button class="button button--compact button--ghost" data-action="set-tab" data-tab="${milestone.tab}" type="button">
-              <span>Go to ${milestone.tabLabel}</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn--sm btn--dev" data-action="toggle-dev-mode" data-field="dev-mode-btn">
+              DEV MODE: ON
             </button>
           </div>
-          <p class="muted milestone-req">${milestone.requirement}</p>
-          ${milestone.progress !== null ? progressBar(milestone.progress, milestone.title, "discovery", "milestone") : ""}
-        </article>
-      </div>
-
-      <div class="global-hud__subbar">
-        <span><strong>Phase:</strong> ${phase}</span>
-        <span><strong>Last discovery:</strong> ${lastDiscovery}</span>
-      </div>
-    </section>
-  `;
-}
-
-function renderCrcDevice(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const baseRate =
-    config?.economyV2?.crc?.baseProductionPerSecond ??
-    config?.energy?.baseProductionPerSecond ??
-    1e-12;
-  const crcCount = Math.max(0, state.crcCount ?? 0);
-  const improvements = Math.max(0, state.improvements ?? 0);
-  const algorithmFactor = 1 + improvements;
-  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
-
-  return `
-    <article class="panel device-card condenser-card device-card--online">
-      ${helpNote("Each active condenser collects cosmic radiation at a base rate of 1e-12 J/s. Each completed Algorithm Improvement adds +1 base output to every active condenser simultaneously.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Stage 1")}
-        ${statusPill(`${crcCount} ONLINE`, "online")}
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Cosmic Radiation Condenser</h2>
-        </div>
-      </div>
-      <p class="muted">Collects cosmic radiation at a base rate of ${isSoftUnlocked ? formatRate(baseRate) : "1e-12 J/s"} per CRC. Each Algorithm Improvement adds +1 base production to every active condenser via the (1 + I) multiplier.</p>
-      <div class="study-metrics crc-metrics">
-        <div>
-          <span>Base rate per CRC</span>
-          <strong>${isSoftUnlocked ? formatRate(baseRate) + " / unit" : "UNREADABLE"}</strong>
-        </div>
-        <div>
-          <span>Algorithm Multiplier (1 + I)</span>
-          <strong data-field="crc-algorithm-multiplier">x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
-        </div>
-      </div>
-      <div class="metric-row">
-        <span>Current total output</span>
-        <strong data-field="crc-total-output">${
-          isSoftUnlocked ? formatRate(production) : "UNREADABLE"
-        }</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderPowerCellArray(state, config) {
-  const availability = evaluateComponent("powerCell", state, config);
-  if (!availability.visible) return "";
-
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel =
-    effectiveMode === "max" ? "Buy Max" : `Add (${effectiveMode})`;
-  const cost = availability.cost;
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const nextCapacity = calculateStableEnergyCapacity(
-    { ...state, powerCells: state.powerCells + 1 },
-    config,
-  );
-  const moduleMultiplier = calculatePowerModuleCapacityMultiplier(
-    state,
-    config,
-  );
-
-  return `
-    <article class="panel device-card power-cell-card">
-      ${helpNote("Buying a Power Cell expands stable capacity. It does not increase raw production, but it raises the point where overflow decay starts pushing back against Stored Energy.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Storage")}
-        <span class="card-subsystem">Stable Capacity</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Power Cell Array</h2>
-        </div>
-        <div class="panel__action-group">
-          ${headingAction(actionLabel, "buy-power-cell", {
-            cost,
-            count: state.powerCells,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          })}
-        </div>
-      </div>
-      <p class="muted">Stable cells give condensed energy somewhere to stay. Storage hardware does not produce energy.</p>
-      <div class="metric-row">
-        <span>Current stable capacity</span>
-        <strong>${formatEnergy(capacity)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Next stable capacity</span>
-        <strong>${formatEnergy(nextCapacity)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Module routing</span>
-        <strong>${state.powerModules} / x${formatEngineering(moduleMultiplier)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderPowerModule(state, config) {
-  const availability = evaluateComponent("powerModule", state, config);
-  if (!availability.visible) return "";
-
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = `Install (${effectiveMode === "max" ? "Max" : effectiveMode})`;
-  const requirement = availability.requirement;
-  const currentMultiplier = calculatePowerModuleCapacityMultiplier(
-    state,
-    config,
-  );
-  const nextMultiplier = calculatePowerModuleCapacityMultiplier(
-    { ...state, powerModules: state.powerModules + 1 },
-    config,
-  );
-
-  return `
-    <article class="panel device-card power-module-card">
-      ${helpNote("Power Modules do not consume Power Cells. They activate capture and conduction circuits around each full group of 100 cells, increasing effective stable capacity.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Amplification")}
-        <span class="card-subsystem">Group Multiplier</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Power Module</h2>
-        </div>
-        ${headingAction(actionLabel, "buy-power-module", {
-          cost: availability.cost,
-          count: state.powerModules,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">Activates capture and conduction circuits that organize Power Cells into a stronger storage route.</p>
-      <div class="metric-row">
-        <span>Cell requirement</span>
-        <strong>${Math.min(state.powerCells, requirement)} / ${requirement}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Capacity route</span>
-        <strong>x${formatEngineering(currentMultiplier)} -> x${formatEngineering(nextMultiplier)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderSoftDataDisplay(state, config) {
-  const availability = evaluateComponent("softDataDisplay", state, config);
-
-  return `
-    <article class="panel device-card ${state.devices.softDataDisplay ? "device-card--online" : ""}">
-      ${helpNote("Soft Display reveals usable energy production rate, Power Cell capacity, capacity occupation, and the current decay rate of unstable overflow energy.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Display")}
-        <span class="card-subsystem">Telemetry Unit</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Soft Display</h2>
-        </div>
-        ${
-          state.devices.softDataDisplay
-            ? statusPill("ONLINE", "online")
-            : headingAction("Restore", "buy-soft-display", {
-                cost: availability.cost,
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">${
-        state.devices.softDataDisplay
-          ? "Shows basic useful information."
-          : "Seems like with enough power this display could show some useful information."
-      }</p>
-      ${
-        state.devices.softDataDisplay
-          ? '<p class="effect-line">TELEMETRY READABLE // ENERGY FLOW EXPOSED</p>'
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderT2SoftDataDisplay(state, config) {
-  const availability = evaluateComponent("t2SoftDataDisplay", state, config);
-  if (!availability.visible) return "";
-
-  return `
-    <article class="panel device-card ${state.devices.t2SoftDataDisplay ? "device-card--online" : ""}">
-      ${helpNote("T2 Soft Display unlocks the Measure tab, separating current output into base condenser signal and active production bonuses. It does not change production by itself.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Spectrometry")}
-        <span class="card-subsystem">Diagnostic Spectrometry</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>T2 Soft Display</h2>
-        </div>
-        ${
-          state.devices.t2SoftDataDisplay
-            ? statusPill("ONLINE", "online")
-            : headingAction("Restore", "buy-t2-soft-display", {
-                cost: availability.cost,
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">${
-        state.devices.t2SoftDataDisplay
-          ? "The Measure tab now separates condenser output into readable source layers."
-          : "A dim second layer under the Soft Display waits for enough stored power to decode output composition."
-      }</p>
-      ${
-        state.devices.t2SoftDataDisplay
-          ? '<p class="effect-line">OUTPUT COMPOSITION READABLE</p>'
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderStudy(state, config, developmentMode) {
-  const currentFactor = 1 + (state.improvements ?? 0);
-  const previewDuration = calculateStudyDuration(
-    state,
-    config,
-    developmentMode,
-  );
-  const studyProgress = state.study.active
-    ? state.study.duration > 0
-      ? clamp(state.study.elapsed / state.study.duration, 0, 1)
-      : 0
-    : state.study.completedAt && Date.now() - state.study.completedAt < 400
-      ? 1
-      : 0;
-  const rate = previewDuration > 0 ? 1 / previewDuration : 0;
-  const rateDisplay =
-    rate >= 10
-      ? `${rate.toFixed(1)} Improvements/s`
-      : formatDuration(previewDuration);
-
-  return `
-    <article class="panel study-panel">
-      ${helpNote("Algorithm Improvements always complete. Each cycle adds +1 base production unit to every CRC via the (1 + I) multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S). After enough Improvements, an Algorithm Upgrade study can be run manually to double structural production and reset Improvements.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Stage 2")}
-        <span class="card-subsystem">Continuous Optimization</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Algorithm Improvement</h2>
-        </div>
-        ${headingAction(
-          state.study.active ? "Running" : "Start Study",
-          "start-study",
-          {
-            count: state.improvements,
-            disabled:
-              state.study.active || isAutoCalculatorAutomationActive(state),
-            variant: isAutoCalculatorAutomationActive(state)
-              ? "ghost"
-              : "primary",
-          },
-        )}
-      </div>
-      <p class="muted">Refines the Theseus algorithm. Each cycle adds +1 base production to every CRC via the (1 + I) multiplier.</p>
-      <div class="study-metrics">
-        <div><span>Algorithm Multiplier (1 + I)</span><strong data-field="study-algorithm-factor">x${currentFactor} (+1.0 / cycle)</strong></div>
-        <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong data-field="study-rate-display">${rateDisplay}</strong></div>
-      </div>
-      ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
-      <div class="progress-caption">
-        <span data-field="study-status">${state.study.active ? (state.study.automated ? "AUTO CALCULATION" : "CALCULATION IN PROGRESS") : "READY"}</span>
-        <span data-field="study-remaining">${state.study.active ? formatDuration(Math.max(0, state.study.duration - state.study.elapsed)) : ""}</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderAlgorithmUpgrade(state, config) {
-  const requirement = calculateAlgorithmUpgradeRequirement(state, config);
-  const visible = state.upgrades > 0 || state.improvements >= requirement;
-  if (!visible) return "";
-
-  const ready = state.improvements >= requirement;
-  const availability = evaluateComponent("algorithmUpgrade", state, config);
-  const progress = state.algorithmUpgradeStudy.active
-    ? state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
-    : state.improvements / requirement;
-
-  const currentMultiplier = 2 ** state.upgrades;
-  const nextMultiplier = 2 ** (state.upgrades + 1);
-
-  return `
-    <article class="panel study-panel panel--upgrade ${ready ? "panel--upgrade-ready" : ""}">
-      ${helpNote("Manual Algorithm Upgrades complete instantly and reset Improvements. Each completed Upgrade permanently doubles production (x2 multiplier).")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Stage 3")}
-        <span class="card-subsystem text--warning">Resets Improvements</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Algorithm Upgrade</h2>
-        </div>
-        ${headingAction(
-          state.algorithmUpgradeStudy.active ? "Running" : "Upgrade",
-          "start-algorithm-upgrade",
-          {
-            count: state.upgrades,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          },
-        )}
-      </div>
-      <p class="muted">Rebuild the Theseus algorithm into a stronger version. Each completed upgrade doubles production. <strong class="text--warning">Resets Improvements.</strong></p>
-      <div class="study-metrics">
-        <div>
-          <span>Active Upgrade Multiplier</span>
-          <strong>x${currentMultiplier}</strong>
-        </div>
-        <div>
-          <span>Next Upgrade Multiplier</span>
-          <strong>x${nextMultiplier} (2x)</strong>
-        </div>
-      </div>
-      ${progressBar(progress, "Algorithm Upgrade readiness", "discovery", "algorithm-upgrade")}
-      <div class="progress-caption">
-        <span data-field="algorithm-upgrade-status">${
-          state.algorithmUpgradeStudy.active
-            ? "UPGRADE STUDY"
-            : ready
-              ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
-              : `${state.improvements} / ${requirement} Improvements`
-        }</span>
-        <span data-field="algorithm-upgrade-remaining">${
-          state.algorithmUpgradeStudy.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.algorithmUpgradeStudy.duration -
-                    state.algorithmUpgradeStudy.elapsed,
-                ),
-              )
-            : "INSTANT"
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderStudyOverclockControl(state, config) {
-  const overclockers = state.devices.overclockers;
-  if (overclockers <= 0) return "";
-
-  const overclockActive = state.overclocker.active;
-  const cooling = !overclockActive && state.overclocker.activeSeconds > 0;
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const canToggleOverclock =
-    overclockActive ||
-    (state.devices.autoCalculators > 0 && big(state.energy).gt(stableCapacity));
-  const previewState = {
-    ...state,
-    overclocker: {
-      ...state.overclocker,
-      active: true,
-    },
-  };
-  const speed = calculateOverclockerSpeedMultiplier(previewState, config);
-  const drain = calculateOverclockerDrainPerSecond(previewState, config);
-
-  return `
-    <article class="panel study-panel study-overclock-card ${overclockActive ? "device-card--overclocking" : ""}">
-      ${helpNote("Overclock burns unstable energy above stable Power Cell capacity to accelerate Auto Calculator-driven Algorithm Improvements. The energy draw rises while active.")}
-      <div class="panel__header-row">
-        ${renderCardTags("System", "Control")}
-        <span class="card-subsystem">Thermal Acceleration</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Processor Overclock</h2>
-        </div>
-      </div>
-      <button
-        class="button button--${overclockActive ? "ghost" : "primary"} study-overclock-button"
-        data-action="toggle-overclocker"
-        ${!canToggleOverclock ? "disabled" : ""}
-      >
-        <span>${overclockActive ? "Stop Overclock" : "Overclock"}</span>
-        <small data-field="study-overclock-button-detail">x${speed.toFixed(2)} // ${formatRate(drain)}</small>
-      </button>
-      <p class="muted" data-field="study-overclock-status">${
-        overclockActive
-          ? "The calculator route is running hot."
-          : cooling
-            ? "Cooling. Re-engaging now resumes from the current thermal load."
-            : "Available while Auto Calculator is online and excess Stored Energy exists."
-      }</p>
-    </article>
-  `;
-}
-
-function renderAutoCalculator(state, config) {
-  const owned = state.devices.autoCalculators;
-  const availability = evaluateComponent("autoCalculator", state, config);
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = owned > 0 ? `Add (${effectiveMode})` : "Activate";
-  const cost = availability.cost;
-  const speedMultiplier = calculateAutoCalculatorSpeedMultiplier(state, config);
-
-  return `
-    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("Auto Calculators automate Algorithm Improvements. Each unit runs an independent execution thread in parallel, accelerated by Processor efficiency.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Automation")}
-        <span class="card-subsystem">Autonomous Processing</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Auto Calculator</h2>
-        </div>
-        ${headingAction(actionLabel, "buy-auto", {
-          cost,
-          count: owned,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">${
-        owned > 0
-          ? "Glows softly while automatically calculating better condensing methods."
-          : "Fadingly glows and then goes dark every time the CRC collects energy."
-      }</p>
-      ${
-        owned > 0
-          ? `<p class="effect-line">${
-              isAutoCalculatorAutomationActive(state)
-                ? "AUTOMATION ACTIVE"
-                : "AUTOMATION PAUSED"
-            } // ${owned} THREAD${owned === 1 ? "" : "S"} (${speedMultiplier.toFixed(2)}x SPEED)</p>`
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderOverclocker(state, config) {
-  const availability = evaluateComponent("overclocker", state, config);
-  if (!availability.visible) return "";
-
-  const owned = state.devices.overclockers;
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = owned > 0 ? `Upgrade (${effectiveMode})` : "Install";
-  const active = owned > 0 && state.overclocker.active;
-  const cooling = owned > 0 && !active && state.overclocker.activeSeconds > 0;
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const canToggle =
-    owned > 0 &&
-    (active ||
-      (state.devices.autoCalculators > 0 &&
-        big(state.energy).gt(stableCapacity)));
-  const previewState = {
-    ...state,
-    devices: {
-      ...state.devices,
-      overclockers: Math.max(1, owned),
-    },
-    overclocker: { ...state.overclocker, active: true },
-  };
-  const speedMultiplier =
-    owned > 0
-      ? calculateOverclockerSpeedMultiplier(previewState, config)
-      : config.overclocker.baseCalculatorSpeedMultiplier;
-  const drain =
-    owned > 0
-      ? calculateOverclockerDrainPerSecond(previewState, config)
-      : config.overclocker.baseEnergyDrainPerSecond;
-
-  return `
-    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""} ${active ? "device-card--overclocking" : ""}">
-      ${helpNote("The Overclocker expands the Processor control loop. Each unit increases Auto Calculator acceleration, but the energy draw scales faster than the speed gain. Single On/Off switch with no slider or heat gauge.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Acceleration")}
-        <span class="card-subsystem">Thermal Governor</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Overclocker</h2>
-        </div>
-        <div class="panel__action-group">
-          ${headingAction(actionLabel, "buy-overclocker", {
-            cost: availability.cost,
-            count: owned,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          })}
-          ${
-            owned > 0
-              ? button(
-                  active ? "Stop Overclock" : "Overclock",
-                  "toggle-overclocker",
-                  {
-                    disabled: !canToggle,
-                    variant: active ? "ghost" : "primary",
-                    className: "button--compact",
-                  },
-                )
-              : ""
-          }
-        </div>
-      </div>
-      <p class="muted">${
-        owned > 0
-          ? "Additional overclock routes push calculators harder, with sharply worsening energy efficiency."
-          : "The processors and stable cells can now support a controlled calculator overload."
-      }</p>
-      <div class="metric-row">
-        <span>Overclock multiplier & drain</span>
-        <strong data-field="overclock-current">x${speedMultiplier.toFixed(2)} / ${formatRate(drain)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Thermal state</span>
-        <strong data-field="overclock-runtime">${
-          active
-            ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
-            : cooling
-              ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
-              : "STANDBY"
-        }</strong>
-      </div>
-      ${owned > 0 ? `<p class="effect-line" data-field="overclock-effect">${active ? "OVERCLOCK ACTIVE" : cooling ? "COOLING" : "OVERCLOCK ROUTE EXPANDED"}</p>` : ""}
-    </article>
-  `;
-}
-
-function renderOverclockerBlueprint(state, config, developmentMode) {
-  const availability = evaluateComponent("overclockerBlueprint", state, config);
-  if (!availability.visible && !state.overclockerBlueprintStudy?.active) {
-    return "";
-  }
-
-  const progress = state.overclockerBlueprintStudy?.active
-    ? state.overclockerBlueprintStudy.elapsed /
-      state.overclockerBlueprintStudy.duration
-    : state.discoveries.overclockerBlueprint
-      ? 1
-      : 0;
-
-  return `
-    <article class="panel discovery-card">
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Schematic")}
-        <span class="card-subsystem">${state.discoveries.overclockerBlueprint ? "Technology Recovered" : "Research Signal"}</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Overclocker Blueprint</h2>
-        </div>
-        ${
-          state.discoveries.overclockerBlueprint
-            ? statusPill("RECOVERED", "discovery")
-            : headingAction("Research", "start-overclocker-blueprint-research", {
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">A theoretical architecture for driving calculation arrays beyond nominal thermal limits.</p>
-      ${state.overclockerBlueprintStudy?.active ? progressBar(progress, "Overclocker Blueprint progress", "discovery", "overclocker-blueprint") : ""}
-      <div class="progress-caption">
-        <span data-field="overclocker-blueprint-status">${
-          state.overclockerBlueprintStudy?.active
-            ? "BLUEPRINT RESEARCH"
-            : state.discoveries.overclockerBlueprint
-              ? "FABRICATION READY"
-              : "RESEARCH READY"
-        }</span>
-        <span data-field="overclocker-blueprint-remaining">${
-          state.overclockerBlueprintStudy?.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.overclockerBlueprintStudy.duration -
-                    state.overclockerBlueprintStudy.elapsed,
-                ),
-              )
-            : state.discoveries.overclockerBlueprint
-              ? "Overclocker fabrication unlocked"
-              : formatDuration(45)
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderBlueprint(state, config, developmentMode) {
-  const available = canResearchBlueprint(state, config);
-  if (
-    !state.discoveries.crcBlueprint &&
-    !available &&
-    !state.blueprintStudy.active
-  ) {
-    return "";
-  }
-
-  const researchDuration = calculateBlueprintResearchDuration(
-    state,
-    config,
-    developmentMode,
-  );
-  const progress = state.blueprintStudy.active
-    ? state.blueprintStudy.elapsed / state.blueprintStudy.duration
-    : state.discoveries.crcBlueprint
-      ? 1
-      : 0;
-  const researchAvailability = evaluateComponent("crcBlueprint", state, config);
-
-  return `
-    <article class="panel discovery-card">
-      ${helpNote("Blueprint research reconstructs the fabrication plan for additional CRCs. Once completed, each new CRC costs Stored Energy and increases base condensation.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Schematic")}
-        <span class="card-subsystem">${state.discoveries.crcBlueprint ? "Technology Recovered" : "Research Signal"}</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>CRC Blueprint</h2>
-        </div>
-        ${
-          state.discoveries.crcBlueprint
-            ? statusPill("RECOVERED", "discovery")
-            : headingAction("Research", "start-blueprint-research", {
-                count: 0,
-                disabled: !researchAvailability.enabled,
-                variant: researchAvailability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">A structural plan for fabricating additional Cosmic Radiation Condensers.</p>
-      ${state.blueprintStudy.active ? progressBar(progress, "CRC Blueprint progress", "discovery", "blueprint") : ""}
-      <div class="progress-caption">
-        <span data-field="blueprint-status">${
-          state.blueprintStudy.active
-            ? "BLUEPRINT RESEARCH"
-            : state.discoveries.crcBlueprint
-              ? "FABRICATION READY"
-              : "RESEARCH READY"
-        }</span>
-        <span data-field="blueprint-remaining">${
-          state.blueprintStudy.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.blueprintStudy.duration - state.blueprintStudy.elapsed,
-                ),
-              )
-            : state.discoveries.crcBlueprint
-              ? "Device fabrication unlocked"
-              : formatDuration(researchDuration)
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderCrcConstruction(state, config) {
-  const availability = evaluateComponent("crcConstruction", state, config);
-  if (!availability.visible && !state.construction.active) return "";
-
-  const progress = state.construction.active
-    ? state.construction.elapsed / state.construction.duration
-    : 0;
-
-  return `
-    <article class="panel device-card">
-      ${helpNote("CRC fabrication uses the recovered Blueprint to build another Cosmic Radiation Condenser. Each completed condenser adds another base energy source.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Fabrication")}
-        <span class="card-subsystem">Hardware Assembly</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Cosmic Radiation Condenser Fabrication</h2>
-        </div>
-        ${headingAction(
-          state.construction.active ? "Building" : "Construct",
-          "construct-crc",
-          {
-            cost: availability.cost,
-            count: state.crcCount,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          },
-        )}
-      </div>
-      <p class="muted">Uses the recovered condenser plan to add another passive radiation collection point.</p>
-      ${state.construction.active ? progressBar(progress, "CRC construction progress", "discovery", "construction") : ""}
-      <div class="progress-caption">
-        <span data-field="construction-status">${state.construction.active ? "CRC CONSTRUCTION" : "FABRICATION READY"}</span>
-        <span data-field="construction-remaining">${
-          state.construction.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.construction.duration - state.construction.elapsed,
-                ),
-              )
-            : `Cost: ${formatEnergy(availability.cost)}`
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderProcessor(state, config) {
-  const owned = state.devices.processors;
-  const availability = evaluateComponent("processor", state, config);
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = owned > 0 ? `Add (${effectiveMode})` : "Install";
-  const cost = availability.cost;
-  const efficiencyMultiplier = calculateDeviceEfficiencyMultiplier(
-    state,
-    config,
-  );
-  const overclockers = state.devices.overclockers;
-  const overclockActive = overclockers > 0 && state.overclocker.active;
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const canToggleOverclock =
-    overclockers > 0 &&
-    (overclockActive ||
-      (state.devices.autoCalculators > 0 &&
-        big(state.energy).gt(stableCapacity)));
-  const overclockSpeed = calculateOverclockerSpeedMultiplier(state, config);
-  const overclockDrain =
-    overclockers > 0
-      ? calculateOverclockerDrainPerSecond(
-          { ...state, overclocker: { ...state.overclocker, active: true } },
-          config,
-        )
-      : 0;
-
-  return `
-    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("Each Processor adds multiplicative efficiency to computational and fabrication systems. Amplified by Setup Improvements (SI).")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Hardware")}
-        <span class="card-subsystem">Processing Core</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Processor</h2>
-        </div>
-        ${headingAction(actionLabel, "buy-processor", {
-          cost,
-          count: owned,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">${
-        owned > 0
-          ? "Improves calculator throughput and fabrication control with transistor-based processment."
-          : "Seems like a better technology for devices control."
-      }</p>
-      ${owned > 0 ? `<p class="effect-line">COMPUTE / FABRICATION EFFICIENCY x${formatEngineering(efficiencyMultiplier)}</p>` : ""}
-      ${
-        overclockers > 0
-          ? `<div class="device-inline-actions">
-              ${button(
-                overclockActive ? "Stop Overclock" : "Overclock",
-                "toggle-overclocker",
-                {
-                  disabled: !canToggleOverclock,
-                  variant: overclockActive ? "ghost" : "primary",
-                  className: "button--compact",
-                },
-              )}
-              <span data-field="overclock-inline">${overclockActive ? `x${overclockSpeed.toFixed(2)} active` : `x${calculateOverclockerSpeedMultiplier({ ...state, overclocker: { ...state.overclocker, active: true } }, config).toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"}`} // ${formatRate(overclockDrain)}</span>
-            </div>`
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderCalculationMethod(state, config) {
-  const visible = state.upgrades > 0 || state.calculationMethods > 0;
-  if (!visible) return "";
-
-  const required = calculateCalculationMethodRequirement(state, config);
-  const ready = state.upgrades >= required;
-  const availability = evaluateComponent(
-    "calculationMethodUpgrade",
-    state,
-    config,
-  );
-  const progress = state.upgrades / required;
-
-  return `
-    <article class="panel method-card ${ready ? "method-card--ready" : ""}">
-      ${helpNote("A Setup Improvement requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and amplifies Processor unit bonus by 1.2^M.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Soft Reset")}
-        <span class="card-subsystem text--amber">Tier 1 Reset</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Setup Improvement</h2>
-        </div>
-        ${headingAction("Claim Improvement", "claim-method", {
-          count: state.calculationMethods,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">A whole new method. Starts studies over, but amplifies Processor effectiveness by 1.2^M.</p>
-      ${progressBar(progress, "Setup Improvement readiness", "study")}
-      <div class="progress-caption">
-        <span>${ready ? "SETUP IMPROVEMENT READY" : `${Math.min(state.upgrades, required)} / ${required} Algorithm Upgrades`}</span>
-        <span>Scaling multiplier ×${(1.2 ** state.calculationMethods).toFixed(2)}</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderSetupOptimization(state, config) {
-  const visible =
-    state.upgrades > 0 ||
-    state.calculationMethods > 0 ||
-    state.setupOptimizations > 0;
-  if (!visible) return "";
-
-  const required = calculateSetupOptimizationRequirement(state, config);
-  const ready = state.calculationMethods >= required;
-  const availability = evaluateComponent("setupOptimization", state, config);
-  const progress = state.calculationMethods / required;
-  const currentD = calculateSetupDevicePerformance(state.setupOptimizations, config);
-  const nextD = calculateSetupDevicePerformance(state.setupOptimizations + 1, config);
-
-  return `
-    <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Upgrade costs no energy, but resets energy to 0, studies, and computational hardware. Preserves Power Cells, Power Arrays, and CRCs. It permanently scales device performance D(S).")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Hard Reset")}
-        <span class="card-subsystem text--danger">Facility Reconfiguration</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Setup Upgrade</h2>
-        </div>
-        ${headingAction("Upgrade Setup", "claim-setup", {
-          count: state.setupOptimizations,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "danger" : "ghost",
-        })}
-      </div>
-      <p class="muted">A whole new setup. Discards lower hardware and stored energy, but permanently amplifies device performance.</p>
-      ${progressBar(progress, "Setup Upgrade readiness", "discovery")}
-      <div class="progress-caption">
-        <span>${ready ? "SETUP UPGRADE READY" : `${Math.min(state.calculationMethods, required)} / ${required} Setup Improvements`}</span>
-        <span>Device scale D(S): ${currentD.toFixed(1)}x → ${nextD.toFixed(1)}x</span>
-      </div>
-    </article>
-  `;
-}
-function renderDoor(state, config) {
-  const progress = calculateDoorProgress(state, config);
-  const labOpen = canAccessParticleLab(state, config);
-
-  if (labOpen) {
-    if ((state.science?.syntheses ?? 0) > 0) {
-      return `
-        <article class="ambient-door ambient-door--open">
-          <p class="panel__label">PARTICLE LABORATORY</p>
-          <div class="ambient-door__heading">
-            <h2>Particle Sintetizer</h2>
-            <strong class="door-status">CONTROLS RELOCATED</strong>
-          </div>
-          <p class="muted">The laboratory remains open. Further synthesis controls are now available under Science Devices.</p>
-        </article>
-      `;
-    }
-
-    const availability = evaluateComponent(
-      "particleSynthesizer",
-      state,
-      config,
-    );
-    const synthesizerProgress = calculateParticleSynthesizerProgress(
-      state,
-      config,
-    );
-
-    return `
-      <article class="ambient-door ambient-door--open">
-        <p class="panel__label">PARTICLE LABORATORY</p>
-        <div class="ambient-door__heading">
-          <h2>Particle Sintetizer</h2>
-          <strong class="door-status">${
-            state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT"
-          }</strong>
-        </div>
-        ${progressBar(synthesizerProgress, "Activate Particle Sintetizer", "door", "particle-synthesizer")}
-        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(availability.cost)}.</p>
-        ${headingAction(
-          state.particleSynthesizer.activated ? "Activated" : "Activate",
-          "open-particle-synthesis",
-          {
-            cost: availability.cost,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          },
-        )}
-      </article>
-    `;
-  }
-
-  let status = "LOW POWER";
-  if (progress > 0.75) status = "AUXILIARY CURRENT DETECTED";
-  else if (progress > 0.45) status = "SYSTEM RESPONSE DETECTED";
-  else if (progress > 0.2) status = "TRACE CURRENT";
-
-  return `
-    <article class="ambient-door">
-      <p class="panel__label">UNOPENED ROUTE</p>
-      <div class="ambient-door__heading">
-        <h2>Particle Laboratory</h2>
-        <strong class="door-status">${status}</strong>
-      </div>
-      ${progressBar(progress, "Particle Laboratory power response", "door", "door")}
-      <p class="muted">A dead line on the facility map mentions particle synthesis. It should open once the facility has proven it can hold ${formatEnergy(config.particleLab.doorEnergyRequired)}.</p>
-    </article>
-  `;
-}
-
-function renderParticleLabDetails(state, config) {
-  const progress = calculateParticleSynthesizerProgress(state, config);
-  const sciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedSciencePoints = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-
-  return `
-    <article class="panel science-panel">
-      ${helpNote("The Particle Sintetizer is the next layer bridge. At full charge it will become the reset point into particle synthesis and Science Points.")}
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">PARTICLE LABORATORY</p>
-          <h2>Particle Sintetizer</h2>
-        </div>
-        ${statusPill(state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT", state.particleSynthesizer.activated ? "online" : "locked")}
-      </div>
-      <p class="muted">The central panel shows an immense structure. Most lines are still dark, waiting for a complete activation charge.</p>
-      <div class="metric-row">
-        <span>Activation charge (fixed)</span>
-        <strong>${formatPercent(progress)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Next Science Point threshold</span>
-        <strong><span data-field="science-point-cost">${formatEnergy(sciencePointCost)}</span> · projected <span data-field="science-sp-on-synthesis">${projectedSciencePoints}</span> SP</strong>
-      </div>
-      ${progressBar(big(state.energy).div(sciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
-      <div class="metric-row">
-        <span>Stored Energy</span>
-        <strong>${formatEnergy(state.energy)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderScienceStatus(state, config) {
-  const hasSynthesized = (state.science?.syntheses ?? 0) > 0;
-  const availableQuarks = formatEngineering(state.quarks?.available ?? 0);
-
-  if (!hasSynthesized) {
-    return `
-      <article class="panel science-panel">
-        <div class="panel__heading">
-          <div>
-            <p class="panel__label">SCIENCE</p>
-            <h2>Preserved Knowledge</h2>
-          </div>
-          ${statusPill(`${state.sciencePoints} SP`, "locked")}
-        </div>
-        <div class="metric-row">
-          <span>Science Points</span>
-          <strong>${state.sciencePoints}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Total Quarks</span>
-          <strong>${availableQuarks}</strong>
-        </div>
-      </article>
-    `;
-  }
-
-  const quarkCapacity = calculateQuarkCapacity(state, config);
-  const quarkDecay = calculateQuarkDecay(state, config);
-  const quarksOnSynthesis = calculateQuarksGenerated(state.energy, config);
-  const sciencePointsOnSynthesis = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const nextSciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-
-  return `
-    <article class="panel science-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">SCIENCE</p>
-          <h2>Preserved Knowledge</h2>
-        </div>
-        ${statusPill(`${state.sciencePoints} SP`, state.sciencePoints > 0 ? "discovery" : "locked")}
-      </div>
-      <div class="metric-row">
-        <span>Science Points</span>
-        <strong>${state.sciencePoints}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Total Quarks</span>
-        <strong>${availableQuarks} / ${formatEngineering(quarkCapacity)} stable</strong>
-      </div>
-      <div class="metric-row">
-        <span>SP gained on Sintetization</span>
-        <strong data-field="science-sp-on-synthesis">${sciencePointsOnSynthesis}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Energy threshold for next SP</span>
-        <strong data-field="science-point-cost">${formatEnergy(nextSciencePointCost)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Quarks gained on Sintetization</span>
-        <strong data-field="science-quarks-on-synthesis">${quarksOnSynthesis}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Total Quarks Earned</span>
-        <strong>${state.quarks?.totalEarned ?? 0}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Quark decay</span>
-        <strong>${formatEngineering(quarkDecay)} q/s</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderScienceTreeNode(id, state, config, tone, extraClass = "") {
-  const perk = getSciencePerk(id);
-  const evaluation = evaluateSciencePerk(id, state, config);
-  const revealed = evaluation.revealed;
-  const isSelected = state.ui?.selectedSciencePerkId === perk.id;
-  const isCapped = evaluation.owned && perk.id === "redundancyElimination";
-  const visibleName = revealed ? perk.name : "???";
-  const visibleSummary = revealed ? perk.summary : "???";
-  const effect = revealed ? perk.effect : "Undiscovered technology";
-  const prerequisiteNames = revealed
-    ? perk.requires.map((prerequisiteId) => getSciencePerk(prerequisiteId).name)
-    : [];
-  const status = !revealed
-    ? "UNDISCOVERED"
-    : isCapped
-      ? "CAPPED"
-      : evaluation.owned
-        ? "ACQUIRED"
-        : evaluation.missingPrerequisites.length ||
-            !evaluation.energyRequirementMet
-          ? "LOCKED"
-          : !evaluation.hasEnoughScience
-            ? `Need ${evaluation.cost} SP`
-            : "Ready";
-  const classes = [
-    "science-tree__node-wrap",
-    `science-tree__node-wrap--${tone}`,
-    extraClass,
-    !revealed && "science-tree__node-wrap--hidden",
-    revealed && "science-tree__node-wrap--revealed",
-    evaluation.owned && "science-tree__node-wrap--owned",
-    evaluation.canPurchase && "science-tree__node-wrap--ready",
-    !evaluation.owned &&
-      !evaluation.canPurchase &&
-      "science-tree__node-wrap--locked",
-    isSelected && "science-tree__node-wrap--selected",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const accessibleLabel = revealed
-    ? `${visibleName}. ${status}. Costs ${evaluation.cost} Science Point${evaluation.cost === 1 ? "" : "s"}. Effect: ${effect}`
-    : "Undiscovered technology";
-
-  return `
-    <div class="${classes}" tabindex="0" role="group" aria-label="${accessibleLabel}">
-      <button
-        class="science-tree__node ${evaluation.owned ? "science-tree__node--owned" : ""} ${!evaluation.owned && !evaluation.canPurchase ? "science-tree__node--locked" : ""} ${isSelected ? "science-tree__node--selected" : ""}"
-        type="button"
-        data-action="select-science-perk"
-        data-perk-id="${perk.id}"
-        aria-describedby="science-tooltip-${perk.id}"
-        aria-label="${accessibleLabel}"
-      >
-        <span class="science-tree__node-name">${visibleName}</span>
-        <span class="science-tree__node-meta">${!revealed ? "???" : isCapped ? "Capped" : evaluation.owned ? "Acquired" : `${evaluation.cost} SP`}</span>
-      </button>
-      <span class="science-tree__tooltip" id="science-tooltip-${perk.id}" role="tooltip">
-        <strong>${visibleName}</strong>
-        <span>${revealed ? effect : "Undiscovered technology"}</span>
-        ${revealed && perk.requirement ? `<small>Unlock condition: ${perk.requirement}</small>` : ""}
-        ${revealed ? `<small>${prerequisiteNames.length ? `Requires: ${prerequisiteNames.join(" + ")} · ` : "No perk prerequisite · "}Cost: ${evaluation.cost} SP</small>` : ""}
-      </span>
-      <span class="science-tree__node-summary">${visibleSummary}</span>
-      <span class="science-tree__node-state">${status}</span>
-    </div>
-  `;
-}
-
-function renderSciencePerkDrawer(state, config) {
-  const selectedId = state.ui?.selectedSciencePerkId;
-  if (!selectedId) {
-    return `
-      <aside class="science-drawer science-drawer--empty panel">
-        <p class="panel__label">PERK SPECIFICATION</p>
-        <p class="muted">Select a perk in the science tree to inspect technical parameters, prerequisites, and unlock controls.</p>
-      </aside>
-    `;
-  }
-
-  const perk = getSciencePerk(selectedId);
-  if (!perk) return "";
-
-  const evaluation = evaluateSciencePerk(selectedId, state, config);
-  const revealed = evaluation.revealed;
-
-  if (!revealed) {
-    return `
-      <aside class="science-drawer panel science-panel">
-        <div class="panel__heading">
-          <div>
-            <p class="panel__label">SCIENCE PERK // CLASSIFIED</p>
-            <h2>???</h2>
-          </div>
-          ${statusPill("UNDISCOVERED", "locked")}
-        </div>
-        <p class="muted">This principle is currently unmapped. Complete prerequisite research and expand facility energy thresholds to reveal.</p>
-        <div class="metric-row">
-          <span>Cost</span>
-          <strong>??? SP</strong>
-        </div>
-        <div class="metric-row">
-          <span>Requirements</span>
-          <strong>Undiscovered</strong>
-        </div>
-        <div class="panel__action" style="margin-top: 1rem;">
-          <button class="button button--ghost" disabled type="button">Locked</button>
-        </div>
-      </aside>
-    `;
-  }
-
-  const isCapped = evaluation.owned && perk.id === "redundancyElimination";
-  const prerequisiteNames = perk.requires.map(
-    (reqId) => getSciencePerk(reqId)?.name || reqId,
-  );
-
-  return `
-    <aside class="science-drawer panel science-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">SCIENCE PERK</p>
-          <h2>${perk.name}</h2>
-        </div>
-        ${
-          isCapped
-            ? statusPill("CAPPED", "online")
-            : evaluation.owned
-              ? statusPill("ACQUIRED", "online")
-              : evaluation.canPurchase
-                ? statusPill("READY", "discovery")
-                : statusPill("LOCKED", "locked")
-        }
-      </div>
-      <p class="muted">${perk.summary}</p>
-      <div class="metric-row">
-        <span>Effect</span>
-        <strong>${perk.effect}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Cost</span>
-        <strong>${evaluation.cost} SP</strong>
-      </div>
-      ${
-        prerequisiteNames.length
-          ? `
-        <div class="metric-row">
-          <span>Prerequisites</span>
-          <strong>${prerequisiteNames.join(" + ")}</strong>
-        </div>
-      `
-          : ""
-      }
-      ${
-        perk.requirement
-          ? `
-        <div class="metric-row">
-          <span>Requirement</span>
-          <strong>${perk.requirement}</strong>
-        </div>
-      `
-          : ""
-      }
-      <div class="panel__action" style="margin-top: 1rem;">
-        ${
-          isCapped
-            ? '<button class="button button--ghost" disabled type="button">Capped</button>'
-            : evaluation.owned
-              ? '<button class="button button--ghost" disabled type="button">Acquired</button>'
-              : `<button
-                  class="button button--primary"
-                  type="button"
-                  data-action="buy-science-perk"
-                  data-perk-id="${perk.id}"
-                  ${evaluation.canPurchase ? "" : "disabled"}
-                >
-                  <span>Unlock ${perk.name} (${evaluation.cost} SP)</span>
-                </button>`
-        }
-      </div>
-    </aside>
-  `;
-}
-
-function renderScienceBranch(branch, state, config) {
-  return `
-    <section class="science-tree__branch science-tree__branch--${branch.tone}" aria-label="${branch.title}">
-      <h3 class="science-tree__branch-title">${branch.title}</h3>
-      <div class="science-tree__branch-track" aria-label="${branch.title} perk progression">
-        ${branch.tiers
-          .map(
-            (tier, tierIndex) => `
-          ${tierIndex > 0 ? '<span class="science-tree__connector" aria-hidden="true">↓</span>' : ""}
-          <div class="science-tree__tier">
-            ${tier.map((perkId) => renderScienceTreeNode(perkId, state, config, branch.tone)).join("")}
-          </div>
-        `,
-          )
-          .join("")}
-      </div>
-    </section>
-  `;
-}
-
-function renderScienceTree(state, config) {
-  const allocatedSciencePoints = Math.max(
-    0,
-    (state.science?.totalScienceEarned ?? 0) - state.sciencePoints,
-  );
-  const zoom = state.ui?.treeZoom ?? 1.0;
-  return `
-    <section class="science-tree" aria-label="Science perks skill tree">
-      <div class="science-tree__heading">
-        <span>Click a perk to inspect or unlock · Branches grow from Redundancy Elimination</span>
-        <div class="science-tree__heading-actions">
-          <div class="tree-zoom-toolbar" role="group" aria-label="Tree zoom controls">
-            <button type="button" class="btn btn--ghost btn--small" data-action="zoom-tree-in" aria-label="Zoom in">+</button>
-            <button type="button" class="btn btn--ghost btn--small" data-action="zoom-tree-out" aria-label="Zoom out">-</button>
-            <button type="button" class="btn btn--ghost btn--small" data-action="reset-tree-zoom" aria-label="Reset zoom">Fit</button>
-            <span class="tree-zoom-level">${Math.round(zoom * 100)}%</span>
-          </div>
-          <span>${state.sciencePoints} SP available</span>
-          ${button("Reset SP allocation", "reset-science-points", {
-            disabled: allocatedSciencePoints <= 0,
-            variant: "ghost",
-          })}
-        </div>
-      </div>
-      <div class="science-tree-viewport" style="transform: scale(${zoom}); transform-origin: top left; transition: transform 0.15s ease-out;">
-        <div class="science-tree__lateral-scroll">
-          <div class="science-tree__lateral" aria-label="Quantum and Layer Perks progression">
-            <svg class="science-tree__lateral-connectors" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M295 110 H370 M370 54 V166 M370 68 H405 M370 152 H405 M675 68 H766 M675 152 H766 M766 68 V152 M766 110 H790 M160 145 V194 H500 V220" />
-            </svg>
-            <div class="science-tree__lateral-root">
-              ${renderScienceTreeNode("redundancyElimination", state, config, "root", "science-tree__node-wrap--root")}
-            </div>
-            <div class="science-tree__quantum-nodes" aria-label="Quark perks">
-              <span class="science-tree__layer-perks-label">QUANTUM PRINCIPLES</span>
-              <div class="science-tree__quantum-node">
-                ${renderScienceTreeNode("quantumCalculationPrinciples", state, config, "quantum")}
+        </header>
+
+        <!-- Developer Mode Toolbar (§21) -->
+        <nav class="dev-toolbar" id="dev-toolbar" style="display: flex;">
+          <span class="dev-toolbar__label">DEV CHEATS:</span>
+          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1e-9">+1 nJ</button>
+          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1e-6">+1 µJ</button>
+          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1e-3">+1 mJ</button>
+          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1">+1 J</button>
+          <button class="btn btn--sm btn--dev btn--danger" data-action="zero-energy">Zero J</button>
+
+          <span class="dev-toolbar__divider"></span>
+
+          <span class="dev-toolbar__label">ALGORITHMS:</span>
+          <button class="btn btn--sm btn--dev" data-action="add-afeature" data-target="AImp" data-count="12">+12 AImp</button>
+          <button class="btn btn--sm btn--dev" data-action="add-afeature" data-target="AUpg" data-count="12">+12 AUpg</button>
+          <button class="btn btn--sm btn--dev" data-action="add-afeature" data-target="ARec" data-count="12">+12 ARec</button>
+          <button class="btn btn--sm btn--dev btn--warning" data-action="add-comp-level">+1 Level</button>
+
+          <span class="dev-toolbar__divider"></span>
+
+          <span class="dev-toolbar__label">SPEED:</span>
+          <button class="btn btn--sm btn--dev" data-action="set-speed" data-speed="1">1x</button>
+          <button class="btn btn--sm btn--dev" data-action="set-speed" data-speed="5">5x</button>
+          <button class="btn btn--sm btn--dev" data-action="set-speed" data-speed="20">20x</button>
+
+          <span class="dev-toolbar__divider"></span>
+
+          <span class="dev-toolbar__label">STATE:</span>
+          <button class="btn btn--sm btn--dev btn--primary" data-action="quicksave">Quicksave</button>
+          <button class="btn btn--sm btn--dev" data-action="restore-quicksave" data-field="restore-qs-btn">Quick Restore</button>
+          <button class="btn btn--sm btn--dev btn--danger" data-action="reset-all">Reset All</button>
+        </nav>
+
+        <!-- Two Main Navigation Tabs (§17) -->
+        <nav class="tab-nav">
+          <button class="tab-btn tab-btn--active" data-action="set-tab" data-tab="energy">
+            1. Energy
+          </button>
+          <button class="tab-btn" data-action="set-tab" data-tab="efficiency">
+            2. Efficiency & Automation
+          </button>
+        </nav>
+
+        <!-- TAB 1: ENERGY -->
+        <main class="tab-content" id="tab-energy">
+          <!-- A. Introductory Narrative (§18.A) -->
+          <div class="panel" id="narrative-card" style="margin-bottom: 20px; border-left: 3px solid var(--blue);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <span class="eyebrow">SYSTEM ACTIVATION</span>
+                <p class="muted" style="margin: 0; max-width: 800px;">
+                  You have activated an experimental computational system capable of improving its own algorithms
+                  and extracting usable Energy from cosmic radiation. Study algorithms to generate performance, produce
+                  energy, and build computational infrastructure.
+                </p>
               </div>
-              <div class="science-tree__quantum-node">
-                ${renderScienceTreeNode("quantumSuperposition", state, config, "quantum")}
+              <button class="btn btn--sm" data-action="dismiss-narrative" style="align-self: center;">Dismiss</button>
+            </div>
+          </div>
+
+          <!-- B. Cosmic Radiation Condenser (CRC) (§18.B) -->
+          <div class="panel" style="margin-bottom: 20px;">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Energy Generator</span>
+                <h3 class="element-card__title">Cosmic Radiation Condenser (CRC)</h3>
+              </div>
+              <span class="badge badge--success" data-field="crc-status-badge">PRODUCING</span>
+            </div>
+            <p class="element-card__desc">
+              Converts total Algorithm Performance (AP) into pure Energy. Modifiers apply globally.
+            </p>
+            <div class="element-card__metrics">
+              <div class="metric-row">
+                <span class="metric-row__label">Total Algorithm Performance (AP):</span>
+                <span class="metric-row__val" data-field="crc-ap" style="color: var(--blue-bright);">0.00 pJ/s</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Computer Level Multiplier (1.5^(L-1)):</span>
+                <span class="metric-row__val" data-field="crc-comp-mult">1.00x</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">CRC Gadget Multiplier:</span>
+                <span class="metric-row__val" data-field="crc-gadget-mult">1.00x</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Effective Energy Production:</span>
+                <span class="metric-row__val" data-field="crc-prod-rate" style="color: var(--cyan); font-size: 1.1rem;">+0.00 pJ/s</span>
+              </div>
+              <div class="metric-row" data-field="crc-decay-row" style="display: none;">
+                <span class="metric-row__label" style="color: var(--red);">Overflow Decay:</span>
+                <span class="metric-row__val" data-field="crc-decay-rate" style="color: var(--red);">-0.00 pJ/s</span>
               </div>
             </div>
-            <div class="science-tree__lateral-generator">
-              ${renderScienceTreeNode("particleGenerator", state, config, "layer", "science-tree__node-wrap--root")}
+          </div>
+
+          <!-- C. Algorithm Features (§18.C) -->
+          <div class="panel" style="margin-bottom: 20px;">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Algorithm Learning</span>
+                <h3 class="element-card__title">Algorithm Features</h3>
+              </div>
+              <span class="muted" style="font-size: 0.8rem;">Conversion factor: 12 units</span>
+            </div>
+
+            <div class="rebuild-grid" style="margin-top: 14px;">
+              <!-- 1. Algorithm Improvement (AImp) -->
+              <article class="element-card">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Base Feature</span>
+                    <h4 class="element-card__title">Algorithm Improvement (AImp)</h4>
+                  </div>
+                  <span class="badge badge--success" data-field="aimp-study-badge">READY</span>
+                </div>
+                <p class="element-card__desc">
+                  Primary study. Free to study. Base strength: <strong>1e-15 J/s</strong>.
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned / Produced (Cycle):</span>
+                    <span class="metric-row__val" data-field="aimp-owned">0 / 0</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Strength per unit:</span>
+                    <span class="metric-row__val" data-field="aimp-unit-strength">1.00 fJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Total Contribution:</span>
+                    <span class="metric-row__val" data-field="aimp-contribution" style="color: var(--cyan);">0.00 pJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Study Duration:</span>
+                    <span class="metric-row__val" data-field="aimp-duration">0.50s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Auto Chips Assigned:</span>
+                    <span class="metric-row__val" data-field="aimp-workers">0</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--primary" data-action="study-feature" data-target="AImp" data-count="1" data-field="aimp-study-btn">
+                    STUDY 1 A.IMP
+                  </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AImp" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AImp" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AImp" data-count="1000">+1000</button>
+                  </div>
+                </div>
+              </article>
+
+              <!-- 2. Algorithm Upgrade (AUpg) -->
+              <article class="element-card">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Advanced Feature</span>
+                    <h4 class="element-card__title">Algorithm Upgrade (AUpg)</h4>
+                  </div>
+                  <span class="badge" data-field="aupg-badge">VISIBLE</span>
+                </div>
+                <p class="element-card__desc">
+                  Requires and consumes <strong>12 AImp</strong>. Base strength: <strong>24e-15 J/s</strong> (doubles Energy; trade-off: Data falls 12 → 9).
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned / Produced (Cycle):</span>
+                    <span class="metric-row__val" data-field="aupg-owned">0 / 0</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Strength per unit:</span>
+                    <span class="metric-row__val" data-field="aupg-unit-strength">24.00 fJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Total Contribution:</span>
+                    <span class="metric-row__val" data-field="aupg-contribution" style="color: var(--cyan);">0.00 pJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Study Duration:</span>
+                    <span class="metric-row__val" data-field="aupg-duration">0.50s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Auto Chips Assigned:</span>
+                    <span class="metric-row__val" data-field="aupg-workers">0</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="study-feature" data-target="AUpg" data-count="1" data-field="aupg-study-btn">
+                    STUDY 1 A.UPG (12 AImp)
+                  </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AUpg" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AUpg" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AUpg" data-count="1000">+1000</button>
+                  </div>
+                </div>
+              </article>
+
+              <!-- 3. Algorithm Recalculation (ARec) -->
+              <article class="element-card" id="card-arec" style="display: none;">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Facility Masterwork</span>
+                    <h4 class="element-card__title">Algorithm Recalculation (ARec)</h4>
+                  </div>
+                  <span class="badge badge--success">UNLOCKED</span>
+                </div>
+                <p class="element-card__desc">
+                  Requires and consumes <strong>12 AUpg</strong>. Base strength: <strong>576e-15 J/s</strong> (doubles Energy; trade-off: Data falls 108 → 81).
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned / Produced (Cycle):</span>
+                    <span class="metric-row__val" data-field="arec-owned">0 / 0</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Strength per unit:</span>
+                    <span class="metric-row__val" data-field="arec-unit-strength">576.00 fJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Total Contribution:</span>
+                    <span class="metric-row__val" data-field="arec-contribution" style="color: var(--cyan);">0.00 pJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Study Duration:</span>
+                    <span class="metric-row__val" data-field="arec-duration">0.50s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Auto Chips Assigned:</span>
+                    <span class="metric-row__val" data-field="arec-workers">0</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="study-feature" data-target="ARec" data-count="1" data-field="arec-study-btn">
+                    STUDY 1 A.REC (12 AUpg)
+                  </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="ARec" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="ARec" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="ARec" data-count="1000">+1000</button>
+                  </div>
+                </div>
+              </article>
             </div>
           </div>
-        </div>
-        <span class="science-tree__trunk" aria-hidden="true"></span>
-        <div class="science-tree__splitter" aria-hidden="true"><span></span><i></i><span></span></div>
-        <div class="science-tree__branches">
-          ${SCIENCE_PERK_BRANCHES.map((branch) => renderScienceBranch(branch, state, config)).join("")}
-        </div>
-      </div>
-    </section>
-  `;
-}
 
-function renderParticleSynthesizerDevice(state, config) {
-  const availability = evaluateComponent("particleSynthesizer", state, config);
-  if (!availability.visible && !canAccessParticleLab(state, config)) return "";
+          <!-- D. Direct Energy Devices (§18.D) -->
+          <div class="panel">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Infrastructure</span>
+                <h3 class="element-card__title">Direct Energy Devices</h3>
+              </div>
+            </div>
 
-  const progress = calculateParticleSynthesizerProgress(state, config);
-  const nextSciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedSciencePoints = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
-  const isReady = availability.enabled;
+            <div class="rebuild-grid" style="margin-top: 14px;">
+              <!-- CRC Gadget -->
+              <article class="element-card">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Production Boost</span>
+                    <h4 class="element-card__title">CRC Gadget</h4>
+                  </div>
+                  <span class="badge" data-field="crc-gadget-badge">AVAILABLE</span>
+                </div>
+                <p class="element-card__desc">
+                  Permanently doubles CRC Energy Production rate (<strong>2x</strong>).
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned:</span>
+                    <span class="metric-row__val" data-field="crc-gadget-owned">0 / 1</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Cost:</span>
+                    <span class="metric-row__val" data-field="crc-gadget-cost">10.00 nJ</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="crcGadget" data-count="1" data-field="crc-gadget-btn">
+                    BUY CRC GADGET — 10.00 nJ
+                  </button>
+                </div>
+              </article>
 
-  return `
-    <article class="panel science-panel">
-      ${helpNote("Activation always spends 100 GJ. Science Points and quarks are calculated from the Stored Energy held at activation.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Science", isReady ? "Ready" : "Standby")}
-        <span class="card-subsystem">Synthesis Core</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">CHAMBER APPARATUS</p>
-          <h2>Particle Sintetizer</h2>
-        </div>
-        ${headingAction(
-          isReady ? "Activate" : "Charging",
-          "open-particle-synthesis",
-          {
-            cost: availability.cost,
-            disabled: !isReady,
-            variant: isReady ? "primary" : "ghost",
-          },
-        )}
-      </div>
-      <p class="muted">
-        ${
-          (state.science?.syntheses ?? 0) > 0
-            ? "The laboratory control route is stable enough to initiate another full-energy synthesis."
-            : state.particleSynthesizer?.awakened
-              ? "The monumental toroidal accelerator in the adjacent chamber is humming with contained power, ready to breach the atomic barrier."
-              : "Inside the adjacent chamber, dormant machines surround the massive circular vacuum apparatus, waiting for sufficient charge to awaken."
-        }
-      </p>
-      ${progressBar(progress, "Particle Sintetizer activation charge", "door", "particle-synthesizer-device")}
-      ${progressBar(big(state.energy).div(nextSciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
-      <div class="metric-row">
-        <span>Fixed activation cost</span>
-        <strong>${formatEnergy(calculateParticleSynthesizerCost(state, config))}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Stored Energy</span>
-        <strong>${formatEnergy(state.energy)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>SP gained on Sintetization</span>
-        <strong data-field="science-sp-on-synthesis">${projectedSciencePoints}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Energy threshold for next SP</span>
-        <strong data-field="science-point-cost">${formatEnergy(nextSciencePointCost)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Quarks gained on Sintetization</span>
-        <strong data-field="device-quarks-on-synthesis">${projectedQuarks}</strong>
-      </div>
-    </article>
-  `;
-}
+              <!-- Capacitor -->
+              <article class="element-card" id="card-capacitor">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">AImp Amplification</span>
+                    <h4 class="element-card__title">Capacitor</h4>
+                  </div>
+                  <span class="badge" data-field="capacitor-badge">LOCKED</span>
+                </div>
+                <p class="element-card__desc">
+                  Increases A.Improvement Energy contribution by <strong>+50%</strong> per unit. Unlocks after 1st Machine Learning.
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned:</span>
+                    <span class="metric-row__val" data-field="capacitor-owned">0</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">AImp Multiplier:</span>
+                    <span class="metric-row__val" data-field="capacitor-mult" style="color: var(--cyan);">1.00x</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Next Cost:</span>
+                    <span class="metric-row__val" data-field="capacitor-next-cost">10.00 nJ</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="capacitor" data-count="1" data-field="capacitor-btn">
+                    BUY CAPACITOR
+                  </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="capacitor" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="capacitor" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="capacitor" data-count="1000">+1000</button>
+                  </div>
+                </div>
+              </article>
 
-function renderParticleLabTelemetry(state, config) {
-  const availability = evaluateComponent("particleSynthesizer", state, config);
-  const isAwakened = Boolean(
-    state.particleSynthesizer?.awakened || (state.science?.syntheses ?? 0) > 0,
-  );
-  const isReady = availability.enabled;
-
-  return `
-    <article class="panel">
-      <div class="panel__header-row">
-        ${renderCardTags("Telemetry", isAwakened ? "Online" : "Standby")}
-        <span class="card-subsystem">Sector B Chamber</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">CHAMBER STATUS</p>
-          <h2>Laboratory Telemetry</h2>
-        </div>
-        ${statusPill(
-          isReady ? "ONLINE" : isAwakened ? "PRIMED" : "DORMANT",
-          isReady ? "online" : "locked",
-        )}
-      </div>
-      <div class="metric-row">
-        <span>Synthesizer Status</span>
-        <strong>${isReady ? "Ready for Activation" : isAwakened ? "Charging" : "Dormant"}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Activation Threshold</span>
-        <strong>${formatEnergy(calculateParticleSynthesizerCost(state, config))}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Stored Energy</span>
-        <strong>${formatEnergy(state.energy)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Total Syntheses</span>
-        <strong>${state.science?.syntheses ?? 0}</strong>
-      </div>
-      <p class="muted">Particle Synthesis channels accumulated Stored Energy through the toroidal accelerator to forge Science Points and Quarks, resetting the physical Energy Layer.</p>
-    </article>
-  `;
-}
-
-function renderParticleSynthesisModal(state, config) {
-  const modal = state.ui?.particleSynthesisModal;
-  if (!modal) return "";
-
-  if (modal === "narrative") {
-    return `
-      <div class="modal-backdrop">
-        <section class="synthesis-modal" role="dialog" aria-modal="true" aria-labelledby="synthesis-narrative-title">
-          <p class="panel__label">PARTICLE SYNTHESIS // FIRST ACTIVATION</p>
-          <h2 id="synthesis-narrative-title">The structure answers.</h2>
-          <div class="synthesis-modal__narrative">
-            <p>The laboratory rings ignite in sequence. For a fraction of a second, the entire facility feeds one impossible concentration of energy into the central chamber.</p>
-            <p>A new signature appears on the display. Then the Sintetizer overloads. Protection circuits sever every route at once, and the facility falls dark.</p>
-            <p>When the first condenser returns, something survived the collapse: preserved scientific knowledge and the quarks formed during synthesis.</p>
+              <!-- Power Cells -->
+              <article class="element-card" id="card-powercell">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Storage Buffer</span>
+                    <h4 class="element-card__title">Power Cell</h4>
+                  </div>
+                  <span class="badge badge--success">STORAGE</span>
+                </div>
+                <p class="element-card__desc">
+                  Provides operational Energy capacity (1 mJ/cell). Main Stored Energy wallet is unconstrained. Persists across Facility Optimization.
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned Cells:</span>
+                    <span class="metric-row__val" data-field="powercell-owned">0</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Operational Capacity:</span>
+                    <span class="metric-row__val" data-field="powercell-capacity" style="color: var(--cyan);">0.00 pJ</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Next Cost:</span>
+                    <span class="metric-row__val" data-field="powercell-next-cost">1.00 J</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="powerCell" data-count="1" data-field="powercell-btn">
+                    BUY POWER CELL — 1.00 J
+                  </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="powerCell" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="powerCell" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="powerCell" data-count="1000">+1000</button>
+                  </div>
+                </div>
+              </article>
+            </div>
           </div>
-          <div class="synthesis-modal__era">
-            <h3>Science Era</h3>
-            <p>Science Points survive synthesis and unlock permanent principles in the Science Tree. Quarks are produced from the Stored Energy held at activation; quarks beyond safe Cage capacity decay over time.</p>
-            <p>The Particle Sintetizer is now located in <strong>Science Devices</strong>. Future activations will confirm their rewards before resetting the Energy Era again.</p>
+        </main>
+
+        <!-- TAB 2: EFFICIENCY & AUTOMATION -->
+        <main class="tab-content" id="tab-efficiency" style="display: none;">
+          <!-- A. Computer Learning (Soft Reset) (§19.A) -->
+          <div class="panel" style="margin-bottom: 20px;">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Computer Learning</span>
+                <h3 class="element-card__title">Machine Learning (Soft Reset)</h3>
+              </div>
+              <span class="badge badge--warning" data-field="ml-badge">THRESHOLD</span>
+            </div>
+            <p class="element-card__desc">
+              Advance global Computer Level to multiply overall Algorithm Performance by <strong>1.5^(L-1)</strong>.
+              Uses Available Data (XP). Resets algorithm inventories; preserves hardware and stored energy.
+            </p>
+            <div class="element-card__metrics">
+              <div class="metric-row">
+                <span class="metric-row__label">Current Computer Level:</span>
+                <span class="metric-row__val" data-field="ml-current-level" style="color: var(--amber); font-size: 1.1rem;">1</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Current AP Multiplier:</span>
+                <span class="metric-row__val" data-field="ml-multiplier" style="color: var(--cyan);">1.00x</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Available Data (XP):</span>
+                <span class="metric-row__val" data-field="ml-available-data" style="color: var(--violet);">0 / 693</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Data from Algorithms / Buffer:</span>
+                <span class="metric-row__val" data-field="ml-data-breakdown">0 / 0</span>
+              </div>
+            </div>
+            <div class="element-card__actions" style="margin-top: 10px;">
+              <button class="btn btn--block btn--eligible" data-action="run-machine-learning" data-field="ml-btn">
+                RUN MACHINE LEARNING (Req 693 Data)
+              </button>
+            </div>
           </div>
-          <div class="synthesis-modal__actions">
-            ${button("Enter Science Era", "close-particle-synthesis-narrative", { variant: "primary" })}
+
+          <!-- B. AutoCalculator Chips (§19.B) -->
+          <div class="panel" style="margin-bottom: 20px;" id="panel-chips">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Study Automation</span>
+                <h3 class="element-card__title">AutoCalculator Chips</h3>
+              </div>
+              <span class="badge" data-field="chip-badge">LOCKED</span>
+            </div>
+            <p class="element-card__desc">
+              Independent study workers. Assignable to any unlocked A-Feature. Respects study durations and input requirements.
+            </p>
+            <div class="element-card__metrics">
+              <div class="metric-row">
+                <span class="metric-row__label">Chips Owned:</span>
+                <span class="metric-row__val" data-field="chips-owned">0</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Next Cost (3e-11 * 4^N):</span>
+                <span class="metric-row__val" data-field="chips-next-cost">30.00 pJ</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Allocations (AImp / AUpg / ARec):</span>
+                <span class="metric-row__val" data-field="chips-allocation-label">0 / 0 / 0</span>
+              </div>
+            </div>
+            <div class="element-card__actions">
+              <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="chip" data-count="1" data-field="chip-btn">
+                BUY CHIP — 30.00 pJ
+              </button>
+              <div class="btn-group--bulk">
+                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="chip" data-count="10">+10</button>
+                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="chip" data-count="100">+100</button>
+                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="chip" data-count="1000">+1000</button>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
+              <span style="font-size: 0.8rem; color: var(--muted);">Reassign Chips:</span>
+              <button class="btn btn--sm" data-action="reassign-chip" data-from="AImp" data-to="AUpg">Move AImp → AUpg</button>
+              <button class="btn btn--sm" data-action="reassign-chip" data-from="AUpg" data-to="AImp">Move AUpg → AImp</button>
+              <button class="btn btn--sm" data-action="reassign-chip" data-from="AImp" data-to="ARec" data-field="chip-arec-btn" style="display: none;">Move AImp → ARec</button>
+            </div>
           </div>
-        </section>
+
+          <!-- C. Transistor Board (§19.C) -->
+          <div class="panel" style="margin-bottom: 20px;" id="panel-transistor-board">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Study Fleet Infrastructure</span>
+                <h3 class="element-card__title">Transistor Board & Transistor Allocation</h3>
+              </div>
+              <span class="badge" data-field="board-badge">LOCKED</span>
+            </div>
+            <p class="element-card__desc">
+              Purchased once to enable Transistor acquisition and distribution. Each allocated Transistor adds <strong>+5% Study Speed</strong> to its target.
+            </p>
+
+            <div id="board-purchase-box">
+              <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="transistorBoard" data-field="buy-board-btn">
+                BUY TRANSISTOR BOARD — 200.00 pJ
+              </button>
+            </div>
+
+            <div id="board-active-content" style="display: none; margin-top: 12px;">
+              <div class="element-card__metrics" style="margin-bottom: 12px;">
+                <div class="metric-row">
+                  <span class="metric-row__label">Total Transistors Purchased:</span>
+                  <span class="metric-row__val" data-field="transistor-total">0</span>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-row__label">Next Transistor Cost (3e-11 * 1.4^N):</span>
+                  <span class="metric-row__val" data-field="transistor-cost">30.00 pJ</span>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 14px;">
+                <button class="btn btn--eligible" data-action="buy-element" data-element-id="transistor" data-count="1" data-field="buy-transistor-btn">
+                  BUY TRANSISTOR (+1)
+                </button>
+                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="transistor" data-count="10">+10</button>
+                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="transistor" data-count="100">+100</button>
+                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="transistor" data-count="1000">+1000</button>
+              </div>
+
+              <table class="transistor-table">
+                <thead>
+                  <tr>
+                    <th>Study Target</th>
+                    <th>Allocated Transistors</th>
+                    <th>Effective Duration</th>
+                    <th>Speed Multiplier</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Algorithm Improvement (AImp)</strong></td>
+                    <td data-field="transistor-aimp-count">0</td>
+                    <td data-field="transistor-aimp-dur">0.50s</td>
+                    <td data-field="transistor-aimp-speed" style="color: var(--cyan);">1.00x</td>
+                    <td>
+                      <button class="btn btn--sm" data-action="reassign-transistor" data-from="AUpg" data-to="AImp">+1 from AUpg</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Algorithm Upgrade (AUpg)</strong></td>
+                    <td data-field="transistor-aupg-count">0</td>
+                    <td data-field="transistor-aupg-dur">0.50s</td>
+                    <td data-field="transistor-aupg-speed" style="color: var(--cyan);">1.00x</td>
+                    <td>
+                      <button class="btn btn--sm" data-action="reassign-transistor" data-from="AImp" data-to="AUpg">+1 from AImp</button>
+                    </td>
+                  </tr>
+                  <tr id="transistor-row-arec" style="display: none;">
+                    <td><strong>Algorithm Recalculation (ARec)</strong></td>
+                    <td data-field="transistor-arec-count">0</td>
+                    <td data-field="transistor-arec-dur">0.50s</td>
+                    <td data-field="transistor-arec-speed" style="color: var(--cyan);">1.00x</td>
+                    <td>
+                      <button class="btn btn--sm" data-action="reassign-transistor" data-from="AImp" data-to="ARec">+1 from AImp</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- D. Computing Devices (§19.D) -->
+          <div class="panel" style="margin-bottom: 20px;">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Hardware Synergies</span>
+                <h3 class="element-card__title">Computing Devices</h3>
+              </div>
+            </div>
+
+            <div class="rebuild-grid" style="margin-top: 14px;">
+              <!-- Microprocessor -->
+              <article class="element-card" id="card-microprocessor">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Exponential Multiplier</span>
+                    <h4 class="element-card__title">Microprocessor</h4>
+                  </div>
+                  <span class="badge" data-field="micro-badge">LOCKED</span>
+                </div>
+                <p class="element-card__desc">
+                  Geometrically amplifies the study speed of its selected target: <strong>1.12^T</strong> (where T is allocated Transistors).
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Target:</span>
+                    <span class="metric-row__val" data-field="micro-target" style="color: var(--blue-bright);">AImp</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Study Speed Bonus:</span>
+                    <span class="metric-row__val" data-field="micro-bonus" style="color: var(--cyan);">1.00x</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Cost:</span>
+                    <span class="metric-row__val">3.00 nJ</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="microprocessor" data-field="micro-btn">
+                    BUY MICROPROCESSOR — 3.00 nJ
+                  </button>
+                  <div style="display: flex; gap: 6px; margin-top: 6px;">
+                    <button class="btn btn--sm" data-action="set-micro-target" data-target="AImp">Target AImp</button>
+                    <button class="btn btn--sm" data-action="set-micro-target" data-target="AUpg">Target AUpg</button>
+                    <button class="btn btn--sm" data-action="set-micro-target" data-target="ARec" data-field="micro-arec-btn" style="display: none;">Target ARec</button>
+                  </div>
+                </div>
+              </article>
+
+              <!-- Overclocker -->
+              <article class="element-card" id="card-overclocker">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Sacrificial Burn</span>
+                    <h4 class="element-card__title">Overclocker</h4>
+                  </div>
+                  <span class="badge" data-field="overclock-badge">LOCKED</span>
+                </div>
+                <p class="element-card__desc">
+                  Consumes all allocated Transistors on target (min 2) to amplify Microprocessor bonus by <strong>(1 + T/3)</strong> for log(T)/log(1.5)s.
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Status:</span>
+                    <span class="metric-row__val" data-field="overclock-status" style="color: var(--amber);">INACTIVE</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Active Duration / Time Left:</span>
+                    <span class="metric-row__val" data-field="overclock-timer">0.0s / 0.0s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Cost:</span>
+                    <span class="metric-row__val">90.00 nJ</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="overclocker" data-field="overclock-buy-btn">
+                    BUY OVERCLOCKER — 90.00 nJ
+                  </button>
+                  <button class="btn btn--block btn--danger" data-action="activate-overclock" data-field="overclock-burn-btn" style="margin-top: 6px;">
+                    BURN TRANSISTORS & OVERCLOCK
+                  </button>
+                </div>
+              </article>
+
+              <!-- Processor -->
+              <article class="element-card" id="card-processor">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Device Efficiency</span>
+                    <h4 class="element-card__title">Processor</h4>
+                  </div>
+                  <span class="badge" data-field="processor-badge">LOCKED (FACILITY OPT)</span>
+                </div>
+                <p class="element-card__desc">
+                  Improves the performance of all other eligible Devices by <strong>+3%</strong> per unit. Unlocks after 1st Facility Optimization.
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned:</span>
+                    <span class="metric-row__val" data-field="processor-owned">0</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Device Bonus (1 + 0.03*P):</span>
+                    <span class="metric-row__val" data-field="processor-bonus" style="color: var(--cyan);">1.00x</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Next Cost:</span>
+                    <span class="metric-row__val" data-field="processor-cost">100.00 µJ</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="processor" data-count="1" data-field="processor-btn">
+                    BUY PROCESSOR — 100.00 µJ
+                  </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="processor" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="processor" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="processor" data-count="1000">+1000</button>
+                  </div>
+                </div>
+              </article>
+
+              <!-- Hard Disk -->
+              <article class="element-card" id="card-harddisk">
+                <div class="element-card__header">
+                  <div>
+                    <span class="element-card__category">Active Data Generation</span>
+                    <h4 class="element-card__title">Hard Disk</h4>
+                  </div>
+                  <span class="badge" data-field="harddisk-badge">LOCKED (FACILITY OPT)</span>
+                </div>
+                <p class="element-card__desc">
+                  Continuously consumes Energy to generate <strong>+3 Data/s</strong> per active Disk. Energy drain grows with running time.
+                </p>
+                <div class="element-card__metrics">
+                  <div class="metric-row">
+                    <span class="metric-row__label">Owned / State:</span>
+                    <span class="metric-row__val" data-field="harddisk-state">0 / OFF</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Data Production Rate:</span>
+                    <span class="metric-row__val" data-field="harddisk-rate" style="color: var(--violet);">0 Data/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Energy Drain:</span>
+                    <span class="metric-row__val" data-field="harddisk-drain" style="color: var(--red);">-0.00 pJ/s</span>
+                  </div>
+                  <div class="metric-row">
+                    <span class="metric-row__label">Buffer Content:</span>
+                    <span class="metric-row__val" data-field="harddisk-buffer">0 Data</span>
+                  </div>
+                </div>
+                <div class="element-card__actions">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="hardDisk" data-count="1" data-field="harddisk-btn">
+                    BUY HARD DISK — 10.00 µJ
+                  </button>
+                  <div style="display: flex; gap: 6px; margin-top: 6px;">
+                    <button class="btn btn--sm" data-action="set-harddisk-state" data-state="active">Active (On)</button>
+                    <button class="btn btn--sm btn--danger" data-action="set-harddisk-state" data-state="off">Turn Off (Wipe Buffer)</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <!-- E. Facility Optimization (Hard Reset) (§19.E) -->
+          <div class="panel" style="margin-bottom: 20px;" id="panel-facility-opt">
+            <div class="element-card__header">
+              <div>
+                <span class="element-card__category">Facility Prestige</span>
+                <h3 class="element-card__title">Facility Optimization (Hard Reset)</h3>
+              </div>
+              <span class="badge badge--warning" data-field="facility-opt-badge">REQUIREMENT</span>
+            </div>
+            <p class="element-card__desc">
+              Slightly improves the performance of all operational devices by <strong>1.09^H</strong> (+9% compounding per optimization).
+              <strong>Preserves Computer Level and Power Cells</strong>. Resets conventional hardware and energy. Unlocks ARec and Processor!
+            </p>
+            <div class="element-card__metrics">
+              <div class="metric-row">
+                <span class="metric-row__label">Completed Optimizations (H):</span>
+                <span class="metric-row__val" data-field="facility-opt-count" style="color: var(--cyan); font-size: 1.1rem;">0</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Required Computer Level (9 + 3*H):</span>
+                <span class="metric-row__val" data-field="facility-opt-req">Level 9</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-row__label">Permanent Device Multiplier:</span>
+                <span class="metric-row__val" data-field="facility-opt-mult" style="color: var(--amber);">1.00x</span>
+              </div>
+            </div>
+            <div class="element-card__actions" style="margin-top: 10px;">
+              <button class="btn btn--block btn--danger" data-action="perform-facility-optimization" data-field="facility-opt-btn">
+                PERFORM FACILITY OPTIMIZATION
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <!-- AUDIT LOG & DATA EXPORT PANEL (§22) -->
+        <div class="panel" style="margin-top: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h3 style="margin: 0;">Purchase & Action Audit Log</h3>
+              <span class="muted" data-field="audit-count">0 event(s) recorded</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn--sm" data-action="export-csv">Export CSV</button>
+              <button class="btn btn--sm" data-action="export-json">Export JSON</button>
+              <button class="btn btn--sm btn--danger" data-action="clear-audit">Clear</button>
+            </div>
+          </div>
+          <div class="audit-container">
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Cost</th>
+                  <th>Status</th>
+                  <th>Energy After</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--muted); padding: 18px;">
+                    No transactions recorded yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     `;
+    isMounted = true;
   }
 
-  const activationCost = calculateParticleSynthesizerCost(state, config);
-  const scienceGained = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const sciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const quarksGained = calculateQuarksGenerated(state.energy, config);
-
-  return `
-    <div class="modal-backdrop">
-      <section class="synthesis-modal" role="dialog" aria-modal="true" aria-labelledby="synthesis-confirm-title">
-        <p class="panel__label">IRREVERSIBLE SYNTHESIS</p>
-        <h2 id="synthesis-confirm-title">Activate Particle Sintetizer?</h2>
-        <p class="muted">This spends ${formatEnergy(activationCost)} and resets all Energy Era progress. Rewards use the Stored Energy held at activation.</p>
-        <div class="synthesis-modal__rewards">
-          <div>
-            <span>Science Points gained (${formatEnergy(sciencePointCost)} threshold)</span>
-            <strong>${scienceGained}</strong>
-          </div>
-          <div>
-            <span>Quarks gained</span>
-            <strong>${quarksGained}</strong>
-          </div>
-        </div>
-        <div class="synthesis-modal__actions">
-          ${button("Cancel", "cancel-particle-synthesis", { variant: "ghost" })}
-          ${button("Activate", "confirm-particle-synthesis", { variant: "primary" })}
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderQuarkCage(state, config) {
-  const availability = evaluateComponent("quarkCage", state, config);
-  if (!availability.visible) return "";
-
-  const currentCapacity = calculateQuarkCapacity(state, config);
-  const nextCapacity = calculateQuarkCapacity(
-    {
-      ...state,
-      scienceDevices: {
-        ...state.scienceDevices,
-        quarkCages: state.scienceDevices.quarkCages + 1,
-      },
-    },
-    config,
-  );
-
-  return `
-    <article class="panel science-panel">
-      ${helpNote("Quarks outside safe containment decay continuously. Quarks Cages are run hardware: synthesis resets cages, but the base containment of 1 quark remains.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Science", "Hardware")}
-        <span class="card-subsystem">Containment Unit</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Quarks Cage</h2>
-        </div>
-        ${headingAction("Install", "buy-quark-cage", {
-          cost: availability.cost,
-          count: state.scienceDevices.quarkCages,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">A high-energy containment chamber capable of stabilizing synthesized quarks and preventing their natural decay.</p>
-      <div class="metric-row">
-        <span>Safe containment</span>
-        <strong>${currentCapacity} -> ${nextCapacity} quarks</strong>
-      </div>
-      <div class="metric-row">
-        <span>Available Quarks</span>
-        <strong>${formatEngineering(state.quarks?.available ?? 0)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderFiftyGCalculator(state, config) {
-  const availability = evaluateComponent("fiftyGCalculator", state, config);
-  if (!availability.visible) return "";
-
-  const nextDuration = calculateAlgorithmUpgradeDuration(state, config, false);
-
-  return `
-    <article class="panel science-panel ${state.science.fiftyGCalculator ? "device-card--online" : ""}">
-      ${helpNote("Extends Auto Calculator routing to Algorithm Upgrades. Manual Upgrades remain instant; automated Upgrades use their growing execution time.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Science", "Automation")}
-        <span class="card-subsystem">Upgrade Pipeline</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>50G Calculator</h2>
-        </div>
-        ${
-          state.science.fiftyGCalculator
-            ? statusPill("ACTIVE", "online")
-            : headingAction("Study", "buy-fifty-g-calculator", {
-                cost: availability.cost,
-                costLabel: `${availability.cost} SP`,
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">Routes completed improvement sets into an automated algorithm reconstruction.</p>
-      <div class="metric-row">
-        <span>Effect</span>
-        <strong>Automates A. Upgrades with growing execution time</strong>
-      </div>
-      <div class="metric-row">
-        <span>Current automated duration</span>
-        <strong>${formatDuration(nextDuration)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderLog(state) {
-  const entries = state.log.length
-    ? state.log
-        .slice(0, 12)
-        .map(
-          (entry) => `
-            <li class="log-entry log-entry--${entry.tone}">
-              <time>${formatDuration(entry.at)}</time>
-              <span>${entry.message}</span>
-            </li>
-          `,
-        )
-        .join("")
-    : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
-
-  return `
-    <article class="panel log-panel">
-      <p class="panel__label">FACILITY LOG</p>
-      <ol class="log-list" data-latest-id="${state.log[0]?.id ?? ""}">${entries}</ol>
-    </article>
-  `;
-}
-
-function renderDevelopmentPanel(state) {
-  return `
-    <article class="panel dev-panel">
-      <p class="panel__label">DEVELOPMENT CONTROLS</p>
-      <div class="metric-row">
-        <span>Production multiplier</span>
-        <strong>x${state.devSettings.productionMultiplier}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Duration multiplier</span>
-        <strong>x${state.devSettings.durationMultiplier}</strong>
-      </div>
-      <div class="dev-actions">
-        ${button("Add 0.25 J", "dev-add-energy", { variant: "ghost" })}
-        ${button("Double Energy", "dev-add-large-energy", { variant: "ghost" })}
-        ${button("Complete Study", "dev-complete-study", { variant: "ghost" })}
-        ${button("Complete Upgrade", "dev-complete-upgrade", { variant: "ghost" })}
-        ${button("Force Blueprint", "dev-force-blueprint", { variant: "ghost" })}
-        ${button("Cycle Production", "dev-cycle-production", { variant: "ghost" })}
-        ${button("Cycle Duration", "dev-cycle-duration", { variant: "ghost" })}
-        ${button(state.ui?.devShowNews ? "Hide News (Dev)" : "Force News (Dev)", "dev-toggle-news", { variant: "ghost" })}
-        ${button("Cycle News", "cycle-news", { variant: "ghost" })}
-      </div>
-    </article>
-  `;
-}
-
-function renderNewsSection(state, newsList = DEFAULT_NEWS) {
-  if (state.ui?.newsDismissed) {
-    return "";
-  }
-
-  const currentItem = getNewsItem(newsList, state.ui?.currentNewsId);
-  const rarityNum = Number(currentItem?.rarity) || 1;
-  const rarityLabel = getRarityLabel(rarityNum);
-  const rarityClass = getRarityClass(rarityNum);
-  const showRarityBadge = rarityNum >= 2;
-
-  const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
-  const circumference = 37.7;
-  const initialOffset = (circumference * (1 - timerFraction)).toFixed(2);
-
-  return `
-    <aside class="news-section" role="region" aria-label="News Section">
-      <div class="news-section__badge">
-        <span class="news-section__pulse" aria-hidden="true"></span>
-        <span>NEWS FEED</span>
-      </div>
-      <div class="news-section__timer" title="Time to next dispatch (6s - pauses on hover)">
-        <svg class="news-timer-ring" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-          <circle class="news-timer-ring__bg" cx="8" cy="8" r="6" />
-          <circle class="news-timer-ring__fill" data-progress="news-timer" cx="8" cy="8" r="6" style="stroke-dashoffset: ${initialOffset};" />
-        </svg>
-      </div>
-      <span class="news-section__category" data-field="news-category">${currentItem?.category || "TELEMETRY"}</span>
-      <span class="news-section__rarity ${rarityClass}" data-field="news-rarity" style="${showRarityBadge ? "" : "display: none;"}">${showRarityBadge ? rarityLabel : ""}</span>
-      <div class="news-section__ticker" data-action="cycle-news" title="Click to cycle headline">
-        <span class="news-section__text" data-field="news-text">${currentItem?.text || "Monitoring facility background telemetry."}</span>
-      </div>
-      <div class="news-section__actions">
-        <button
-          type="button"
-          class="news-section__action-btn"
-          data-action="cycle-news"
-          title="Next news item"
-          aria-label="Next news item"
-        >↻</button>
-        <button
-          type="button"
-          class="news-section__close"
-          data-action="dismiss-news-section"
-          title="Close News Section"
-          aria-label="Close News Section"
-        >×</button>
-      </div>
-    </aside>
-  `;
-}
-
-function renderCompletion(state, newsList = DEFAULT_NEWS) {
-  return renderNewsSection(state, newsList);
-}
-
-function renderSection(title, label, note, content, className = "") {
-  return `
-    <section class="layer-section ${className}">
-      <div class="section-heading">
-        <div>
-          <p class="panel__label">${label}</p>
-          <h2>${title}</h2>
-        </div>
-        <p>${note}</p>
-      </div>
-      ${content}
-    </section>
-  `;
-}
-
-function renderDeviceGroup(group, content) {
-  const cleanContent = content.trim();
-  if (!cleanContent) return "";
-
-  return `
-    <section class="device-group" aria-label="${group.label}">
-      <div class="device-group__heading">
-        <div>
-          <p class="panel__label">${group.label.toUpperCase()}</p>
-          <h2>${group.label}</h2>
-        </div>
-        <p>${group.note}</p>
-      </div>
-      <div class="section-stack">${cleanContent}</div>
-    </section>
-  `;
-}
-
-function renderEnergyStorageSection(state, config) {
-  return `
-    <div class="energy-storage-header">
-      <span class="muted">Expand facility capacity to avoid overflow decay.</span>
-      ${renderBuyModeSelector(state)}
-    </div>
-    <div class="energy-storage-grid">
-      ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
-      ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
-    </div>
-  `;
-}
-
-function renderEnergyCascadeSection(state, config, developmentMode) {
-  const upgradeRendered = renderAlgorithmUpgrade(state, config);
-  const upgradeBonus = 2 ** state.upgrades;
-
-  return `
-    <div class="cascade-stage cascade-stage--crc">
-      ${renderCrcDevice(state, config, developmentMode)}
-      ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
-      ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
-    </div>
-
-    <div class="cascade-conduit" aria-hidden="true">
-      <div class="cascade-conduit__line"></div>
-      <div class="cascade-conduit__node">
-        <span class="cascade-conduit__icon">▼</span>
-        <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-        <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
-      </div>
-      <div class="cascade-conduit__line"></div>
-    </div>
-
-    <div class="cascade-stage cascade-stage--study">
-      ${renderStudy(state, config, developmentMode)}
-    </div>
-
-    ${
-      upgradeRendered.trim()
-        ? `
-      <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
-        <div class="cascade-conduit__line"></div>
-        <div class="cascade-conduit__node">
-          <span class="cascade-conduit__icon">▼</span>
-          <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
-          <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
-        </div>
-        <div class="cascade-conduit__line"></div>
-      </div>
-
-      <div class="cascade-stage cascade-stage--upgrade">
-        ${upgradeRendered}
-      </div>
-    `
-        : ""
-    }
-  `;
-}
-
-function renderEnergyResetsSection(state, config) {
-  return `
-    ${renderCalculationMethod(state, config)}
-    ${renderSetupOptimization(state, config)}
-  `;
-}
-
-function renderEnergyLabSection(state, config) {
-  if (!canAccessParticleLab(state, config)) return "";
-  const isAwakened = Boolean(
-    state.particleSynthesizer?.awakened || (state.science?.syntheses ?? 0) > 0,
-  );
-  return `
-    <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
-      <div class="device-group__heading">
-        <div>
-          <p class="panel__label">PARTICLE LABORATORY</p>
-          <h2>Adjacent Chamber</h2>
-        </div>
-        <p>High-energy conduits link to the Particle Synthesizer in the adjacent wing.</p>
-      </div>
-      <div class="section-stack">
-        <article class="panel">
-          <div class="panel__header-row">
-            ${renderCardTags("Chamber", isAwakened ? "Online" : "Standby")}
-            <span class="card-subsystem">Sector B</span>
-          </div>
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">CHAMBER INTERFACE</p>
-              <h2>Particle Synthesizer</h2>
-            </div>
-            <button class="button button--primary" data-action="set-tab" data-tab="science" type="button">
-              Access in Science Tab →
-            </button>
-          </div>
-          <p class="muted">
-            ${
-              isAwakened
-                ? "The colossal Particle Synthesizer in the adjacent room is powered and humming. Telemetry, controls, and synthesis activation are managed in the Science tab."
-                : `High-voltage conduits lead into the dark chamber next door. The apparatus will awaken once power reaches ${formatEnergy(config.particleLab.synthesizerEnergyRequired)}.`
-            }
-          </p>
-        </article>
-      </div>
-    </section>
-  `;
-}
-
-function renderEnergyTab(state, config, developmentMode) {
-  return `
-    <div data-subregion="energy-tools">${renderTabTools(state)}</div>
-    <div class="tab-grid energy-tab-layout">
-      <section class="tab-main-column">
-        <section class="energy-section" aria-label="Energy Storage">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">ENERGY STORAGE</p>
-              <h2>Containment & Capacity</h2>
-            </div>
-            <p>Power Cells and Power Modules are preserved across Setup Upgrades.</p>
-          </div>
-          <div class="section-stack">
-            <div class="energy-storage-section" data-subregion="energy-storage">
-              ${renderEnergyStorageSection(state, config)}
-            </div>
-          </div>
-        </section>
-
-        <section class="energy-section" aria-label="Energy Production Cascade">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">ENERGY PRODUCTION CASCADE</p>
-              <h2>Condensation & Algorithms</h2>
-            </div>
-            <p>CRCs harvest cosmic radiation, amplified by refined calculation algorithms.</p>
-          </div>
-          <div class="section-stack">
-            <div class="cascade-flow" data-subregion="energy-cascade">
-              ${renderEnergyCascadeSection(state, config, developmentMode)}
-            </div>
-          </div>
-        </section>
-
-        <section class="energy-section" aria-label="Breakthroughs and Reset Routes">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">BREAKTHROUGHS & RESET ROUTES</p>
-              <h2>Strategic Progression</h2>
-            </div>
-            <p>Soft and hard resets that reconfigure facility architecture for long-term growth.</p>
-          </div>
-          <div class="section-stack">
-            <div class="reset-routes-grid" data-subregion="energy-resets">
-              ${renderEnergyResetsSection(state, config)}
-            </div>
-          </div>
-        </section>
-
-        <div data-subregion="energy-lab">
-          ${renderEnergyLabSection(state, config)}
-        </div>
-      </section>
-
-      <aside class="tab-sidebar">
-        ${renderTelemetry(state, config, developmentMode)}
-        ${renderRecord()}
-      </aside>
-    </div>
-  `;
-}
-
-function renderComputationalDevicesSection(state, config, developmentMode) {
-  return `
-    ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
-    ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
-    ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
-    ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
-  `;
-}
-
-function renderInstrumentationSection(state, config) {
-  return `
-    ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
-    ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
-  `;
-}
-
-function renderAutomationTab(state, config, developmentMode, saveSlots) {
-  const impRate =
-    state.devices.autoCalculators > 0
-      ? calculateImprovementRatePerSecond(state, config, developmentMode)
-      : 0;
-  const fleetSummary = `
-    <article class="panel fleet-summary-panel">
-      <p class="panel__label">COMPUTATIONAL FLEET</p>
-      <div class="panel__heading">
-        <div>
-          <h2>Automation Fleet Telemetry</h2>
-        </div>
-        ${statusPill(impRate > 0 ? `${formatRate(impRate).replace("/s", "")} imp/s` : "IDLE", impRate > 0 ? "online" : "")}
-      </div>
-      <div class="metric-row">
-        <span>Auto Calculators</span>
-        <strong>${state.devices.autoCalculators} units</strong>
-      </div>
-      <div class="metric-row">
-        <span>Processors (Amplification)</span>
-        <strong>${state.devices.processors} units (x${calculateProcessorEfficiencyMultiplier(state, config).toFixed(2)})</strong>
-      </div>
-      <div class="metric-row">
-        <span>Overclocker status</span>
-        <strong>${
-          state.devices.overclockers > 0
-            ? state.overclocker?.active
-              ? `ONLINE (x${calculateOverclockerSpeedMultiplier(state, config).toFixed(2)})`
-              : state.overclocker?.activeSeconds > 0
-                ? "COOLING"
-                : "READY"
-            : "NOT INSTALLED"
-        }</strong>
-      </div>
-    </article>
-  `;
-
-  const unlockedAutomations = listUnlockedAutomations(state);
-  const automationsContent = `
-    <div class="automations-stack">
-      ${renderFiftyGCalculator(state, config)}
-      ${
-        unlockedAutomations.length
-          ? `
-        <article class="panel automations-panel">
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">CONTROL LOOP</p>
-              <h2>Automation Toggles</h2>
-            </div>
-            ${statusPill(`${unlockedAutomations.length} UNLOCKED`, "online")}
-          </div>
-          <div class="automation-list">
-            ${unlockedAutomations
-              .map((automation) => {
-                const enabled = isAutomationEnabled(state, automation.id);
-                const acquired = automation.isAcquired(state);
-                return `
-                  <div class="automation-row ${enabled ? "automation-row--on" : ""}">
-                    <div>
-                      <strong>${automation.name}</strong>
-                      <p class="muted">${automation.description}</p>
-                      <small>${
-                        acquired
-                          ? enabled
-                            ? "ONLINE"
-                            : "PAUSED"
-                          : "UNLOCKED // CURRENTLY OFFLINE"
-                      }</small>
-                    </div>
-                    <button
-                      class="toggle-control ${enabled ? "toggle-control--on" : ""}"
-                      data-action="toggle-automation"
-                      data-automation-id="${automation.id}"
-                      type="button"
-                      role="switch"
-                      aria-checked="${enabled}"
-                    >
-                      <span aria-hidden="true"></span>
-                      <strong>${enabled ? "Enabled" : "Disabled"}</strong>
-                    </button>
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
-        </article>
-      `
-          : ""
-      }
-    </div>
-  `;
-
-  const diagnosticsAndSaves = `
-    <div class="diagnostics-stack">
-      ${state.devices.t2SoftDataDisplay ? renderMeasureTab(state, config, developmentMode) : ""}
-      <article class="panel">
-        <p class="panel__label">RUN DATA</p>
-        <div class="metric-row">
-          <span>Total play time</span>
-          <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Current run time</span>
-          <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Total condensed</span>
-          <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Peak stored</span>
-          <strong>${formatEnergy(state.peakEnergy)}</strong>
-        </div>
-      </article>
-      ${renderLog(state)}
-      <div data-subregion="auto-save">
-        ${renderSaveManagement(saveSlots, developmentMode)}
-      </div>
-    </div>
-  `;
-
-  return `
-    <div data-subregion="auto-tools">${renderTabTools(state)}</div>
-    <div class="tab-grid">
-      <section class="tab-main-column">
-        <div data-subregion="auto-fleet">${fleetSummary}</div>
-        <section class="device-group" aria-label="Computational Devices">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">COMPUTATIONAL HARDWARE</p>
-              <h2>Processing & Automation</h2>
-            </div>
-            <p>Calculators and processors accelerate study throughput and automate routine operations.</p>
-          </div>
-          <div class="section-stack">
-            <div class="computational-devices-stack" data-subregion="auto-compute">
-              ${renderComputationalDevicesSection(state, config, developmentMode)}
-            </div>
-          </div>
-        </section>
-
-        <section class="device-group" aria-label="Instrumentation & Displays">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">INSTRUMENTATION & DISPLAYS</p>
-              <h2>Telemetry & Data Feeds</h2>
-            </div>
-            <p>Diagnostic modules that unlock purchase controls and detailed energy telemetry.</p>
-          </div>
-          <div class="section-stack">
-            <div class="instrumentation-stack" data-subregion="auto-instrumentation">
-              ${renderInstrumentationSection(state, config)}
-            </div>
-          </div>
-        </section>
-
-        <section class="device-group" aria-label="Automations">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">AUTOMATIONS</p>
-              <h2>Automated Routing</h2>
-            </div>
-            <p>Background routines unlocked through study and scientific advancement.</p>
-          </div>
-          <div class="section-stack">
-            <div data-subregion="auto-routines">${automationsContent}</div>
-          </div>
-        </section>
-      </section>
-
-      <aside class="tab-side-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">DIAGNOSTICS & SYSTEM</p>
-            <h2>Facility Telemetry & Storage</h2>
-          </div>
-          <p>Real-time telemetry breakdown and local persistence slots.</p>
-        </div>
-        <div class="section-stack">${diagnosticsAndSaves}</div>
-      </aside>
-    </div>
-  `;
-}
-
-function renderDevicesTab(state, config, developmentMode) {
-  return renderEnergyTab(state, config, developmentMode);
-}
-
-function renderStudiesTab(state, config, developmentMode) {
-  return renderEnergyTab(state, config, developmentMode);
-}
-
-function renderScienceSubtabs(state) {
-  const active = state.ui?.activeScienceSubtab ?? "tree";
-  return `
-    <nav class="tabbar tabbar--nested" aria-label="Science sections">
-      <button class="tabbar__button ${active === "tree" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="tree" type="button">Science Tree</button>
-      <button class="tabbar__button ${active === "devices" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="devices" type="button">Science Devices</button>
-    </nav>
-  `;
-}
-
-function renderScienceTab(state, config) {
-  const labReadable = canAccessParticleLab(state, config);
-  const activeSubtab =
-    state.ui?.activeScienceSubtab ??
-    ((state.science?.syntheses ?? 0) > 0 ? "tree" : "devices");
-  const treeContent = `
-    <div class="device-group__heading">
-      <div>
-        <p class="panel__label">SCIENCE</p>
-        <h2>Science Tree</h2>
-      </div>
-      <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
-    </div>
-    <div class="science-tree-layout-v2">
-      <div class="science-tree-layout-v2__main">
-        ${renderScienceStatus(state, config)}
-        ${renderScienceTree(state, config)}
-      </div>
-      <div class="science-tree-layout-v2__drawer">
-        ${renderSciencePerkDrawer(state, config)}
-      </div>
-    </div>
-  `;
-  const devicesContent = `
-    <div class="device-group__heading">
-      <div>
-        <p class="panel__label">SCIENCE DEVICES</p>
-        <h2>Laboratory Hardware</h2>
-      </div>
-      <p>Hardware for particle synthesis and safe quark containment.</p>
-    </div>
-    <div class="section-stack">
-      ${renderScienceStatus(state, config)}
-      ${renderParticleSynthesizerDevice(state, config)}
-      ${renderComponent("quarkCage", state, config, () => renderQuarkCage(state, config)) || '<p class="empty-note">No science device is readable yet.</p>'}
-    </div>
-  `;
-
-  return `
-    ${renderTabTools(state)}
-    ${renderScienceSubtabs(state)}
-    ${
-      activeSubtab === "tree"
-        ? `
-      <div class="tab-grid tab-grid--single science-tree-layout">
-        <section class="tab-main-column">${treeContent}</section>
-      </div>
-    `
-        : `
-    <div class="tab-grid">
-      <section class="tab-main-column">${devicesContent}</section>
-      <aside class="tab-side-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">LAB</p>
-            <h2>Particle Laboratory</h2>
-          </div>
-          <p>Sector B Chamber & Telemetry.</p>
-        </div>
-        <div class="section-stack">
-          ${
-            !labReadable
-              ? '<p class="empty-note">Particle Laboratory signal is not readable in this run yet.</p>'
-              : renderParticleLabTelemetry(state, config)
-          }
-        </div>
-      </aside>
-    </div>
-    `
-    }
-  `;
-}
-
-function renderHistoryTab(state) {
-  const activeFilter = state.ui?.historyFilter ?? "all";
-  const history = state.history || [];
-
-  const filteredHistory = history.filter((entry) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "narrative") return entry.kind === "Narrative";
-    if (activeFilter === "discoveries") return entry.kind === "Discoveries";
-    if (activeFilter === "milestones") return entry.kind === "Milestones";
-    return true;
-  });
-
-  const sortedHistory = [...filteredHistory].reverse();
-
-  return `
-    ${renderTabTools(state)}
-    <div class="history-view">
-      <div class="device-group__heading">
-        <div>
-          <p class="panel__label">ARCHIVE</p>
-          <h2>Facility History & Narrative Log</h2>
-        </div>
-        <p>A persistent chronicle of facility breakthroughs, anomalies, and milestone discoveries.</p>
-      </div>
-
-      <div class="history-filter-bar" role="group" aria-label="History categories">
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "all" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="all"
-        >
-          All (${history.length})
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "narrative" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="narrative"
-        >
-          Narrative (${history.filter((h) => h.kind === "Narrative").length})
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "discoveries" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="discoveries"
-        >
-          Discoveries (${history.filter((h) => h.kind === "Discoveries").length})
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "milestones" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="milestones"
-        >
-          Milestones (${history.filter((h) => h.kind === "Milestones").length})
-        </button>
-      </div>
-
-      <div class="history-list" role="feed" aria-label="History entries">
-        ${
-          sortedHistory.length === 0
-            ? '<p class="empty-note">No historical records in this archive category yet.</p>'
-            : sortedHistory
-                .map((entry) => `
-                  <article class="panel history-entry-card" tabindex="0">
-                    <div class="panel__heading">
-                      <div>
-                        <span class="card-tag card-tag--${entry.kind.toLowerCase()}">${entry.kind}</span>
-                        <h3>${entry.title}</h3>
-                      </div>
-                      <time class="muted">${formatDuration(entry.at)}</time>
-                    </div>
-                    <p class="history-snippet">${entry.summary || (entry.body ? entry.body.slice(0, 140) + "..." : "")}</p>
-                    <div class="panel__action">
-                      <button
-                        type="button"
-                        class="button button--ghost button--compact"
-                        data-action="open-history-entry"
-                        data-history-id="${entry.id}"
-                      >
-                        Read Full Record
-                      </button>
-                    </div>
-                  </article>
-                `)
-                .join("")
-        }
-      </div>
-    </div>
-  `;
-}
-
-function renderStatisticsTab(state) {
-  return `
-    <div class="tab-grid">
-      <section class="tab-main-column">
-        ${renderRecord()}
-        ${renderLog(state)}
-      </section>
-      <aside class="tab-side-column">
-        <article class="panel">
-          <p class="panel__label">RUN DATA</p>
-          <div class="metric-row">
-            <span>Total play time</span>
-            <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Current run time</span>
-            <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Total condensed</span>
-            <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Peak stored</span>
-            <strong>${formatEnergy(state.peakEnergy)}</strong>
-          </div>
-        </article>
-      </aside>
-    </div>
-  `;
-}
-
-function renderAutomationsTab(state) {
-  const rows = listUnlockedAutomations(state);
-
-  return `
-    <div class="tab-grid tab-grid--single">
-      <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">AUTOMATIONS</p>
-            <h2>Active Routing Controls</h2>
-          </div>
-          <p>Pause or resume every automation this run has enabled. Unlocks stay listed after prestige resets.</p>
-        </div>
-        <article class="panel automations-panel">
-          ${helpNote("These switches only stop automatic actions. Owned devices and purchased Science perks keep their other bonuses.")}
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">CONTROL LOOP</p>
-              <h2>Automation Toggles</h2>
-            </div>
-            ${statusPill(`${rows.length} UNLOCKED`, "online")}
-          </div>
-          <div class="automation-list">
-            ${rows
-              .map((automation) => {
-                const enabled = isAutomationEnabled(state, automation.id);
-                const acquired = automation.isAcquired(state);
-                return `
-                  <div class="automation-row ${enabled ? "automation-row--on" : ""}">
-                    <div>
-                      <strong>${automation.name}</strong>
-                      <p class="muted">${automation.description}</p>
-                      <small>${
-                        acquired
-                          ? enabled
-                            ? "ONLINE"
-                            : "PAUSED"
-                          : "UNLOCKED // CURRENTLY OFFLINE"
-                      }</small>
-                    </div>
-                    <button
-                      class="toggle-control ${enabled ? "toggle-control--on" : ""}"
-                      data-action="toggle-automation"
-                      data-automation-id="${automation.id}"
-                      type="button"
-                      role="switch"
-                      aria-checked="${enabled}"
-                    >
-                      <span aria-hidden="true"></span>
-                      <strong>${enabled ? "Enabled" : "Disabled"}</strong>
-                    </button>
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
-        </article>
-      </section>
-    </div>
-  `;
-}
-
-function renderMeasureTab(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const breakdown = calculateProductionBreakdown(
-    state,
-    config,
-    developmentMode,
-  );
-
-  return `
-    <div class="tab-grid tab-grid--single">
-      <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">MEASURE</p>
-            <h2>Energy Production Composition</h2>
-          </div>
-          <p>T2 Soft Display reads the live condenser route and separates the current output into source layers.</p>
-        </div>
-        <article class="panel measure-panel">
-          ${helpNote("This panel shows raw energy production before overflow decay. Percentages represent each component's share of current production.")}
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">T2 SOFT DISPLAY // ONLINE</p>
-              <h2>Current Output</h2>
-            </div>
-            ${statusPill(formatRate(production), "online")}
-          </div>
-          <div class="measure-table" role="table" aria-label="Energy production composition">
-            <div class="measure-table__row measure-table__row--head" role="row">
-              <span>Factor</span>
-              <span>Multiplier</span>
-              <span>Added output</span>
-              <span>Running output</span>
-              <span>Share</span>
-            </div>
-            ${breakdown
-              .map((row) => {
-                const share = production.gt(0)
-                  ? row.value.div(production).toNumber()
-                  : 0;
-                return `
-                  <div class="measure-table__row" role="row">
-                    <span><strong>${row.label}</strong><small>${row.detail}</small></span>
-                    <strong>${row.multiplierLabel}</strong>
-                    <strong>${formatRate(row.value)}</strong>
-                    <strong>${formatRate(row.output)}</strong>
-                    <strong>${formatPercent(share)}</strong>
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
-          <div class="metric-row measure-total">
-            <span>Total raw production</span>
-            <strong>${formatRate(production)}</strong>
-          </div>
-        </article>
-      </section>
-    </div>
-  `;
-}
-
-function renderSaveTab(saveSlots, developmentMode) {
-  return `
-    <div class="tab-grid tab-grid--single">
-      ${renderSaveManagement(saveSlots, developmentMode)}
-    </div>
-  `;
-}
-
-function renderTabContent(
-  activeTab,
-  state,
-  config,
-  developmentMode,
-  saveSlots,
-) {
-  if (
-    activeTab === "automation" ||
-    activeTab === "automations" ||
-    activeTab === "measure" ||
-    activeTab === "statistics" ||
-    activeTab === "save"
-  ) {
-    return renderAutomationTab(state, config, developmentMode, saveSlots);
-  }
-  if (activeTab === "science") return renderScienceTab(state, config);
-  if (activeTab === "history") return renderHistoryTab(state);
-  return renderEnergyTab(state, config, developmentMode);
-}
-
-function renderResetConfirmationModal(state, config) {
-  const modalType = state.ui?.resetModal;
-  if (!modalType) return "";
-
-  const preview = getResetPreviewData(state, config, modalType);
-  if (!preview) return "";
-
-  const isHard = modalType === "setup" || modalType === "synthesis";
-
-  return `
-    <div class="modal-backdrop">
-      <section
-        class="reset-modal ${isHard ? "reset-modal--hard" : ""}"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reset-modal-title"
-      >
-        <p class="panel__label">${isHard ? "IRREVERSIBLE LAYER RESET" : "CALCULATION RESTRUCTURING"}</p>
-        <h2 id="reset-modal-title">${preview.title}</h2>
-
-        <div class="reset-modal__section reset-modal__section--gain">
-          <strong class="reset-modal__label">Gained:</strong>
-          <p>${preview.gain}</p>
-        </div>
-
-        <div class="reset-modal__section reset-modal__section--lost">
-          <strong class="reset-modal__label">Reset / Discarded:</strong>
-          <p>${preview.lost}</p>
-        </div>
-
-        <div class="reset-modal__section reset-modal__section--preserved">
-          <strong class="reset-modal__label">Preserved:</strong>
-          <p>${preview.preserved}</p>
-        </div>
-
-        ${
-          preview.warnings
-            ? `
-          <div class="reset-modal__section reset-modal__section--warning">
-            <strong class="reset-modal__label">Warning:</strong>
-            <p>${preview.warnings}</p>
-          </div>
-        `
-            : ""
-        }
-
-        <div class="reset-modal__actions">
-          <button
-            type="button"
-            class="button button--ghost"
-            data-action="cancel-reset-modal"
-            autofocus
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="button ${isHard ? "button--danger" : "button--primary"}"
-            data-action="confirm-reset-modal"
-            ${preview.isEligible ? "" : "disabled"}
-          >
-            Confirm ${preview.type === "cmu" ? "Improvement" : preview.type === "setup" ? "Upgrade" : "Synthesis"}
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderHistoryReadingModal(state) {
-  const entry = state.ui?.historyModalEntry;
-  if (!entry) return "";
-
-  return `
-    <div class="modal-backdrop">
-      <section
-        class="history-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="history-modal-title"
-      >
-        <div class="panel__heading">
-          <div>
-            <p class="panel__label">ARCHIVE RECORD // ${entry.kind.toUpperCase()}</p>
-            <h2 id="history-modal-title">${entry.title}</h2>
-          </div>
-          <time class="muted">${formatDuration(entry.at)}</time>
-        </div>
-
-        <div class="history-modal__body">
-          <p>${entry.body.replace(/\n\n/g, "</p><p>")}</p>
-        </div>
-
-        <div class="history-modal__actions">
-          <button
-            type="button"
-            class="button button--ghost"
-            data-action="close-history-modal"
-            autofocus
-          >
-            Close Archive Record
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function setField(app, key, value) {
-  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
-    if (element.textContent !== value) {
-      element.textContent = value;
-      if (key === "news-text") {
-        const ticker = element.closest(".news-section__ticker");
-        if (ticker) {
-          ticker.classList.remove("news-fade-in");
-          void ticker.offsetWidth;
-          ticker.classList.add("news-fade-in");
-        }
-      }
-    }
-  }
-}
-
-function setHtmlField(app, key, value) {
-  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
-    if (element.innerHTML !== value) element.innerHTML = value;
-  }
-}
-
-function setProgress(app, key, value) {
-  const percentage = clamp(value, 0, 1) * 100;
-  const progress = app.querySelector(`[data-progress="${key}"]`);
-  const fill = progress?.querySelector(".progress__fill");
-
-  if (!progress || !fill) return;
-
-  const prev = parseFloat(progress.getAttribute("aria-valuenow") || "0");
-  if (percentage < prev) {
-    if (fill.style) {
-      fill.style.transition = "none";
-      fill.style.width = `${percentage}%`;
-      void fill.offsetWidth;
-      fill.style.transition = "";
-    } else {
-      fill.style.width = `${percentage}%`;
-    }
-  } else {
-    fill.style.width = `${percentage}%`;
-  }
-  progress.setAttribute("aria-valuenow", percentage.toFixed(1));
-}
-
-function updateLogList(app, state) {
-  const logLists = app.querySelectorAll(".log-list");
-  if (!logLists.length) return;
-  const currentLatestId = state.log[0]?.id ?? "";
-  for (const logList of logLists) {
-    if (logList.dataset.latestId === currentLatestId) continue;
-    logList.dataset.latestId = currentLatestId;
-    const entries = state.log.length
-      ? state.log
-          .slice(0, 12)
-          .map(
-            (entry) => `
-              <li class="log-entry log-entry--${entry.tone}">
-                <time>${formatDuration(entry.at)}</time>
-                <span>${entry.message}</span>
-              </li>
-            `,
-          )
-          .join("")
-      : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
-    logList.innerHTML = entries;
-  }
-}
-
-function updateInteractiveElements(app, state, config) {
-  for (const [componentId, spec] of Object.entries(COMPONENT_REGISTRY)) {
-    if (!spec.action) continue;
-    const button = app.querySelector(`[data-action="${spec.action}"]`);
-    if (!button) continue;
-    const evalResult = evaluateComponent(componentId, state, config);
-    const shouldBeDisabled = !evalResult.enabled;
-    if (button.disabled !== shouldBeDisabled) {
-      button.disabled = shouldBeDisabled;
-      if (shouldBeDisabled) {
-        button.classList.remove("button--primary", "button--danger");
-        button.classList.add("button--ghost");
-      } else {
-        button.classList.remove("button--ghost");
-        if (spec.action === "claim-setup") {
-          button.classList.add("button--danger");
-        } else {
-          button.classList.add("button--primary");
-        }
-      }
-    }
-  }
-
-  // Study button
-  const studyBtn = app.querySelector('[data-action="start-study"]');
-  if (studyBtn) {
-    const isAutoActive = isAutoCalculatorAutomationActive(state);
-    const shouldBeDisabled = Boolean(state.study.active || isAutoActive);
-    if (studyBtn.disabled !== shouldBeDisabled) {
-      studyBtn.disabled = shouldBeDisabled;
-      if (shouldBeDisabled) {
-        studyBtn.classList.remove("button--primary");
-        studyBtn.classList.add("button--ghost");
-      } else {
-        studyBtn.classList.remove("button--ghost");
-        studyBtn.classList.add("button--primary");
-      }
-    }
-    const span = studyBtn.querySelector("span");
-    const label = state.study.active ? "Running" : "Start Study";
-    const fullText = `${label} (${state.improvements})`;
-    if (span && span.textContent !== fullText) span.textContent = fullText;
-  }
-
-  // Algorithm Upgrade Panel & Button
-  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
-  const upgradeReady = state.improvements >= reqUpgrade;
-  const upgradePanel = app.querySelector(".panel--upgrade");
-  if (upgradePanel) {
-    upgradePanel.classList.toggle("panel--upgrade-ready", upgradeReady);
-  }
-  const upgradeBtn = app.querySelector('[data-action="start-algorithm-upgrade"]');
-  if (upgradeBtn) {
-    const shouldBeDisabled = !upgradeReady || state.algorithmUpgradeStudy.active;
-    if (upgradeBtn.disabled !== shouldBeDisabled) {
-      upgradeBtn.disabled = shouldBeDisabled;
-      if (shouldBeDisabled) {
-        upgradeBtn.classList.remove("button--primary");
-        upgradeBtn.classList.add("button--ghost");
-      } else {
-        upgradeBtn.classList.remove("button--ghost");
-        upgradeBtn.classList.add("button--primary");
-      }
-    }
-  }
-
-  // Overclocker Toggle Button
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const overclockActive = state.overclocker?.active ?? false;
-  const canToggleOverclock =
-    overclockActive ||
-    (state.devices.overclockers > 0 &&
-      state.devices.autoCalculators > 0 &&
-      big(state.energy).gt(stableCapacity));
-  const overclockerToggleBtn = app.querySelector('[data-action="toggle-overclocker"]');
-  if (overclockerToggleBtn) {
-    overclockerToggleBtn.disabled = !canToggleOverclock;
-  }
-
-  // Method & Setup Cards ready class
-  const reqMethod = calculateCalculationMethodRequirement(state, config);
-  const methodReady = state.upgrades >= reqMethod;
-  const methodCard = app.querySelector(".method-card:not(.panel--hard-reset)");
-  if (methodCard) {
-    methodCard.classList.toggle("method-card--ready", methodReady);
-  }
-
-  const reqSetup = calculateSetupOptimizationRequirement(state, config);
-  const setupReady = state.calculationMethods >= reqSetup;
-  const setupCard = app.querySelector(".panel--hard-reset");
-  if (setupCard) {
-    setupCard.classList.toggle("method-card--ready", setupReady);
-  }
-}
-
-function createRenderSignature(state, config, developmentMode, saveSlots = []) {
-  if (state.introState !== "active") {
-    return JSON.stringify({
-      introState: state.introState,
-      developmentMode,
-      saveSlots,
-    });
-  }
-
-  const componentVisibility = Object.fromEntries(
-    Object.keys(COMPONENT_REGISTRY).map((componentId) => [
-      componentId,
-      evaluateComponent(componentId, state, config).visible,
-    ]),
-  );
-
-  return JSON.stringify({
-    introState: state.introState,
-    developmentMode,
-    activeTab: getActiveTab(state, config),
-    hideCompletedPurchases: state.ui?.hideCompletedPurchases ?? false,
-    seenComponents: state.ui?.seenComponents ?? {},
-    buyMode: state.ui?.buyMode ?? "1",
-    resetModal: state.ui?.resetModal ?? null,
-    historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
-    historyFilter: state.ui?.historyFilter ?? "all",
-    historyLength: state.history?.length ?? 0,
-    treeZoom: state.ui?.treeZoom ?? 1.0,
-    selectedSciencePerkId: state.ui?.selectedSciencePerkId ?? null,
-    upgrades: state.upgrades,
-    crcCount: state.crcCount,
-    powerCells: state.powerCells,
-    powerModules: state.powerModules,
-    sciencePoints: state.sciencePoints,
-    totalScienceEarned: state.science?.totalScienceEarned ?? 0,
-    availableQuarks: state.quarks?.available ?? 0,
-    totalQuarksEarned: state.quarks?.totalEarned ?? 0,
-    lastQuarks: state.quarks?.lastSynthesis ?? 0,
-    quarkCages: state.scienceDevices?.quarkCages ?? 0,
-    scienceSubtab: state.ui?.activeScienceSubtab ?? "tree",
-    particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
-    redundancyElimination: state.science?.perks ?? {},
-    revealedPerks: state.science?.revealedPerks ?? {},
-    preservedImprovementLog: state.preservedImprovementLog ?? 0,
-    fiftyGCalculator: state.science?.fiftyGCalculator ?? false,
-    automations: state.automations ?? {},
-    syntheses: state.science?.syntheses ?? 0,
-    particleSynthesizerActivated: state.particleSynthesizer.activated,
-    calculationMethods: state.calculationMethods,
-    setupOptimizations: state.setupOptimizations,
-    softDataDisplay: state.devices.softDataDisplay,
-    t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
-    overclockers: state.devices.overclockers,
-    overclockerActive: state.overclocker.active,
-    componentVisibility,
-    autoCalculators: state.devices.autoCalculators,
-    processors: state.devices.processors,
-    crcBlueprint: state.discoveries.crcBlueprint,
-    overclockerBlueprint: state.discoveries.overclockerBlueprint,
-    blueprintResearchAvailable: canResearchBlueprint(state, config),
-    algorithmUpgradeActive: state.algorithmUpgradeStudy.active,
-    blueprintStudyActive: state.blueprintStudy.active,
-    overclockerBlueprintStudyActive: state.overclockerBlueprintStudy?.active ?? false,
-    constructionActive: state.construction.active,
-    prototypeComplete: state.prototypeComplete,
-    newsDismissed: state.ui?.newsDismissed ?? false,
-    devShowNews: state.ui?.devShowNews ?? false,
-    devProductionMultiplier: state.devSettings.productionMultiplier,
-    devDurationMultiplier: state.devSettings.durationMultiplier,
-    saveSlots: saveSlots?.map((s) => [s.key, s.exists]),
-  });
-}
-
-function updateDynamicFields(
-  app,
-  state,
-  config,
-  developmentMode,
-  newsList = DEFAULT_NEWS,
-) {
-  if (state.introState !== "active") return;
-
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  setField(app, "energy", formatEnergy(state.energy));
-  setProgress(app, "energy", big(state.energy).div(stableCapacity).toNumber());
-
-  const milestone = calculateNextMilestone(state, config);
-  setField(app, "milestone-title", milestone.title);
-  setField(app, "milestone-req", milestone.requirement);
-  setProgress(app, "milestone", milestone.progress);
-
-  if (canAccessParticleLab(state, config)) {
-    setProgress(
-      app,
-      "particle-synthesizer",
-      calculateParticleSynthesizerProgress(state, config),
-    );
-    setProgress(
-      app,
-      "particle-synthesizer-device",
-      calculateParticleSynthesizerProgress(state, config),
-    );
-    const nextSciencePointCost = calculateSciencePointCost(
-      state.science?.totalScienceEarned ?? 0,
-      config,
-    );
-    setProgress(
-      app,
-      "science-point",
-      big(state.energy).div(nextSciencePointCost).toNumber(),
-    );
-    setField(
-      app,
-      "science-sp-on-synthesis",
-      calculateSciencePointReward(
-        state.energy,
-        state.science?.totalScienceEarned ?? 0,
-        config,
-      ).toString(),
-    );
-    setField(app, "science-point-cost", formatEnergy(nextSciencePointCost));
-    const projectedQuarks = calculateQuarksGenerated(
-      state.energy,
-      config,
-    ).toString();
-    setField(app, "science-quarks-on-synthesis", projectedQuarks);
-    setField(app, "device-quarks-on-synthesis", projectedQuarks);
-  } else {
-    setProgress(app, "door", calculateDoorProgress(state, config));
-  }
-
-  if (state.devices.softDataDisplay) {
-    const production = calculateProduction(state, config, developmentMode);
-    const netProduction = calculateEffectiveProduction(
-      state,
-      config,
-      developmentMode,
-    );
-    const overflowDecay = calculateEnergyOverflowDecay(state, config);
-    const remainingCapacity = bigMax(
-      0,
-      stableCapacity.sub(state.energy),
-    );
-    const fillTime =
-      production.gt(0) && remainingCapacity.gt(0)
-        ? formatDuration(remainingCapacity.div(production))
-        : big(state.energy).gt(stableCapacity)
-          ? "EQUILIBRATING"
-          : "FULL";
-
-    setField(app, "energy-rate", formatRate(production));
-    setField(app, "retained-rate-main", formatRate(netProduction));
-    setField(app, "retained-rate", formatRate(netProduction));
-    setField(app, "energy-retention-main", formatRate(overflowDecay));
-    setField(app, "fill-time", fillTime);
-    setField(app, "energy-retention", formatRate(overflowDecay));
-    setField(
-      app,
-      "total-energy",
-      formatEnergy(state.stats.totalEnergyCollected),
-    );
-    setField(app, "stable-capacity", formatEnergy(stableCapacity));
-  }
-
-  const overflowing = big(state.energy).gt(stableCapacity);
-  const statusEl = app.querySelector('[data-field="hud-status"]');
-  if (statusEl) {
-    if (state.devices?.softDataDisplay) {
-      const overflowDecay = calculateEnergyOverflowDecay(state, config);
-      statusEl.textContent = overflowing
-        ? `EXCESS DECAY (${formatRate(overflowDecay)})`
-        : "CELL STABLE";
-    } else {
-      statusEl.textContent = overflowing ? "EXCESS UNSTABLE" : "CELL STABLE";
-    }
-    statusEl.className = overflowing ? "text--warning" : "text--online";
-  }
-
-  if (state.devices.overclockers > 0) {
-    const activePreview = {
-      ...state,
-      overclocker: {
-        ...state.overclocker,
-        active: true,
-      },
+  function updateDynamicValues(state) {
+    const config = engine.config;
+
+    const setText = (field, val) => {
+      const el = container.querySelector(`[data-field="${field}"]`);
+      if (el && el.textContent !== String(val)) el.textContent = String(val);
     };
-    const speed = calculateOverclockerSpeedMultiplier(activePreview, config);
-    const drain = calculateOverclockerDrainPerSecond(activePreview, config);
-    const status = state.overclocker.active
-      ? `x${speed.toFixed(2)} active // ${formatRate(drain)}`
-      : `x${speed.toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"} // ${formatRate(drain)}`;
-    setField(app, "overclock-inline", status);
-    setField(
-      app,
-      "study-overclock-button-detail",
-      `x${speed.toFixed(2)} // ${formatRate(drain)}`,
-    );
-    setField(
-      app,
-      "overclock-current",
-      `x${speed.toFixed(2)} / ${formatRate(drain)}`,
-    );
-    setField(
-      app,
-      "study-overclock-status",
-      state.overclocker.active
-        ? "The calculator route is running hot."
-        : state.overclocker.activeSeconds > 0
-          ? "Cooling. Re-engaging now resumes from the current thermal load."
-          : "Available while Auto Calculator is online and excess Stored Energy exists.",
-    );
-    setField(
-      app,
-      "overclock-effect",
-      state.overclocker.active
-        ? "OVERCLOCK ACTIVE"
-        : state.overclocker.activeSeconds > 0
-          ? "COOLING"
-          : "OVERCLOCK ROUTE EXPANDED",
-    );
-    setField(
-      app,
-      "overclock-runtime",
-      state.overclocker.active
-        ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
-        : state.overclocker.activeSeconds > 0
-          ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
-          : "STANDBY",
-    );
-  }
 
-  if (state.study.active) {
-    const fraction =
-      state.study.duration > 0
-        ? clamp(state.study.elapsed / state.study.duration, 0, 1)
-        : 0;
-    setProgress(app, "study", fraction);
-    setField(
-      app,
-      "study-remaining",
-      formatDuration(Math.max(0, state.study.duration - state.study.elapsed)),
-    );
-  } else if (
-    state.study.completedAt &&
-    Date.now() - state.study.completedAt < 400
-  ) {
-    setProgress(app, "study", 1);
-    setField(app, "study-remaining", "");
-  } else {
-    setProgress(app, "study", 0);
-    setField(app, "study-remaining", "");
-  }
+    // 1. Sticky HUD Values
+    setText("hud-energy", formatEnergy(state.energy));
+    const prod = calculateEnergyProduction(state, config, engine.statResolver);
+    setText("hud-production", formatRate(prod));
+    const data = calculateAvailableData(state, config);
+    setText("hud-data", formatInteger(data));
+    setText("hud-level", formatInteger(state.computerLevel ?? 1));
+    setText("hud-optimizations", formatInteger(state.facilityOptimizations ?? 0));
 
-  if (state.algorithmUpgradeStudy.active) {
-    setProgress(
-      app,
-      "algorithm-upgrade",
-      state.algorithmUpgradeStudy.elapsed /
-        state.algorithmUpgradeStudy.duration,
-    );
-    setField(
-      app,
-      "algorithm-upgrade-remaining",
-      formatDuration(
-        Math.max(
-          0,
-          state.algorithmUpgradeStudy.duration -
-            state.algorithmUpgradeStudy.elapsed,
-        ),
-      ),
-    );
-  }
-
-  if (state.blueprintStudy.active) {
-    setProgress(
-      app,
-      "blueprint",
-      state.blueprintStudy.elapsed / state.blueprintStudy.duration,
-    );
-    setField(
-      app,
-      "blueprint-remaining",
-      formatDuration(
-        Math.max(
-          0,
-          state.blueprintStudy.duration - state.blueprintStudy.elapsed,
-        ),
-      ),
-    );
-  } else {
-    setProgress(app, "blueprint", 0);
-    setField(app, "blueprint-remaining", "");
-  }
-
-  if (state.construction.active) {
-    setProgress(
-      app,
-      "construction",
-      state.construction.elapsed / state.construction.duration,
-    );
-    setField(
-      app,
-      "construction-remaining",
-      formatDuration(
-        Math.max(0, state.construction.duration - state.construction.elapsed),
-      ),
-    );
-  } else {
-    setProgress(app, "construction", 0);
-    setField(app, "construction-remaining", "");
-  }
-
-  if (state.ui?.currentNewsId) {
-    const newsItem = getNewsItem(newsList, state.ui.currentNewsId);
-    if (newsItem) {
-      setField(app, "news-text", newsItem.text);
-      setField(app, "news-category", newsItem.category || "TELEMETRY");
-      const rarityNum = Number(newsItem.rarity) || 1;
-      const rarityEl = app.querySelector('[data-field="news-rarity"]');
-      if (rarityEl) {
-        if (rarityNum >= 2) {
-          rarityEl.textContent = getRarityLabel(rarityNum);
-          rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
-          if (rarityEl.style) rarityEl.style.display = "";
-        } else {
-          rarityEl.textContent = "";
-          if (rarityEl.style) rarityEl.style.display = "none";
-        }
-      }
-    }
-  }
-
-  const timerFill = app.querySelector('[data-progress="news-timer"]');
-  if (timerFill && timerFill.style) {
-    const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
-    const circumference = 37.7;
-    const offset = (circumference * (1 - timerFraction)).toFixed(2);
-    timerFill.style.strokeDashoffset = `${offset}`;
-  }
-
-  const algorithmFactor = 1 + (state.improvements ?? 0);
-  setHtmlField(
-    app,
-    "crc-algorithm-multiplier",
-    `x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small>`,
-  );
-
-  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
-  const production = calculateProduction(state, config, developmentMode);
-  setField(
-    app,
-    "crc-total-output",
-    isSoftUnlocked ? formatRate(production) : "UNREADABLE",
-  );
-
-  const impRate =
-    state.devices.autoCalculators > 0
-      ? calculateImprovementRatePerSecond(state, config, developmentMode)
-      : 0;
-  const currentDuration = calculateStudyDuration(state, config, false);
-  const previewDuration = calculateStudyDuration(
-    state,
-    config,
-    developmentMode,
-  );
-  const rate =
-    state.devices.autoCalculators > 0 ? impRate : 1 / currentDuration;
-  const rateDisplay =
-    rate >= 10
-      ? `${rate.toFixed(1)} Improvements/s`
-      : formatDuration(previewDuration);
-
-  setField(
-    app,
-    "study-algorithm-factor",
-    `x${algorithmFactor} (+1.0 / cycle)`,
-  );
-  setField(app, "study-rate-display", rateDisplay);
-  setField(
-    app,
-    "study-status",
-    state.study.active
-      ? state.study.automated
-        ? "AUTO CALCULATION"
-        : "CALCULATION IN PROGRESS"
-      : "READY",
-  );
-
-  setField(
-    app,
-    "cascade-algorithm-sub",
-    `Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${algorithmFactor})`,
-  );
-
-  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
-  const upgradeReady = state.improvements >= reqUpgrade;
-  if (!state.algorithmUpgradeStudy.active) {
-    setProgress(app, "algorithm-upgrade", state.improvements / reqUpgrade);
-    setField(
-      app,
-      "algorithm-upgrade-status",
-      upgradeReady
-        ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
-        : `${state.improvements} / ${reqUpgrade} Improvements`,
-    );
-    setField(app, "algorithm-upgrade-remaining", "INSTANT");
-  }
-
-  if (state.overclockerBlueprintStudy?.active) {
-    setProgress(
-      app,
-      "overclocker-blueprint",
-      state.overclockerBlueprintStudy.elapsed /
-        state.overclockerBlueprintStudy.duration,
-    );
-    setField(
-      app,
-      "overclocker-blueprint-remaining",
-      formatDuration(
-        Math.max(
-          0,
-          state.overclockerBlueprintStudy.duration -
-            state.overclockerBlueprintStudy.elapsed,
-        ),
-      ),
-    );
-  }
-
-  setField(app, "total-play-time", formatDuration(state.stats.totalPlayTime));
-  setField(app, "run-play-time", formatDuration(state.stats.runPlayTime));
-  setField(
-    app,
-    "total-condensed",
-    formatEnergy(state.stats.totalEnergyCollected),
-  );
-
-  updateLogList(app, state);
-  updateInteractiveElements(app, state, config);
-}
-
-function renderSynthesizerAwakeningModal(state, config) {
-  if (!state.ui?.synthesizerAwakenedModal) return "";
-  const cost = calculateParticleSynthesizerCost(state, config);
-  const projectedSP = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
-
-  return `
-    <div class="modal-backdrop">
-      <section class="synthesis-modal narrative-awakening-modal" role="dialog" aria-modal="true" aria-labelledby="awakening-modal-title">
-        <div class="panel__header-row">
-          <span class="card-tag card-tag--science">TELEMETRY</span>
-          <span class="card-subsystem">CHAMBER 02 // SECTOR B</span>
-        </div>
-        <p class="panel__label">SECTOR B AWAKENING // THE ADJACENT ROOM</p>
-        <h2 id="awakening-modal-title">The Device Next Door Awakens</h2>
-        
-        <div class="synthesis-modal__narrative">
-          <p>A deep, low-frequency tremor hums through the reinforced concrete floorboards. In the adjoining chamber beyond the blast glass, massive high-voltage contactors slam closed with gunshot-like claps.</p>
-          <p>Overhead industrial floodlights flicker to life in sequence, casting harsh amber beams across a monumental toroidal apparatus—the <strong>Particle Synthesizer</strong>. Auxiliary coolant loops whistle as liquid nitrogen surges into superconducting electromagnetic coils.</p>
-          <p>For the first time since the facility went online, the adjacent wing is fully powered. The particle accelerator ring is primed, hums with contained power, and its controls are now live in the <strong>Science Tab</strong>.</p>
-        </div>
-
-        <div class="synthesis-modal__era">
-          <h3>Laboratory Route Online</h3>
-          <p>The facility has stored sufficient power (${formatEnergy(cost)}) to trigger high-energy particle synthesis. Synthesizing will focus your stored energy into the chamber core, collapsing the Energy Era to forge <strong>Science Points</strong> (${projectedSP} SP) and <strong>Quarks</strong> (${projectedQuarks}).</p>
-        </div>
-
-        <div class="synthesis-modal__actions">
-          <button class="button button--ghost" data-action="close-awakening-modal" type="button">
-            Dismiss
-          </button>
-          <button class="button button--primary" data-action="enter-synthesizer-chamber" type="button">
-            Enter Particle Laboratory →
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderModalsContent(state, config) {
-  return `
-    ${renderResetConfirmationModal(state, config)}
-    ${renderHistoryReadingModal(state)}
-    ${renderParticleSynthesisModal(state, config)}
-    ${renderSynthesizerAwakeningModal(state, config)}
-  `;
-}
-
-function renderGame(
-  state,
-  config,
-  developmentMode,
-  saveSlots,
-  newsList = DEFAULT_NEWS,
-) {
-  const activeTab = getActiveTab(state, config);
-  const showNews = !state.ui?.newsDismissed;
-
-  return `
-    ${renderHeader(state, developmentMode)}
-    <div class="news-region-slot" data-region="news">
-      ${showNews ? renderNewsSection(state, newsList) : ""}
-    </div>
-    ${renderTabBar(state, config)}
-    <section class="operation-focus" data-region="hud" aria-label="Power and production focus">
-      ${renderGlobalHUD(state, config, developmentMode)}
-    </section>
-    <section class="tab-content tab-content--${activeTab}" data-region="tab-content" aria-label="${activeTab}">
-      ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
-      ${developmentMode ? renderDevelopmentPanel(state) : ""}
-    </section>
-    <div class="modals-region-slot" data-region="modals">
-      ${renderModalsContent(state, config)}
-    </div>
-  `;
-}
-
-const renderEnergy = renderGlobalHUD;
-
-function getTabContentSignature(
-  activeTab,
-  state,
-  config,
-  developmentMode,
-  saveSlots,
-) {
-  if (activeTab === "energy") {
-    return JSON.stringify({
-      tab: "energy",
-      developmentMode,
-      buyMode: state.ui?.buyMode ?? "1",
-      hideCompleted: state.ui?.hideCompletedPurchases ?? false,
-      powerCells: state.powerCells,
-      powerModules: state.powerModules,
-      crcCount: state.crcCount,
-      upgrades: state.upgrades,
-      calculationMethods: state.calculationMethods,
-      setupOptimizations: state.setupOptimizations,
-      crcBlueprint: state.discoveries.crcBlueprint,
-      blueprintActive: state.blueprintStudy.active,
-      constructionActive: state.construction.active,
-      algUpgradeActive: state.algorithmUpgradeStudy.active,
-      labReadable: canAccessParticleLab(state, config),
-      synthesizerActivated: state.particleSynthesizer.activated,
-      synthesizerAwakened: Boolean(state.particleSynthesizer?.awakened),
-      pcVis: evaluateComponent("powerCell", state, config).visible,
-      pmVis: evaluateComponent("powerModule", state, config).visible,
-      crcVis: evaluateComponent("crcBlueprint", state, config).visible,
-      constVis: evaluateComponent("crcConstruction", state, config).visible,
-      upgVis: evaluateComponent("algorithmUpgrade", state, config).visible,
-      cmuVis: evaluateComponent("calculationMethodUpgrade", state, config).visible,
-      setupVis: evaluateComponent("setupOptimization", state, config).visible,
-    });
-  }
-
-  if (activeTab === "automation") {
-    return JSON.stringify({
-      tab: "automation",
-      developmentMode,
-      buyMode: state.ui?.buyMode ?? "1",
-      hideCompleted: state.ui?.hideCompletedPurchases ?? false,
-      autoCalculators: state.devices.autoCalculators,
-      processors: state.devices.processors,
-      overclockers: state.devices.overclockers,
-      overclockerActive: state.overclocker.active,
-      softDataDisplay: state.devices.softDataDisplay,
-      t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
-      overclockerBlueprint: state.discoveries.overclockerBlueprint,
-      overclockerBlueprintActive: state.overclockerBlueprintStudy?.active ?? false,
-      automations: state.automations ?? {},
-      slots: saveSlots?.map((s) => [s.key, s.exists]),
-    });
-  }
-
-  if (activeTab === "science") {
-    return JSON.stringify({
-      tab: "science",
-      sciencePoints: state.sciencePoints,
-      perks: state.science?.perks ?? {},
-      revealed: state.science?.revealedPerks ?? {},
-      subtab: state.ui?.activeScienceSubtab ?? "tree",
-      treeZoom: state.ui?.treeZoom ?? 1.0,
-      selectedPerkId: state.ui?.selectedSciencePerkId ?? null,
-      quarks: state.quarks?.available ?? 0,
-      quarkCages: state.scienceDevices?.quarkCages ?? 0,
-      fiftyG: state.science?.fiftyGCalculator ?? false,
-      syntheses: state.science?.syntheses ?? 0,
-      synthesizerAwakened: Boolean(state.particleSynthesizer?.awakened),
-      synthesizerReady: evaluateComponent("particleSynthesizer", state, config).enabled,
-    });
-  }
-
-  if (activeTab === "history") {
-    return JSON.stringify({
-      tab: "history",
-      historyLen: state.history?.length ?? 0,
-      filter: state.ui?.historyFilter ?? "all",
-    });
-  }
-
-  return JSON.stringify({ tab: activeTab, developmentMode });
-}
-
-function updateEnergySubregions(
-  tabContentEl,
-  state,
-  config,
-  devMode,
-  lastSubSigs,
-) {
-  const storageSig = JSON.stringify({
-    buyMode: state.ui?.buyMode ?? "1",
-    powerCells: state.powerCells,
-    powerModules: state.powerModules,
-    pcVis: evaluateComponent("powerCell", state, config).visible,
-    pmVis: evaluateComponent("powerModule", state, config).visible,
-    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
-  });
-  if (storageSig !== lastSubSigs.energyStorage) {
-    const el = tabContentEl.querySelector('[data-subregion="energy-storage"]');
-    if (el) el.innerHTML = renderEnergyStorageSection(state, config);
-    lastSubSigs.energyStorage = storageSig;
-  }
-
-  const cascadeSig = JSON.stringify({
-    upgrades: state.upgrades,
-    crcCount: state.crcCount,
-    crcBlueprint: state.discoveries.crcBlueprint,
-    overclockerBlueprint: state.discoveries.overclockerBlueprint,
-    blueprintActive: state.blueprintStudy.active,
-    constructionActive: state.construction.active,
-    algUpgradeActive: state.algorithmUpgradeStudy.active,
-    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
-    crcVis: evaluateComponent("crcBlueprint", state, config).visible,
-    constVis: evaluateComponent("crcConstruction", state, config).visible,
-    upgVis: evaluateComponent("algorithmUpgrade", state, config).visible,
-  });
-  if (cascadeSig !== lastSubSigs.energyCascade) {
-    const el = tabContentEl.querySelector('[data-subregion="energy-cascade"]');
-    if (el) el.innerHTML = renderEnergyCascadeSection(state, config, devMode);
-    lastSubSigs.energyCascade = cascadeSig;
-  }
-
-  const resetsSig = JSON.stringify({
-    calculationMethods: state.calculationMethods,
-    setupOptimizations: state.setupOptimizations,
-    upgrades: state.upgrades,
-    cmuVis: evaluateComponent("calculationMethodUpgrade", state, config).visible,
-    setupVis: evaluateComponent("setupOptimization", state, config).visible,
-  });
-  if (resetsSig !== lastSubSigs.energyResets) {
-    const el = tabContentEl.querySelector('[data-subregion="energy-resets"]');
-    if (el) el.innerHTML = renderEnergyResetsSection(state, config);
-    lastSubSigs.energyResets = resetsSig;
-  }
-
-  const labSig = JSON.stringify({
-    labReadable: canAccessParticleLab(state, config),
-    synthesizerActivated: state.particleSynthesizer.activated,
-    awakened: Boolean(state.particleSynthesizer?.awakened),
-  });
-  if (labSig !== lastSubSigs.energyLab) {
-    const el = tabContentEl.querySelector('[data-subregion="energy-lab"]');
-    if (el) el.innerHTML = renderEnergyLabSection(state, config);
-    lastSubSigs.energyLab = labSig;
-  }
-}
-
-function updateAutomationSubregions(
-  tabContentEl,
-  state,
-  config,
-  devMode,
-  saveSlots,
-  lastSubSigs,
-) {
-  const computeSig = JSON.stringify({
-    buyMode: state.ui?.buyMode ?? "1",
-    autoCalculators: state.devices.autoCalculators,
-    processors: state.devices.processors,
-    overclockers: state.devices.overclockers,
-    overclockerBlueprint: state.discoveries.overclockerBlueprint,
-    overclockerBlueprintActive: state.overclockerBlueprintStudy?.active ?? false,
-    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
-  });
-  if (computeSig !== lastSubSigs.autoCompute) {
-    const el = tabContentEl.querySelector('[data-subregion="auto-compute"]');
-    if (el) el.innerHTML = renderComputationalDevicesSection(state, config, devMode);
-    lastSubSigs.autoCompute = computeSig;
-  }
-
-  const instSig = JSON.stringify({
-    softDataDisplay: state.devices.softDataDisplay,
-    t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
-    hideCompleted: state.ui?.hideCompletedPurchases ?? false,
-  });
-  if (instSig !== lastSubSigs.autoInstrumentation) {
-    const el = tabContentEl.querySelector('[data-subregion="auto-instrumentation"]');
-    if (el) el.innerHTML = renderInstrumentationSection(state, config);
-    lastSubSigs.autoInstrumentation = instSig;
-  }
-
-  const saveSig = JSON.stringify({
-    slots: saveSlots?.map((s) => [s.key, s.exists]),
-    devMode,
-  });
-  if (saveSig !== lastSubSigs.autoSave) {
-    const el = tabContentEl.querySelector('[data-subregion="auto-save"]');
-    if (el) el.innerHTML = renderSaveManagement(saveSlots, devMode);
-    lastSubSigs.autoSave = saveSig;
-  }
-}
-
-function createRenderer(
-  app,
-  config,
-  developmentMode,
-  getSaveSlots = () => [],
-  newsList = DEFAULT_NEWS,
-) {
-  let pointerIsDown = false;
-  let deferredRender = false;
-  let lastActiveTab = null;
-
-  const lastSignatures = {
-    header: "",
-    news: "",
-    tabbar: "",
-    hud: "",
-    tabContent: "",
-    modals: "",
-    overall: "",
-  };
-
-  const lastSubSigs = {
-    energyStorage: "",
-    energyCascade: "",
-    energyResets: "",
-    energyLab: "",
-    autoCompute: "",
-    autoInstrumentation: "",
-    autoSave: "",
-  };
-
-  function resetSubSigs() {
-    for (const key of Object.keys(lastSubSigs)) {
-      lastSubSigs[key] = "";
-    }
-  }
-
-  app.addEventListener(
-    "pointerdown",
-    () => {
-      pointerIsDown = true;
-    },
-    true,
-  );
-
-  const finishPointerInteraction = () => {
-    pointerIsDown = false;
-    if (!deferredRender) return;
-
-    window.setTimeout(() => {
-      if (!pointerIsDown && deferredRender) render(deferredRender.state);
-    }, 120);
-  };
-
-  app.addEventListener("pointerup", finishPointerInteraction, true);
-  app.addEventListener("pointercancel", finishPointerInteraction, true);
-
-  return function render(state) {
-    if (state.introState === "choice") {
-      app.innerHTML = renderIntro();
-      return;
-    }
-
-    if (state.introState === "left") {
-      app.innerHTML = renderEnding();
-      return;
-    }
-
-    if (state.introState === "crc-briefing") {
-      app.innerHTML = renderCrcBriefing();
-      return;
-    }
-
-    const saveSlots = getSaveSlots();
-    const activeTab = getActiveTab(state, config);
-
-    const sigHeader = JSON.stringify({
-      developmentMode,
-      newsDismissed: Boolean(state.ui?.newsDismissed),
+    // Active Tab Display
+    const activeTab = state.ui?.activeTab || "energy";
+    const tabEnergy = container.querySelector("#tab-energy");
+    const tabEff = container.querySelector("#tab-efficiency");
+    if (tabEnergy) tabEnergy.style.display = activeTab === "energy" ? "block" : "none";
+    if (tabEff) tabEff.style.display = activeTab === "efficiency" ? "block" : "none";
+    const tabBtns = container.querySelectorAll(".tab-btn");
+    tabBtns.forEach((btn) => {
+      btn.classList.toggle("tab-btn--active", btn.dataset.tab === activeTab);
     });
 
-    const showNews = !state.ui?.newsDismissed;
-    const sigNews = JSON.stringify({
-      showNews,
-      currentNewsId: state.ui?.currentNewsId,
-    });
-
-    const sigTabBar = JSON.stringify({
-      activeTab,
-      tabs: TAB_DEFINITIONS.filter((t) => isTabVisible(t, state, config)).map(
-        (t) => [t.id, getTabIndicators(t.id, state, config)],
-      ),
-    });
-
-    const sigHud = JSON.stringify({
-      developmentMode,
-      softDataDisplay: Boolean(state.devices?.softDataDisplay),
-      phase: (state.science?.syntheses ?? 0) > 0,
-      milestoneTab: calculateNextMilestone(state, config).tab,
-    });
-
-    const sigModals = JSON.stringify({
-      resetModal: state.ui?.resetModal ?? null,
-      historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
-      particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
-      synthesizerAwakenedModal: Boolean(state.ui?.synthesizerAwakenedModal),
-    });
-
-    const sigTabContent = getTabContentSignature(
-      activeTab,
-      state,
-      config,
-      developmentMode,
-      saveSlots,
-    );
-
-    const headerEl = app.querySelector
-      ? app.querySelector('[data-region="header"]')
-      : null;
-    const newsEl = app.querySelector
-      ? app.querySelector('[data-region="news"]')
-      : null;
-    const tabbarEl = app.querySelector
-      ? app.querySelector('[data-region="tabbar"]')
-      : null;
-    const hudEl = app.querySelector
-      ? app.querySelector('[data-region="hud"]')
-      : null;
-    const tabContentEl = app.querySelector
-      ? app.querySelector('[data-region="tab-content"]')
-      : null;
-    const modalsEl = app.querySelector
-      ? app.querySelector('[data-region="modals"]')
-      : null;
-
-    const shellMounted = Boolean(
-      headerEl && newsEl && tabbarEl && hudEl && tabContentEl && modalsEl,
-    );
-
-    if (!shellMounted) {
-      const overallSig = createRenderSignature(
-        state,
-        config,
-        developmentMode,
-        saveSlots,
-      );
-
-      if (overallSig === lastSignatures.overall) {
-        updateDynamicFields(app, state, config, developmentMode, newsList);
-        return;
-      }
-
-      if (pointerIsDown) {
-        deferredRender = { state };
-        updateDynamicFields(app, state, config, developmentMode, newsList);
-        return;
-      }
-
-      lastSignatures.overall = overallSig;
-      lastSignatures.header = sigHeader;
-      lastSignatures.news = sigNews;
-      lastSignatures.tabbar = sigTabBar;
-      lastSignatures.hud = sigHud;
-      lastSignatures.tabContent = sigTabContent;
-      lastSignatures.modals = sigModals;
-      lastActiveTab = activeTab;
-      resetSubSigs();
-      deferredRender = false;
-
-      app.innerHTML = renderGame(
-        state,
-        config,
-        developmentMode,
-        saveSlots,
-        newsList,
-      );
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
+    // Quicksave button state
+    const qsBtn = container.querySelector('[data-field="restore-qs-btn"]');
+    if (qsBtn && engine.hasQuicksave) {
+      qsBtn.disabled = !engine.hasQuicksave();
     }
 
-    if (pointerIsDown) {
-      deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
-    }
-    deferredRender = false;
-
-    // 1. Header Block (independent refresh)
-    if (sigHeader !== lastSignatures.header) {
-      headerEl.innerHTML = renderHeaderContent(state, developmentMode);
-      lastSignatures.header = sigHeader;
+    // Dev Mode Button
+    const devBtn = container.querySelector('[data-field="dev-mode-btn"]');
+    if (devBtn) {
+      devBtn.textContent = state.devMode ? "DEV MODE: ON (FORCE ACTIVE)" : "DEV MODE: OFF (STRICT)";
+      devBtn.className = `btn btn--sm ${state.devMode ? "btn--bypass" : "btn--muted"}`;
     }
 
-    // 2. News Block (completely isolated from card updates)
-    if (sigNews !== lastSignatures.news) {
-      newsEl.innerHTML = showNews ? renderNewsSection(state, newsList) : "";
-      lastSignatures.news = sigNews;
-    }
+    // 2. CRC Card
+    const ap = calculateAlgorithmPerformance(state, config, engine.statResolver);
+    setText("crc-ap", formatEnergy(ap) + "/s");
+    const compMult = calculateComputerPerformanceMultiplier(state.computerLevel ?? 1, config);
+    setText("crc-comp-mult", compMult.toFixed(2) + "x");
+    const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+    setText("crc-gadget-mult", hasGadget ? "2.00x" : "1.00x");
+    setText("crc-prod-rate", formatRate(prod));
 
-    // 3. TabBar Block
-    if (sigTabBar !== lastSignatures.tabbar) {
-      tabbarEl.innerHTML = renderTabBarContent(state, config);
-      lastSignatures.tabbar = sigTabBar;
-    }
-
-    // 4. HUD Block
-    if (sigHud !== lastSignatures.hud) {
-      hudEl.innerHTML = renderGlobalHUD(state, config, developmentMode);
-      lastSignatures.hud = sigHud;
-    }
-
-    // 5. Tab Content Block (with independent subregions)
-    if (activeTab !== lastActiveTab) {
-      tabContentEl.innerHTML =
-        renderTabContent(
-          activeTab,
-          state,
-          config,
-          developmentMode,
-          saveSlots,
-        ) + (developmentMode ? renderDevelopmentPanel(state) : "");
-      tabContentEl.className = `tab-content tab-content--${activeTab}`;
-      tabContentEl.setAttribute("aria-label", activeTab);
-      lastActiveTab = activeTab;
-      lastSignatures.tabContent = sigTabContent;
-      resetSubSigs();
-    } else if (sigTabContent !== lastSignatures.tabContent) {
-      if (activeTab === "energy") {
-        updateEnergySubregions(
-          tabContentEl,
-          state,
-          config,
-          developmentMode,
-          lastSubSigs,
-        );
-      } else if (activeTab === "automation") {
-        updateAutomationSubregions(
-          tabContentEl,
-          state,
-          config,
-          developmentMode,
-          saveSlots,
-          lastSubSigs,
-        );
+    const stableCap = calculatePowerCellCapacity(state.powerCells ?? 0, state, config, engine.statResolver);
+    const decay = calculateEnergyOverflowDecay(state.energy, stableCap, config);
+    const decayRow = container.querySelector('[data-field="crc-decay-row"]');
+    if (decayRow) {
+      if (decay.gt(0)) {
+        decayRow.style.display = "flex";
+        setText("crc-decay-rate", "-" + formatEnergy(decay) + "/s");
       } else {
-        tabContentEl.innerHTML =
-          renderTabContent(
-            activeTab,
-            state,
-            config,
-            developmentMode,
-            saveSlots,
-          ) + (developmentMode ? renderDevelopmentPanel(state) : "");
+        decayRow.style.display = "none";
       }
-      lastSignatures.tabContent = sigTabContent;
     }
 
-    // 6. Modals Block
-    if (sigModals !== lastSignatures.modals) {
-      modalsEl.innerHTML = renderModalsContent(state, config);
-      lastSignatures.modals = sigModals;
+    // 3. Algorithm Features
+    const strengths = calculateAlgorithmBaseStrengths(config);
+    // AImp
+    const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+    const aImpProd = state.algorithms?.AImp?.produced ?? 0;
+    setText("aimp-owned", `${formatInteger(aImpOwned)} / ${formatInteger(aImpProd)}`);
+    const devMult = calculateTotalDeviceMultiplier(state, config);
+    const capMult = (state.devices?.capacitors ?? 0) > 0 ? (1 + 0.5 * state.devices.capacitors * devMult) : 1.0;
+    setText("aimp-unit-strength", formatEnergy(strengths.AImp * capMult) + "/s");
+    setText("aimp-contribution", formatEnergy(big(strengths.AImp).mul(aImpOwned).mul(capMult)) + "/s");
+    const aImpDur = calculateEffectiveStudyDuration("AImp", state, config, engine.statResolver);
+    setText("aimp-duration", aImpDur.toFixed(2) + "s");
+    setText("aimp-workers", formatInteger(state.devices?.chips?.allocations?.AImp ?? 0));
+
+    // AUpg
+    const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+    const aUpgProd = state.algorithms?.AUpg?.produced ?? 0;
+    setText("aupg-owned", `${formatInteger(aUpgOwned)} / ${formatInteger(aUpgProd)}`);
+    setText("aupg-unit-strength", formatEnergy(strengths.AUpg) + "/s");
+    setText("aupg-contribution", formatEnergy(big(strengths.AUpg).mul(aUpgOwned)) + "/s");
+    const aUpgDur = calculateEffectiveStudyDuration("AUpg", state, config, engine.statResolver);
+    setText("aupg-duration", aUpgDur.toFixed(2) + "s");
+    setText("aupg-workers", formatInteger(state.devices?.chips?.allocations?.AUpg ?? 0));
+    const aupgCanAfford = (state.algorithms?.AImp?.owned ?? 0) >= 12;
+    const aupgBtn = container.querySelector('[data-field="aupg-study-btn"]');
+    if (aupgBtn) {
+      aupgBtn.className = `btn btn--block ${aupgCanAfford ? "btn--eligible" : "btn--bypass"}`;
+      aupgBtn.disabled = !aupgCanAfford && !state.devMode;
     }
 
-    // 7. Dynamic fields (live counters, progress bar widths, button states)
-    updateDynamicFields(app, state, config, developmentMode, newsList);
-  };
+    // ARec
+    const cardARec = container.querySelector("#card-arec");
+    if (cardARec) {
+      if (state.unlocks?.ARec) {
+        cardARec.style.display = "flex";
+        const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+        const aRecProd = state.algorithms?.ARec?.produced ?? 0;
+        setText("arec-owned", `${formatInteger(aRecOwned)} / ${formatInteger(aRecProd)}`);
+        setText("arec-unit-strength", formatEnergy(strengths.ARec) + "/s");
+        setText("arec-contribution", formatEnergy(big(strengths.ARec).mul(aRecOwned)) + "/s");
+        const aRecDur = calculateEffectiveStudyDuration("ARec", state, config, engine.statResolver);
+        setText("arec-duration", aRecDur.toFixed(2) + "s");
+        setText("arec-workers", formatInteger(state.devices?.chips?.allocations?.ARec ?? 0));
+        const arecCanAfford = (state.algorithms?.AUpg?.owned ?? 0) >= 12;
+        const arecBtn = container.querySelector('[data-field="arec-study-btn"]');
+        if (arecBtn) {
+          arecBtn.className = `btn btn--block ${arecCanAfford ? "btn--eligible" : "btn--bypass"}`;
+          arecBtn.disabled = !arecCanAfford && !state.devMode;
+        }
+      } else {
+        cardARec.style.display = "none";
+      }
+    }
+
+    // Direct Devices
+    // CRC Gadget
+    setText("crc-gadget-owned", (state.devices?.crcGadget?.owned ?? 0) + " / 1");
+    const crcGadgetBtn = container.querySelector('[data-field="crc-gadget-btn"]');
+    if (crcGadgetBtn) {
+      const owned = (state.devices?.crcGadget?.owned ?? 0) > 0;
+      crcGadgetBtn.disabled = owned;
+      crcGadgetBtn.className = `btn btn--block ${owned ? "btn--muted" : "btn--eligible"}`;
+      crcGadgetBtn.textContent = owned ? "ALREADY OWNED" : "BUY CRC GADGET — 10.00 nJ";
+    }
+
+    // Capacitor
+    const caps = state.devices?.capacitors ?? 0;
+    setText("capacitor-owned", formatInteger(caps));
+    setText("capacitor-mult", capMult.toFixed(2) + "x");
+    const capCost = config.devices?.capacitor?.initialCost ? big(config.devices.capacitor.initialCost).mul(big(5).pow(caps)) : big(1e-8);
+    setText("capacitor-next-cost", formatEnergy(capCost));
+
+    // Power Cells
+    const pCells = state.powerCells ?? 0;
+    setText("powercell-owned", formatInteger(pCells));
+    setText("powercell-capacity", formatEnergy(stableCap));
+    const cellCost = pCells === 0 ? big(1.0) : big(1.0).mul(big(2.25).pow(pCells));
+    setText("powercell-next-cost", formatEnergy(cellCost));
+
+    // 4. Efficiency Tab: Machine Learning (Soft Reset)
+    const currentData = calculateAvailableData(state, config);
+    const reqData = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+    setText("ml-current-level", state.computerLevel ?? 1);
+    setText("ml-multiplier", compMult.toFixed(2) + "x");
+    setText("ml-available-data", `${formatInteger(currentData)} / ${formatInteger(reqData)}`);
+    const dataFromAlgo = calculateDataFromAlgorithms(state, config);
+    const dataFromHD = state.devices?.hardDisks?.buffer ?? 0;
+    setText("ml-data-breakdown", `${formatInteger(dataFromAlgo)} from Algorithms / ${formatInteger(dataFromHD)} from HD Buffer`);
+    const mlBtn = container.querySelector('[data-field="ml-btn"]');
+    if (mlBtn) {
+      const canML = currentData >= reqData;
+      mlBtn.className = `btn btn--block ${canML ? "btn--eligible" : "btn--bypass"}`;
+      mlBtn.disabled = !canML && !state.devMode;
+      mlBtn.textContent = canML
+        ? `RUN MACHINE LEARNING (Adv to Level ${(state.computerLevel ?? 1) + 1})`
+        : `RUN MACHINE LEARNING (Need ${formatInteger(reqData)} Data)`;
+    }
+
+    // Chips
+    const chipsOwned = state.devices?.chips?.owned ?? 0;
+    setText("chips-owned", formatInteger(chipsOwned));
+    const chipCost = big(3e-11).mul(big(4).pow(chipsOwned));
+    setText("chips-next-cost", formatEnergy(chipCost));
+    setText(
+      "chips-allocation-label",
+      `${state.devices?.chips?.allocations?.AImp ?? 0} AImp / ${state.devices?.chips?.allocations?.AUpg ?? 0} AUpg / ${state.devices?.chips?.allocations?.ARec ?? 0} ARec`
+    );
+
+    // Transistor Board
+    const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
+    const boardPurchaseBox = container.querySelector("#board-purchase-box");
+    const boardActiveContent = container.querySelector("#board-active-content");
+    if (boardPurchaseBox && boardActiveContent) {
+      if (hasBoard) {
+        boardPurchaseBox.style.display = "none";
+        boardActiveContent.style.display = "block";
+      } else {
+        boardPurchaseBox.style.display = "block";
+        boardActiveContent.style.display = "none";
+      }
+    }
+    const tPurchased = state.devices?.transistorsPurchased ?? 0;
+    setText("transistor-total", formatInteger(tPurchased));
+    const tCost = big(3e-11).mul(big(1.4).pow(tPurchased));
+    setText("transistor-cost", formatEnergy(tCost));
+
+    // Transistor table rows
+    const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
+    const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
+    const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+    setText("transistor-aimp-count", formatInteger(tAImp));
+    setText("transistor-aupg-count", formatInteger(tAUpg));
+    setText("transistor-arec-count", formatInteger(tARec));
+    setText("transistor-aimp-dur", aImpDur.toFixed(2) + "s");
+    setText("transistor-aupg-dur", aUpgDur.toFixed(2) + "s");
+    const aRecDur = calculateEffectiveStudyDuration("ARec", state, config, engine.statResolver);
+    setText("transistor-arec-dur", aRecDur.toFixed(2) + "s");
+    setText("transistor-aimp-speed", calculateEffectiveStudySpeed("AImp", state, config, engine.statResolver).toFixed(2) + "x");
+    setText("transistor-aupg-speed", calculateEffectiveStudySpeed("AUpg", state, config, engine.statResolver).toFixed(2) + "x");
+    setText("transistor-arec-speed", calculateEffectiveStudySpeed("ARec", state, config, engine.statResolver).toFixed(2) + "x");
+
+    // Microprocessor
+    setText("micro-target", state.devices?.microprocessor?.target ?? "AImp");
+    const microT = state.devices?.transistorAllocations?.[state.devices?.microprocessor?.target ?? "AImp"] ?? 0;
+    const microMultVal = (state.devices?.microprocessor?.owned ?? 0) > 0 ? (1.12 ** microT).toFixed(2) + "x" : "1.00x";
+    setText("micro-bonus", microMultVal);
+
+    // Overclocker
+    const oc = state.devices?.overclocker;
+    if (oc) {
+      setText("overclock-status", oc.active ? "ACTIVE" : "INACTIVE");
+      setText("overclock-timer", `${oc.activeSeconds.toFixed(1)}s / ${Math.max(0, oc.remainingDuration).toFixed(1)}s`);
+    }
+
+    // Processor
+    const procs = state.devices?.processors ?? 0;
+    setText("processor-owned", formatInteger(procs));
+    setText("processor-bonus", (1 + 0.03 * procs).toFixed(2) + "x");
+    const procCost = big(1e-4).mul(big(2).pow(procs));
+    setText("processor-cost", formatEnergy(procCost));
+
+    // Hard Disk
+    const hds = state.devices?.hardDisks?.owned ?? 0;
+    const hdState = state.devices?.hardDisks?.state ?? "off";
+    setText("harddisk-state", `${hds} / ${hdState.toUpperCase()}`);
+    const hdRate = hdState === "active" ? calculateHardDiskXpRate(hds, state, config, engine.statResolver) : 0;
+    setText("harddisk-rate", `${hdRate.toFixed(1)} Data/s`);
+    const hdDrain = hdState === "active" ? calculateHardDiskEnergyDrain(hds, state.devices?.hardDisks?.activeSeconds ?? 0, config) : big(0);
+    setText("harddisk-drain", "-" + formatEnergy(hdDrain) + "/s");
+    setText("harddisk-buffer", formatInteger(state.devices?.hardDisks?.buffer ?? 0) + " Data");
+
+    // Facility Optimization
+    const reqLevel = calculateFacilityOptimizationRequirement(state.facilityOptimizations ?? 0, config);
+    setText("facility-opt-count", formatInteger(state.facilityOptimizations ?? 0));
+    setText("facility-opt-req", `Level ${reqLevel}`);
+    const facMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
+    setText("facility-opt-mult", facMult.toFixed(2) + "x");
+    const facBtn = container.querySelector('[data-field="facility-opt-btn"]');
+    if (facBtn) {
+      const canFO = (state.computerLevel ?? 1) >= reqLevel;
+      facBtn.className = `btn btn--block ${canFO ? "btn--danger" : "btn--muted"}`;
+      facBtn.disabled = !canFO && !state.devMode;
+      facBtn.textContent = canFO
+        ? `PERFORM FACILITY OPTIMIZATION (H = ${(state.facilityOptimizations ?? 0) + 1})`
+        : `LOCKED (Req Computer Level ${reqLevel})`;
+    }
+
+    // Audit logs update
+    setText("audit-count", `${state.auditLogs?.length ?? 0} event(s) recorded`);
+    const tbody = container.querySelector("#audit-tbody");
+    if (tbody && state.auditLogs && state.auditLogs.length > 0) {
+      const recent = state.auditLogs.slice(-15).reverse();
+      tbody.innerHTML = recent.map((log) => `
+        <tr>
+          <td>${log.timestamp}</td>
+          <td><strong>${log.actionType}</strong></td>
+          <td>${log.itemName}</td>
+          <td>${log.purchasedQuantity}</td>
+          <td>${log.nominalCostFormatted}</td>
+          <td><span class="badge ${log.ruleStatus === 'RULE_ELIGIBLE' ? 'badge--success' : 'badge--warning'}">${log.ruleStatus}</span></td>
+          <td>${log.energyAfterFormatted}</td>
+        </tr>
+      `).join("");
+    }
+  }
+
+  render.render = render;
+  return render;
 }
 
 
@@ -16917,210 +11079,176 @@ async function loadConfig() {
   return response.json();
 }
 
-async function loadNews() {
-  if (globalThis.__TES_NEWS__) {
-    return globalThis.__TES_NEWS__;
-  }
-
-  try {
-    const response = await fetch("content/news.json");
-    if (response.ok) return await response.json();
-  } catch (error) {
-    console.warn("Could not load news feed, falling back to default news.", error);
-  }
-  return DEFAULT_NEWS;
+function downloadFile(content, fileName, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function bindActions(app, engine, saveActions, config) {
-  app.addEventListener(
-    "pointerdown",
-    (event) => {
-      const target = event.target.closest?.('[data-action="set-tab"]');
-      if (!target || target.disabled) return;
-
-      // Change sections at pointer-down: auto-studies may trigger a structural
-      // redraw before the browser dispatches click on the released button.
-      engine.state.ui.activeTab = target.dataset.tab || "devices";
-      markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
-      engine.notify();
-    },
-    true,
-  );
-
-  app.addEventListener("mouseover", (event) => {
-    if (event.target.closest?.(".news-section")) {
-      engine.setNewsHovered(true);
-    }
-  });
-
-  app.addEventListener("mouseout", (event) => {
-    const section = event.target.closest?.(".news-section");
-    if (
-      section &&
-      (!event.relatedTarget || !section.contains(event.relatedTarget))
-    ) {
-      engine.setNewsHovered(false);
-    }
-  });
-
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
 
-    const actions = {
-      "press-button": () => engine.pressButton(),
-      "activate-crc": () => engine.activateCrc(),
-      "leave-room": () => engine.leaveRoom(),
-      "return-to-room": () => engine.returnToRoom(),
-      "start-study": () => engine.startStudy(false),
-      "start-algorithm-upgrade": () => engine.startAlgorithmUpgradeStudy(),
-      "start-blueprint-research": () => engine.startBlueprintResearch(),
-      "start-overclocker-blueprint-research": () =>
-        engine.startOverclockerBlueprintResearch(),
-      "buy-power-cell": () =>
-        engine.purchasePowerCells(engine.state.ui.buyMode ?? 1),
-      "buy-max-power-cells": () => engine.purchaseMaxPowerCells(),
-      "buy-power-module": () =>
-        engine.purchasePowerModules(engine.state.ui.buyMode ?? 1),
-      "buy-soft-display": () => engine.purchaseSoftDataDisplay(),
-      "buy-t2-soft-display": () => engine.purchaseT2SoftDataDisplay(),
-      "buy-overclocker": () =>
-        engine.purchaseOverclockers(engine.state.ui.buyMode ?? 1),
-      "toggle-overclocker": () => engine.toggleOverclocker(),
-      "toggle-automation": () =>
-        engine.toggleAutomation(target.dataset.automationId),
-      "buy-auto": () =>
-        engine.purchaseAutoCalculators(engine.state.ui.buyMode ?? 1),
-      "construct-crc": () => engine.startCrcConstruction(),
-      "buy-processor": () =>
-        engine.purchaseProcessors(engine.state.ui.buyMode ?? 1),
-      "open-particle-synthesis": () =>
-        engine.openParticleSynthesisConfirmation(),
-      "cancel-particle-synthesis": () => engine.closeParticleSynthesisModal(),
-      "confirm-particle-synthesis": () => engine.confirmParticleSynthesis(),
-      "close-particle-synthesis-narrative": () =>
-        engine.closeParticleSynthesisModal(),
-      "enter-synthesizer-chamber": () => engine.enterSynthesizerChamber(),
-      "close-awakening-modal": () => engine.closeSynthesizerAwakenedModal(),
-      "cancel-reset-modal": () => engine.closeResetModal(),
-      "confirm-reset-modal": () => {
-        if (engine.state.ui.resetModal === "cmu") {
-          engine.confirmCalculationMethodUpgrade();
-        } else if (engine.state.ui.resetModal === "setup") {
-          engine.confirmSetupOptimization();
-        } else if (
-          engine.state.ui.resetModal === "synthesis" ||
-          engine.state.ui.particleSynthesisModal === "confirm"
-        ) {
-          engine.confirmParticleSynthesis();
-        }
-      },
-      "buy-quark-cage": () =>
-        engine.purchaseQuarkCages(engine.state.ui.buyMode ?? 1),
-      "buy-fifty-g-calculator": () => engine.purchaseFiftyGCalculator(),
-      "buy-science-perk": () =>
-        engine.purchaseSciencePerk(target.dataset.perkId),
-      "select-science-perk": () => {
-        engine.state.ui.selectedSciencePerkId = target.dataset.perkId;
-        engine.notify();
-      },
-      "zoom-in-tree": () => {
-        engine.state.ui.treeZoom = Math.min(
-          1.6,
-          (engine.state.ui.treeZoom || 1) + 0.15,
-        );
-        engine.notify();
-      },
-      "zoom-out-tree": () => {
-        engine.state.ui.treeZoom = Math.max(
-          0.6,
-          (engine.state.ui.treeZoom || 1) - 0.15,
-        );
-        engine.notify();
-      },
-      "reset-tree-zoom": () => {
-        engine.state.ui.treeZoom = 1.0;
-        engine.notify();
-      },
-      "set-buy-mode": () => {
-        engine.state.ui.buyMode =
-          target.dataset.buyMode || target.dataset.mode || "1";
-        engine.notify();
-      },
-      "set-history-filter": () => {
-        engine.state.ui.historyFilter = target.dataset.filter || "all";
-        engine.notify();
-      },
-      "open-history-entry": () => {
-        engine.openHistoryEntry(
-          target.dataset.historyId || target.dataset.entryId,
-        );
-      },
-      "close-history-modal": () => {
-        engine.closeHistoryModal();
-      },
-      "reset-science-points": () => {
-        const confirmed = window.confirm(
-          "Return every allocated Science Point and clear all purchased Science perks?",
-        );
-        if (confirmed) engine.resetSciencePointAllocation();
-      },
-      "claim-method": () => engine.openCalculationMethodUpgradeConfirmation(),
-      "confirm-method-upgrade": () => engine.confirmCalculationMethodUpgrade(),
-      "claim-setup": () => engine.openSetupOptimizationConfirmation(),
-      "confirm-setup-optimization": () => engine.confirmSetupOptimization(),
-      "set-tab": () => {
-        engine.state.ui.activeTab = target.dataset.tab || "energy";
-        markTabComponentsSeen(engine.state, config, engine.state.ui.activeTab);
-        engine.notify();
-      },
-      "set-science-subtab": () => {
-        engine.state.ui.activeScienceSubtab =
-          target.dataset.scienceSubtab || "tree";
-        markTabComponentsSeen(engine.state, config, "science");
-        engine.notify();
-      },
-      "toggle-hide-completed": () => {
-        engine.state.ui.hideCompletedPurchases =
-          !engine.state.ui.hideCompletedPurchases;
-        engine.notify();
-      },
-      "enter-dev-mode": () => {
-        const url = new URL(window.location.href);
-        url.searchParams.set("dev", "1");
-        window.location.href = url.toString();
-      },
-      "exit-dev-mode": () => {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("dev");
-        window.location.href = url.toString();
-      },
-      "dev-add-energy": () => engine.developmentAddEnergy(),
-      "dev-add-large-energy": () => engine.developmentAddLargeEnergy(),
-      "dev-complete-study": () => engine.developmentCompleteStudy(),
-      "dev-complete-upgrade": () =>
-        engine.developmentCompleteAlgorithmUpgrade(),
-      "dev-force-blueprint": () => engine.developmentForceBlueprint(),
-      "dev-cycle-production": () =>
-        engine.developmentCycleProductionMultiplier(),
-      "dev-cycle-duration": () => engine.developmentCycleDurationMultiplier(),
-      "dismiss-news-section": () => engine.dismissNewsSection(),
-      "restore-news-section": () => engine.restoreNewsSection(),
-      "toggle-news-section": () => engine.toggleNewsSection(),
-      "cycle-news": () => engine.cycleNews(true),
-      "dev-toggle-news": () => {
-        engine.state.ui.devShowNews = !engine.state.ui.devShowNews;
-        engine.notify();
-      },
-      "save-now": () => saveActions.saveNow(),
-      "reset-save": () => saveActions.resetCurrent(),
-      "reset-current-save": () => saveActions.resetCurrent(),
-      "reset-normal-save": () => saveActions.resetMode(false),
-      "reset-development-save": () => saveActions.resetMode(true),
-      "reset-all-saves": () => saveActions.resetAll(),
-    };
+    const action = target.dataset.action;
 
-    actions[target.dataset.action]?.();
+    switch (action) {
+      // 1. Navigation / Tabs
+      case "set-tab": {
+        const tab = target.dataset.tab || "energy";
+        engine.state.ui.activeTab = tab;
+        engine.notify();
+        break;
+      }
+
+      // 2. Narrative
+      case "dismiss-narrative": {
+        const card = target.closest("#narrative-card") || target.closest(".panel");
+        if (card) card.style.display = "none";
+        break;
+      }
+
+      // 3. Algorithm Studies
+      case "study-feature": {
+        const feat = target.dataset.target;
+        const count = parseInt(target.dataset.count || "1", 10);
+        engine.startManualStudy(feat, count);
+        break;
+      }
+
+      // 4. Element Purchases (General)
+      case "buy-element": {
+        const elementId = target.dataset.elementId;
+        const count = parseInt(target.dataset.count || "1", 10);
+        engine.purchaseElement(elementId, count);
+        break;
+      }
+
+      // 5. Machine Learning (Soft Reset)
+      case "run-machine-learning": {
+        engine.runMachineLearning();
+        break;
+      }
+
+      // 6. Chips Reassignment
+      case "reassign-chip": {
+        const from = target.dataset.from;
+        const to = target.dataset.to;
+        const count = parseInt(target.dataset.count || "1", 10);
+        engine.reassignChip(from, to, count);
+        break;
+      }
+
+      // 7. Transistors Reassignment
+      case "reassign-transistor": {
+        const from = target.dataset.from;
+        const to = target.dataset.to;
+        const count = parseInt(target.dataset.count || "1", 10);
+        engine.reassignTransistors(from, to, count);
+        break;
+      }
+
+      // 8. Microprocessor Target
+      case "set-micro-target": {
+        const microTarget = target.dataset.target;
+        engine.setMicroprocessorTarget(microTarget);
+        break;
+      }
+
+      // 9. Overclocker Activation
+      case "activate-overclock": {
+        engine.activateOverclocker();
+        break;
+      }
+
+      // 10. Hard Disk State
+      case "set-harddisk-state": {
+        const state = target.dataset.state;
+        engine.setHardDiskState(state);
+        break;
+      }
+
+      // 11. Facility Optimization (Hard Reset)
+      case "perform-facility-optimization": {
+        const confirmed = window.confirm(
+          "Perform Facility Optimization? This will reset energy and conventional hardware, but preserve Computer Level, Power Cells, and grant a permanent +9% compounding bonus."
+        );
+        if (confirmed) {
+          engine.performFacilityOptimization();
+        }
+        break;
+      }
+
+      // 12. Dev Mode & Cheats
+      case "toggle-dev-mode": {
+        engine.toggleDevMode();
+        break;
+      }
+      case "add-energy": {
+        const amount = parseFloat(target.dataset.amount || "1e-9");
+        engine.addEnergy(amount);
+        break;
+      }
+      case "zero-energy": {
+        engine.setEnergy(0);
+        break;
+      }
+      case "add-afeature": {
+        const feat = target.dataset.target;
+        const count = parseInt(target.dataset.count || "12", 10);
+        engine.addAFeature(feat, count);
+        break;
+      }
+      case "add-comp-level": {
+        engine.addComputerLevel(1);
+        break;
+      }
+      case "set-speed": {
+        const speed = parseFloat(target.dataset.speed || "1");
+        engine.setGameSpeed(speed);
+        break;
+      }
+      case "quicksave": {
+        engine.quicksave();
+        break;
+      }
+      case "restore-quicksave": {
+        engine.restoreQuicksave();
+        break;
+      }
+      case "reset-all": {
+        const confirmed = window.confirm(
+          "Delete all simulation progress? This cannot be undone."
+        );
+        if (confirmed) {
+          engine.resetAllProgress();
+        }
+        break;
+      }
+
+      // 13. Audit Log Data Export
+      case "export-csv": {
+        const csv = engine.exportAuditLogsCSV();
+        downloadFile(csv, `tes-audit-${Date.now()}.csv`, "text/csv");
+        break;
+      }
+      case "export-json": {
+        const json = engine.exportAuditLogsJSON();
+        downloadFile(json, `tes-audit-${Date.now()}.json`, "application/json");
+        break;
+      }
+      case "clear-audit": {
+        engine.state.auditLogs = [];
+        engine.notify();
+        break;
+      }
+    }
   });
 }
 
@@ -17131,74 +11259,27 @@ async function start() {
 
   try {
     const config = await loadConfig();
-    const news = await loadNews();
     const state = loadState(config, developmentMode);
     simulateOfflineProgress(state, config, { developmentMode });
-    const engine = new GameEngine({ state, config, developmentMode, news });
-    const render = createRenderer(
-      app,
-      config,
-      developmentMode,
-      listSaveSlots,
-      news,
-    );
-    let saveSuppressed = false;
+    const engine = new GameEngine({ state, config, developmentMode });
+    const renderer = createRenderer(app, engine);
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);
 
-    const reloadWithoutSaving = () => {
-      saveSuppressed = true;
-      window.location.reload();
-    };
-
-    const resetMode = (mode) => {
-      const label = mode ? "development" : "normal";
-      const confirmed = window.confirm(
-        `Delete ${label} mode progress? This cannot be undone.`,
-      );
-      if (!confirmed) return;
-      deleteState(mode);
-      if (mode === developmentMode) {
-        reloadWithoutSaving();
-        return;
-      }
-      render(state);
-    };
-
-    const resetAll = () => {
-      const confirmed = window.confirm(
-        "Delete normal and development progress? This cannot be undone.",
-      );
-      if (!confirmed) return;
-      deleteAllStates();
-      reloadWithoutSaving();
-    };
-
-    const saveNow = () => {
-      if (saveSuppressed) return;
-      saveState(state, developmentMode);
-      engine.addLog(
-        "Simulation memory saved. Offline recovery anchor updated.",
-        "device",
-      );
-      engine.notify();
-    };
-
-    markTabComponentsSeen(state, config);
+    let saveSuppressed = false;
 
     bindActions(
       app,
       engine,
       {
-        saveNow,
-        resetCurrent: () => resetMode(developmentMode),
-        resetMode,
-        resetAll,
+        saveNow: () => engine.save(),
+        resetAll: () => engine.resetAllProgress(),
       },
-      config,
+      config
     );
-    engine.subscribe(render);
-    render(state);
+
+    engine.subscribe(() => renderer.render());
+    renderer.render();
 
     let previousTime = performance.now();
     let previousRender = previousTime;
@@ -17209,13 +11290,13 @@ async function start() {
       previousTime = now;
       engine.tick(deltaSeconds);
 
-      if (now - previousRender >= config.timing.renderIntervalMs) {
-        render(state);
+      if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
+        renderer.render();
         previousRender = now;
       }
 
-      if (now - previousSave >= config.timing.autosaveIntervalMs) {
-        if (!saveSuppressed) saveState(state, developmentMode);
+      if (now - previousSave >= (config.timing?.autosaveIntervalMs ?? 5000)) {
+        if (!saveSuppressed) saveState(engine.state, developmentMode);
         previousSave = now;
       }
 
@@ -17223,22 +11304,24 @@ async function start() {
     }
 
     window.addEventListener("beforeunload", () => {
-      if (!saveSuppressed) saveState(state, developmentMode);
+      if (!saveSuppressed) saveState(engine.state, developmentMode);
     });
 
     window.requestAnimationFrame(frame);
   } catch (error) {
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);
     console.error(error);
-    app.innerHTML = `
-      <section class="screen screen--centered">
-        <div class="panel panel--narrative">
-          <p class="eyebrow eyebrow--warning">BOOT FAILURE</p>
-          <h1>The facility did not respond.</h1>
-          <p>Run the prototype through a local web server and reload the page.</p>
-        </div>
-      </section>
-    `;
+    if (app) {
+      app.innerHTML = `
+        <section class="screen screen--centered">
+          <div class="panel panel--narrative">
+            <p class="eyebrow eyebrow--warning">BOOT FAILURE</p>
+            <h1>The facility did not respond.</h1>
+            <p>${error.message || "An error occurred while loading the game."}</p>
+          </div>
+        </section>
+      `;
+    }
   }
 }
 

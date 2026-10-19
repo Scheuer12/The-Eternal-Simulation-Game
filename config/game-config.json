@@ -1,219 +1,100 @@
 {
-  "version": 1,
+  "version": "sandbox-rebuild-v1",
   "timing": {
-    "baseTickSeconds": 1,
-    "simulationStepMs": 100,
-    "renderIntervalMs": 100,
+    "baseTickSeconds": 0.05,
+    "simulationStepMs": 50,
+    "renderIntervalMs": 50,
     "autosaveIntervalMs": 5000,
-    "maximumTickSeconds": 1
+    "maximumTickSeconds": 1.0
   },
   "offlineProgress": {
-    "maxOfflineSeconds": 28800,
+    "maxOfflineSeconds": 86400,
     "stepSeconds": 0.25,
-    "maxSteps": 120000
+    "maxSteps": 345600
   },
-  "energy": {
-    "baseProductionPerSecond": 1e-12,
-    "powerCellCapacity": 1,
-    "initialPowerCells": 1,
-    "initialCrcCount": 1,
+  "economy": {
+    "algorithmBaseStrength": 1e-15,
+    "algorithmConversionFactor": 12,
+    "conversionPerformanceRatio": 2,
+    "initialComputerLevel": 1,
+    "computerPerformanceBase": 1.5,
+    "baseStudyDurationSeconds": 0.5,
+    "initialEnergy": 0
+  },
+  "decay": {
     "overflowDecayRate": 0.009,
     "overflowDecayPower": 1.35
   },
-  "powerCell": {
-    "algorithmUpgradesRequired": 3,
-    "baseCapacityCostMultiplier": 1.5,
-    "costGrowthScale": 4,
-    "costGrowthPower": 1.25,
-    "arrayCostGrowthMultiplier": 1.06
-  },
-  "powerModule": {
-    "cellsPerModule": 20,
-    "baseCost": 100,
-    "costGrowth": 3.2,
-    "costGrowthExponent": 1.18,
-    "capacityMultiplier": 1.35
-  },
-  "particleLab": {
-    "doorEnergyRequired": 100,
-    "synthesizerEnergyRequired": 100000000000
-  },
-  "science": {
-    "redundancyElimination": {
-      "researchSpeedBonusPerUpgradePerCycle": 0.005,
-      "softcapStartsAtImprovements": 50,
-      "postSoftcapCycleRate": 0.08,
-      "postSoftcapMaximumExtraCycles": 4,
-      "hardcapStartsAtImprovements": 100
-    },
-    "energyPerks": {
-      "powerModuleScalingPerOwnedModule": 0.0085,
-      "crcExponentialProductionPerCrc": 1.005,
-      "processorBonusExponentForCrc": 0.15
-    },
-    "quantumPerks": {
-      "calculationSpeedLogCoefficient": 0.015,
-      "calculationSpeedSoftcapRaw": 0.15,
-      "calculationSpeedPostSoftcapSlope": 0.25,
-      "calculationSpeedMaximumBonus": 0.3,
-      "superpositionRetentionLogCoefficient": 0.01,
-      "superpositionMaximumRetention": 0.1,
-      "revealAtAllocatedSciencePoints": 3,
-      "particleGeneratorStoredEnergyRequired": 1e36
-    },
-    "studyPerks": {
-      "processorBonusImprovementSpeedExponent": 1.07
-    },
-    "automationPerks": {
-      "motherboardModuleStoredEnergyRequired": 1e23
-    },
-    "fiftyGCalculator": {
-      "cost": 1
-    },
-    "sciencePointCost": {
-      "baseExponent": 11,
-      "linearExponentGrowth": 0.9,
-      "quadraticExponentGrowth": 0.055
-    },
-    "quarks": {
-      "energyPerQuark": 100000000000,
-      "decayRate": 0.12,
-      "decayPower": 1.7
-    },
-    "quarkCage": {
-      "baseCostExponent": 11,
-      "costExponentGrowth": 1,
-      "capacityPerCage": 10,
-      "startingCagesAfterSynthesis": 1
+  "dataXP": {
+    "aImpData": 1,
+    "aUpgData": 9,
+    "aRecData": 81,
+    "machineLearning": {
+      "baseRequirement": 693,
+      "scaleMultiplier": 2304,
+      "powerExponent": 1.6643485138
     }
   },
-  "study": {
-    "baseDurationSeconds": 1.5,
-    "durationGrowthCoefficient": 0.1315,
-    "durationGrowthPower": 2,
-    "durationEarlyLoadMultiplier": 0.7,
-    "durationEarlyLoadUntil": 10,
-    "durationFullLoadAt": 15,
-    "durationLoadMultiplierPerSetup": 0.86,
-    "onboardingImprovements": 15,
-    "onboardingInitialBonus": 9,
-    "baselineBonus": 0.05,
-    "onboardingDecayShape": 1.55,
-    "bonusCurveSmoothing": 0.001,
-    "bonusDecayRate": 0.0062,
-    "effectPenaltyMultiplierPerMethod": 0.9
+  "facilityOptimization": {
+    "initialLevelRequired": 9,
+    "levelIncrement": 3,
+    "deviceMultiplierBase": 1.09
   },
-  "algorithmUpgrade": {
-    "baseDurationSeconds": 10,
-    "durationGrowthCoefficient": 0.16,
-    "durationGrowthPower": 1.1,
-    "initialImprovementsRequired": 12,
-    "improvementsRequiredGrowth": 5,
-    "productionMultiplier": 2
-  },
-  "softDataDisplay": {
-    "cost": 1e-9
-  },
-  "t2SoftDataDisplay": {
-    "cost": 2e-3
-  },
-  "autoCalculator": {
-    "baseCost": 1.2e-7,
-    "costGrowth": 3.2,
-    "costGrowthExponent": 1.08,
-    "firstSpeedMultiplier": 1,
-    "additionalSpeedMultiplier": 1
-  },
-  "blueprint": {
-    "revealAtPeakEnergy": 10,
-    "researchDurationSeconds": 60
-  },
-  "crcConstruction": {
-    "baseCost": 2,
-    "costGrowth": 2.5,
-    "costGrowthExponent": 1.12,
-    "durationSeconds": 20
-  },
-  "processor": {
-    "baseCost": 6e-7,
-    "costGrowth": 8,
-    "costGrowthExponent": 1.25,
-    "deviceEfficiencyMultiplier": 1.25
-  },
-  "overclocker": {
-    "baseCost": 2,
-    "costGrowth": 10,
-    "costGrowthExponent": 1.35,
-    "processorsRequired": 3,
-    "powerCellsRequired": 3,
-    "baseCalculatorSpeedMultiplier": 5,
-    "additionalCalculatorSpeedMultiplier": 1.5,
-    "baseEnergyDrainPerSecond": 0.005,
-    "energyDrainGrowth": 6,
-    "runtimeDrainGrowthBase": 1.75,
-    "coolingDurationMultiplier": 2
-  },
-  "calculationMethodUpgrade": {
-    "initialAlgorithmUpgradesRequired": 15,
-    "algorithmUpgradesRequiredGrowth": 8
-  },
-  "setupOptimization": {
-    "initialMethodUpgradesRequired": 2,
-    "methodUpgradesRequiredGrowth": 1,
-    "methodUpgradesRequiredQuadratic": 0.2
-  },
-  "development": {
-    "durationMultiplier": 0.05,
-    "productionMultiplier": 1000
-  },
-  "economyV2": {
-    "crc": {
-      "baseProductionPerSecond": 1e-12,
-      "improvementLinearBonus": 1
+  "devices": {
+    "chip": {
+      "initialCost": 3e-11,
+      "costMultiplier": 4.0,
+      "defaultTarget": "AImp"
     },
-    "improvements": {
-      "baseDurationSeconds": 0.5,
-      "durationGrowthCoefficient": 0.0012,
-      "durationGrowthPower": 2
+    "transistorBoard": {
+      "initialCost": 2e-10,
+      "unique": true
     },
-    "algorithmUpgrades": {
-      "productionMultiplierPerUpgrade": 2,
-      "initialRequiredImprovements": 12,
-      "linearRequirementGrowth": 5,
-      "quadraticRequirementCoefficient": 0.25,
-      "automatedBaseDurationSeconds": 10,
-      "automatedDurationGrowthCoefficient": 0.16,
-      "automatedDurationGrowthPower": 1.1
+    "transistor": {
+      "initialCost": 3e-11,
+      "costMultiplier": 1.4,
+      "speedBonusPerUnit": 0.05
     },
-    "autoCalculators": {
-      "baseSpeedPerThread": 2.0,
-      "threadBonus": 1.0,
-      "perUnitSpeedBonus": 1.0,
-      "setupOptimizationExponent": 0.72
+    "microprocessor": {
+      "initialCost": 3e-9,
+      "unique": true,
+      "multiplierBase": 1.12,
+      "defaultTarget": "AImp",
+      "transistorsRequiredToUnlock": 4
     },
-    "processors": {
-      "perUnitBonus": 0.25
+    "overclocker": {
+      "initialCost": 9e-8,
+      "unique": true,
+      "minTransistors": 2,
+      "durationBase": 1.5,
+      "bonusDivisor": 3.0
     },
-    "calculationMethods": {
-      "processorBonusMultiplierPerCMU": 1.2
+    "crcGadget": {
+      "initialCost": 1e-8,
+      "unique": true,
+      "productionMultiplier": 2.0
     },
-    "setupOptimizations": {
-      "linearBonus": 5,
-      "quadraticBonus": 2
+    "capacitor": {
+      "initialCost": 1e-8,
+      "costMultiplier": 5.0,
+      "bonusPerUnit": 0.5
     },
-    "powerModules": {
-      "setupExponent": 0.7
+    "processor": {
+      "initialCost": 1e-4,
+      "costMultiplier": 2.0,
+      "bonusPerUnit": 0.03
     },
-    "overclockers": {
-      "firstProcessorBonusMultiplier": 5,
-      "additionalProcessorBonusMultiplier": 1.5,
-      "blueprintResearchBaseDurationSeconds": 45
+    "hardDisk": {
+      "initialCost": 1e-5,
+      "costMultiplier": 9.0,
+      "dataRatePerDisk": 3.0,
+      "baseEnergyDrainPerSecond": 1e-10,
+      "drainTimeConstant": 60.0
     },
-    "scienceRebalance": {
-      "calculatorUpgradeResearchLogCoefficient": 0.2,
-      "calculatorEnhancedBonus": 1.4,
-      "quantumSuperpositionLogCoefficient": 0.02,
-      "powerCellResonanceLogCoefficient": 0.02
+    "powerCell": {
+      "initialCost": 1.0,
+      "costMultiplier": 2.25,
+      "baseCapacity": 1e-3
     }
   }
 }

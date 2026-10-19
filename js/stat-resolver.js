@@ -10,14 +10,26 @@ import { defaultEffectRegistry } from "./effect-registry.js";
 import { defaultEffectEngine } from "./effect-engine.js";
 
 export const MANDATORY_STAT_IDS = Object.freeze({
+  ALGORITHM_PERFORMANCE: "algorithms.performance",
   CRC_PRODUCTION_RATE: "devices.crc.productionRate",
+  CRC_MULTIPLIER: "devices.crc.multiplier",
+  AIMP_CAPACITOR_MULTIPLIER: "algorithms.AImp.capacitorMultiplier",
+  GLOBAL_DEVICE_MULTIPLIER: "devices.globalMultiplier",
+  FACILITY_DEVICE_MULTIPLIER: "facility.deviceMultiplier",
+  PROCESSOR_DEVICE_MULTIPLIER: "devices.processor.deviceMultiplier",
+  STUDY_SPEED_AIMP: "studies.AImp.speed",
+  STUDY_SPEED_AUPG: "studies.AUpg.speed",
+  STUDY_SPEED_AREC: "studies.ARec.speed",
+  POWER_CELL_CAPACITY: "devices.powerCell.capacity",
+
+  // Architecture contract compatibility keys
   CRC_IMPROVEMENT_FACTOR: "devices.crc.improvementFactor",
   CRC_UPGRADE_FACTOR: "devices.crc.upgradeFactor",
   PROCESSOR_UNIT_BONUS: "devices.processor.unitBonus",
-  PROCESSOR_CALCULATOR_AMPLIFICATION: "devices.processor.calculatorAmplification",
-  AUTOCALCULATOR_UNIT_BONUS: "devices.autoCalculator.unitBonus",
-  AUTOCALCULATOR_RESEARCH_SPEED: "devices.autoCalculator.researchSpeed",
-  STUDIES_IMPROVEMENT_SPEED: "studies.algorithmImprovement.speedMultiplier",
+  PROCESSOR_CALC_AMPLIFICATION: "devices.processor.calculatorAmplification",
+  AUTOCALC_UNIT_BONUS: "devices.autoCalculator.unitBonus",
+  AUTOCALC_RESEARCH_SPEED: "devices.autoCalculator.researchSpeed",
+  ALGO_IMP_SPEED_MULT: "studies.algorithmImprovement.speedMultiplier",
   SETUP_DEVICE_PERFORMANCE: "setup.devicePerformance",
 });
 
@@ -58,7 +70,6 @@ export class StatResolver {
       throw new Error(`Cyclic dependency detected: ${chain}`);
     }
 
-    // Check revision cache if available and trace not requested
     if (!traceEnabled && this.cache.has(statId)) {
       return this.cache.get(statId);
     }
@@ -73,7 +84,6 @@ export class StatResolver {
 
     const effects = this.registry.getEffectsForTarget(statId);
 
-    // Provide context with nested resolve capability
     const nestedContext = {
       ...context,
       resolve: (depStatId, options = {}) =>

@@ -4,15 +4,15 @@ import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sources = [
-  "content/texts.js",
   "js/numeric.js",
+  "js/formula-registry.js",
   "js/formulas.js",
-  "js/news.js",
+  "js/effect-registry.js",
+  "js/effect-engine.js",
   "js/effect-system.js",
+  "js/stat-resolver.js",
+  "js/audit-logger.js",
   "js/component-registry.js",
-  "js/science-perks.js",
-  "js/automations.js",
-  "js/availability.js",
   "js/state.js",
   "js/save-system.js",
   "js/engine.js",

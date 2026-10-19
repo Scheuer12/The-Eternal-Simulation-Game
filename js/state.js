@@ -1,426 +1,256 @@
-import {
-  getSciencePerkStoredEnergyRequirement,
-  SCIENCE_PERKS,
-} from "./science-perks.js";
-import {
-  createAutomationState,
-  inferUnlockedAutomations,
-} from "./automations.js";
-import { calculateImprovementBonus, calculateStudyDuration } from "./formulas.js";
-import { big } from "./numeric.js";
+/**
+ * state.js
+ * GameState — Single Source of Truth (SSoT) for The Eternal Simulation.
+ * Rebuilt for the Energy Era, Algorithm Learning, Devices & Facility Optimization spec.
+ */
 
-export const SAVE_VERSION = 3;
+import { big, BigNum } from "./numeric.js";
 
-export function createInitialState(config) {
+export const SAVE_VERSION = 4;
+
+export function createInitialState(config = {}) {
   return {
     saveVersion: SAVE_VERSION,
-    introState: "choice",
-    energy: big(0),
-    peakEnergy: big(0),
-    powerCells: config.energy.initialPowerCells,
-    improvements: 0,
-    improvementMultiplier: big(1),
-    preservedImprovementLog: big(0),
-    upgrades: 0,
-    calculationMethods: 0,
-    setupOptimizations: 0,
-    sciencePoints: 0,
-    science: {
-      fiftyGCalculator: false,
-      perks: {},
-      revealedPerks: Object.fromEntries(
-        SCIENCE_PERKS.filter(
-          (perk) => getSciencePerkStoredEnergyRequirement(perk, config) > 0,
-        ).map((perk) => [perk.id, false]),
-      ),
-      syntheses: 0,
-      totalScienceEarned: 0,
+
+    // Core Currencies
+    energy: big(config.economy?.initialEnergy ?? 0),
+    peakEnergy: big(config.economy?.initialEnergy ?? 0),
+    powerCells: 0,
+    powerCellCharge: big(0),
+
+    // Progression & Prestiges
+    computerLevel: config.economy?.initialComputerLevel ?? 1,
+    facilityOptimizations: 0,
+
+    // Exactly Three Algorithm Features
+    algorithms: {
+      AImp: { owned: 0, produced: 0 },
+      AUpg: { owned: 0, produced: 0 },
+      ARec: { owned: 0, produced: 0 },
     },
-    quarks: {
-      available: big(0),
-      totalEarned: big(0),
-      lastSynthesis: big(0),
+
+    // Study Execution State
+    manualStudy: {
+      target: null, // 'AImp' | 'AUpg' | 'ARec' | null
+      elapsed: 0,
+      active: false,
     },
-    scienceDevices: {
-      quarkCages: 0,
+    studyQueues: {
+      AImp: 0,
+      AUpg: 0,
+      ARec: 0,
     },
-    crcCount: config.energy.initialCrcCount,
-    powerModules: 0,
-    particleSynthesizer: {
-      activated: false,
-      awakened: false,
+    reservedInputs: {
+      AImp: 0,
+      AUpg: 0,
     },
+
+    // Devices & Infrastructure
+    devices: {
+      chips: {
+        owned: 0,
+        allocations: {
+          AImp: 0,
+          AUpg: 0,
+          ARec: 0,
+        },
+      },
+      transistorBoard: {
+        owned: false,
+      },
+      transistorsPurchased: 0,
+      transistorAllocations: {
+        AImp: 0,
+        AUpg: 0,
+        ARec: 0,
+      },
+      microprocessor: {
+        owned: 0,
+        target: "AImp",
+      },
+      overclocker: {
+        owned: 0,
+        active: false,
+        activeSeconds: 0,
+        remainingDuration: 0,
+        target: null,
+        consumedTransistors: 0,
+      },
+      crcGadget: {
+        owned: 0,
+      },
+      capacitors: 0,
+      processors: 0,
+      hardDisks: {
+        owned: 0,
+        state: "off", // 'active' | 'standby' | 'off'
+        activeSeconds: 0,
+        buffer: 0,
+      },
+    },
+
+    // Technological Unlock Milestones
+    unlocks: {
+      AImp: true,
+      AUpg: true,
+      ARec: false,
+      chips: false,
+      transistorBoard: false,
+      microprocessor: false,
+      overclocker: false,
+      crcGadget: true,
+      capacitor: false,
+      processor: false,
+      hardDisk: false,
+      powerCell: false,
+    },
+
+    // Statistics
+    stats: {
+      gameTime: 0,
+      totalEnergyProduced: big(0),
+      totalPurchases: 0,
+      totalMachineLearnings: 0,
+      totalFacilityOptimizations: 0,
+    },
+
+    // UI View State
     ui: {
       activeTab: "energy",
-      activeScienceSubtab: "tree",
-      buyMode: "1",
-      historyFilter: "all",
-      treeZoom: 1.0,
-      selectedSciencePerkId: null,
-      resetModal: null,
-      historyModalEntry: null,
-      particleSynthesisModal: null,
-      synthesizerAwakenedModal: false,
-      hideCompletedPurchases: false,
-      seenComponents: {},
-      newsDismissed: false,
-      currentNewsId: null,
-      newsTimer: 0,
-      newsHovered: false,
+      transistorBoardExpanded: true,
+      narrativeDismissed: false,
+      bulkMode: 1,
     },
-    devices: {
-      softDataDisplay: false,
-      t2SoftDataDisplay: false,
-      autoCalculators: 0,
-      processors: 0,
-      overclockers: 0,
-    },
-    overclocker: {
-      active: false,
-      activeSeconds: 0,
-    },
-    automations: createAutomationState(),
-    discoveries: {
-      crcBlueprint: false,
-      blueprintSource: null,
-      overclockerBlueprint: false,
-    },
-    study: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-      automated: false,
-      completedAt: null,
-    },
-    algorithmUpgradeStudy: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-      automated: false,
-    },
-    blueprintStudy: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-    },
-    overclockerBlueprintStudy: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-    },
-    construction: {
-      active: false,
-      elapsed: 0,
-      duration: 0,
-    },
-    devSettings: {
-      productionMultiplier: config.development.productionMultiplier,
-      durationMultiplier: config.development.durationMultiplier,
-    },
-    prototypeComplete: false,
-    stats: {
-      totalEnergyCollected: big(0),
-      totalPlayTime: 0,
-      runPlayTime: 0,
-    },
-    log: [],
-    history: [],
-    lastSavedAt: Date.now(),
+
+    // Developer Sandbox
+    devMode: true,
+    gameSpeed: 1.0,
+    auditLogs: [],
+    quicksaveSnapshot: null,
   };
 }
 
-export function migrateSaveV2ToV3(candidate, config) {
-  if (!candidate) return createInitialState(config);
-
+export function normalizeState(raw = {}, config = {}) {
   const initial = createInitialState(config);
-  const migrated = { ...candidate };
-  migrated.saveVersion = SAVE_VERSION;
+  if (!raw || typeof raw !== "object") return initial;
 
-  // 1. Improvements and linear multiplier
-  const improvements = Math.max(
-    0,
-    Number.isFinite(candidate.improvements) ? candidate.improvements : 0,
-  );
-  migrated.improvements = improvements;
-  migrated.improvementMultiplier = big(1 + improvements);
-  delete migrated.preservedImprovementLog;
-
-  // 2. Science perks: storedEnergyPreservation -> powerCellResonance, matrixMechanics -> redundancyElimination
-  const candidateScience = candidate.science ? { ...candidate.science } : {};
-  const perks = candidateScience.perks ? { ...candidateScience.perks } : {};
-  if (perks.storedEnergyPreservation) {
-    perks.powerCellResonance = true;
-    delete perks.storedEnergyPreservation;
-  }
-  if (candidateScience.matrixMechanics) {
-    perks.redundancyElimination = true;
-    delete candidateScience.matrixMechanics;
-  }
-  candidateScience.perks = perks;
-  migrated.science = candidateScience;
-
-  // 3. Active studies: migrate by percentage completed
-  if (candidate.study?.active && candidate.study?.duration > 0) {
-    const elapsed = Math.max(0, candidate.study.elapsed ?? 0);
-    const pct = Math.min(1, elapsed / candidate.study.duration);
-    const tempState = { ...migrated, ...candidate };
-    const newDuration = calculateStudyDuration(tempState, config);
-    migrated.study = {
-      ...candidate.study,
-      duration: newDuration,
-      elapsed: pct * newDuration,
-    };
-  }
-
-  // 4. Tab mapping
-  const tabMapping = {
-    hardware: "energy",
-    devices: "energy",
-    studies: "energy",
-    energy: "energy",
-    automation: "automation",
-    automations: "automation",
-    measure: "automation",
-    statistics: "automation",
-    science: "science",
-    history: "history",
-  };
-  const activeTab = candidate.ui?.activeTab;
-  migrated.ui = {
-    ...initial.ui,
-    ...candidate.ui,
-    activeTab: tabMapping[activeTab] ?? "energy",
-  };
-
-  migrated.history = Array.isArray(candidate.history)
-    ? [...candidate.history]
-    : [];
-
-  // 5. Discoveries
-  migrated.discoveries = {
-    ...initial.discoveries,
-    ...candidate.discoveries,
-    overclockerBlueprint: Boolean(candidate.discoveries?.overclockerBlueprint),
-  };
-  migrated.overclockerBlueprintStudy = {
-    ...initial.overclockerBlueprintStudy,
-    ...candidate.overclockerBlueprintStudy,
-  };
-
-  return migrated;
-}
-
-export function normalizeState(candidate, config) {
-  const initial = createInitialState(config);
-
-  if (!candidate) {
-    return initial;
-  }
-
-  if (candidate.saveVersion && candidate.saveVersion < SAVE_VERSION) {
-    candidate = migrateSaveV2ToV3(candidate, config);
-  } else if (candidate.saveVersion !== SAVE_VERSION) {
-    return initial;
-  }
-
-  const tabMapping = {
-    hardware: "energy",
-    devices: "energy",
-    studies: "energy",
-    energy: "energy",
-    automation: "automation",
-    automations: "automation",
-    measure: "automation",
-    statistics: "automation",
-    science: "science",
-    history: "history",
-  };
-
-  const devices = {
-    ...initial.devices,
-    ...candidate.devices,
-    autoCalculators:
-      candidate.devices?.autoCalculators ??
-      (candidate.devices?.autoCalculator ? 1 : 0),
-    processors:
-      candidate.devices?.processors ?? (candidate.devices?.processor ? 1 : 0),
-    overclockers:
-      candidate.devices?.overclockers ??
-      (candidate.devices?.overclocker ? 1 : 0),
-  };
-
-  delete devices.autoCalculator;
-  delete devices.processor;
-  delete devices.overclocker;
-
-  let improvementMultiplier = big(candidate.improvementMultiplier);
-  if (improvementMultiplier.lte(0)) {
-    const completedImprovements = Number.isSafeInteger(candidate.improvements)
-      ? Math.max(0, candidate.improvements)
-      : 0;
-    improvementMultiplier = big(1 + completedImprovements);
-  }
-
-  const { matrixMechanics: legacyMatrixMechanics, ...candidateScience } =
-    candidate.science ?? {};
-  const candidatePerks = candidateScience.perks ?? {};
-  const revealedPerks = {
-    ...initial.science.revealedPerks,
-    ...candidateScience.revealedPerks,
-  };
-  for (const perk of SCIENCE_PERKS) {
-    const threshold = getSciencePerkStoredEnergyRequirement(perk, config);
-    if (threshold > 0 && big(candidate.energy).gte(threshold)) {
-      revealedPerks[perk.id] = true;
-    }
-  }
-
-  return {
+  const state = {
     ...initial,
-    ...candidate,
-    energy: big(candidate.energy).gte(0) ? big(candidate.energy) : big(0),
-    peakEnergy: big(candidate.peakEnergy).gte(0)
-      ? big(candidate.peakEnergy)
-      : big(0),
-    improvementMultiplier,
-    powerCells: Math.max(
-      initial.powerCells,
-      Number.isFinite(candidate.powerCells)
-        ? candidate.powerCells
-        : initial.powerCells,
-    ),
-    powerModules: Number.isFinite(candidate.powerModules)
-      ? candidate.powerModules
-      : 0,
-    particleSynthesizer: {
-      ...initial.particleSynthesizer,
-      ...candidate.particleSynthesizer,
-      awakened: Boolean(
-        candidate.particleSynthesizer?.awakened ||
-          (candidate.science?.syntheses ?? 0) > 0,
-      ),
+    saveVersion: SAVE_VERSION,
+    energy: big(raw.energy ?? initial.energy),
+    peakEnergy: big(raw.peakEnergy ?? initial.peakEnergy),
+    powerCells: Number(raw.powerCells ?? initial.powerCells),
+    powerCellCharge: big(raw.powerCellCharge ?? initial.powerCellCharge),
+    computerLevel: Math.max(1, Number(raw.computerLevel ?? initial.computerLevel)),
+    facilityOptimizations: Math.max(0, Number(raw.facilityOptimizations ?? initial.facilityOptimizations)),
+
+    algorithms: {
+      AImp: {
+        owned: Math.max(0, Number(raw.algorithms?.AImp?.owned ?? raw.improvements ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.AImp?.produced ?? 0)),
+      },
+      AUpg: {
+        owned: Math.max(0, Number(raw.algorithms?.AUpg?.owned ?? raw.upgrades ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.AUpg?.produced ?? 0)),
+      },
+      ARec: {
+        owned: Math.max(0, Number(raw.algorithms?.ARec?.owned ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.ARec?.produced ?? 0)),
+      },
     },
-    history: Array.isArray(candidate.history)
-      ? [...candidate.history]
-      : initial.history,
+
+    manualStudy: {
+      target: raw.manualStudy?.target ?? null,
+      elapsed: Number(raw.manualStudy?.elapsed ?? 0),
+      active: Boolean(raw.manualStudy?.active),
+    },
+    studyQueues: {
+      AImp: Math.max(0, Number(raw.studyQueues?.AImp ?? 0)),
+      AUpg: Math.max(0, Number(raw.studyQueues?.AUpg ?? 0)),
+      ARec: Math.max(0, Number(raw.studyQueues?.ARec ?? 0)),
+    },
+    reservedInputs: {
+      AImp: Math.max(0, Number(raw.reservedInputs?.AImp ?? 0)),
+      AUpg: Math.max(0, Number(raw.reservedInputs?.AUpg ?? 0)),
+    },
+
+    devices: {
+      chips: {
+        owned: Math.max(0, Number(raw.devices?.chips?.owned ?? raw.devices?.autoCalculators ?? 0)),
+        allocations: {
+          AImp: Math.max(0, Number(raw.devices?.chips?.allocations?.AImp ?? raw.devices?.autoCalculators ?? 0)),
+          AUpg: Math.max(0, Number(raw.devices?.chips?.allocations?.AUpg ?? 0)),
+          ARec: Math.max(0, Number(raw.devices?.chips?.allocations?.ARec ?? 0)),
+        },
+      },
+      transistorBoard: {
+        owned: Boolean(raw.devices?.transistorBoard?.owned),
+      },
+      transistorsPurchased: Math.max(0, Number(raw.devices?.transistorsPurchased ?? 0)),
+      transistorAllocations: {
+        AImp: Math.max(0, Number(raw.devices?.transistorAllocations?.AImp ?? 0)),
+        AUpg: Math.max(0, Number(raw.devices?.transistorAllocations?.AUpg ?? 0)),
+        ARec: Math.max(0, Number(raw.devices?.transistorAllocations?.ARec ?? 0)),
+      },
+      microprocessor: {
+        owned: Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0)),
+        target: raw.devices?.microprocessor?.target ?? "AImp",
+      },
+      overclocker: {
+        owned: Math.max(0, Number(raw.devices?.overclocker?.owned ?? 0)),
+        active: Boolean(raw.devices?.overclocker?.active),
+        activeSeconds: Number(raw.devices?.overclocker?.activeSeconds ?? 0),
+        remainingDuration: Number(raw.devices?.overclocker?.remainingDuration ?? 0),
+        target: raw.devices?.overclocker?.target ?? null,
+        consumedTransistors: Number(raw.devices?.overclocker?.consumedTransistors ?? 0),
+      },
+      crcGadget: {
+        owned: Math.max(0, Number(raw.devices?.crcGadget?.owned ?? 0)),
+      },
+      capacitors: Math.max(0, Number(raw.devices?.capacitors ?? 0)),
+      processors: Math.max(0, Number(raw.devices?.processors ?? 0)),
+      hardDisks: {
+        owned: Math.max(0, Number(raw.devices?.hardDisks?.owned ?? 0)),
+        state: ["active", "standby", "off"].includes(raw.devices?.hardDisks?.state)
+          ? raw.devices.hardDisks.state
+          : "off",
+        activeSeconds: Number(raw.devices?.hardDisks?.activeSeconds ?? 0),
+        buffer: Math.max(0, Number(raw.devices?.hardDisks?.buffer ?? 0)),
+      },
+    },
+
+    unlocks: {
+      ...initial.unlocks,
+      ...(raw.unlocks ?? {}),
+    },
+
+    stats: {
+      gameTime: Number(raw.stats?.gameTime ?? 0),
+      totalEnergyProduced: big(raw.stats?.totalEnergyProduced ?? 0),
+      totalPurchases: Number(raw.stats?.totalPurchases ?? 0),
+      totalMachineLearnings: Number(raw.stats?.totalMachineLearnings ?? 0),
+      totalFacilityOptimizations: Number(raw.stats?.totalFacilityOptimizations ?? 0),
+    },
+
     ui: {
       ...initial.ui,
-      ...candidate.ui,
-      activeTab: tabMapping[candidate.ui?.activeTab] ?? initial.ui.activeTab,
-      particleSynthesisModal: null,
-      synthesizerAwakenedModal: false,
-      resetModal: null,
-      historyModalEntry: null,
-      buyMode: candidate.ui?.buyMode ?? initial.ui.buyMode,
-      historyFilter: candidate.ui?.historyFilter ?? initial.ui.historyFilter,
-      treeZoom:
-        typeof candidate.ui?.treeZoom === "number"
-          ? candidate.ui.treeZoom
-          : initial.ui.treeZoom,
-      selectedSciencePerkId: candidate.ui?.selectedSciencePerkId ?? null,
-      seenComponents: {
-        ...initial.ui.seenComponents,
-        ...candidate.ui?.seenComponents,
-      },
-      newsDismissed: Boolean(candidate.ui?.newsDismissed),
-      currentNewsId: candidate.ui?.currentNewsId ?? null,
-      newsTimer:
-        typeof candidate.ui?.newsTimer === "number"
-          ? candidate.ui.newsTimer
-          : 0,
-      newsHovered: false,
+      ...(raw.ui ?? {}),
     },
-    setupOptimizations:
-      candidate.setupOptimizations ?? candidate.compressionProtocols ?? 0,
-    sciencePoints: Number.isFinite(candidate.sciencePoints)
-      ? candidate.sciencePoints
-      : 0,
-    preservedImprovementLog: big(candidate.preservedImprovementLog).gte(0)
-      ? big(candidate.preservedImprovementLog)
-      : big(0),
-    science: {
-      ...initial.science,
-      ...candidateScience,
-      perks: {
-        ...initial.science.perks,
-        ...candidatePerks,
-        redundancyElimination:
-          Boolean(candidatePerks.redundancyElimination) ||
-          Boolean(legacyMatrixMechanics),
-        powerCellResonance:
-          Boolean(candidatePerks.powerCellResonance) ||
-          Boolean(candidatePerks.storedEnergyPreservation),
-      },
-      revealedPerks,
-      totalScienceEarned: Number.isFinite(candidate.science?.totalScienceEarned)
-        ? candidate.science.totalScienceEarned
-        : Number.isFinite(candidate.sciencePoints)
-          ? candidate.sciencePoints
-          : 0,
-    },
-    quarks: {
-      ...initial.quarks,
-      ...candidate.quarks,
-      available: big(candidate.quarks?.available),
-      totalEarned: big(candidate.quarks?.totalEarned),
-      lastSynthesis: big(candidate.quarks?.lastSynthesis),
-    },
-    scienceDevices: {
-      ...initial.scienceDevices,
-      ...candidate.scienceDevices,
-      quarkCages:
-        (candidate.science?.syntheses ?? 0) > 0
-          ? Math.max(
-              config.science.quarkCage.startingCagesAfterSynthesis ?? 1,
-              candidate.scienceDevices?.quarkCages ?? 0,
-            )
-          : (candidate.scienceDevices?.quarkCages ?? 0),
-    },
-    devices,
-    discoveries: { ...initial.discoveries, ...candidate.discoveries },
-    study: { ...initial.study, ...candidate.study },
-    algorithmUpgradeStudy: {
-      ...initial.algorithmUpgradeStudy,
-      ...candidate.algorithmUpgradeStudy,
-    },
-    blueprintStudy: { ...initial.blueprintStudy, ...candidate.blueprintStudy },
-    overclockerBlueprintStudy: {
-      ...initial.overclockerBlueprintStudy,
-      ...candidate.overclockerBlueprintStudy,
-    },
-    construction: { ...initial.construction, ...candidate.construction },
-    overclocker: { ...initial.overclocker, ...candidate.overclocker },
-    automations: {
-      unlocked: inferUnlockedAutomations({
-        ...candidate,
-        devices,
-        science: {
-          ...initial.science,
-          ...candidateScience,
-          perks: {
-            ...initial.science.perks,
-            ...candidatePerks,
-          },
-        },
-        automations: candidate.automations,
-      }),
-      enabled: {
-        ...initial.automations.enabled,
-        ...candidate.automations?.enabled,
-      },
-    },
-    devSettings: { ...initial.devSettings, ...candidate.devSettings },
-    stats: {
-      totalEnergyCollected: big(candidate.stats?.totalEnergyCollected).gte(0)
-        ? big(candidate.stats?.totalEnergyCollected)
-        : big(0),
-      totalPlayTime: Number.isFinite(candidate.stats?.totalPlayTime)
-        ? Math.max(0, candidate.stats.totalPlayTime)
-        : 0,
-      runPlayTime: Number.isFinite(candidate.stats?.runPlayTime)
-        ? Math.max(0, candidate.stats.runPlayTime)
-        : 0,
-    },
-    log: Array.isArray(candidate.log) ? candidate.log.slice(0, 60) : [],
+
+    devMode: raw.devMode !== undefined ? Boolean(raw.devMode) : true,
+    gameSpeed: Number(raw.gameSpeed ?? 1.0),
+    auditLogs: Array.isArray(raw.auditLogs) ? raw.auditLogs : [],
+    quicksaveSnapshot: raw.quicksaveSnapshot ?? null,
   };
+
+  return state;
+}
+
+export function serializeState(state) {
+  return JSON.stringify(state, (key, value) => {
+    if (value instanceof BigNum) {
+      return value.toString();
+    }
+    return value;
+  });
 }

@@ -140,3 +140,72 @@ export function formatEngineering(value, suffix = "") {
   const mantissa = absolute.div(Decimal.pow(10, exponent)).toNumber();
   return `${sign}${trimFixed(mantissa)}e${formatExponent(exponent)}${suffix}`;
 }
+
+const SI_UNITS_HIGH = {
+  15: "PJ",
+  18: "EJ",
+  21: "ZJ",
+  24: "YJ",
+};
+
+export function formatEnergy(value, precision = 2) {
+  const d = big(value);
+  if (!d.isFinite()) return "SIGNAL ERROR";
+  if (d.eq(0)) return "0.00 pJ";
+
+  // Layer 0 SI handling
+  if (d.layer === 0) {
+    const num = d.toNumber();
+    const abs = Math.abs(num);
+
+    if (abs >= 1e24) return `${(num / 1e24).toFixed(precision)} YJ`;
+    if (abs >= 1e21) return `${(num / 1e21).toFixed(precision)} ZJ`;
+    if (abs >= 1e18) return `${(num / 1e18).toFixed(precision)} EJ`;
+    if (abs >= 1e15) return `${(num / 1e15).toFixed(precision)} PJ`;
+    if (abs >= 1e12) return `${(num / 1e12).toFixed(precision)} TJ`;
+    if (abs >= 1e9) return `${(num / 1e9).toFixed(precision)} GJ`;
+    if (abs >= 1e6) return `${(num / 1e6).toFixed(precision)} MJ`;
+    if (abs >= 1e3) return `${(num / 1e3).toFixed(precision)} kJ`;
+    if (abs >= 1) return `${num.toFixed(precision)} J`;
+    if (abs >= 1e-3) return `${(num * 1e3).toFixed(precision)} mJ`;
+    if (abs >= 1e-6) return `${(num * 1e6).toFixed(precision)} µJ`;
+    if (abs >= 1e-9) return `${(num * 1e9).toFixed(precision)} nJ`;
+    if (abs >= 1e-12) return `${(num * 1e12).toFixed(precision)} pJ`;
+    if (abs >= 1e-15) return `${(num * 1e15).toFixed(precision)} fJ`;
+    if (abs >= 1e-18) return `${(num * 1e18).toFixed(precision)} aJ`;
+  } else if (d.layer === 1 && d.mag < 27) {
+    const group = Math.floor(d.mag / 3) * 3;
+    const unit = SI_UNITS_HIGH[group];
+    if (unit) {
+      const mantissa = 10 ** (d.mag - group);
+      return `${mantissa.toFixed(precision)} ${unit}`;
+    }
+  }
+
+  return formatEngineering(d, " J");
+}
+
+export function formatRate(value, precision = 2) {
+  const d = big(value);
+  const prefix = d.gte(0) ? "+" : "";
+  return `${prefix}${formatEnergy(d, precision)}/s`;
+}
+
+export function formatInteger(value) {
+  const num = Math.floor(Number(value) || 0);
+  return num.toLocaleString("en-US");
+}
+
+export function formatDuration(seconds) {
+  const s = Math.max(0, Number(seconds ?? 0));
+  if (s < 60) return `${s.toFixed(1)}s`;
+  if (s < 3600) {
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    return `${mins}m ${secs}s`;
+  }
+  const hours = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  return `${hours}h ${mins}m`;
+}
+
