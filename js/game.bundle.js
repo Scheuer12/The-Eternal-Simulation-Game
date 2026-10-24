@@ -5668,6 +5668,8 @@
 
 (() => {
   "use strict";
+  const Decimal = globalThis.Decimal || (typeof window !== "undefined" ? window.Decimal : null) || (typeof module !== "undefined" && module.exports ? module.exports : null);
+  globalThis.Decimal = Decimal;
   globalThis.__TES_GAME_CONFIG__ = {
   "version": "sandbox-rebuild-v1",
   "timing": {
@@ -5727,7 +5729,8 @@
     },
     "microprocessor": {
       "initialCost": 3e-9,
-      "unique": true,
+      "costMultiplier": 1.25,
+      "unique": false,
       "multiplierBase": 1.12,
       "defaultTarget": "AImp",
       "transistorsRequiredToUnlock": 4
@@ -7256,10 +7259,11 @@ function calculateTransistorStudySpeedMultiplier(transistorsAllocated = 0, confi
   return 1 + rate * T * deviceMultiplier;
 }
 
-function calculateMicroprocessorStudyMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1) {
+function calculateMicroprocessorStudyMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1, microprocessorsOwned = 1) {
   const T = Math.max(0, Math.floor(transistorsAllocated ?? 0));
+  const M = Math.max(0, Math.floor(microprocessorsOwned ?? 1));
   const base = config.devices?.microprocessor?.multiplierBase ?? 1.12;
-  const rawBonus = base ** T - 1;
+  const rawBonus = (base ** T - 1) * M;
   return 1 + rawBonus * deviceMultiplier;
 }
 
@@ -7285,17 +7289,18 @@ function calculateEffectiveStudySpeed(featureId = "AImp", state = {}, config = {
 
   let microMult = 1.0;
   const microTarget = state.devices?.microprocessor?.target ?? "AImp";
-  const hasMicro = (state.devices?.microprocessor?.owned ?? 0) > 0;
+  const microOwned = state.devices?.microprocessor?.owned ?? 0;
+  const hasMicro = microOwned > 0;
 
   if (hasMicro && microTarget === featureId) {
     const overclock = state.devices?.overclocker;
     if (overclock?.active && overclock.target === featureId) {
       const consumedT = overclock.consumedTransistors ?? 2;
-      const baseMicroBonus = (config.devices?.microprocessor?.multiplierBase ?? 1.12) ** consumedT - 1;
+      const baseMicroBonus = ((config.devices?.microprocessor?.multiplierBase ?? 1.12) ** consumedT - 1) * microOwned;
       const ocBonus = calculateOverclockBonusMultiplier(consumedT, config);
       microMult = 1 + baseMicroBonus * ocBonus * deviceMultiplier;
     } else {
-      microMult = calculateMicroprocessorStudyMultiplier(T, config, deviceMultiplier);
+      microMult = calculateMicroprocessorStudyMultiplier(T, config, deviceMultiplier, microOwned);
     }
   }
 
@@ -7400,7 +7405,9 @@ function calculateDeviceCost(type, owned = 0, config = {}) {
       return calculateGeometricCost(init, mult, owned);
     }
     case "microprocessor": {
-      return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
+      const init = config.devices?.microprocessor?.initialCost ?? 3e-9;
+      const mult = config.devices?.microprocessor?.costMultiplier ?? 1.25;
+      return calculateGeometricCost(init, mult, owned);
     }
     case "overclocker": {
       return big(config.devices?.overclocker?.initialCost ?? 9e-8);
@@ -7440,8 +7447,12 @@ function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {})
       const mult = config.devices?.chip?.costMultiplier ?? 4.0;
       return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
     }
+    case "microprocessor": {
+      const init = config.devices?.microprocessor?.initialCost ?? 3e-9;
+      const mult = config.devices?.microprocessor?.costMultiplier ?? 1.25;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
     case "transistorBoard":
-    case "microprocessor":
     case "overclocker":
     case "crcGadget": {
       return calculateDeviceCost(type, currentOwned, config);
@@ -8227,8 +8238,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.chips.owned = (state.devices.chips.owned ?? 0) + k;
     // Newly acquired chips default to AImp
@@ -8275,8 +8288,10 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("transistorBoard", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.transistorBoard.owned = true;
     state.unlocks.transistorBoard = true;
@@ -8317,8 +8332,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false, target = "AImp" } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.transistorsPurchased = (state.devices.transistorsPurchased ?? 0) + k;
     const dest = ["AImp", "AUpg", "ARec"].includes(target) ? target : "AImp";
@@ -8340,27 +8357,26 @@ registerElement({
   id: "microprocessor",
   name: "Microprocessor",
   category: "efficiency",
-  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors).",
-  unique: true,
-  getCost: (state, config) => calculateDeviceCost("microprocessor", 0, config),
+  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors). Each unit increases study amplification.",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config),
   getOwned: (state) => state.devices?.microprocessor?.owned ?? 0,
   isUnlocked: (state, config) => {
     if (state.unlocks?.microprocessor) return true;
     return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4;
   },
-  isEligible: (state, config) => {
+  isEligible: (state, config, count = 1) => {
     const strictUnlocked = (state.unlocks?.microprocessor) ||
       (Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4);
     const unlocked = strictUnlocked || Boolean(state.devMode);
-    const cost = calculateDeviceCost("microprocessor", 0, config);
+    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config);
     const canAfford = big(state.energy).gte(cost);
-    const notOwned = (state.devices?.microprocessor?.owned ?? 0) === 0;
     const reasons = [];
     if (!strictUnlocked) reasons.push("Requires Transistor Board and at least 4 Transistors");
-    if (!notOwned) reasons.push("Already owned (unique)");
     if (!canAfford) reasons.push("Insufficient energy");
     return {
-      eligible: unlocked && canAfford && notOwned,
+      eligible: unlocked && canAfford,
       isUnlocked: unlocked,
       strictUnlocked,
       canAfford,
@@ -8368,14 +8384,17 @@ registerElement({
       reasons,
     };
   },
-  applyPurchase: (state, config, { isForced = false } = {}) => {
-    const cost = calculateDeviceCost("microprocessor", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, k, config);
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
-    state.devices.microprocessor.owned = 1;
+    state.devices.microprocessor.owned = (state.devices.microprocessor.owned ?? 0) + k;
     state.unlocks.microprocessor = true;
-    return { newCount: 1, cost, count: 1 };
+    return { newCount: state.devices.microprocessor.owned, cost, count: k };
   },
 });
 
@@ -8421,8 +8440,10 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("overclocker", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.overclocker.owned = 1;
     state.unlocks.overclocker = true;
@@ -8460,8 +8481,10 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("crcGadget", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.crcGadget.owned = 1;
     return { newCount: 1, cost, count: 1 };
@@ -8504,8 +8527,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.capacitors = (state.devices.capacitors ?? 0) + k;
     state.unlocks.capacitor = true;
@@ -8549,8 +8574,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.processors = (state.devices.processors ?? 0) + k;
     state.unlocks.processor = true;
@@ -8594,8 +8621,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.hardDisks.owned = (state.devices.hardDisks.owned ?? 0) + k;
     if (state.devices.hardDisks.state === "off") {
@@ -8636,8 +8665,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.powerCells = (state.powerCells ?? 0) + k;
     state.unlocks.powerCell = true;
@@ -10577,6 +10608,10 @@ function createRenderer(container, engine) {
                 </p>
                 <div class="element-card__metrics">
                   <div class="metric-row">
+                    <span class="metric-row__label">Owned:</span>
+                    <span class="metric-row__val" data-field="micro-owned">0</span>
+                  </div>
+                  <div class="metric-row">
                     <span class="metric-row__label">Target:</span>
                     <span class="metric-row__val" data-field="micro-target" style="color: var(--blue-bright);">AImp</span>
                   </div>
@@ -10585,14 +10620,19 @@ function createRenderer(container, engine) {
                     <span class="metric-row__val" data-field="micro-bonus" style="color: var(--cyan);">1.00x</span>
                   </div>
                   <div class="metric-row">
-                    <span class="metric-row__label">Cost:</span>
-                    <span class="metric-row__val">3.00 nJ</span>
+                    <span class="metric-row__label">Next Cost:</span>
+                    <span class="metric-row__val" data-field="micro-cost">3.00 nJ</span>
                   </div>
                 </div>
                 <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="microprocessor" data-field="micro-btn">
+                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="microprocessor" data-count="1" data-field="micro-btn">
                     BUY MICROPROCESSOR — 3.00 nJ
                   </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="microprocessor" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="microprocessor" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="microprocessor" data-count="1000">+1000</button>
+                  </div>
                   <div style="display: flex; gap: 6px; margin-top: 6px;">
                     <button class="btn btn--sm" data-action="set-micro-target" data-target="AImp">Target AImp</button>
                     <button class="btn btn--sm" data-action="set-micro-target" data-target="AUpg">Target AUpg</button>
@@ -10709,8 +10749,14 @@ function createRenderer(container, engine) {
                   <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="hardDisk" data-count="1" data-field="harddisk-btn">
                     BUY HARD DISK — 10.00 µJ
                   </button>
+                  <div class="btn-group--bulk">
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="hardDisk" data-count="10">+10</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="hardDisk" data-count="100">+100</button>
+                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="hardDisk" data-count="1000">+1000</button>
+                  </div>
                   <div style="display: flex; gap: 6px; margin-top: 6px;">
                     <button class="btn btn--sm" data-action="set-harddisk-state" data-state="active">Active (On)</button>
+                    <button class="btn btn--sm" data-action="set-harddisk-state" data-state="standby">Standby</button>
                     <button class="btn btn--sm btn--danger" data-action="set-harddisk-state" data-state="off">Turn Off (Wipe Buffer)</button>
                   </div>
                 </div>
@@ -10910,32 +10956,111 @@ function createRenderer(container, engine) {
       }
     }
 
-    // Direct Devices
-    // CRC Gadget
+    // --- BUTTON & BADGE DYNAMIC UPDATE ENGINE ---
+    const updateElementButton = (btnSelector, elementId, defaultLabel, count = 1, badgeSelector = null, unlockLabel = "UNLOCKED") => {
+      const btn = container.querySelector(btnSelector);
+      const element = getElement(elementId);
+      if (!btn || !element) return;
+
+      const evalResult = evaluateElement(element, state, config, count);
+      const { visualStatus, canClick, strictUnlocked, cost, unique, owned } = evalResult;
+      const formattedCost = cost ? formatEnergy(cost) : null;
+      const badge = badgeSelector ? container.querySelector(badgeSelector) : null;
+
+      if (unique && owned > 0) {
+        btn.disabled = true;
+        btn.className = "btn btn--block btn--muted";
+        btn.textContent = "ALREADY OWNED";
+        if (badge) {
+          badge.className = "badge badge--success";
+          badge.textContent = "OWNED";
+        }
+        return;
+      }
+
+      if (visualStatus === "eligible") {
+        btn.disabled = false;
+        btn.className = "btn btn--block btn--eligible";
+        btn.textContent = formattedCost ? `${defaultLabel} — ${formattedCost}` : defaultLabel;
+        if (badge) {
+          badge.className = "badge badge--success";
+          badge.textContent = unlockLabel;
+        }
+      } else if (visualStatus === "dev-bypass") {
+        btn.disabled = false;
+        btn.className = "btn btn--block btn--bypass";
+        const prefix = !strictUnlocked ? "[DEV BYPASS - LOCKED]" : "[DEV BYPASS]";
+        btn.textContent = formattedCost ? `${prefix} ${defaultLabel} — ${formattedCost}` : `${prefix} ${defaultLabel}`;
+        if (badge) {
+          badge.className = strictUnlocked ? "badge badge--warning" : "badge badge--bypass";
+          badge.textContent = strictUnlocked ? "UNAFFORDABLE" : "LOCKED (BYPASS)";
+        }
+      } else {
+        btn.disabled = true;
+        btn.className = "btn btn--block btn--muted";
+        if (!strictUnlocked) {
+          const reason = evalResult.reasons?.[0] || "LOCKED";
+          btn.textContent = `LOCKED (${reason})`;
+          if (badge) {
+            badge.className = "badge badge--muted";
+            badge.textContent = "LOCKED";
+          }
+        } else {
+          btn.textContent = formattedCost ? `${defaultLabel} — ${formattedCost}` : defaultLabel;
+          if (badge) {
+            badge.className = "badge badge--warning";
+            badge.textContent = "NEED ENERGY";
+          }
+        }
+      }
+    };
+
+    const updateBulkButtons = (cardSelector, elementId) => {
+      const card = container.querySelector(cardSelector);
+      if (!card) return;
+      const element = getElement(elementId);
+      if (!element) return;
+      const bulkBtns = card.querySelectorAll(".btn-group--bulk button[data-count]");
+      bulkBtns.forEach((btn) => {
+        const count = parseInt(btn.dataset.count || "10", 10);
+        const evalResult = evaluateElement(element, state, config, count);
+        btn.disabled = !evalResult.canClick;
+        btn.className = `btn btn--sm ${
+          evalResult.visualStatus === "dev-bypass"
+            ? "btn--bypass"
+            : evalResult.canClick
+            ? "btn--dev"
+            : "btn--muted"
+        }`;
+        if (evalResult.cost) {
+          btn.title = `Cost: ${formatEnergy(evalResult.cost)}`;
+        }
+      });
+    };
+
+    // Direct Devices: CRC Gadget
     setText("crc-gadget-owned", (state.devices?.crcGadget?.owned ?? 0) + " / 1");
-    const crcGadgetBtn = container.querySelector('[data-field="crc-gadget-btn"]');
-    if (crcGadgetBtn) {
-      const owned = (state.devices?.crcGadget?.owned ?? 0) > 0;
-      crcGadgetBtn.disabled = owned;
-      crcGadgetBtn.className = `btn btn--block ${owned ? "btn--muted" : "btn--eligible"}`;
-      crcGadgetBtn.textContent = owned ? "ALREADY OWNED" : "BUY CRC GADGET — 10.00 nJ";
-    }
+    updateElementButton('[data-field="crc-gadget-btn"]', "crcGadget", "BUY CRC GADGET", 1, '[data-field="crc-gadget-badge"]', "AVAILABLE");
 
     // Capacitor
     const caps = state.devices?.capacitors ?? 0;
     setText("capacitor-owned", formatInteger(caps));
     setText("capacitor-mult", capMult.toFixed(2) + "x");
-    const capCost = config.devices?.capacitor?.initialCost ? big(config.devices.capacitor.initialCost).mul(big(5).pow(caps)) : big(1e-8);
+    const capCost = calculateBulkDeviceCost("capacitor", caps, 1, config);
     setText("capacitor-next-cost", formatEnergy(capCost));
+    updateElementButton('[data-field="capacitor-btn"]', "capacitor", "BUY CAPACITOR", 1, '[data-field="capacitor-badge"]', "UNLOCKED");
+    updateBulkButtons("#card-capacitor", "capacitor");
 
     // Power Cells
     const pCells = state.powerCells ?? 0;
     setText("powercell-owned", formatInteger(pCells));
     setText("powercell-capacity", formatEnergy(stableCap));
-    const cellCost = pCells === 0 ? big(1.0) : big(1.0).mul(big(2.25).pow(pCells));
+    const cellCost = calculateBulkDeviceCost("powerCell", pCells, 1, config);
     setText("powercell-next-cost", formatEnergy(cellCost));
+    updateElementButton('[data-field="powercell-btn"]', "powerCell", "BUY POWER CELL", 1);
+    updateBulkButtons("#card-powercell", "powerCell");
 
-    // 4. Efficiency Tab: Machine Learning (Soft Reset)
+    // Efficiency Tab: Machine Learning (Soft Reset)
     const currentData = calculateAvailableData(state, config);
     const reqData = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
     setText("ml-current-level", state.computerLevel ?? 1);
@@ -10945,24 +11070,56 @@ function createRenderer(container, engine) {
     const dataFromHD = state.devices?.hardDisks?.buffer ?? 0;
     setText("ml-data-breakdown", `${formatInteger(dataFromAlgo)} from Algorithms / ${formatInteger(dataFromHD)} from HD Buffer`);
     const mlBtn = container.querySelector('[data-field="ml-btn"]');
+    const mlBadge = container.querySelector('[data-field="ml-badge"]');
     if (mlBtn) {
       const canML = currentData >= reqData;
-      mlBtn.className = `btn btn--block ${canML ? "btn--eligible" : "btn--bypass"}`;
-      mlBtn.disabled = !canML && !state.devMode;
-      mlBtn.textContent = canML
-        ? `RUN MACHINE LEARNING (Adv to Level ${(state.computerLevel ?? 1) + 1})`
-        : `RUN MACHINE LEARNING (Need ${formatInteger(reqData)} Data)`;
+      if (canML) {
+        mlBtn.className = "btn btn--block btn--eligible";
+        mlBtn.disabled = false;
+        mlBtn.textContent = `RUN MACHINE LEARNING (Adv to Level ${(state.computerLevel ?? 1) + 1})`;
+        if (mlBadge) {
+          mlBadge.className = "badge badge--success";
+          mlBadge.textContent = "READY";
+        }
+      } else if (state.devMode) {
+        mlBtn.className = "btn btn--block btn--bypass";
+        mlBtn.disabled = false;
+        mlBtn.textContent = `[DEV BYPASS] RUN MACHINE LEARNING (Adv to Level ${(state.computerLevel ?? 1) + 1})`;
+        if (mlBadge) {
+          mlBadge.className = "badge badge--bypass";
+          mlBadge.textContent = "BYPASS";
+        }
+      } else {
+        mlBtn.className = "btn btn--block btn--muted";
+        mlBtn.disabled = true;
+        mlBtn.textContent = `RUN MACHINE LEARNING (Need ${formatInteger(reqData)} Data)`;
+        if (mlBadge) {
+          mlBadge.className = "badge badge--warning";
+          mlBadge.textContent = "THRESHOLD";
+        }
+      }
     }
 
     // Chips
     const chipsOwned = state.devices?.chips?.owned ?? 0;
     setText("chips-owned", formatInteger(chipsOwned));
-    const chipCost = big(3e-11).mul(big(4).pow(chipsOwned));
+    const chipCost = calculateBulkDeviceCost("chip", chipsOwned, 1, config);
     setText("chips-next-cost", formatEnergy(chipCost));
     setText(
       "chips-allocation-label",
       `${state.devices?.chips?.allocations?.AImp ?? 0} AImp / ${state.devices?.chips?.allocations?.AUpg ?? 0} AUpg / ${state.devices?.chips?.allocations?.ARec ?? 0} ARec`
     );
+    updateElementButton('[data-field="chip-btn"]', "chip", "BUY CHIP", 1, '[data-field="chip-badge"]', "UNLOCKED");
+    updateBulkButtons("#panel-chips", "chip");
+
+    // Chip Reassignment Button States
+    const chipBtns = container.querySelectorAll('[data-action="reassign-chip"]');
+    chipBtns.forEach((btn) => {
+      const from = btn.dataset.from;
+      const available = state.devices?.chips?.allocations?.[from] ?? 0;
+      btn.disabled = available <= 0 && !state.devMode;
+      btn.style.opacity = available <= 0 && !state.devMode ? "0.45" : "1.0";
+    });
 
     // Transistor Board
     const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
@@ -10977,12 +11134,16 @@ function createRenderer(container, engine) {
         boardActiveContent.style.display = "none";
       }
     }
+    updateElementButton('[data-field="buy-board-btn"]', "transistorBoard", "BUY TRANSISTOR BOARD", 1, '[data-field="board-badge"]', "UNLOCKED");
+
     const tPurchased = state.devices?.transistorsPurchased ?? 0;
     setText("transistor-total", formatInteger(tPurchased));
-    const tCost = big(3e-11).mul(big(1.4).pow(tPurchased));
+    const tCost = calculateBulkDeviceCost("transistor", tPurchased, 1, config);
     setText("transistor-cost", formatEnergy(tCost));
+    updateElementButton('[data-field="buy-transistor-btn"]', "transistor", "BUY TRANSISTOR (+1)", 1);
+    updateBulkButtons("#panel-transistor-board", "transistor");
 
-    // Transistor table rows
+    // Transistor table rows & speed metrics
     const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
     const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
     const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
@@ -10997,11 +11158,45 @@ function createRenderer(container, engine) {
     setText("transistor-aupg-speed", calculateEffectiveStudySpeed("AUpg", state, config, engine.statResolver).toFixed(2) + "x");
     setText("transistor-arec-speed", calculateEffectiveStudySpeed("ARec", state, config, engine.statResolver).toFixed(2) + "x");
 
+    // Transistor Reassignment Button States
+    const tBtns = container.querySelectorAll('[data-action="reassign-transistor"]');
+    tBtns.forEach((btn) => {
+      const from = btn.dataset.from;
+      const available = state.devices?.transistorAllocations?.[from] ?? 0;
+      btn.disabled = available <= 0 && !state.devMode;
+      btn.style.opacity = available <= 0 && !state.devMode ? "0.45" : "1.0";
+    });
+
+    // ARec Unlocks: Reveal table row and reassignment/target buttons
+    const hasARec = Boolean(state.unlocks?.ARec);
+    const chipARecBtn = container.querySelector('[data-field="chip-arec-btn"]');
+    if (chipARecBtn) chipARecBtn.style.display = hasARec ? "inline-block" : "none";
+    const microARecBtn = container.querySelector('[data-field="micro-arec-btn"]');
+    if (microARecBtn) microARecBtn.style.display = hasARec ? "inline-block" : "none";
+    const tRowARec = container.querySelector("#transistor-row-arec");
+    if (tRowARec) tRowARec.style.display = hasARec ? "table-row" : "none";
+
     // Microprocessor
-    setText("micro-target", state.devices?.microprocessor?.target ?? "AImp");
-    const microT = state.devices?.transistorAllocations?.[state.devices?.microprocessor?.target ?? "AImp"] ?? 0;
-    const microMultVal = (state.devices?.microprocessor?.owned ?? 0) > 0 ? (1.12 ** microT).toFixed(2) + "x" : "1.00x";
+    const microTarget = state.devices?.microprocessor?.target ?? "AImp";
+    setText("micro-target", microTarget);
+    const microOwned = state.devices?.microprocessor?.owned ?? 0;
+    setText("micro-owned", formatInteger(microOwned));
+    const microCost = calculateBulkDeviceCost("microprocessor", microOwned, 1, config);
+    setText("micro-cost", formatEnergy(microCost));
+    const microT = state.devices?.transistorAllocations?.[microTarget] ?? 0;
+    const microMultVal = microOwned > 0
+      ? calculateMicroprocessorStudyMultiplier(microT, config, 1, microOwned).toFixed(2) + "x"
+      : "1.00x";
     setText("micro-bonus", microMultVal);
+    updateElementButton('[data-field="micro-btn"]', "microprocessor", "BUY MICROPROCESSOR", 1, '[data-field="micro-badge"]', "UNLOCKED");
+    updateBulkButtons("#card-microprocessor", "microprocessor");
+
+    // Microprocessor Target Buttons Styling
+    const microTargetBtns = container.querySelectorAll('[data-action="set-micro-target"]');
+    microTargetBtns.forEach((btn) => {
+      const isTarget = btn.dataset.target === microTarget;
+      btn.className = `btn btn--sm ${isTarget ? "btn--primary" : ""}`;
+    });
 
     // Overclocker
     const oc = state.devices?.overclocker;
@@ -11009,13 +11204,42 @@ function createRenderer(container, engine) {
       setText("overclock-status", oc.active ? "ACTIVE" : "INACTIVE");
       setText("overclock-timer", `${oc.activeSeconds.toFixed(1)}s / ${Math.max(0, oc.remainingDuration).toFixed(1)}s`);
     }
+    updateElementButton('[data-field="overclock-buy-btn"]', "overclocker", "BUY OVERCLOCKER", 1, '[data-field="overclock-badge"]', "UNLOCKED");
+    const ocBurnBtn = container.querySelector('[data-field="overclock-burn-btn"]');
+    if (ocBurnBtn) {
+      const ocOwned = (state.devices?.overclocker?.owned ?? 0) > 0;
+      const tOnTarget = state.devices?.transistorAllocations?.[microTarget] ?? 0;
+      if (!ocOwned) {
+        ocBurnBtn.disabled = true;
+        ocBurnBtn.className = "btn btn--block btn--muted";
+        ocBurnBtn.textContent = "REQUIRES OVERCLOCKER HARDWARE";
+      } else if (oc?.active) {
+        ocBurnBtn.disabled = true;
+        ocBurnBtn.className = "btn btn--block btn--muted";
+        ocBurnBtn.textContent = `OVERCLOCK ACTIVE (${Math.max(0, oc.remainingDuration).toFixed(1)}s left)`;
+      } else if (tOnTarget >= 2) {
+        ocBurnBtn.disabled = false;
+        ocBurnBtn.className = "btn btn--block btn--danger";
+        ocBurnBtn.textContent = `BURN ${tOnTarget} TRANSISTORS & OVERCLOCK (${microTarget})`;
+      } else if (state.devMode) {
+        ocBurnBtn.disabled = false;
+        ocBurnBtn.className = "btn btn--block btn--bypass";
+        ocBurnBtn.textContent = `[DEV BYPASS] BURN ${Math.max(2, tOnTarget)} TRANSISTORS & OVERCLOCK`;
+      } else {
+        ocBurnBtn.disabled = true;
+        ocBurnBtn.className = "btn btn--block btn--muted";
+        ocBurnBtn.textContent = `NEED 2+ TRANSISTORS ON ${microTarget} (Have ${tOnTarget})`;
+      }
+    }
 
     // Processor
     const procs = state.devices?.processors ?? 0;
     setText("processor-owned", formatInteger(procs));
     setText("processor-bonus", (1 + 0.03 * procs).toFixed(2) + "x");
-    const procCost = big(1e-4).mul(big(2).pow(procs));
+    const procCost = calculateBulkDeviceCost("processor", procs, 1, config);
     setText("processor-cost", formatEnergy(procCost));
+    updateElementButton('[data-field="processor-btn"]', "processor", "BUY PROCESSOR", 1, '[data-field="processor-badge"]', "UNLOCKED");
+    updateBulkButtons("#card-processor", "processor");
 
     // Hard Disk
     const hds = state.devices?.hardDisks?.owned ?? 0;
@@ -11026,6 +11250,20 @@ function createRenderer(container, engine) {
     const hdDrain = hdState === "active" ? calculateHardDiskEnergyDrain(hds, state.devices?.hardDisks?.activeSeconds ?? 0, config) : big(0);
     setText("harddisk-drain", "-" + formatEnergy(hdDrain) + "/s");
     setText("harddisk-buffer", formatInteger(state.devices?.hardDisks?.buffer ?? 0) + " Data");
+    const hdCost = calculateBulkDeviceCost("hardDisk", hds, 1, config);
+    updateElementButton('[data-field="harddisk-btn"]', "hardDisk", "BUY HARD DISK", 1, '[data-field="harddisk-badge"]', "UNLOCKED");
+    updateBulkButtons("#card-harddisk", "hardDisk");
+
+    // Hard Disk State Buttons
+    const hdBtns = container.querySelectorAll('[data-action="set-harddisk-state"]');
+    hdBtns.forEach((btn) => {
+      const isCurrent = btn.dataset.state === hdState;
+      if (btn.dataset.state === "off") {
+        btn.className = `btn btn--sm ${isCurrent ? "btn--danger" : ""}`;
+      } else {
+        btn.className = `btn btn--sm ${isCurrent ? "btn--primary" : ""}`;
+      }
+    });
 
     // Facility Optimization
     const reqLevel = calculateFacilityOptimizationRequirement(state.facilityOptimizations ?? 0, config);
@@ -11034,13 +11272,64 @@ function createRenderer(container, engine) {
     const facMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
     setText("facility-opt-mult", facMult.toFixed(2) + "x");
     const facBtn = container.querySelector('[data-field="facility-opt-btn"]');
+    const facBadge = container.querySelector('[data-field="facility-opt-badge"]');
     if (facBtn) {
       const canFO = (state.computerLevel ?? 1) >= reqLevel;
-      facBtn.className = `btn btn--block ${canFO ? "btn--danger" : "btn--muted"}`;
-      facBtn.disabled = !canFO && !state.devMode;
-      facBtn.textContent = canFO
-        ? `PERFORM FACILITY OPTIMIZATION (H = ${(state.facilityOptimizations ?? 0) + 1})`
-        : `LOCKED (Req Computer Level ${reqLevel})`;
+      if (canFO) {
+        facBtn.className = "btn btn--block btn--danger";
+        facBtn.disabled = false;
+        facBtn.textContent = `PERFORM FACILITY OPTIMIZATION (H = ${(state.facilityOptimizations ?? 0) + 1})`;
+        if (facBadge) {
+          facBadge.className = "badge badge--danger";
+          facBadge.textContent = "READY";
+        }
+      } else if (state.devMode) {
+        facBtn.className = "btn btn--block btn--bypass";
+        facBtn.disabled = false;
+        facBtn.textContent = `[DEV BYPASS] FACILITY OPTIMIZATION (H = ${(state.facilityOptimizations ?? 0) + 1})`;
+        if (facBadge) {
+          facBadge.className = "badge badge--bypass";
+          facBadge.textContent = "BYPASS";
+        }
+      } else {
+        facBtn.className = "btn btn--block btn--muted";
+        facBtn.disabled = true;
+        facBtn.textContent = `LOCKED (Req Computer Level ${reqLevel})`;
+        if (facBadge) {
+          facBadge.className = "badge badge--warning";
+          facBadge.textContent = "REQUIREMENT";
+        }
+      }
+    }
+
+    // Study Feature Bulk Buttons Updates
+    const aupgCard = container.querySelector('[data-target="AUpg"]')?.closest(".element-card");
+    if (aupgCard) {
+      const aupgBulk = aupgCard.querySelectorAll(".btn-group--bulk button[data-count]");
+      aupgBulk.forEach((btn) => {
+        const count = parseInt(btn.dataset.count || "10", 10);
+        const req = count * 12;
+        const canAfford = (state.algorithms?.AImp?.owned ?? 0) >= req;
+        btn.disabled = !canAfford && !state.devMode;
+        btn.className = `btn btn--sm ${
+          !canAfford && state.devMode ? "btn--bypass" : canAfford ? "btn--dev" : "btn--muted"
+        }`;
+        btn.title = `Requires ${req} A.Imp`;
+      });
+    }
+    const arecCard = container.querySelector("#card-arec");
+    if (arecCard) {
+      const arecBulk = arecCard.querySelectorAll(".btn-group--bulk button[data-count]");
+      arecBulk.forEach((btn) => {
+        const count = parseInt(btn.dataset.count || "10", 10);
+        const req = count * 12;
+        const canAfford = (state.algorithms?.AUpg?.owned ?? 0) >= req;
+        btn.disabled = !canAfford && !state.devMode;
+        btn.className = `btn btn--sm ${
+          !canAfford && state.devMode ? "btn--bypass" : canAfford ? "btn--dev" : "btn--muted"
+        }`;
+        btn.title = `Requires ${req} A.Upg`;
+      });
     }
 
     // Audit logs update
@@ -11325,6 +11614,8 @@ async function start() {
   }
 }
 
-start();
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  start();
+}
 
 })();

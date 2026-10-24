@@ -16,6 +16,9 @@ import {
   calculateFacilityDeviceMultiplier,
   calculateProcessorDeviceMultiplier,
   calculateTotalDeviceMultiplier,
+  calculateDeviceCost,
+  calculateBulkDeviceCost,
+  calculateMicroprocessorStudyMultiplier,
   calculateBulkGeometricCost,
   calculatePowerCellCapacity,
   calculateHardDiskEnergyDrain,
@@ -436,6 +439,76 @@ test("§27.9: Quicksave and Restore Quicksave", () => {
   assert.equal(engine.restoreQuicksave(), true);
   assertBigEqual(engine.state.energy, big("123e-9"));
   assert.equal(engine.state.computerLevel, 5);
+});
+
+test("§28.1: Capacitor purchase: strictly requires Computer Level 2, succeeds in Dev Mode, debits energy and scales cost", () => {
+  // 1. Strict mode at Level 1 should fail
+  const engineStrict = new GameEngine({ config, developmentMode: false });
+  engineStrict.state.energy = big("1e-7"); // 100 nJ (Capacitor costs 10 nJ)
+  engineStrict.state.computerLevel = 1;
+  const failResult = engineStrict.purchaseElement("capacitor", 1);
+  assert.equal(failResult, false);
+  assert.equal(engineStrict.state.devices.capacitors, 0);
+
+  // 2. Strict mode at Level 2 should succeed
+  engineStrict.state.computerLevel = 2;
+  const successResult = engineStrict.purchaseElement("capacitor", 1);
+  assert.equal(successResult, true);
+  assert.equal(engineStrict.state.devices.capacitors, 1);
+  assertBigClose(engineStrict.state.energy, big("9e-8"), 1e-12); // 100 nJ - 10 nJ = 90 nJ
+
+  // 3. Dev Mode at Level 1 bypasses lock and allows purchasing
+  const engineDev = new GameEngine({ config, developmentMode: true });
+  engineDev.state.computerLevel = 1;
+  engineDev.state.energy = big("1e-7");
+  const devResult = engineDev.purchaseElement("capacitor", 1);
+  assert.equal(devResult, true);
+  assert.equal(engineDev.state.devices.capacitors, 1);
+});
+
+test("§28.2: Microprocessor cost scales geometrically C(N) = C0 * r^N and supports bulk purchases", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  engine.state.devices.transistorBoard.owned = true;
+  engine.state.devices.transistorsPurchased = 4;
+  engine.state.energy = big("1e-6"); // 1 µJ
+
+  const cost0 = calculateDeviceCost("microprocessor", 0, config);
+  assertBigClose(cost0, big("3e-9"), 1e-12); // 3 nJ
+
+  const res1 = engine.purchaseElement("microprocessor", 1);
+  assert.equal(res1, true);
+  assert.equal(engine.state.devices.microprocessor.owned, 1);
+
+  // Cost of 2nd unit: 3e-9 * 1.25 = 3.75 nJ
+  const cost1 = calculateDeviceCost("microprocessor", 1, config);
+  assertBigClose(cost1, big("3.75e-9"), 1e-12);
+
+  const res2 = engine.purchaseElement("microprocessor", 1);
+  assert.equal(res2, true);
+  assert.equal(engine.state.devices.microprocessor.owned, 2);
+
+  // Bulk purchase +10 microprocessors
+  const bulk10Cost = calculateBulkDeviceCost("microprocessor", 2, 10, config);
+  assert.ok(bulk10Cost.gt(big("3.75e-9")));
+  const resBulk = engine.purchaseElement("microprocessor", 10);
+  assert.equal(resBulk, true);
+  assert.equal(engine.state.devices.microprocessor.owned, 12);
+});
+
+test("§28.3: Microprocessor speed bonus scales with owned units", () => {
+  const state = createInitialState(config);
+  state.devices.transistorAllocations.AImp = 4;
+  state.devices.microprocessor.owned = 1;
+  state.devices.microprocessor.target = "AImp";
+
+  // 1 Microprocessor: 1 + (1.12^4 - 1) * 1 ≈ 1 + 0.573519 = 1.573519x
+  const speed1 = calculateMicroprocessorStudyMultiplier(4, config, 1.0, 1);
+  assertClose(speed1, 1 + (1.12 ** 4 - 1) * 1);
+
+  // 2 Microprocessors: 1 + (1.12^4 - 1) * 2 ≈ 1 + 1.147038 = 2.147038x
+  const speed2 = calculateMicroprocessorStudyMultiplier(4, config, 1.0, 2);
+  assertClose(speed2, 1 + (1.12 ** 4 - 1) * 2);
+  assert.ok(speed2 > speed1);
 });
 
 function assertClose(actual, expected, tolerance = 1e-7) {

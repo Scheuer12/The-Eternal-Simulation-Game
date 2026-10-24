@@ -1,0 +1,9 @@
+TES UI Icons Pack
+
+Glyph silhouettes adapted from Font Awesome Free icons (as shipped by @fortawesome/free-solid-svg-icons).
+Font Awesome Free Icons: CC BY 4.0.
+https://fontawesome.com/license/free
+https://creativecommons.org/licenses/by/4.0/
+
+Changes: glyph coloration, SVG compositing, neon/glow styling, circular UI treatment, raster PNG export, custom badges for AutoCalculator variants.
+The Eternal Simulation icons pack is not endorsed by Font Awesome.

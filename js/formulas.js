@@ -164,10 +164,11 @@ export function calculateTransistorStudySpeedMultiplier(transistorsAllocated = 0
   return 1 + rate * T * deviceMultiplier;
 }
 
-export function calculateMicroprocessorStudyMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1) {
+export function calculateMicroprocessorStudyMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1, microprocessorsOwned = 1) {
   const T = Math.max(0, Math.floor(transistorsAllocated ?? 0));
+  const M = Math.max(0, Math.floor(microprocessorsOwned ?? 1));
   const base = config.devices?.microprocessor?.multiplierBase ?? 1.12;
-  const rawBonus = base ** T - 1;
+  const rawBonus = (base ** T - 1) * M;
   return 1 + rawBonus * deviceMultiplier;
 }
 
@@ -193,17 +194,18 @@ export function calculateEffectiveStudySpeed(featureId = "AImp", state = {}, con
 
   let microMult = 1.0;
   const microTarget = state.devices?.microprocessor?.target ?? "AImp";
-  const hasMicro = (state.devices?.microprocessor?.owned ?? 0) > 0;
+  const microOwned = state.devices?.microprocessor?.owned ?? 0;
+  const hasMicro = microOwned > 0;
 
   if (hasMicro && microTarget === featureId) {
     const overclock = state.devices?.overclocker;
     if (overclock?.active && overclock.target === featureId) {
       const consumedT = overclock.consumedTransistors ?? 2;
-      const baseMicroBonus = (config.devices?.microprocessor?.multiplierBase ?? 1.12) ** consumedT - 1;
+      const baseMicroBonus = ((config.devices?.microprocessor?.multiplierBase ?? 1.12) ** consumedT - 1) * microOwned;
       const ocBonus = calculateOverclockBonusMultiplier(consumedT, config);
       microMult = 1 + baseMicroBonus * ocBonus * deviceMultiplier;
     } else {
-      microMult = calculateMicroprocessorStudyMultiplier(T, config, deviceMultiplier);
+      microMult = calculateMicroprocessorStudyMultiplier(T, config, deviceMultiplier, microOwned);
     }
   }
 
@@ -308,7 +310,9 @@ export function calculateDeviceCost(type, owned = 0, config = {}) {
       return calculateGeometricCost(init, mult, owned);
     }
     case "microprocessor": {
-      return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
+      const init = config.devices?.microprocessor?.initialCost ?? 3e-9;
+      const mult = config.devices?.microprocessor?.costMultiplier ?? 1.25;
+      return calculateGeometricCost(init, mult, owned);
     }
     case "overclocker": {
       return big(config.devices?.overclocker?.initialCost ?? 9e-8);
@@ -348,8 +352,12 @@ export function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, confi
       const mult = config.devices?.chip?.costMultiplier ?? 4.0;
       return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
     }
+    case "microprocessor": {
+      const init = config.devices?.microprocessor?.initialCost ?? 3e-9;
+      const mult = config.devices?.microprocessor?.costMultiplier ?? 1.25;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
     case "transistorBoard":
-    case "microprocessor":
     case "overclocker":
     case "crcGadget": {
       return calculateDeviceCost(type, currentOwned, config);

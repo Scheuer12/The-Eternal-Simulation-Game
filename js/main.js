@@ -265,4 +265,6 @@ async function start() {
   }
 }
 
-start();
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  start();
+}

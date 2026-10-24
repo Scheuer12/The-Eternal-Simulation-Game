@@ -57,7 +57,8 @@
     },
     "microprocessor": {
       "initialCost": 3e-9,
-      "unique": true,
+      "costMultiplier": 1.25,
+      "unique": false,
       "multiplierBase": 1.12,
       "defaultTarget": "AImp",
       "transistorsRequiredToUnlock": 4

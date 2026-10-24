@@ -67,8 +67,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.chips.owned = (state.devices.chips.owned ?? 0) + k;
     // Newly acquired chips default to AImp
@@ -115,8 +117,10 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("transistorBoard", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.transistorBoard.owned = true;
     state.unlocks.transistorBoard = true;
@@ -157,8 +161,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false, target = "AImp" } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.transistorsPurchased = (state.devices.transistorsPurchased ?? 0) + k;
     const dest = ["AImp", "AUpg", "ARec"].includes(target) ? target : "AImp";
@@ -180,27 +186,26 @@ registerElement({
   id: "microprocessor",
   name: "Microprocessor",
   category: "efficiency",
-  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors).",
-  unique: true,
-  getCost: (state, config) => calculateDeviceCost("microprocessor", 0, config),
+  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors). Each unit increases study amplification.",
+  unique: false,
+  getCost: (state, config, count = 1) =>
+    calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config),
   getOwned: (state) => state.devices?.microprocessor?.owned ?? 0,
   isUnlocked: (state, config) => {
     if (state.unlocks?.microprocessor) return true;
     return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4;
   },
-  isEligible: (state, config) => {
+  isEligible: (state, config, count = 1) => {
     const strictUnlocked = (state.unlocks?.microprocessor) ||
       (Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4);
     const unlocked = strictUnlocked || Boolean(state.devMode);
-    const cost = calculateDeviceCost("microprocessor", 0, config);
+    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config);
     const canAfford = big(state.energy).gte(cost);
-    const notOwned = (state.devices?.microprocessor?.owned ?? 0) === 0;
     const reasons = [];
     if (!strictUnlocked) reasons.push("Requires Transistor Board and at least 4 Transistors");
-    if (!notOwned) reasons.push("Already owned (unique)");
     if (!canAfford) reasons.push("Insufficient energy");
     return {
-      eligible: unlocked && canAfford && notOwned,
+      eligible: unlocked && canAfford,
       isUnlocked: unlocked,
       strictUnlocked,
       canAfford,
@@ -208,14 +213,17 @@ registerElement({
       reasons,
     };
   },
-  applyPurchase: (state, config, { isForced = false } = {}) => {
-    const cost = calculateDeviceCost("microprocessor", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+  applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
+    const k = Math.max(1, Math.floor(count ?? 1));
+    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, k, config);
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
-    state.devices.microprocessor.owned = 1;
+    state.devices.microprocessor.owned = (state.devices.microprocessor.owned ?? 0) + k;
     state.unlocks.microprocessor = true;
-    return { newCount: 1, cost, count: 1 };
+    return { newCount: state.devices.microprocessor.owned, cost, count: k };
   },
 });
 
@@ -261,8 +269,10 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("overclocker", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.overclocker.owned = 1;
     state.unlocks.overclocker = true;
@@ -300,8 +310,10 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("crcGadget", 0, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.crcGadget.owned = 1;
     return { newCount: 1, cost, count: 1 };
@@ -344,8 +356,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.capacitors = (state.devices.capacitors ?? 0) + k;
     state.unlocks.capacitor = true;
@@ -389,8 +403,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.processors = (state.devices.processors ?? 0) + k;
     state.unlocks.processor = true;
@@ -434,8 +450,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.devices.hardDisks.owned = (state.devices.hardDisks.owned ?? 0) + k;
     if (state.devices.hardDisks.state === "off") {
@@ -476,8 +494,10 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, k, config);
-    if (!isForced || big(state.energy).gte(cost)) {
+    if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
+    } else if (!isForced) {
+      state.energy = big(0);
     }
     state.powerCells = (state.powerCells ?? 0) + k;
     state.unlocks.powerCell = true;
