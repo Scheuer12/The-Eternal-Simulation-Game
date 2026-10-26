@@ -35,6 +35,11 @@ export function createInitialState(config = {}) {
       elapsed: 0,
       active: false,
     },
+    manualStudies: {
+      AImp: { active: false, elapsed: 0 },
+      AUpg: { active: false, elapsed: 0 },
+      ARec: { active: false, elapsed: 0 },
+    },
     studyQueues: {
       AImp: 0,
       AUpg: 0,
@@ -45,11 +50,28 @@ export function createInitialState(config = {}) {
       AUpg: 0,
     },
 
+    // Study Improve (Section 1)
+    studyImproves: {
+      AImp: { completions: 0, claimed: 0 },
+      AUpg: { completions: 0, claimed: 0 },
+      ARec: { completions: 0, claimed: 0 },
+    },
+
     // Devices & Infrastructure
     devices: {
       chips: {
         owned: 0,
         allocations: {
+          AImp: 0,
+          AUpg: 0,
+          ARec: 0,
+        },
+        enabled: {
+          AImp: true,
+          AUpg: true,
+          ARec: true,
+        },
+        timers: {
           AImp: 0,
           AUpg: 0,
           ARec: 0,
@@ -114,6 +136,11 @@ export function createInitialState(config = {}) {
       totalFacilityOptimizations: 0,
     },
 
+    // Timestamp & Persistence
+    lastSavedAt: Date.now(),
+    log: [],
+    lastOfflineSummary: null,
+
     // UI View State
     ui: {
       activeTab: "energy",
@@ -122,8 +149,13 @@ export function createInitialState(config = {}) {
       bulkMode: 1,
     },
 
+    // User & Simulation Settings
+    settings: {
+      notation: "engineering", // 'engineering' | 'engineering_num' | 'alpha'
+    },
+
     // Developer Sandbox
-    devMode: true,
+    devMode: false,
     gameSpeed: 1.0,
     auditLogs: [],
     quicksaveSnapshot: null,
@@ -164,6 +196,20 @@ export function normalizeState(raw = {}, config = {}) {
       elapsed: Number(raw.manualStudy?.elapsed ?? 0),
       active: Boolean(raw.manualStudy?.active),
     },
+    manualStudies: {
+      AImp: {
+        active: Boolean(raw.manualStudies?.AImp?.active ?? (raw.manualStudy?.target === "AImp" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.AImp?.elapsed ?? (raw.manualStudy?.target === "AImp" ? raw.manualStudy?.elapsed : 0)),
+      },
+      AUpg: {
+        active: Boolean(raw.manualStudies?.AUpg?.active ?? (raw.manualStudy?.target === "AUpg" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.AUpg?.elapsed ?? (raw.manualStudy?.target === "AUpg" ? raw.manualStudy?.elapsed : 0)),
+      },
+      ARec: {
+        active: Boolean(raw.manualStudies?.ARec?.active ?? (raw.manualStudy?.target === "ARec" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.ARec?.elapsed ?? (raw.manualStudy?.target === "ARec" ? raw.manualStudy?.elapsed : 0)),
+      },
+    },
     studyQueues: {
       AImp: Math.max(0, Number(raw.studyQueues?.AImp ?? 0)),
       AUpg: Math.max(0, Number(raw.studyQueues?.AUpg ?? 0)),
@@ -174,6 +220,21 @@ export function normalizeState(raw = {}, config = {}) {
       AUpg: Math.max(0, Number(raw.reservedInputs?.AUpg ?? 0)),
     },
 
+    studyImproves: {
+      AImp: {
+        completions: Math.max(0, Number(raw.studyImproves?.AImp?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.AImp?.claimed ?? 0)),
+      },
+      AUpg: {
+        completions: Math.max(0, Number(raw.studyImproves?.AUpg?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.AUpg?.claimed ?? 0)),
+      },
+      ARec: {
+        completions: Math.max(0, Number(raw.studyImproves?.ARec?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.ARec?.claimed ?? 0)),
+      },
+    },
+
     devices: {
       chips: {
         owned: Math.max(0, Number(raw.devices?.chips?.owned ?? raw.devices?.autoCalculators ?? 0)),
@@ -181,6 +242,16 @@ export function normalizeState(raw = {}, config = {}) {
           AImp: Math.max(0, Number(raw.devices?.chips?.allocations?.AImp ?? raw.devices?.autoCalculators ?? 0)),
           AUpg: Math.max(0, Number(raw.devices?.chips?.allocations?.AUpg ?? 0)),
           ARec: Math.max(0, Number(raw.devices?.chips?.allocations?.ARec ?? 0)),
+        },
+        enabled: {
+          AImp: raw.devices?.chips?.enabled?.AImp !== false,
+          AUpg: raw.devices?.chips?.enabled?.AUpg !== false,
+          ARec: raw.devices?.chips?.enabled?.ARec !== false,
+        },
+        timers: {
+          AImp: Math.max(0, Number(raw.devices?.chips?.timers?.AImp ?? 0)),
+          AUpg: Math.max(0, Number(raw.devices?.chips?.timers?.AUpg ?? 0)),
+          ARec: Math.max(0, Number(raw.devices?.chips?.timers?.ARec ?? 0)),
         },
       },
       transistorBoard: {
@@ -193,7 +264,7 @@ export function normalizeState(raw = {}, config = {}) {
         ARec: Math.max(0, Number(raw.devices?.transistorAllocations?.ARec ?? 0)),
       },
       microprocessor: {
-        owned: Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0)),
+        owned: Math.min(1, Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0))),
         target: raw.devices?.microprocessor?.target ?? "AImp",
       },
       overclocker: {
@@ -237,13 +308,35 @@ export function normalizeState(raw = {}, config = {}) {
       ...(raw.ui ?? {}),
     },
 
+    settings: {
+      notation: ["engineering", "engineering_num", "alpha"].includes(raw.settings?.notation)
+        ? raw.settings.notation
+        : ["engineering", "engineering_num", "alpha"].includes(raw.ui?.notation)
+        ? raw.ui.notation
+        : "engineering",
+    },
+
     devMode: raw.devMode !== undefined ? Boolean(raw.devMode) : true,
     gameSpeed: Number(raw.gameSpeed ?? 1.0),
     auditLogs: Array.isArray(raw.auditLogs) ? raw.auditLogs : [],
     quicksaveSnapshot: raw.quicksaveSnapshot ?? null,
+    lastSavedAt: Number.isFinite(Number(raw.lastSavedAt)) ? Number(raw.lastSavedAt) : Date.now(),
+    log: Array.isArray(raw.log) ? raw.log : [],
+    lastOfflineSummary: raw.lastOfflineSummary ?? null,
   };
 
   return state;
+}
+
+export function deserializeState(raw, config) {
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = {};
+    }
+  }
+  return normalizeState(raw, config);
 }
 
 export function serializeState(state) {

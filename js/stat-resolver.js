@@ -15,6 +15,7 @@ export const MANDATORY_STAT_IDS = Object.freeze({
   CRC_MULTIPLIER: "devices.crc.multiplier",
   AIMP_CAPACITOR_MULTIPLIER: "algorithms.AImp.capacitorMultiplier",
   GLOBAL_DEVICE_MULTIPLIER: "devices.globalMultiplier",
+  STUDY_SPEED_DEVICE_MULTIPLIER: "devices.studySpeedMultiplier",
   FACILITY_DEVICE_MULTIPLIER: "facility.deviceMultiplier",
   PROCESSOR_DEVICE_MULTIPLIER: "devices.processor.deviceMultiplier",
   STUDY_SPEED_AIMP: "studies.AImp.speed",

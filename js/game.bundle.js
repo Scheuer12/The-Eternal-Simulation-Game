@@ -5684,6 +5684,21 @@
     "stepSeconds": 0.25,
     "maxSteps": 345600
   },
+  "energyEraProgress": {
+    "targetStoredEnergy": 100000000000,
+    "logScale": 1e-12
+  },
+  "studyImprove": {
+    "enabled": true,
+    "initialMilestones": [
+      21,
+      36,
+      99
+    ],
+    "milestoneGrowthFactor": 1.8,
+    "speedCoefficient": 0.69,
+    "resetOnMachineLearning": true
+  },
   "economy": {
     "algorithmBaseStrength": 1e-15,
     "algorithmConversionFactor": 12,
@@ -5694,8 +5709,8 @@
     "initialEnergy": 0
   },
   "decay": {
-    "overflowDecayRate": 0.009,
-    "overflowDecayPower": 1.35
+    "overflowDecayRate": 0.012,
+    "overflowDecayPower": 1.42
   },
   "dataXP": {
     "aImpData": 1,
@@ -5704,11 +5719,13 @@
     "machineLearning": {
       "baseRequirement": 693,
       "scaleMultiplier": 2304,
-      "powerExponent": 1.6643485138
+      "powerExponent": 1.6643485138,
+      "xpExponentialStartLevel": 6,
+      "xpGrowthFactor": 2.1
     }
   },
   "facilityOptimization": {
-    "initialLevelRequired": 9,
+    "initialLevelRequired": 6,
     "levelIncrement": 3,
     "deviceMultiplierBase": 1.09
   },
@@ -5719,21 +5736,21 @@
       "defaultTarget": "AImp"
     },
     "transistorBoard": {
-      "initialCost": 2e-10,
+      "initialCost": 5e-10,
       "unique": true
     },
     "transistor": {
-      "initialCost": 3e-11,
-      "costMultiplier": 1.4,
-      "speedBonusPerUnit": 0.05
+      "initialCost": 2.5e-10,
+      "costMultiplier": 1.6,
+      "speedBonusPerUnit": 0.069
     },
     "microprocessor": {
       "initialCost": 3e-9,
       "costMultiplier": 1.25,
-      "unique": false,
+      "unique": true,
       "multiplierBase": 1.12,
       "defaultTarget": "AImp",
-      "transistorsRequiredToUnlock": 4
+      "transistorsRequiredToUnlock": 0
     },
     "overclocker": {
       "initialCost": 9e-8,
@@ -5749,13 +5766,13 @@
     },
     "capacitor": {
       "initialCost": 1e-8,
-      "costMultiplier": 5,
+      "costMultiplier": 3,
       "bonusPerUnit": 0.5
     },
     "processor": {
-      "initialCost": 0.0001,
-      "costMultiplier": 2,
-      "bonusPerUnit": 0.03
+      "initialCost": 0.000033,
+      "costMultiplier": 30,
+      "bonusPerUnit": 0.05
     },
     "hardDisk": {
       "initialCost": 0.00001,
@@ -6834,6 +6851,9 @@
 // ---- js/numeric.js ----
 
 const BigNum = Decimal;
+if (typeof globalThis !== "undefined") {
+  globalThis.__TES_NUMERIC__ = { big, BigNum: Decimal };
+}
 
 function big(value = 0) {
   if (value instanceof Decimal) return value;
@@ -6933,6 +6953,84 @@ function serializeBig(value) {
   return big(value).toString();
 }
 
+const NOTATION_MODES = {
+  ENGINEERING: "engineering",
+  ENGINEERING_NUM: "engineering_num",
+  ALPHA: "alpha",
+};
+
+let currentNotation = "engineering";
+
+function setGlobalNotation(notation) {
+  if (["engineering", "engineering_num", "alpha"].includes(notation)) {
+    currentNotation = notation;
+  }
+}
+
+function getGlobalNotation() {
+  return currentNotation;
+}
+
+if (typeof globalThis !== "undefined") {
+  globalThis.__TES_NUMERIC__ = {
+    big,
+    BigNum: Decimal,
+    formatInteger,
+    formatNumber,
+    formatEnergy,
+    formatRate,
+    formatDuration,
+    formatStudyDuration,
+    formatEngineering,
+    setGlobalNotation,
+    getGlobalNotation,
+  };
+}
+
+const SI_PREFIXES = {
+  "-24": "y",
+  "-21": "z",
+  "-18": "a",
+  "-15": "f",
+  "-12": "p",
+  "-9": "n",
+  "-6": "u",
+  "-3": "m",
+  "0": "",
+  "3": "K",
+  "6": "M",
+  "9": "G",
+  "12": "T",
+  "15": "P",
+  "18": "E",
+  "21": "Z",
+  "24": "Y",
+};
+
+function getAlphaSubUnit(k) {
+  if (k <= 0) return "";
+  let s = "";
+  let n = k;
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(97 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function getAlphaSuperUnit(k) {
+  if (k <= 0) return "";
+  let s = "";
+  let n = k;
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(65 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
 function trimFixed(value, digits = 3) {
   return Number(value.toFixed(digits)).toString();
 }
@@ -6946,7 +7044,7 @@ function formatExponent(exponent) {
   return `${trimFixed(mantissa)}e${group}`;
 }
 
-function formatEngineering(value, suffix = "") {
+function formatEngineering(value, suffix = "", notation = currentNotation) {
   const amount = big(value);
   if (!amount.isFinite()) return "SIGNAL ERROR";
   if (amount.eq(0)) return `0${suffix}`;
@@ -6962,71 +7060,126 @@ function formatEngineering(value, suffix = "") {
 
   const logarithm = absolute.log10();
   if (logarithm.layer > 0 || Math.abs(logarithm.toNumber()) > 1e15) {
-    return `${sign}e${formatEngineering(logarithm)}${suffix}`;
+    return `${sign}e${formatEngineering(logarithm, "", notation)}${suffix}`;
   }
 
   if (Math.abs(logarithm.toNumber()) >= 1e9) {
     return `${sign}e${formatExponent(logarithm.toNumber())}${suffix}`;
   }
 
-  const exponent = Math.floor(logarithm.toNumber() / 3) * 3;
-  const mantissa = absolute.div(Decimal.pow(10, exponent)).toNumber();
-  return `${sign}${trimFixed(mantissa)}e${formatExponent(exponent)}${suffix}`;
-}
+  let exponent = Math.floor(logarithm.toNumber() / 3) * 3;
+  let mantissa = absolute.div(Decimal.pow(10, exponent)).toNumber();
+  if (Number(mantissa.toFixed(3)) >= 1000) {
+    mantissa /= 1000;
+    exponent += 3;
+  }
+  const mantissaStr = trimFixed(mantissa);
 
-const SI_UNITS_HIGH = {
-  15: "PJ",
-  18: "EJ",
-  21: "ZJ",
-  24: "YJ",
-};
+  if (notation === "alpha") {
+    if (exponent === 0) return `${sign}${mantissaStr}${suffix}`;
+    if (exponent < 0) {
+      const letter = getAlphaSubUnit(-exponent / 3);
+      return `${sign}${mantissaStr} ${letter}${suffix}`;
+    }
+    const letter = getAlphaSuperUnit(exponent / 3);
+    return `${sign}${mantissaStr} ${letter}${suffix}`;
+  }
 
-function formatEnergy(value, precision = 2) {
-  const d = big(value);
-  if (!d.isFinite()) return "SIGNAL ERROR";
-  if (d.eq(0)) return "0.00 pJ";
-
-  // Layer 0 SI handling
-  if (d.layer === 0) {
-    const num = d.toNumber();
-    const abs = Math.abs(num);
-
-    if (abs >= 1e24) return `${(num / 1e24).toFixed(precision)} YJ`;
-    if (abs >= 1e21) return `${(num / 1e21).toFixed(precision)} ZJ`;
-    if (abs >= 1e18) return `${(num / 1e18).toFixed(precision)} EJ`;
-    if (abs >= 1e15) return `${(num / 1e15).toFixed(precision)} PJ`;
-    if (abs >= 1e12) return `${(num / 1e12).toFixed(precision)} TJ`;
-    if (abs >= 1e9) return `${(num / 1e9).toFixed(precision)} GJ`;
-    if (abs >= 1e6) return `${(num / 1e6).toFixed(precision)} MJ`;
-    if (abs >= 1e3) return `${(num / 1e3).toFixed(precision)} kJ`;
-    if (abs >= 1) return `${num.toFixed(precision)} J`;
-    if (abs >= 1e-3) return `${(num * 1e3).toFixed(precision)} mJ`;
-    if (abs >= 1e-6) return `${(num * 1e6).toFixed(precision)} µJ`;
-    if (abs >= 1e-9) return `${(num * 1e9).toFixed(precision)} nJ`;
-    if (abs >= 1e-12) return `${(num * 1e12).toFixed(precision)} pJ`;
-    if (abs >= 1e-15) return `${(num * 1e15).toFixed(precision)} fJ`;
-    if (abs >= 1e-18) return `${(num * 1e18).toFixed(precision)} aJ`;
-  } else if (d.layer === 1 && d.mag < 27) {
-    const group = Math.floor(d.mag / 3) * 3;
-    const unit = SI_UNITS_HIGH[group];
-    if (unit) {
-      const mantissa = 10 ** (d.mag - group);
-      return `${mantissa.toFixed(precision)} ${unit}`;
+  if (notation === "engineering") {
+    if (exponent === 0) return `${sign}${mantissaStr}${suffix}`;
+    const prefix = SI_PREFIXES[String(exponent)];
+    if (prefix !== undefined) {
+      return `${sign}${mantissaStr} ${prefix}${suffix}`;
     }
   }
 
-  return formatEngineering(d, " J");
+  return `${sign}${mantissaStr}e${formatExponent(exponent)}${suffix}`;
 }
 
-function formatRate(value, precision = 2) {
+function formatEnergy(value, precision = 2, notation = currentNotation) {
+  const d = big(value);
+  if (!d.isFinite()) return "SIGNAL ERROR";
+  if (d.eq(0)) {
+    if (notation === "alpha") return `0.${"0".repeat(precision)} dJ`;
+    if (notation === "engineering_num") return `0.${"0".repeat(precision)}e-12 J`;
+    return `0.${"0".repeat(precision)} pJ`;
+  }
+
+  const sign = d.lt(0) ? "-" : "";
+  const absolute = d.abs();
+
+  const log10 = absolute.log10();
+  if (log10.layer > 0 || Math.abs(log10.toNumber()) > 1e15) {
+    return `${sign}e${formatEngineering(log10, "", notation)} J`;
+  }
+
+  const logNum = log10.toNumber();
+  let exponent = Math.floor(logNum / 3) * 3;
+  let mantissa = absolute.div(Decimal.pow(10, exponent)).toNumber();
+  if (Number(mantissa.toFixed(precision)) >= 1000) {
+    mantissa /= 1000;
+    exponent += 3;
+  }
+  const mantissaStr = mantissa.toFixed(precision);
+
+  if (notation === "engineering_num") {
+    if (exponent === 0) {
+      return `${sign}${mantissaStr} J`;
+    }
+    return `${sign}${mantissaStr}e${exponent} J`;
+  }
+
+  if (notation === "alpha") {
+    if (exponent === 0) {
+      return `${sign}${mantissaStr} J`;
+    }
+    if (exponent < 0) {
+      const k = Math.abs(exponent) / 3;
+      const letter = getAlphaSubUnit(k);
+      return `${sign}${mantissaStr} ${letter}J`;
+    }
+    const k = exponent / 3;
+    const letter = getAlphaSuperUnit(k);
+    return `${sign}${mantissaStr} ${letter}J`;
+  }
+
+  // Default: "engineering" (m, u, n, p, K, M, G, T)
+  if (exponent === 0) {
+    return `${sign}${mantissaStr} J`;
+  }
+  const prefix = SI_PREFIXES[String(exponent)];
+  if (prefix !== undefined) {
+    return `${sign}${mantissaStr} ${prefix}J`;
+  }
+
+  return `${sign}${mantissaStr}e${formatExponent(exponent)} J`;
+}
+
+function formatRate(value, precision = 2, notation = currentNotation) {
   const d = big(value);
   const prefix = d.gte(0) ? "+" : "";
-  return `${prefix}${formatEnergy(d, precision)}/s`;
+  return `${prefix}${formatEnergy(d, precision, notation)}/s`;
 }
 
-function formatInteger(value) {
-  const num = Math.floor(Number(value) || 0);
-  return num.toLocaleString("en-US");
+function formatInteger(value, notation = currentNotation) {
+  const d = big(value);
+  if (!d.isFinite()) return "SIGNAL ERROR";
+  if (d.abs().lte(99999)) {
+    return Math.trunc(d.toNumber()).toLocaleString("en-US");
+  }
+  return formatEngineering(d, "", notation);
+}
+
+function formatNumber(value, decimals = 1, notation = currentNotation) {
+  const d = big(value);
+  if (!d.isFinite()) return "SIGNAL ERROR";
+  if (d.abs().lte(99999)) {
+    return d.toNumber().toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return formatEngineering(d, "", notation);
 }
 
 function formatDuration(seconds) {
@@ -7040,6 +7193,22 @@ function formatDuration(seconds) {
   const hours = Math.floor(s / 3600);
   const mins = Math.floor((s % 3600) / 60);
   return `${hours}h ${mins}m`;
+}
+
+function formatStudyDuration(seconds, notation = currentNotation) {
+  const s = Math.max(0, Number(seconds ?? 0));
+  if (s < 0.05) {
+    if (s <= 0) return "∞/s";
+    const rate = 1 / s;
+    if (rate > 99999) {
+      return `${formatEngineering(rate, "", notation)}/s`;
+    }
+    if (rate >= 1000) {
+      return `${(rate / 1000).toFixed(1)}k/s`;
+    }
+    return `${rate.toFixed(1)}/s`;
+  }
+  return `${s.toFixed(2)}s`;
 }
 
 
@@ -7107,14 +7276,20 @@ const defaultFormulaRegistry = new FormulaRegistry();
 // 1. ALGORITHM STRENGTHS & PERFORMANCE
 // ============================================================================
 
-function calculateAlgorithmBaseStrengths(config = {}) {
-  const base = config.economy?.algorithmBaseStrength ?? 1e-15;
-  const factor = config.economy?.algorithmConversionFactor ?? 12;
-  const ratio = config.economy?.conversionPerformanceRatio ?? 2;
+function calculateAlgorithmStrengths(computerLevel = 1, config = {}, capacitorMultiplier = 1.0) {
+  const L = Math.max(1, Math.floor(computerLevel ?? 1));
+  const B = config.economy?.algorithmBaseStrength ?? 1e-15;
+  const F = config.economy?.algorithmConversionFactor ?? 12;
+  const C = Number.isFinite(Number(capacitorMultiplier)) && Number(capacitorMultiplier) >= 0
+    ? Number(capacitorMultiplier)
+    : 1.0;
 
-  const aImp = base;
-  const aUpg = aImp * factor * ratio; // 1e-15 * 12 * 2 = 24e-15
-  const aRec = aUpg * factor * ratio; // 24e-15 * 12 * 2 = 576e-15
+  // Step 1: Base AImp strength amplified by Computer Level and Capacitor multiplier
+  const aImp = B * L * C;
+  // Step 2: AUpg inherits Capacitor-amplified AImp strength
+  const aUpg = aImp * F * (L + 1);
+  // Step 3: ARec inherits Capacitor-amplified AUpg strength
+  const aRec = aUpg * F * (L + 1);
 
   return {
     AImp: aImp,
@@ -7123,10 +7298,15 @@ function calculateAlgorithmBaseStrengths(config = {}) {
   };
 }
 
+function calculateAlgorithmBaseStrengths(config = {}) {
+  return calculateAlgorithmStrengths(1, config, 1.0);
+}
+
 function calculateComputerPerformanceMultiplier(computerLevel = 1, config = {}) {
-  const L = Math.max(1, Math.floor(computerLevel ?? 1));
-  const base = config.economy?.computerPerformanceBase ?? 1.5;
-  return base ** (L - 1);
+  // Obsolete global multiplier: Computer Level is now integrated directly into
+  // individual algorithm feature strengths (AImp: B*L, AUpg: B*F*L*(L+1), ARec: B*F^2*L*(L+1)^2).
+  // Returns 1.0 to prevent any double-application of Computer Level.
+  return 1.0;
 }
 
 function calculateCapacitorMultiplier(capacitorsOwned = 0, config = {}, deviceMultiplier = 1) {
@@ -7136,7 +7316,7 @@ function calculateCapacitorMultiplier(capacitorsOwned = 0, config = {}, deviceMu
 }
 
 function calculateAlgorithmPerformance(state = {}, config = {}, statResolver = null) {
-  const strengths = calculateAlgorithmBaseStrengths(config);
+  const compLevel = state.computerLevel ?? 1;
   const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
   const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
   const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
@@ -7149,7 +7329,10 @@ function calculateAlgorithmPerformance(state = {}, config = {}, statResolver = n
     ? statResolver.resolve("algorithms.AImp.capacitorMultiplier", { state, config })
     : calculateCapacitorMultiplier(state.devices?.capacitors ?? 0, config, deviceMultiplier);
 
-  const aImpContrib = big(strengths.AImp).mul(aImpOwned).mul(capacitorMult);
+  // Capacitors cascade into the entire Algorithm Feature chain through AImp
+  const strengths = calculateAlgorithmStrengths(compLevel, config, capacitorMult);
+
+  const aImpContrib = big(strengths.AImp).mul(aImpOwned);
   const aUpgContrib = big(strengths.AUpg).mul(aUpgOwned);
   const aRecContrib = big(strengths.ARec).mul(aRecOwned);
 
@@ -7167,7 +7350,6 @@ function calculateEnergyProduction(state = {}, config = {}, statResolver = null)
   const ap = calculateAlgorithmPerformance(state, config, statResolver);
   if (ap.lte(0)) return big(0);
 
-  const compMult = calculateComputerPerformanceMultiplier(state.computerLevel ?? 1, config);
   const deviceMultiplier = statResolver
     ? statResolver.resolve("devices.globalMultiplier", { state, config })
     : calculateTotalDeviceMultiplier(state, config);
@@ -7176,7 +7358,7 @@ function calculateEnergyProduction(state = {}, config = {}, statResolver = null)
     ? statResolver.resolve("devices.crc.multiplier", { state, config })
     : calculateCrcMultiplier(state, config, deviceMultiplier);
 
-  return ap.mul(compMult).mul(crcMult);
+  return ap.mul(crcMult);
 }
 
 function calculateEnergyOverflowDecay(storedEnergy = 0, stableCapacity = 0, config = {}) {
@@ -7188,6 +7370,42 @@ function calculateEnergyOverflowDecay(storedEnergy = 0, stableCapacity = 0, conf
   const rate = config.decay?.overflowDecayRate ?? 0.009;
   const power = config.decay?.overflowDecayPower ?? 1.35;
   return big(rate).mul(overflow.pow(power));
+}
+
+function calculateEnergyEraProgress(storedEnergy = 0, config = {}) {
+  const eVal = big(storedEnergy);
+  const targetVal = big(config.energyEraProgress?.targetStoredEnergy ?? 100000000000);
+  const scaleVal = big(config.energyEraProgress?.logScale ?? 1e-12);
+
+  if (eVal.lte(0) || targetVal.lte(0) || scaleVal.lte(0)) {
+    return 0;
+  }
+  if (eVal.gte(targetVal)) {
+    return 1.0;
+  }
+
+  const clampedE = bigMin(eVal, targetVal);
+  const ratioE = clampedE.div(scaleVal);
+  const ratioT = targetVal.div(scaleVal);
+
+  let num;
+  if (ratioE.lt(1e-4)) {
+    num = Math.log1p(ratioE.toNumber());
+  } else {
+    num = ratioE.add(1).ln().toNumber();
+  }
+
+  const den = ratioT.add(1).ln().toNumber();
+  if (den <= 0 || !Number.isFinite(den)) return 0;
+
+  const progress = num / den;
+  return Math.min(1.0, Math.max(0, Number.isFinite(progress) ? progress : 0));
+}
+
+function calculateEnergyEraPercent(storedEnergy = 0, config = {}) {
+  const progress = calculateEnergyEraProgress(storedEnergy, config);
+  if (progress >= 1.0) return 100.0;
+  return Math.floor(progress * 1000) / 10;
 }
 
 // ============================================================================
@@ -7212,12 +7430,61 @@ function calculateAvailableData(state = {}, config = {}) {
   return fromAlgorithms + fromHardDisk;
 }
 
-function calculateRequiredDataForNextComputerLevel(currentLevel = 1, config = {}) {
-  const k = Math.max(1, Math.floor(currentLevel ?? 1));
+function calculateEffectiveAvailableData(state = {}, config = {}) {
+  const raw = calculateAvailableData(state, config);
+  const required = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+  return Math.min(Math.max(0, raw), required);
+}
+
+function calculateUsefulHardDiskCapacity(state = {}, config = {}) {
+  const required = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+  const fromAlgorithms = calculateDataFromAlgorithms(state, config);
+  const fromHardDisk = state.devices?.hardDisks?.buffer ?? state.hardDiskBuffer ?? 0;
+  return Math.max(0, required - fromAlgorithms - fromHardDisk);
+}
+
+function calculatePolynomialDataRequirement(level = 1, config = {}) {
+  const k = Math.max(1, Math.floor(level ?? 1));
   const base = config.dataXP?.machineLearning?.baseRequirement ?? 693;
   const scale = config.dataXP?.machineLearning?.scaleMultiplier ?? 2304;
   const exp = config.dataXP?.machineLearning?.powerExponent ?? 1.6643485138;
   return Math.ceil(base + scale * ((k - 1) ** exp));
+}
+
+function calculateRequiredDataForNextComputerLevel(currentLevel = 1, config = {}) {
+  const L = Math.max(1, Math.floor(currentLevel ?? 1));
+
+  const rawAnchor = config.dataXP?.machineLearning?.xpExponentialStartLevel
+    ?? config.dataXP?.xpExponentialStartLevel
+    ?? config.xpExponentialStartLevel
+    ?? 5;
+  const A = Number.isFinite(rawAnchor) && rawAnchor >= 1 ? Math.floor(rawAnchor) : 5;
+
+  const rawGrowth = config.dataXP?.machineLearning?.xpGrowthFactor
+    ?? config.dataXP?.xpGrowthFactor
+    ?? config.xpGrowthFactor
+    ?? 1.45;
+  const G = Number.isFinite(rawGrowth) && rawGrowth > 1 ? rawGrowth : 1.45;
+
+  // For L <= A: retain exact existing early-game polynomial progression
+  if (L <= A) {
+    return calculatePolynomialDataRequirement(L, config);
+  }
+
+  // For L > A: exponential progression anchored at Level A: ceil(XP_A * G^(L - A))
+  const xpA = calculatePolynomialDataRequirement(A, config);
+  const power = L - A;
+  const mult = G ** power;
+
+  if (!Number.isFinite(mult)) {
+    try {
+      return big(xpA).mul(big(G).pow(power)).ceil().toNumber();
+    } catch {
+      return Number.MAX_SAFE_INTEGER;
+    }
+  }
+
+  return Math.ceil(xpA * mult);
 }
 
 // ============================================================================
@@ -7226,27 +7493,38 @@ function calculateRequiredDataForNextComputerLevel(currentLevel = 1, config = {}
 
 function calculateFacilityOptimizationRequirement(completedCount = 0, config = {}) {
   const H = Math.max(0, Math.floor(completedCount ?? 0));
-  const initial = config.facilityOptimization?.initialLevelRequired ?? 9;
-  const step = config.facilityOptimization?.levelIncrement ?? 3;
+  const fo = config.facilityOptimization || config.setupOptimization || {};
+  const initial = fo.initialLevelRequired ?? fo.requiredLevel ?? 6;
+  const step = fo.levelIncrement ?? fo.levelStep ?? 3;
   return initial + step * H;
 }
 
+const calculateSetupOptimizationRequirement = calculateFacilityOptimizationRequirement;
+
 function calculateFacilityDeviceMultiplier(completedCount = 0, config = {}) {
   const H = Math.max(0, Math.floor(completedCount ?? 0));
-  const base = config.facilityOptimization?.deviceMultiplierBase ?? 1.09;
+  const fo = config.facilityOptimization || config.setupOptimization || {};
+  const base = fo.deviceMultiplierBase ?? fo.multiplierBase ?? 1.09;
   return base ** H;
 }
 
+const calculateSetupDeviceMultiplier = calculateFacilityDeviceMultiplier;
+
 function calculateProcessorDeviceMultiplier(processorsOwned = 0, config = {}) {
   const P = Math.max(0, Math.floor(processorsOwned ?? 0));
-  const bonusPerUnit = config.devices?.processor?.bonusPerUnit ?? 0.03;
+  const bonusPerUnit = config.devices?.processor?.bonusPerUnit ?? 0.05;
   return 1 + bonusPerUnit * P;
 }
 
-function calculateTotalDeviceMultiplier(state = {}, config = {}) {
+function calculateStudySpeedDeviceMultiplier(state = {}, config = {}) {
   const facilityMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
   const procMult = calculateProcessorDeviceMultiplier(state.devices?.processors ?? 0, config);
   return facilityMult * procMult;
+}
+
+function calculateTotalDeviceMultiplier(state = {}, config = {}) {
+  // Facility Optimization multiplier affects operational devices (except Power Cells)
+  return calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
 }
 
 // ============================================================================
@@ -7279,10 +7557,32 @@ function calculateOverclockBonusMultiplier(transistorsConsumed = 2, config = {})
   return 1 + T / div;
 }
 
+function calculateStudyImproveMilestone(claimedCount = 0, config = {}) {
+  const k = Math.max(0, Math.floor(claimedCount ?? 0));
+  const initial = config.studyImprove?.initialMilestones ?? [33, 66, 188];
+  const growth = config.studyImprove?.milestoneGrowthFactor ?? 2;
+
+  const level = k + 1; // The next improve level aiming for
+  if (level <= initial.length) {
+    return initial[level - 1] ?? 33;
+  }
+
+  // threshold(k) = ceil(threshold(3) * milestoneGrowthFactor^(k - 3)) for level >= 4
+  const anchor = initial[initial.length - 1] ?? 188;
+  const power = level - initial.length;
+  return Math.ceil(anchor * (growth ** power));
+}
+
+function calculateStudyImproveMultiplier(claimedCount = 0, config = {}) {
+  const k = Math.max(0, Math.floor(claimedCount ?? 0));
+  const A = config.studyImprove?.speedCoefficient ?? 0.5;
+  return 1 + A * Math.log2(k + 1);
+}
+
 function calculateEffectiveStudySpeed(featureId = "AImp", state = {}, config = {}, statResolver = null) {
   const deviceMultiplier = statResolver
-    ? statResolver.resolve("devices.globalMultiplier", { state, config })
-    : calculateTotalDeviceMultiplier(state, config);
+    ? statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+    : calculateStudySpeedDeviceMultiplier(state, config);
 
   const T = state.devices?.transistorAllocations?.[featureId] ?? 0;
   const transistorSpeed = calculateTransistorStudySpeedMultiplier(T, config, deviceMultiplier);
@@ -7304,7 +7604,14 @@ function calculateEffectiveStudySpeed(featureId = "AImp", state = {}, config = {
     }
   }
 
-  return Math.max(0.01, transistorSpeed * microMult);
+  // 1. Hardware-resolved study speed (Transistors, Microprocessor, Overclocker)
+  const baseHardwareSpeed = Math.max(0.01, transistorSpeed * microMult);
+
+  // 2. Study Improvement multiplier applies directly over the final production time/rate
+  const claimed = state.studyImproves?.[featureId]?.claimed ?? 0;
+  const improveMult = calculateStudyImproveMultiplier(claimed, config);
+
+  return baseHardwareSpeed * improveMult;
 }
 
 function calculateEffectiveStudyDuration(featureId = "AImp", state = {}, config = {}, statResolver = null) {
@@ -7328,10 +7635,8 @@ function calculatePowerCellCost(ownedCount = 0, config = {}) {
 function calculatePowerCellCapacity(ownedCount = 0, state = {}, config = {}, statResolver = null) {
   const count = Math.max(0, Math.floor(ownedCount ?? 0));
   const baseCap = config.devices?.powerCell?.baseCapacity ?? 1e-3;
-  const deviceMultiplier = statResolver
-    ? statResolver.resolve("devices.globalMultiplier", { state, config })
-    : calculateTotalDeviceMultiplier(state, config);
-  return big(count).mul(baseCap).mul(deviceMultiplier);
+  // Power Cells are exempt from both Facility Optimization multiplier and Processor bonus
+  return big(count).mul(baseCap);
 }
 
 // ============================================================================
@@ -7405,9 +7710,7 @@ function calculateDeviceCost(type, owned = 0, config = {}) {
       return calculateGeometricCost(init, mult, owned);
     }
     case "microprocessor": {
-      const init = config.devices?.microprocessor?.initialCost ?? 3e-9;
-      const mult = config.devices?.microprocessor?.costMultiplier ?? 1.25;
-      return calculateGeometricCost(init, mult, owned);
+      return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
     }
     case "overclocker": {
       return big(config.devices?.overclocker?.initialCost ?? 9e-8);
@@ -7447,11 +7750,7 @@ function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {})
       const mult = config.devices?.chip?.costMultiplier ?? 4.0;
       return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
     }
-    case "microprocessor": {
-      const init = config.devices?.microprocessor?.initialCost ?? 3e-9;
-      const mult = config.devices?.microprocessor?.costMultiplier ?? 1.25;
-      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
-    }
+    case "microprocessor":
     case "transistorBoard":
     case "overclocker":
     case "crcGadget": {
@@ -7494,23 +7793,34 @@ function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {})
 // ============================================================================
 
 defaultFormulaRegistry.register("algorithmBaseStrengths", calculateAlgorithmBaseStrengths);
+defaultFormulaRegistry.register("algorithmStrengths", calculateAlgorithmStrengths);
 defaultFormulaRegistry.register("computerPerformanceMultiplier", calculateComputerPerformanceMultiplier);
 defaultFormulaRegistry.register("capacitorMultiplier", calculateCapacitorMultiplier);
 defaultFormulaRegistry.register("algorithmPerformance", calculateAlgorithmPerformance);
 defaultFormulaRegistry.register("crcMultiplier", calculateCrcMultiplier);
 defaultFormulaRegistry.register("energyProduction", calculateEnergyProduction);
 defaultFormulaRegistry.register("energyOverflowDecay", calculateEnergyOverflowDecay);
+defaultFormulaRegistry.register("energyEraProgress", calculateEnergyEraProgress);
+defaultFormulaRegistry.register("energyEraPercent", calculateEnergyEraPercent);
 defaultFormulaRegistry.register("dataFromAlgorithms", calculateDataFromAlgorithms);
 defaultFormulaRegistry.register("availableData", calculateAvailableData);
+defaultFormulaRegistry.register("effectiveAvailableData", calculateEffectiveAvailableData);
+defaultFormulaRegistry.register("usefulHardDiskCapacity", calculateUsefulHardDiskCapacity);
+defaultFormulaRegistry.register("polynomialDataRequirement", calculatePolynomialDataRequirement);
 defaultFormulaRegistry.register("requiredDataForNextComputerLevel", calculateRequiredDataForNextComputerLevel);
 defaultFormulaRegistry.register("facilityOptimizationRequirement", calculateFacilityOptimizationRequirement);
+defaultFormulaRegistry.register("setupOptimizationRequirement", calculateFacilityOptimizationRequirement);
 defaultFormulaRegistry.register("facilityDeviceMultiplier", calculateFacilityDeviceMultiplier);
+defaultFormulaRegistry.register("setupDeviceMultiplier", calculateFacilityDeviceMultiplier);
 defaultFormulaRegistry.register("processorDeviceMultiplier", calculateProcessorDeviceMultiplier);
+defaultFormulaRegistry.register("studySpeedDeviceMultiplier", calculateStudySpeedDeviceMultiplier);
 defaultFormulaRegistry.register("totalDeviceMultiplier", calculateTotalDeviceMultiplier);
 defaultFormulaRegistry.register("transistorStudySpeedMultiplier", calculateTransistorStudySpeedMultiplier);
 defaultFormulaRegistry.register("microprocessorStudyMultiplier", calculateMicroprocessorStudyMultiplier);
 defaultFormulaRegistry.register("overclockDuration", calculateOverclockDuration);
 defaultFormulaRegistry.register("overclockBonusMultiplier", calculateOverclockBonusMultiplier);
+defaultFormulaRegistry.register("studyImproveMilestone", calculateStudyImproveMilestone);
+defaultFormulaRegistry.register("studyImproveMultiplier", calculateStudyImproveMultiplier);
 defaultFormulaRegistry.register("effectiveStudySpeed", calculateEffectiveStudySpeed);
 defaultFormulaRegistry.register("effectiveStudyDuration", calculateEffectiveStudyDuration);
 defaultFormulaRegistry.register("powerCellCost", calculatePowerCellCost);
@@ -7794,7 +8104,7 @@ const defaultEffectEngine = new EffectEngine();
 
 function createStandardEffects(config = {}) {
   return [
-    // 1. Facility Optimization multiplier on global device performance
+    // 1. Facility Optimization multiplier on global device performance (Capacitors, CRC, Hard Disk)
     {
       id: "facility-optimization-multiplier",
       label: "Facility Optimization Multiplier",
@@ -7807,12 +8117,23 @@ function createStandardEffects(config = {}) {
       },
     },
 
-    // 2. Processor multiplier on global device performance
+    // 2. Study Speed Multiplier: base inherits Facility Optimization, multiplied by Processor (+5% per unit)
+    {
+      id: "study-speed-facility-multiplier",
+      label: "Facility Multiplier on Study Speed",
+      source: "facilityOptimization",
+      targetStatId: "devices.studySpeedMultiplier",
+      operation: "base",
+      value: (context) => {
+        const H = context.state?.facilityOptimizations ?? 0;
+        return calculateFacilityDeviceMultiplier(H, context.config ?? config);
+      },
+    },
     {
       id: "processor-device-multiplier",
-      label: "Processor Device Multiplier",
+      label: "Processor Study Speed Multiplier",
       source: "processor",
-      targetStatId: "devices.globalMultiplier",
+      targetStatId: "devices.studySpeedMultiplier",
       operation: "multiply",
       value: (context) => {
         const P = context.state?.devices?.processors ?? 0;
@@ -7901,6 +8222,7 @@ const MANDATORY_STAT_IDS = Object.freeze({
   CRC_MULTIPLIER: "devices.crc.multiplier",
   AIMP_CAPACITOR_MULTIPLIER: "algorithms.AImp.capacitorMultiplier",
   GLOBAL_DEVICE_MULTIPLIER: "devices.globalMultiplier",
+  STUDY_SPEED_DEVICE_MULTIPLIER: "devices.studySpeedMultiplier",
   FACILITY_DEVICE_MULTIPLIER: "facility.deviceMultiplier",
   PROCESSOR_DEVICE_MULTIPLIER: "devices.processor.deviceMultiplier",
   STUDY_SPEED_AIMP: "studies.AImp.speed",
@@ -8200,17 +8522,20 @@ function getAllElements() {
 }
 
 // ----------------------------------------------------------------------------
-// 1. AutoCalculator Chip
+// 1. AutoCalculator Chip (Base Generic & Specific Targets)
 // ----------------------------------------------------------------------------
 registerElement({
   id: "chip",
   name: "AutoCalculator Chip",
   category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator",
   description: "Automates studies of one selected A-Feature. Independent worker respecting conversion costs and duration.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, count, config),
   getOwned: (state) => state.devices?.chips?.owned ?? 0,
+  isRevealed: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
   isUnlocked: (state, config) => {
     if (state.unlocks?.chips) return true;
     const aupgDone = (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
@@ -8238,17 +8563,167 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: state.devices?.chips?.owned ?? 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.chips.owned = (state.devices.chips.owned ?? 0) + k;
     // Newly acquired chips default to AImp
     state.devices.chips.allocations.AImp = (state.devices.chips.allocations.AImp ?? 0) + k;
     state.unlocks.chips = true;
     state.unlocks.transistorBoard = true; // Purchasing first chip reveals Transistor Board
-    return { newCount: state.devices.chips.owned, cost, count: k };
+    return { success: true, newCount: state.devices.chips.owned, cost, count: k };
+  },
+});
+
+// AutoCalculator — Improvements
+registerElement({
+  id: "autoCalculator_AImp",
+  name: "AutoCalculator — Improvements",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-imp",
+  description: "Automates Algorithm Improvement studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.AImp > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isUnlocked: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.AImp ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires completing your first A.Upgrade study");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.AImp ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    state.devices.chips.allocations.AImp = (state.devices.chips.allocations.AImp ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    state.devices.chips.enabled.AImp = true;
+    state.unlocks.chips = true;
+    state.unlocks.transistorBoard = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// AutoCalculator — Upgrades
+registerElement({
+  id: "autoCalculator_AUpg",
+  name: "AutoCalculator — Upgrades",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-upg",
+  description: "Automates Algorithm Upgrade studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.AUpg > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isUnlocked: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.AUpg ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires completing your first A.Upgrade study");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.AUpg ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    state.devices.chips.allocations.AUpg = (state.devices.chips.allocations.AUpg ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    state.devices.chips.enabled.AUpg = true;
+    state.unlocks.chips = true;
+    state.unlocks.transistorBoard = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// AutoCalculator — Recalculations
+registerElement({
+  id: "autoCalculator_ARec",
+  name: "AutoCalculator — Recalculations",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-rec",
+  description: "Automates Algorithm Recalculation studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.ARec > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.ARec),
+  isUnlocked: (state) => Boolean(state.unlocks?.ARec),
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.ARec);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.ARec ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires unlocking Algorithm Recalculation via Facility Optimization");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.ARec ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    state.devices.chips.allocations.ARec = (state.devices.chips.allocations.ARec ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    state.devices.chips.enabled.ARec = true;
+    state.unlocks.chips = true;
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -8258,11 +8733,14 @@ registerElement({
 registerElement({
   id: "transistorBoard",
   name: "Transistor Board",
-  category: "efficiency",
-  description: "Provides infrastructure to purchase and allocate Transistors among study types.",
+  category: "computation",
+  lane: "efficiency",
+  icon: "transistor-board",
+  description: "Distributes computational resources between studies.",
   unique: true,
   getCost: (state, config) => calculateDeviceCost("transistorBoard", 0, config),
   getOwned: (state) => (state.devices?.transistorBoard?.owned ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.transistorBoard) || (state.devices?.chips?.owned ?? 0) >= 1,
   isUnlocked: (state, config) => {
     if (state.unlocks?.transistorBoard) return true;
     return (state.devices?.chips?.owned ?? 0) >= 1;
@@ -8288,14 +8766,19 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("transistorBoard", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.transistorBoard.owned = true;
     state.unlocks.transistorBoard = true;
-    return { newCount: 1, cost, count: 1 };
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    if ((state.devices.transistorsPurchased ?? 0) >= reqT) {
+      state.unlocks.microprocessor = true;
+    }
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -8305,12 +8788,15 @@ registerElement({
 registerElement({
   id: "transistor",
   name: "Transistor",
-  category: "efficiency",
-  description: "Adds +5% Study Speed per unit allocated to an A-Feature. Shared global purchase cost.",
+  category: "computation",
+  lane: "efficiency",
+  icon: "transistor",
+  description: "Accelerates study speed when allocated.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, count, config),
   getOwned: (state) => state.devices?.transistorsPurchased ?? 0,
+  isRevealed: (state) => Boolean(state.devices?.transistorBoard?.owned),
   isUnlocked: (state, config) => Boolean(state.devices?.transistorBoard?.owned),
   isEligible: (state, config, count = 1) => {
     const strictUnlocked = Boolean(state.devices?.transistorBoard?.owned);
@@ -8332,21 +8818,23 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false, target = "AImp" } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: state.devices?.transistorsPurchased ?? 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.transistorsPurchased = (state.devices.transistorsPurchased ?? 0) + k;
     const dest = ["AImp", "AUpg", "ARec"].includes(target) ? target : "AImp";
     state.devices.transistorAllocations[dest] = (state.devices.transistorAllocations[dest] ?? 0) + k;
 
-    // Check Microprocessor unlock: Board + 4 Transistors
-    if (state.devices.transistorBoard.owned && state.devices.transistorsPurchased >= 4) {
+    // Check Microprocessor unlock: Board + required Transistors
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    if (state.devices.transistorBoard.owned && (state.devices.transistorsPurchased ?? 0) >= reqT) {
       state.unlocks.microprocessor = true;
     }
 
-    return { newCount: state.devices.transistorsPurchased, cost, count: k };
+    return { success: true, newCount: state.devices.transistorsPurchased, cost, count: k };
   },
 });
 
@@ -8356,27 +8844,35 @@ registerElement({
 registerElement({
   id: "microprocessor",
   name: "Microprocessor",
-  category: "efficiency",
-  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors). Each unit increases study amplification.",
-  unique: false,
-  getCost: (state, config, count = 1) =>
-    calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config),
+  category: "computation",
+  lane: "efficiency",
+  icon: "microprocessor",
+  description: "Amplifies the speed of the selected study.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("microprocessor", 0, config),
   getOwned: (state) => state.devices?.microprocessor?.owned ?? 0,
+  isRevealed: (state, config) => Boolean(state.devices?.transistorBoard?.owned),
   isUnlocked: (state, config) => {
     if (state.unlocks?.microprocessor) return true;
-    return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4;
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= reqT;
   },
   isEligible: (state, config, count = 1) => {
-    const strictUnlocked = (state.unlocks?.microprocessor) ||
-      (Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4);
+    const isOwned = (state.devices?.microprocessor?.owned ?? 0) >= 1;
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
+    const hasTransistors = (state.devices?.transistorsPurchased ?? 0) >= reqT;
+    const strictUnlocked = (state.unlocks?.microprocessor) || (hasBoard && hasTransistors);
     const unlocked = strictUnlocked || Boolean(state.devMode);
-    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config);
+    const cost = calculateDeviceCost("microprocessor", 0, config);
     const canAfford = big(state.energy).gte(cost);
     const reasons = [];
-    if (!strictUnlocked) reasons.push("Requires Transistor Board and at least 4 Transistors");
-    if (!canAfford) reasons.push("Insufficient energy");
+    if (isOwned) reasons.push("Microprocessor is already installed (Unique device)");
+    if (!hasBoard) reasons.push("Requires Transistor Board");
+    if (!hasTransistors && reqT > 0) reasons.push(`Requires at least ${reqT} Transistors (have ${state.devices?.transistorsPurchased ?? 0})`);
+    if (!canAfford) reasons.push(`Insufficient energy (needs ${formatEnergy(cost)})`);
     return {
-      eligible: unlocked && canAfford,
+      eligible: unlocked && canAfford && !isOwned,
       isUnlocked: unlocked,
       strictUnlocked,
       canAfford,
@@ -8385,16 +8881,20 @@ registerElement({
     };
   },
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
-    const k = Math.max(1, Math.floor(count ?? 1));
-    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, k, config);
+    const isOwned = (state.devices?.microprocessor?.owned ?? 0) >= 1;
+    if (isOwned && !isForced) {
+      return { success: false, newCount: 1, cost: big(0), count: 0 };
+    }
+    const cost = calculateDeviceCost("microprocessor", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: state.devices?.microprocessor?.owned ?? 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
-    state.devices.microprocessor.owned = (state.devices.microprocessor.owned ?? 0) + k;
+    state.devices.microprocessor.owned = 1;
     state.unlocks.microprocessor = true;
-    return { newCount: state.devices.microprocessor.owned, cost, count: k };
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -8404,11 +8904,14 @@ registerElement({
 registerElement({
   id: "overclocker",
   name: "Overclocker",
-  category: "efficiency",
-  description: "Sacrifices Transistors to temporarily amplify Microprocessor bonus: (1 + T/3) for log(T)/log(1.5) seconds.",
+  category: "computation",
+  lane: "efficiency",
+  icon: "overclocker",
+  description: "Temporarily accelerates the selected computation.",
   unique: true,
   getCost: (state, config) => calculateDeviceCost("overclocker", 0, config),
   getOwned: (state) => state.devices?.overclocker?.owned ?? 0,
+  isRevealed: (state) => (state.devices?.microprocessor?.owned ?? 0) > 0 || Boolean(state.unlocks?.overclocker),
   isUnlocked: (state, config) => {
     if (state.unlocks?.overclocker) return true;
     const microOwned = (state.devices?.microprocessor?.owned ?? 0) > 0;
@@ -8440,14 +8943,15 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("overclocker", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.overclocker.owned = 1;
     state.unlocks.overclocker = true;
-    return { newCount: 1, cost, count: 1 };
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -8458,10 +8962,13 @@ registerElement({
   id: "crcGadget",
   name: "CRC Gadget",
   category: "energy",
-  description: "Multiplies total CRC Energy Production by 2x.",
+  lane: "resources",
+  icon: "crc-gadget",
+  description: "Amplifies Cosmic Radiation Condenser energy output.",
   unique: true,
   getCost: (state, config) => calculateDeviceCost("crcGadget", 0, config),
   getOwned: (state) => state.devices?.crcGadget?.owned ?? 0,
+  isRevealed: () => true,
   isUnlocked: () => true,
   isEligible: (state, config) => {
     const cost = calculateDeviceCost("crcGadget", 0, config);
@@ -8481,13 +8988,14 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("crcGadget", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.crcGadget.owned = 1;
-    return { newCount: 1, cost, count: 1 };
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -8498,11 +9006,14 @@ registerElement({
   id: "capacitor",
   name: "Capacitor",
   category: "energy",
-  description: "Increases the Energy contribution of A.Improvements by +50% per unit (1 + 0.5 * C).",
+  lane: "resources",
+  icon: "capacitor",
+  description: "Amplifies the energy contribution of the entire Algorithm Feature chain.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, count, config),
   getOwned: (state) => state.devices?.capacitors ?? 0,
+  isRevealed: (state) => (state.computerLevel ?? 1) >= 2 || Boolean(state.unlocks?.capacitor),
   isUnlocked: (state, config) => {
     if (state.unlocks?.capacitor) return true;
     return (state.computerLevel ?? 1) >= 2;
@@ -8527,14 +9038,15 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.capacitors ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.capacitors = (state.devices.capacitors ?? 0) + k;
     state.unlocks.capacitor = true;
-    return { newCount: state.devices.capacitors, cost, count: k };
+    return { success: true, newCount: state.devices.capacitors, cost, count: k };
   },
 });
 
@@ -8544,23 +9056,23 @@ registerElement({
 registerElement({
   id: "processor",
   name: "Processor",
-  category: "efficiency",
-  description: "Slightly improves the performance of other eligible Devices by +3% per unit (1 + 0.03 * P).",
+  category: "computation",
+  lane: "efficiency",
+  icon: "processor",
+  description: "Improves the effectiveness of study speed-efficiency devices (+5% per unit).",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, count, config),
   getOwned: (state) => state.devices?.processors ?? 0,
-  isUnlocked: (state, config) => {
-    if (state.unlocks?.processor) return true;
-    return (state.facilityOptimizations ?? 0) >= 1;
-  },
+  isRevealed: (state) => Boolean(state.unlocks?.processor) || big(state.energy).gte(1e-6) || big(state.peakEnergy ?? 0).gte(1e-6),
+  isUnlocked: (state, config) => Boolean(state.unlocks?.processor) || big(state.energy).gte(1e-6) || big(state.peakEnergy ?? 0).gte(1e-6),
   isEligible: (state, config, count = 1) => {
-    const strictUnlocked = (state.unlocks?.processor) || (state.facilityOptimizations ?? 0) >= 1;
+    const strictUnlocked = Boolean(state.unlocks?.processor) || big(state.energy).gte(1e-6) || big(state.peakEnergy ?? 0).gte(1e-6);
     const unlocked = strictUnlocked || Boolean(state.devMode);
     const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, count, config);
     const canAfford = big(state.energy).gte(cost);
     const reasons = [];
-    if (!strictUnlocked) reasons.push("Unlocked only after the first Facility Optimization");
+    if (!strictUnlocked) reasons.push("Requires reaching 1 µJ (1e-6 J) stored energy");
     if (!canAfford) reasons.push("Insufficient energy");
     return {
       eligible: unlocked && canAfford,
@@ -8574,14 +9086,15 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.processors ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.processors = (state.devices.processors ?? 0) + k;
     state.unlocks.processor = true;
-    return { newCount: state.devices.processors, cost, count: k };
+    return { success: true, newCount: state.devices.processors, cost, count: k };
   },
 });
 
@@ -8592,11 +9105,14 @@ registerElement({
   id: "hardDisk",
   name: "Hard Disk",
   category: "learning",
-  description: "Consumes Energy continuously to produce +3 Data/s per active Disk into a temporary buffer.",
+  lane: "resources",
+  icon: "hard-disk",
+  description: "Consumes Energy to generate temporary Data.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, count, config),
   getOwned: (state) => state.devices?.hardDisks?.owned ?? 0,
+  isRevealed: (state) => Boolean(state.unlocks?.hardDisk),
   isUnlocked: (state, config) => {
     if (state.unlocks?.hardDisk) return true;
     return (state.facilityOptimizations ?? 0) >= 1;
@@ -8621,17 +9137,18 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.hardDisks?.owned ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.hardDisks.owned = (state.devices.hardDisks.owned ?? 0) + k;
     if (state.devices.hardDisks.state === "off") {
       state.devices.hardDisks.state = "active";
     }
     state.unlocks.hardDisk = true;
-    return { newCount: state.devices.hardDisks.owned, cost, count: k };
+    return { success: true, newCount: state.devices.hardDisks.owned, cost, count: k };
   },
 });
 
@@ -8641,12 +9158,15 @@ registerElement({
 registerElement({
   id: "powerCell",
   name: "Power Cell",
-  category: "storage",
-  description: "Provides operational Energy capacity (1 mJ/cell). Persists through Facility Optimization.",
+  category: "energy",
+  lane: "resources",
+  icon: "power-cell",
+  description: "Expands the facility's operational energy capacity.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, count, config),
   getOwned: (state) => state.powerCells ?? 0,
+  isRevealed: () => true,
   isUnlocked: () => true,
   isEligible: (state, config, count = 1) => {
     const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, count, config);
@@ -8665,14 +9185,15 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.powerCells ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.powerCells = (state.powerCells ?? 0) + k;
     state.unlocks.powerCell = true;
-    return { newCount: state.powerCells, cost, count: k };
+    return { success: true, newCount: state.powerCells, cost, count: k };
   },
 });
 
@@ -8683,14 +9204,15 @@ registerElement({
   id: "machineLearning",
   name: "Run Machine Learning",
   category: "reset",
-  description: "Advances global Computer Level (+50% AP per level). Clears A-Feature inventories; keeps hardware and energy.",
+  description: "Advances Computer Level, strengthening Algorithm Features and conversion efficiency.",
   unique: false,
   getCost: () => null,
   getOwned: (state) => state.computerLevel ?? 1,
   isUnlocked: () => true,
   isEligible: (state, config) => {
-    const currentData = calculateAvailableData(state, config);
+    const rawData = calculateAvailableData(state, config);
     const requiredData = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+    const currentData = Math.min(Math.max(0, rawData), requiredData);
     const naturallyEligible = currentData >= requiredData;
     const eligible = naturallyEligible || Boolean(state.devMode);
     const reasons = [];
@@ -8704,7 +9226,7 @@ registerElement({
       canAfford: true,
       cost: null,
       reasons,
-      meta: { currentData, requiredData },
+      meta: { currentData, rawData, requiredData },
     };
   },
   applyPurchase: (state, config) => {
@@ -8717,6 +9239,13 @@ registerElement({
     state.algorithms.ARec.owned = 0;
     state.algorithms.ARec.produced = 0;
 
+    // Reset study improve milestones & multipliers on Machine Learning (Section 1.8)
+    if (state.studyImproves) {
+      state.studyImproves.AImp = { completions: 0, claimed: 0 };
+      state.studyImproves.AUpg = { completions: 0, claimed: 0 };
+      state.studyImproves.ARec = { completions: 0, claimed: 0 };
+    }
+
     // Clear study queues and pending worker reservations
     state.studyQueues.AImp = 0;
     state.studyQueues.AUpg = 0;
@@ -8725,6 +9254,12 @@ registerElement({
     state.reservedInputs.AUpg = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
+    if (state.manualStudies) {
+      for (const t of ["AImp", "AUpg", "ARec"]) {
+        state.manualStudies[t].active = false;
+        state.manualStudies[t].elapsed = 0;
+      }
+    }
 
     // Clear accumulated Hard Disk data buffer
     state.devices.hardDisks.buffer = 0;
@@ -8751,7 +9286,7 @@ registerElement({
   id: "facilityOptimization",
   name: "Facility Optimization",
   category: "reset",
-  description: "Improves all operational Devices by +9% permanent compounding multiplier (1.09^H). Preserves Computer Level & Power Cells.",
+  description: "Permanently improves operational device effectiveness across future cycles.",
   unique: false,
   getCost: () => null,
   getOwned: (state) => state.facilityOptimizations ?? 0,
@@ -8780,6 +9315,13 @@ registerElement({
   applyPurchase: (state, config) => {
     state.facilityOptimizations = (state.facilityOptimizations ?? 0) + 1;
 
+    // Reset all Study Improvements
+    state.studyImproves = {
+      AImp: { completions: 0, claimed: 0 },
+      AUpg: { completions: 0, claimed: 0 },
+      ARec: { completions: 0, claimed: 0 },
+    };
+
     // 1. Reset A-Feature inventories
     state.algorithms.AImp.owned = 0;
     state.algorithms.AImp.produced = 0;
@@ -8796,9 +9338,16 @@ registerElement({
     state.reservedInputs.AUpg = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
+    if (state.manualStudies) {
+      for (const t of ["AImp", "AUpg", "ARec"]) {
+        state.manualStudies[t].active = false;
+        state.manualStudies[t].elapsed = 0;
+      }
+    }
 
-    // 3. Reset Stored Energy to zero
+    // 3. Reset Stored Energy and Peak Energy to zero
     state.energy = big(0);
+    state.peakEnergy = big(0);
 
     // 4. Reset Hard Disk buffer
     state.devices.hardDisks.buffer = 0;
@@ -8822,14 +9371,19 @@ registerElement({
     state.devices.hardDisks.state = "off";
     state.devices.hardDisks.activeSeconds = 0;
 
-    // 6. Reset Power Cell charge to zero (owned cells are preserved!)
+    // 6. Reset Power Cell charge to zero (owned Power Cells are PRESERVED as the sole exception!)
     state.powerCellCharge = big(0);
 
-    // 7. Tech unlocks: Unlock ARec and Processor permanently!
+    // 7. Tech unlocks:
+    // ARec is unlocked permanently across facility optimizations!
     state.unlocks.ARec = true;
-    state.unlocks.processor = true;
     state.unlocks.hardDisk = true;
-    // Chips and Board need to be rebought, but tech unlock flags for ARec/Processor stay permanent
+    state.unlocks.processor = false; // Only appears when 1e-6 J is reached
+    state.unlocks.transistorBoard = false;
+    state.unlocks.microprocessor = false;
+    state.unlocks.overclocker = false;
+    state.unlocks.capacitor = false;
+    state.unlocks.chips = false;
 
     state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
 
@@ -8842,19 +9396,30 @@ function evaluateElement(element, state, config, count = 1) {
   const check = element.isEligible(state, config, k);
   const cost = element.getCost ? element.getCost(state, config, k) : null;
   const owned = element.getOwned ? element.getOwned(state) : 0;
+  const isRevealed = element.isRevealed ? element.isRevealed(state, config) : (check.isUnlocked || check.strictUnlocked);
 
-  const naturallyEligible = Boolean(check.strictUnlocked && check.canAfford);
+  const strictUnlocked = Boolean(check.strictUnlocked);
+  const canAfford = Boolean(check.canAfford);
   const isDevMode = Boolean(state.devMode);
 
-  let visualStatus = "eligible";
-  let canClick = naturallyEligible;
+  // Eligible naturally: unlocked + affordable + eligible (e.g. unique not owned)
+  const naturallyEligible = Boolean(strictUnlocked && canAfford && check.eligible);
+
+  // In devMode, player can bypass tech milestone locks, but MUST ALWAYS AFFORD THE COST!
+  const devBypassUnlocked = Boolean(isDevMode && !strictUnlocked && canAfford && check.eligible);
+
+  let visualStatus = "locked";
+  let canClick = false;
 
   if (naturallyEligible) {
     visualStatus = "eligible";
     canClick = true;
-  } else if (isDevMode) {
+  } else if (devBypassUnlocked) {
     visualStatus = "dev-bypass";
     canClick = true;
+  } else if (!canAfford) {
+    visualStatus = "unaffordable";
+    canClick = false;
   } else {
     visualStatus = "locked";
     canClick = false;
@@ -8865,11 +9430,14 @@ function evaluateElement(element, state, config, count = 1) {
     id: element.id,
     name: element.name,
     category: element.category,
+    lane: element.lane ?? "efficiency",
+    icon: element.icon ?? "auto-calculator",
     description: element.description,
     unique: element.unique ?? false,
     owned,
     cost,
     count: k,
+    isRevealed,
     isUnlocked: check.isUnlocked,
     strictUnlocked: check.strictUnlocked,
     canAfford: check.canAfford,
@@ -8919,6 +9487,11 @@ function createInitialState(config = {}) {
       elapsed: 0,
       active: false,
     },
+    manualStudies: {
+      AImp: { active: false, elapsed: 0 },
+      AUpg: { active: false, elapsed: 0 },
+      ARec: { active: false, elapsed: 0 },
+    },
     studyQueues: {
       AImp: 0,
       AUpg: 0,
@@ -8929,11 +9502,28 @@ function createInitialState(config = {}) {
       AUpg: 0,
     },
 
+    // Study Improve (Section 1)
+    studyImproves: {
+      AImp: { completions: 0, claimed: 0 },
+      AUpg: { completions: 0, claimed: 0 },
+      ARec: { completions: 0, claimed: 0 },
+    },
+
     // Devices & Infrastructure
     devices: {
       chips: {
         owned: 0,
         allocations: {
+          AImp: 0,
+          AUpg: 0,
+          ARec: 0,
+        },
+        enabled: {
+          AImp: true,
+          AUpg: true,
+          ARec: true,
+        },
+        timers: {
           AImp: 0,
           AUpg: 0,
           ARec: 0,
@@ -8998,6 +9588,11 @@ function createInitialState(config = {}) {
       totalFacilityOptimizations: 0,
     },
 
+    // Timestamp & Persistence
+    lastSavedAt: Date.now(),
+    log: [],
+    lastOfflineSummary: null,
+
     // UI View State
     ui: {
       activeTab: "energy",
@@ -9006,8 +9601,13 @@ function createInitialState(config = {}) {
       bulkMode: 1,
     },
 
+    // User & Simulation Settings
+    settings: {
+      notation: "engineering", // 'engineering' | 'engineering_num' | 'alpha'
+    },
+
     // Developer Sandbox
-    devMode: true,
+    devMode: false,
     gameSpeed: 1.0,
     auditLogs: [],
     quicksaveSnapshot: null,
@@ -9048,6 +9648,20 @@ function normalizeState(raw = {}, config = {}) {
       elapsed: Number(raw.manualStudy?.elapsed ?? 0),
       active: Boolean(raw.manualStudy?.active),
     },
+    manualStudies: {
+      AImp: {
+        active: Boolean(raw.manualStudies?.AImp?.active ?? (raw.manualStudy?.target === "AImp" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.AImp?.elapsed ?? (raw.manualStudy?.target === "AImp" ? raw.manualStudy?.elapsed : 0)),
+      },
+      AUpg: {
+        active: Boolean(raw.manualStudies?.AUpg?.active ?? (raw.manualStudy?.target === "AUpg" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.AUpg?.elapsed ?? (raw.manualStudy?.target === "AUpg" ? raw.manualStudy?.elapsed : 0)),
+      },
+      ARec: {
+        active: Boolean(raw.manualStudies?.ARec?.active ?? (raw.manualStudy?.target === "ARec" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.ARec?.elapsed ?? (raw.manualStudy?.target === "ARec" ? raw.manualStudy?.elapsed : 0)),
+      },
+    },
     studyQueues: {
       AImp: Math.max(0, Number(raw.studyQueues?.AImp ?? 0)),
       AUpg: Math.max(0, Number(raw.studyQueues?.AUpg ?? 0)),
@@ -9058,6 +9672,21 @@ function normalizeState(raw = {}, config = {}) {
       AUpg: Math.max(0, Number(raw.reservedInputs?.AUpg ?? 0)),
     },
 
+    studyImproves: {
+      AImp: {
+        completions: Math.max(0, Number(raw.studyImproves?.AImp?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.AImp?.claimed ?? 0)),
+      },
+      AUpg: {
+        completions: Math.max(0, Number(raw.studyImproves?.AUpg?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.AUpg?.claimed ?? 0)),
+      },
+      ARec: {
+        completions: Math.max(0, Number(raw.studyImproves?.ARec?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.ARec?.claimed ?? 0)),
+      },
+    },
+
     devices: {
       chips: {
         owned: Math.max(0, Number(raw.devices?.chips?.owned ?? raw.devices?.autoCalculators ?? 0)),
@@ -9065,6 +9694,16 @@ function normalizeState(raw = {}, config = {}) {
           AImp: Math.max(0, Number(raw.devices?.chips?.allocations?.AImp ?? raw.devices?.autoCalculators ?? 0)),
           AUpg: Math.max(0, Number(raw.devices?.chips?.allocations?.AUpg ?? 0)),
           ARec: Math.max(0, Number(raw.devices?.chips?.allocations?.ARec ?? 0)),
+        },
+        enabled: {
+          AImp: raw.devices?.chips?.enabled?.AImp !== false,
+          AUpg: raw.devices?.chips?.enabled?.AUpg !== false,
+          ARec: raw.devices?.chips?.enabled?.ARec !== false,
+        },
+        timers: {
+          AImp: Math.max(0, Number(raw.devices?.chips?.timers?.AImp ?? 0)),
+          AUpg: Math.max(0, Number(raw.devices?.chips?.timers?.AUpg ?? 0)),
+          ARec: Math.max(0, Number(raw.devices?.chips?.timers?.ARec ?? 0)),
         },
       },
       transistorBoard: {
@@ -9077,7 +9716,7 @@ function normalizeState(raw = {}, config = {}) {
         ARec: Math.max(0, Number(raw.devices?.transistorAllocations?.ARec ?? 0)),
       },
       microprocessor: {
-        owned: Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0)),
+        owned: Math.min(1, Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0))),
         target: raw.devices?.microprocessor?.target ?? "AImp",
       },
       overclocker: {
@@ -9121,13 +9760,35 @@ function normalizeState(raw = {}, config = {}) {
       ...(raw.ui ?? {}),
     },
 
+    settings: {
+      notation: ["engineering", "engineering_num", "alpha"].includes(raw.settings?.notation)
+        ? raw.settings.notation
+        : ["engineering", "engineering_num", "alpha"].includes(raw.ui?.notation)
+        ? raw.ui.notation
+        : "engineering",
+    },
+
     devMode: raw.devMode !== undefined ? Boolean(raw.devMode) : true,
     gameSpeed: Number(raw.gameSpeed ?? 1.0),
     auditLogs: Array.isArray(raw.auditLogs) ? raw.auditLogs : [],
     quicksaveSnapshot: raw.quicksaveSnapshot ?? null,
+    lastSavedAt: Number.isFinite(Number(raw.lastSavedAt)) ? Number(raw.lastSavedAt) : Date.now(),
+    log: Array.isArray(raw.log) ? raw.log : [],
+    lastOfflineSummary: raw.lastOfflineSummary ?? null,
   };
 
   return state;
+}
+
+function deserializeState(raw, config) {
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = {};
+    }
+  }
+  return normalizeState(raw, config);
 }
 
 function serializeState(state) {
@@ -9386,12 +10047,14 @@ class GameEngine {
     config = {},
     statResolver = defaultStatResolver,
     effectRegistry = defaultEffectRegistry,
-    developmentMode = true,
+    developmentMode = false,
+    enableAutosave = true,
   } = {}) {
     this.config = config;
     this.statResolver = statResolver;
     this.effectRegistry = effectRegistry;
     this.developmentMode = developmentMode;
+    this.enableAutosave = Boolean(enableAutosave);
 
     // Register standard effects
     registerStandardEffects(this.effectRegistry, this.config);
@@ -9400,13 +10063,28 @@ class GameEngine {
     if (developmentMode !== undefined) {
       this.state.devMode = Boolean(developmentMode);
     }
+    setGlobalNotation(this.state.settings?.notation ?? "engineering");
+    this.statResolver.invalidateCache();
     this.listeners = new Set();
     this.autoSaveTimer = 0;
+    this.heldHotkeys = new Set();
+    this.continuousStudyTargets = new Set();
     this.chipTimers = {
-      AImp: 0,
-      AUpg: 0,
-      ARec: 0,
+      AImp: Number(this.state.devices?.chips?.timers?.AImp ?? 0),
+      AUpg: Number(this.state.devices?.chips?.timers?.AUpg ?? 0),
+      ARec: Number(this.state.devices?.chips?.timers?.ARec ?? 0),
     };
+  }
+
+  get continuousStudyTarget() {
+    if (!this.continuousStudyTargets || this.continuousStudyTargets.size === 0) return null;
+    return Array.from(this.continuousStudyTargets)[0];
+  }
+
+  set continuousStudyTarget(val) {
+    if (!this.continuousStudyTargets) this.continuousStudyTargets = new Set();
+    this.continuousStudyTargets.clear();
+    if (val) this.continuousStudyTargets.add(val);
   }
 
   subscribe(listener) {
@@ -9451,28 +10129,51 @@ class GameEngine {
       this.state.peakEnergy = this.state.energy;
     }
 
-    // 2. Hard Disk Operation
+    // 2. Hard Disk Operation (Section 4.6 Available Data Cap integration)
     const hardDisks = this.state.devices?.hardDisks;
     if (hardDisks && hardDisks.owned > 0) {
       if (hardDisks.state === "active") {
-        const drainPerSec = calculateHardDiskEnergyDrain(hardDisks.owned, hardDisks.activeSeconds, this.config);
-        const energyRequired = drainPerSec.mul(delta);
+        const xpRequired = calculateRequiredDataForNextComputerLevel(this.state.computerLevel ?? 1, this.config);
+        const dataFromAlgorithms = calculateDataFromAlgorithms(this.state, this.config);
+        const currentBuffer = hardDisks.buffer ?? 0;
+        const usefulCapacity = Math.max(0, xpRequired - dataFromAlgorithms - currentBuffer);
 
-        if (this.state.energy.gte(energyRequired)) {
-          this.state.energy = this.state.energy.sub(energyRequired);
-          hardDisks.activeSeconds += delta;
-          const xpRate = calculateHardDiskXpRate(hardDisks.owned, this.state, this.config, this.statResolver);
-          hardDisks.buffer = (hardDisks.buffer ?? 0) + xpRate * delta;
+        if (usefulCapacity <= 0) {
+          // Data limit reached: pause generation and energy drain without clearing buffer
+          hardDisks.dataPaused = true;
         } else {
-          // Insufficient energy -> enter standby! (preserves buffer, stops consumption)
-          hardDisks.state = "standby";
+          hardDisks.dataPaused = false;
+          const xpRate = calculateHardDiskXpRate(hardDisks.owned, this.state, this.config, this.statResolver);
+          const potentialData = xpRate * delta;
+          const actualData = Math.min(potentialData, usefulCapacity);
+          const effectiveFraction = potentialData > 0 ? (actualData / potentialData) : 1.0;
+          const activeDelta = delta * effectiveFraction;
+
+          const drainPerSec = calculateHardDiskEnergyDrain(hardDisks.owned, hardDisks.activeSeconds, this.config);
+          const energyRequired = drainPerSec.mul(activeDelta);
+
+          if (this.state.energy.gte(energyRequired)) {
+            this.state.energy = this.state.energy.sub(energyRequired);
+            hardDisks.activeSeconds += activeDelta;
+            hardDisks.buffer = currentBuffer + actualData;
+            if (actualData >= usefulCapacity) {
+              hardDisks.dataPaused = true;
+            }
+          } else {
+            // Insufficient energy -> enter standby! (preserves buffer, stops consumption)
+            hardDisks.state = "standby";
+            hardDisks.dataPaused = false;
+          }
         }
       } else if (hardDisks.state === "standby") {
+        hardDisks.dataPaused = false;
         // Check if sufficient energy exists to resume
         const drainPerSec = calculateHardDiskEnergyDrain(hardDisks.owned, hardDisks.activeSeconds, this.config);
         if (this.state.energy.gte(drainPerSec.mul(delta))) {
           hardDisks.state = "active";
         }
+      } else {
+        hardDisks.dataPaused = false;
       }
     }
 
@@ -9485,53 +10186,102 @@ class GameEngine {
         overclock.active = false;
         overclock.remainingDuration = 0;
         overclock.target = null;
+        this.statResolver.invalidateCache();
       }
     }
 
-    // 4. Study Workers: Manual Study
+    // 4. Hotkeys Continuous Execution (Held Keys)
+    this._tickHotkeys(delta);
+
+    // 5. Study Workers: Manual Study
     this._tickManualStudy(delta);
 
-    // 5. Study Workers: AutoCalculator Chips
+    // 6. Study Workers: AutoCalculator Chips
     this._tickAutoChips(delta);
 
-    // 6. Check Technological Unlock Milestones
+    // 7. Check Technological Unlock Milestones
     this._evaluateUnlocks();
 
-    // 7. Auto-save every 5 seconds
-    this.autoSaveTimer += delta;
-    if (this.autoSaveTimer >= 5.0) {
-      this.autoSaveTimer = 0;
-      this.save();
+    // 8. Auto-save every 5 seconds (when autosave is enabled)
+    if (this.enableAutosave) {
+      this.autoSaveTimer += delta;
+      if (this.autoSaveTimer >= 5.0) {
+        this.autoSaveTimer = 0;
+        this.save();
+      }
     }
-
-    this.notify();
   }
 
   _tickManualStudy(delta) {
-    const study = this.state.manualStudy;
-    if (!study || !study.active || !study.target) return;
+    if (!this.state.manualStudies) {
+      this.state.manualStudies = {
+        AImp: { active: false, elapsed: 0 },
+        AUpg: { active: false, elapsed: 0 },
+        ARec: { active: false, elapsed: 0 },
+      };
+      if (this.state.manualStudy?.target && this.state.manualStudy.active) {
+        this.state.manualStudies[this.state.manualStudy.target].active = true;
+        this.state.manualStudies[this.state.manualStudy.target].elapsed = this.state.manualStudy.elapsed;
+      }
+    }
 
-    const target = study.target;
-    study.elapsed += delta;
-    const effectiveDur = calculateEffectiveStudyDuration(target, this.state, this.config, this.statResolver);
+    const targets = ["AImp", "AUpg", "ARec"];
+    let lastActiveTarget = this.state.manualStudy?.target || null;
 
-    while (study.elapsed >= effectiveDur) {
-      const success = this._executeSingleStudyCompletion(target);
-      if (success) {
-        study.elapsed -= effectiveDur;
-        if (this.state.studyQueues[target] > 0) {
-          this.state.studyQueues[target] -= 1;
-        }
-        if (this.state.studyQueues[target] <= 0) {
-          study.active = false;
-          study.elapsed = 0;
+    for (const target of targets) {
+      const study = this.state.manualStudies[target];
+      if (!study || !study.active) continue;
+
+      if (target === "AUpg" && !this.state.unlocks?.AUpg) {
+        study.active = false;
+        continue;
+      }
+      if (target === "ARec" && !this.state.unlocks?.ARec) {
+        study.active = false;
+        continue;
+      }
+
+      study.elapsed += delta;
+      const effectiveDur = calculateEffectiveStudyDuration(target, this.state, this.config, this.statResolver);
+      const isContinuous = this.continuousStudyTargets.has(target);
+
+      if (effectiveDur <= 0) {
+        study.elapsed = 0;
+        continue;
+      }
+
+      while (study.elapsed >= effectiveDur) {
+        const success = this._executeSingleStudyCompletion(target);
+        if (success) {
+          study.elapsed -= effectiveDur;
+          if (this.state.studyQueues[target] > 0) {
+            this.state.studyQueues[target] -= 1;
+          }
+          if (!isContinuous && (this.state.studyQueues[target] ?? 0) <= 0) {
+            study.active = false;
+            study.elapsed = 0;
+            break;
+          }
+        } else {
+          // Waits for required units at 100% progress
+          study.elapsed = effectiveDur;
           break;
         }
-      } else {
-        // Waits for required units at 100% progress
-        study.elapsed = effectiveDur;
-        break;
       }
+    }
+
+    const anyActive = targets.some((t) => this.state.manualStudies[t]?.active);
+    this.state.manualStudy.active = anyActive;
+    if (anyActive) {
+      const activeTarget = targets.find((t) => this.state.manualStudies[t]?.active);
+      if (!this.state.manualStudies[this.state.manualStudy?.target]?.active) {
+        this.state.manualStudy.target = activeTarget || null;
+      }
+      if (this.state.manualStudy.target) {
+        this.state.manualStudy.elapsed = this.state.manualStudies[this.state.manualStudy.target]?.elapsed ?? 0;
+      }
+    } else {
+      this.state.manualStudy.elapsed = 0;
     }
   }
 
@@ -9540,6 +10290,7 @@ class GameEngine {
     if (!chips || chips.owned <= 0) return;
 
     for (const target of ["AImp", "AUpg", "ARec"]) {
+      if (chips.enabled && chips.enabled[target] === false) continue;
       const workerCount = chips.allocations?.[target] ?? 0;
       if (workerCount <= 0) continue;
       if (target === "AUpg" && !this.state.unlocks.AUpg) continue;
@@ -9557,7 +10308,11 @@ class GameEngine {
         if (target === "AImp") {
           this.state.algorithms.AImp.owned += desiredUnits;
           this.state.algorithms.AImp.produced += desiredUnits;
+          if (this.state.studyImproves?.AImp) {
+            this.state.studyImproves.AImp.completions += desiredUnits;
+          }
           this.chipTimers[target] -= fullCycles * effectiveDur;
+          this.statResolver.invalidateCache();
         } else if (target === "AUpg") {
           const factor = this.config.economy?.algorithmConversionFactor ?? 12;
           const availableAImp = this.state.algorithms.AImp.owned;
@@ -9567,8 +10322,12 @@ class GameEngine {
             this.state.algorithms.AImp.owned -= maxAffordable * factor;
             this.state.algorithms.AUpg.owned += maxAffordable;
             this.state.algorithms.AUpg.produced += maxAffordable;
+            if (this.state.studyImproves?.AUpg) {
+              this.state.studyImproves.AUpg.completions += maxAffordable;
+            }
             const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
             this.chipTimers[target] -= executedCycles * effectiveDur;
+            this.statResolver.invalidateCache();
           } else {
             // Insufficient input units: worker waits without consuming or losing timer
             this.chipTimers[target] = Math.min(this.chipTimers[target], effectiveDur);
@@ -9582,8 +10341,12 @@ class GameEngine {
             this.state.algorithms.AUpg.owned -= maxAffordable * factor;
             this.state.algorithms.ARec.owned += maxAffordable;
             this.state.algorithms.ARec.produced += maxAffordable;
+            if (this.state.studyImproves?.ARec) {
+              this.state.studyImproves.ARec.completions += maxAffordable;
+            }
             const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
             this.chipTimers[target] -= executedCycles * effectiveDur;
+            this.statResolver.invalidateCache();
           } else {
             this.chipTimers[target] = Math.min(this.chipTimers[target], effectiveDur);
           }
@@ -9598,6 +10361,10 @@ class GameEngine {
     if (target === "AImp") {
       this.state.algorithms.AImp.owned += 1;
       this.state.algorithms.AImp.produced += 1;
+      if (this.state.studyImproves?.AImp) {
+        this.state.studyImproves.AImp.completions += 1;
+      }
+      this.statResolver.invalidateCache();
       return true;
     }
 
@@ -9606,6 +10373,10 @@ class GameEngine {
         this.state.algorithms.AImp.owned -= factor;
         this.state.algorithms.AUpg.owned += 1;
         this.state.algorithms.AUpg.produced += 1;
+        if (this.state.studyImproves?.AUpg) {
+          this.state.studyImproves.AUpg.completions += 1;
+        }
+        this.statResolver.invalidateCache();
         return true;
       }
       return false;
@@ -9616,6 +10387,10 @@ class GameEngine {
         this.state.algorithms.AUpg.owned -= factor;
         this.state.algorithms.ARec.owned += 1;
         this.state.algorithms.ARec.produced += 1;
+        if (this.state.studyImproves?.ARec) {
+          this.state.studyImproves.ARec.completions += 1;
+        }
+        this.statResolver.invalidateCache();
         return true;
       }
       return false;
@@ -9639,8 +10414,9 @@ class GameEngine {
       u.transistorBoard = true;
     }
 
-    // Microprocessor reveals after Board + 4 Transistors
-    if (!u.microprocessor && d.transistorBoard?.owned && (d.transistorsPurchased ?? 0) >= 4) {
+    // Microprocessor reveals after Board + required Transistors
+    const reqT = this.config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    if (!u.microprocessor && d.transistorBoard?.owned && (d.transistorsPurchased ?? 0) >= reqT) {
       u.microprocessor = true;
     }
 
@@ -9656,8 +10432,8 @@ class GameEngine {
       u.capacitor = true;
     }
 
-    // Processor and Hard Disk unlock after 1st Facility Optimization
-    if (!u.processor && (this.state.facilityOptimizations ?? 0) >= 1) {
+    // Processor reveals only when player reaches 1e-6 J (1 uJ) stored energy
+    if (!u.processor && (big(this.state.energy).gte(1e-6) || big(this.state.peakEnergy ?? 0).gte(1e-6))) {
       u.processor = true;
     }
     if (!u.hardDisk && (this.state.facilityOptimizations ?? 0) >= 1) {
@@ -9679,15 +10455,150 @@ class GameEngine {
 
     const k = Math.max(1, Math.floor(count ?? 1));
     this.state.studyQueues[target] = (this.state.studyQueues[target] ?? 0) + k;
+    if (!this.state.manualStudies) {
+      this.state.manualStudies = {
+        AImp: { active: false, elapsed: 0 },
+        AUpg: { active: false, elapsed: 0 },
+        ARec: { active: false, elapsed: 0 },
+      };
+    }
+    this.state.manualStudies[target].active = true;
     this.state.manualStudy.target = target;
     this.state.manualStudy.active = true;
     this.notify();
     return true;
   }
 
-  pauseManualStudy() {
-    this.state.manualStudy.active = false;
+  pauseManualStudy(target = null) {
+    if (target) {
+      if (this.state.manualStudies?.[target]) {
+        this.state.manualStudies[target].active = false;
+      }
+      this.continuousStudyTargets.delete(target);
+      const anyActive = Object.values(this.state.manualStudies ?? {}).some((s) => s.active);
+      this.state.manualStudy.active = anyActive;
+    } else {
+      if (this.state.manualStudies) {
+        for (const t of ["AImp", "AUpg", "ARec"]) {
+          this.state.manualStudies[t].active = false;
+        }
+      }
+      this.state.manualStudy.active = false;
+      this.continuousStudyTargets.clear();
+    }
     this.notify();
+  }
+
+  startContinuousStudy(target) {
+    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
+    if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+
+    this.continuousStudyTargets.add(target);
+    if (!this.state.manualStudies) {
+      this.state.manualStudies = {
+        AImp: { active: false, elapsed: 0 },
+        AUpg: { active: false, elapsed: 0 },
+        ARec: { active: false, elapsed: 0 },
+      };
+    }
+    this.state.manualStudies[target].active = true;
+    this.state.manualStudy.target = target;
+    this.state.manualStudy.active = true;
+    this.notify();
+    return true;
+  }
+
+  stopContinuousStudy(target = null) {
+    const targets = target ? [target] : Array.from(this.continuousStudyTargets);
+    for (const t of targets) {
+      this.continuousStudyTargets.delete(t);
+      if ((this.state.studyQueues[t] ?? 0) <= 0) {
+        if (this.state.manualStudies?.[t]) {
+          this.state.manualStudies[t].active = false;
+          this.state.manualStudies[t].elapsed = 0;
+        }
+      }
+    }
+    const anyActive = Object.values(this.state.manualStudies ?? {}).some((s) => s.active);
+    this.state.manualStudy.active = anyActive;
+    if (!anyActive) {
+      this.state.manualStudy.elapsed = 0;
+    }
+  }
+
+  setHotkeyState(key, isHeld) {
+    const k = String(key).toUpperCase();
+    if (isHeld) {
+      this.heldHotkeys.add(k);
+      this._handleHotkeyPress(k);
+    } else {
+      this.heldHotkeys.delete(k);
+      this._handleHotkeyRelease(k);
+    }
+  }
+
+  clearAllHotkeys() {
+    this.heldHotkeys.clear();
+    this.stopContinuousStudy();
+  }
+
+  _handleHotkeyPress(k) {
+    if (k === "A") {
+      this.startContinuousStudy("AImp");
+    } else if (k === "U") {
+      if (this.state.unlocks?.AUpg) {
+        this.startContinuousStudy("AUpg");
+      }
+    } else if (k === "R") {
+      if (this.state.unlocks?.ARec) {
+        this.startContinuousStudy("ARec");
+      }
+    } else if (k === "T") {
+      this.installTransistor("AImp");
+    } else if (k === "M") {
+      this.runMachineLearning();
+    }
+  }
+
+  _handleHotkeyRelease(k) {
+    if (k === "A") {
+      this.stopContinuousStudy("AImp");
+    } else if (k === "U") {
+      this.stopContinuousStudy("AUpg");
+    } else if (k === "R") {
+      this.stopContinuousStudy("ARec");
+    }
+  }
+
+  _tickHotkeys(delta) {
+    if (this.heldHotkeys.has("T")) {
+      this.installTransistor("AImp");
+    }
+    if (this.heldHotkeys.has("M")) {
+      this.runMachineLearning();
+    }
+    // Maintain all held study hotkeys in continuous parallel execution
+    if (this.heldHotkeys.has("A")) {
+      if (!this.continuousStudyTargets.has("AImp")) this.startContinuousStudy("AImp");
+    }
+    if (this.heldHotkeys.has("U") && this.state.unlocks?.AUpg) {
+      if (!this.continuousStudyTargets.has("AUpg")) this.startContinuousStudy("AUpg");
+    }
+    if (this.heldHotkeys.has("R") && this.state.unlocks?.ARec) {
+      if (!this.continuousStudyTargets.has("ARec")) this.startContinuousStudy("ARec");
+    }
+  }
+
+  toggleAutoStudy(target) {
+    if (!this.state.devices?.chips) return false;
+    if (!this.state.devices.chips.enabled) {
+      this.state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    }
+    const current = this.state.devices.chips.enabled[target] !== false;
+    this.state.devices.chips.enabled[target] = !current;
+    this.notify();
+    return true;
   }
 
   reassignChip(fromTarget, toTarget, count = 1) {
@@ -9720,6 +10631,31 @@ class GameEngine {
 
     allocations[fromTarget] -= moveCount;
     allocations[toTarget] = (allocations[toTarget] ?? 0) + moveCount;
+    this.notify();
+    return true;
+  }
+
+  rebalanceTransistors() {
+    const allocations = this.state.devices?.transistorAllocations;
+    if (!allocations) return false;
+    const targets = ["AImp", "AUpg"];
+    if (this.state.unlocks?.ARec) targets.push("ARec");
+
+    const total = this.state.devices.transistorsPurchased ?? 0;
+    if (total <= 0) return false;
+
+    const countPerTarget = Math.floor(total / targets.length);
+    let remainder = total % targets.length;
+
+    for (const t of targets) {
+      allocations[t] = countPerTarget;
+    }
+    const preferred = this.state.devices?.microprocessor?.target || "AImp";
+    if (targets.includes(preferred)) {
+      allocations[preferred] += remainder;
+    } else {
+      allocations["AImp"] += remainder;
+    }
     this.notify();
     return true;
   }
@@ -9774,7 +10710,14 @@ class GameEngine {
     return true;
   }
 
-  purchaseElement(elementId, count = 1, isForced = false) {
+  evaluateElement(elementId, count = 1) {
+    const element = getElement(elementId);
+    if (!element) return null;
+    const k = Math.max(1, Math.floor(count ?? 1));
+    return evaluateElement(element, this.state, this.config, k);
+  }
+
+  purchaseElement(elementId, count = 1, isForced = false, options = {}) {
     const element = getElement(elementId);
     if (!element) {
       console.warn(`Element '${elementId}' not found in registry.`);
@@ -9784,22 +10727,34 @@ class GameEngine {
     const k = Math.max(1, Math.floor(count ?? 1));
     const evalResult = evaluateElement(element, this.state, this.config, k);
 
-    if (!evalResult.canClick && !isForced && !this.state.devMode) {
-      console.warn(`Purchase blocked for '${elementId}'.`);
-      return false;
+    // Unless explicitly forced by an admin cheat tool, currency and validity are mandatory!
+    if (!isForced) {
+      if (!evalResult.canAfford) {
+        console.warn(`Purchase blocked for '${elementId}': Insufficient currency.`);
+        return false;
+      }
+      if (!evalResult.canClick) {
+        console.warn(`Purchase blocked for '${elementId}': Requirements not met.`);
+        return false;
+      }
     }
 
     const energyBefore = big(this.state.energy);
     const nominalCost = evalResult.cost;
-    const canAfford = evalResult.canAfford;
 
-    const forceApply = isForced || (this.state.devMode && !evalResult.naturallyEligible);
-    const { newCount, cost } = element.applyPurchase(this.state, this.config, {
+    const forceApply = Boolean(isForced || (this.state.devMode && !evalResult.strictUnlocked && evalResult.canAfford));
+    const result = element.applyPurchase(this.state, this.config, {
       count: k,
       isForced: forceApply,
+      ...options,
     });
-    const energyAfter = big(this.state.energy);
 
+    if (result && result.success === false) {
+      console.warn(`Purchase failed for '${elementId}'.`);
+      return false;
+    }
+
+    const energyAfter = big(this.state.energy);
     const debited = energyBefore.sub(energyAfter);
     this.state.stats.totalPurchases = (this.state.stats.totalPurchases ?? 0) + k;
 
@@ -9832,6 +10787,58 @@ class GameEngine {
   performFacilityOptimization() {
     const element = getElement("facilityOptimization");
     return this.purchaseElement("facilityOptimization", 1);
+  }
+
+  claimStudyImprove(target) {
+    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
+    if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (this.config.studyImprove?.enabled === false) return false;
+
+    if (!this.state.studyImproves) {
+      this.state.studyImproves = {
+        AImp: { completions: 0, claimed: 0 },
+        AUpg: { completions: 0, claimed: 0 },
+        ARec: { completions: 0, claimed: 0 },
+      };
+    }
+    if (!this.state.studyImproves[target]) {
+      this.state.studyImproves[target] = { completions: 0, claimed: 0 };
+    }
+
+    const current = this.state.studyImproves[target];
+    const nextMilestone = calculateStudyImproveMilestone(current.claimed, this.config);
+    const currentStudies = this.state.algorithms?.[target]?.owned ?? 0;
+
+    if (currentStudies < nextMilestone) {
+      return false;
+    }
+
+    current.claimed += 1;
+    this.statResolver.invalidateCache();
+    this.save();
+    this.notify();
+    return true;
+  }
+
+  installTransistor(target) {
+    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
+    if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+
+    const boardOwned = Boolean(this.state.devices?.transistorBoard?.owned);
+    if (!boardOwned && !this.state.devMode) {
+      console.warn(`Install Transistor blocked for '${target}': Transistor Board not owned.`);
+      return false;
+    }
+
+    const cost = calculateBulkDeviceCost("transistor", this.state.devices?.transistorsPurchased ?? 0, 1, this.config);
+    if (!big(this.state.energy).gte(cost) && !this.state.devMode) {
+      console.warn(`Install Transistor blocked for '${target}': Insufficient energy.`);
+      return false;
+    }
+
+    return this.purchaseElement("transistor", 1, false, { target });
   }
 
   // ==========================================================================
@@ -9878,6 +10885,21 @@ class GameEngine {
     this.notify();
   }
 
+  setNotation(notation) {
+    if (!["engineering", "engineering_num", "alpha"].includes(notation)) return false;
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.notation = notation;
+    if (this.state.ui) this.state.ui.notation = notation;
+    setGlobalNotation(notation);
+    this.save();
+    this.notify();
+    return true;
+  }
+
+  getNotation() {
+    return this.state.settings?.notation ?? "engineering";
+  }
+
   quicksave() {
     return quicksaveState(this.state);
   }
@@ -9914,6 +10936,12 @@ class GameEngine {
   }
 
   save() {
+    if (this.state.devices?.chips) {
+      if (!this.state.devices.chips.timers) this.state.devices.chips.timers = {};
+      this.state.devices.chips.timers.AImp = this.chipTimers.AImp;
+      this.state.devices.chips.timers.AUpg = this.chipTimers.AUpg;
+      this.state.devices.chips.timers.ARec = this.chipTimers.ARec;
+    }
     saveState(this.state, this.developmentMode);
   }
 
@@ -9950,6 +10978,10 @@ function simulateOfflineProgress(
   const simulatedSeconds = Math.min(offlineSeconds, maxOfflineSeconds);
   const capped = offlineSeconds > simulatedSeconds;
   const startEnergy = big(state.energy ?? 0);
+  const startAImp = state.algorithms?.AImp?.owned ?? 0;
+  const startAUpg = state.algorithms?.AUpg?.owned ?? 0;
+  const startARec = state.algorithms?.ARec?.owned ?? 0;
+  const startTotalEnergy = big(state.stats?.totalEnergyProduced ?? 0);
 
   if (simulatedSeconds < 1 || stepSeconds <= 0 || maxSteps <= 0) {
     state.lastSavedAt = now;
@@ -9957,7 +10989,19 @@ function simulateOfflineProgress(
       offlineSeconds,
       simulatedSeconds: 0,
       capped,
+      startEnergy,
+      endEnergy: startEnergy,
       netEnergy: big(0),
+      totalEnergyProduced: big(0),
+      studiesCompleted: {
+        AImp: 0,
+        AUpg: 0,
+        ARec: 0,
+      },
+      algorithmImprovementsCompleted: 0,
+      algorithmUpgradesCompleted: 0,
+      algorithmRefactoringsCompleted: 0,
+      energyProduced: big(0),
     };
   }
 
@@ -9965,6 +11009,7 @@ function simulateOfflineProgress(
     state,
     config,
     developmentMode,
+    enableAutosave: false,
   });
 
   let remaining = simulatedSeconds;
@@ -9978,1380 +11023,4252 @@ function simulateOfflineProgress(
   }
 
   const actualSimulated = simulatedSeconds - remaining;
-  const netEnergy = big(state.energy ?? 0).sub(startEnergy);
+  const netEnergy = big(engine.state.energy ?? 0).sub(startEnergy);
+  const totalEnergyProduced = big(engine.state.stats?.totalEnergyProduced ?? 0).sub(startTotalEnergy);
+  const diffAImp = Math.max(0, (engine.state.algorithms?.AImp?.owned ?? 0) - startAImp);
+  const diffAUpg = Math.max(0, (engine.state.algorithms?.AUpg?.owned ?? 0) - startAUpg);
+  const diffARec = Math.max(0, (engine.state.algorithms?.ARec?.owned ?? 0) - startARec);
+
+  // Sync chip timers back into state
+  if (engine.state.devices?.chips) {
+    if (!engine.state.devices.chips.timers) engine.state.devices.chips.timers = {};
+    engine.state.devices.chips.timers.AImp = engine.chipTimers.AImp;
+    engine.state.devices.chips.timers.AUpg = engine.chipTimers.AUpg;
+    engine.state.devices.chips.timers.ARec = engine.chipTimers.ARec;
+  }
+
+  // Synchronize the simulated engine state into the persistent state object
+  Object.assign(state, engine.state);
   state.lastSavedAt = now;
 
+  const summary = {
+    offlineSeconds,
+    simulatedSeconds: actualSimulated,
+    capped,
+    startEnergy,
+    endEnergy: state.energy,
+    netEnergy,
+    totalEnergyProduced,
+    studiesCompleted: {
+      AImp: diffAImp,
+      AUpg: diffAUpg,
+      ARec: diffARec,
+    },
+    algorithmImprovementsCompleted: diffAImp,
+    algorithmUpgradesCompleted: diffAUpg,
+    algorithmRefactoringsCompleted: diffARec,
+    energyProduced: totalEnergyProduced,
+  };
+  state.lastOfflineSummary = summary;
+
   if (actualSimulated >= 1 && Array.isArray(state.log)) {
+    const parts = [];
+    if (diffAImp > 0) parts.push(`+${diffAImp} AImp`);
+    if (diffAUpg > 0) parts.push(`+${diffAUpg} AUpg`);
+    if (diffARec > 0) parts.push(`+${diffARec} ARec`);
+    const studiesStr = parts.length > 0 ? ` (${parts.join(", ")})` : "";
     state.log.unshift({
-      id: `${Date.now()}-offline`,
-      message: `Offline recovery: ${formatDuration(actualSimulated)} recovered, +${formatEnergy(netEnergy)} net.`,
+      id: `${now}-offline`,
+      message: `Offline simulation: ${formatDuration(actualSimulated)} recovered, +${formatEnergy(netEnergy)} net energy${studiesStr}.`,
       tone: "discovery",
       at: state.stats?.runPlayTime ?? 0,
     });
     state.log = state.log.slice(0, 60);
   }
 
-  return {
-    offlineSeconds,
-    simulatedSeconds: actualSimulated,
-    capped,
-    netEnergy,
-  };
+  return summary;
+}
+
+
+// ---- js/ui-tooltip-content.js ----
+/**
+ * ui-tooltip-content.js
+ * Centralized, authoritative tooltip and popover content definitions for
+ * Devices, Algorithm Studies, Energy Dynamics, and Mechanics.
+ *
+ * All numeric values and formula parameters are computed dynamically from
+ * authoritative game configuration, state, and formula layers.
+ * No balancing constants are hardcoded in strings.
+ */
+
+
+/**
+ * Generates structured tooltip content for a given topic or device id.
+ * @param {string} topic - Topic identifier (e.g. 'device-micro', 'aimp', 'energy-summary')
+ * @param {object} context - Execution context { state, config, engine, statResolver }
+ * @returns {{ title: string, body: string }}
+ */
+function getTooltipContent(topic, context = {}) {
+  const { state = {}, config = {}, engine = null, statResolver = null } = context;
+
+  const resolver = statResolver || engine?.statResolver || null;
+  const compLevel = state.computerLevel ?? 1;
+  const baseStrength = config.economy?.algorithmBaseStrength ?? 1e-15;
+  const conversionFactor = config.economy?.algorithmConversionFactor ?? 12;
+  const deviceMult = resolver
+    ? resolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+
+  const studySpeedMult = resolver
+    ? resolver.resolve("devices.studySpeedMultiplier", { state, config })
+    : calculateStudySpeedDeviceMultiplier(state, config);
+
+  const foMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
+  const procMult = calculateProcessorDeviceMultiplier(state.devices?.processors ?? 0, config);
+
+  const caps = state.devices?.capacitors ?? 0;
+  const capBonusPerUnit = config.devices?.capacitor?.bonusPerUnit ?? 0.5;
+  const capacitorMult = resolver
+    ? resolver.resolve("algorithms.AImp.capacitorMultiplier", { state, config })
+    : calculateCapacitorMultiplier(caps, config, deviceMult);
+
+  const strengths = calculateAlgorithmStrengths(compLevel, config, capacitorMult);
+  const baseStrengths = calculateAlgorithmStrengths(compLevel, config, 1.0);
+
+  switch (topic) {
+    // ------------------------------------------------------------------------
+    // 1. Energy Summary & Mechanics
+    // ------------------------------------------------------------------------
+    case "energy-summary": {
+      const stableCap = calculatePowerCellCapacity(state.powerCells ?? 0, state, config, resolver);
+      const decayRate = config.decay?.overflowDecayRate ?? 0.009;
+      const decayPower = config.decay?.overflowDecayPower ?? 1.35;
+
+      return {
+        title: "Energy Dynamics & Overflow Decay",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11.5px; line-height: 1.45;">
+            <div>
+              <strong style="color: var(--tes-cyan);">⚡ Gross Production (CRC):</strong>
+              Total cosmic radiation condensed per second by active algorithm features and Computer Level.
+            </div>
+            <div>
+              <strong style="color: var(--tes-teal);">🛡️ Stable Capacity:</strong>
+              Safe storage threshold provided by <strong>Power Cells</strong> (currently ${formatEnergy(stableCap)}). Energy up to this limit is completely secure and <strong>never decays</strong>.
+            </div>
+            <div>
+              <strong style="color: var(--tes-danger);">🔥 Overflow Decay:</strong>
+              Any stored energy exceeding Stable Capacity dissipates into space per second:
+              <div style="margin-top: 3px; padding: 4px 8px; background: rgba(255, 68, 68, 0.12); border-left: 2px solid var(--tes-danger); border-radius: 3px; font-family: monospace; font-size: 11px;">
+                Decay = ${decayRate} × (Stored - Capacity)<sup>${decayPower}</sup> J/s
+              </div>
+            </div>
+            <div>
+              <strong style="color: #60a5fa;">📊 Net Production:</strong>
+              The true rate of change of your stored energy balance:
+              <div style="margin-top: 3px; padding: 4px 8px; background: rgba(96, 165, 250, 0.12); border-left: 2px solid #60a5fa; border-radius: 3px; font-family: monospace; font-size: 11px;">
+                Net = Gross Production - Overflow Decay
+              </div>
+              <div style="color: var(--tes-text-tertiary); font-size: 10.5px; margin-top: 3px;">
+                • Positive Net: Stored energy is accumulating<br>
+                • Zero Net: Dynamic equilibrium point<br>
+                • Negative Net: Storage is depleting
+              </div>
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 2. Cosmic Radiation Condenser (CRC)
+    // ------------------------------------------------------------------------
+    case "crc": {
+      const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+      const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
+      const crcMult = calculateCrcMultiplier(state, config, deviceMult);
+      const hasPrestigeBonus = deviceMult > 1.0001;
+
+      return {
+        title: "Cosmic Radiation Condenser",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Harvests background cosmic radiation and converts Algorithm Performance (AP) directly into Energy.</div>
+            <div><strong>Active AP:</strong> Sum of owned algorithm feature contributions.</div>
+            <div><strong>CRC Multiplier:</strong> ${hasGadget ? `${crcMult.toFixed(2)}x (CRC Gadget active${hasPrestigeBonus ? ` · ${deviceMult.toFixed(2)}x SO bonus` : ""})` : "1.00x (Standard)"}</div>
+            <div style="margin-top: 4px; padding: 4px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-family: monospace; font-size: 11px;">
+              Energy Production = AP × CRC_Modifiers
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 3. Algorithm Features (AImp, AUpg, ARec)
+    // ------------------------------------------------------------------------
+    case "aimp":
+    case "algorithmImprovement": {
+      const owned = state.algorithms?.AImp?.owned ?? 0;
+      const unitStrength = strengths.AImp;
+      const totalContrib = big(unitStrength).mul(owned);
+
+      return {
+        title: "Algorithm Improvement (A.Imp)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Generates Energy through computational improvements. Free to study.</div>
+            <div><strong>Computer Level:</strong> Level ${compLevel}</div>
+            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s per unit (Base: ${formatEnergy(baseStrengths.AImp)}/s)</div>
+            ${caps > 0 ? `<div><strong>Capacitor Bonus:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (Total: ${formatEnergy(totalContrib)}/s)</div>
+            <div><strong>Available Data Contribution:</strong> 1 Data (XP) per owned unit</div>
+          </div>
+        `,
+      };
+    }
+
+    case "aupg":
+    case "algorithmUpgrade": {
+      const owned = state.algorithms?.AUpg?.owned ?? 0;
+      const unitStrength = strengths.AUpg;
+      const conversionRatio = compLevel + 1;
+      const totalContrib = big(unitStrength).mul(owned);
+
+      return {
+        title: "Algorithm Upgrade (A.Upg)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Converts lower-order algorithms into more efficient computational structures.</div>
+            <div><strong>Conversion Cost:</strong> Consumes ${conversionFactor} A.Imp units per study.</div>
+            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s per unit</div>
+            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited from A.Imp${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
+            <div><strong>Conversion Efficiency:</strong> Yields <strong>${conversionRatio}x</strong> energy contribution per conversion (L + 1 = ${compLevel} + 1).</div>
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (Total: ${formatEnergy(totalContrib)}/s)</div>
+            <div><strong>Data Trade-off:</strong> Data contribution falls from ${conversionFactor} to 9 per converted set.</div>
+          </div>
+        `,
+      };
+    }
+
+    case "arec":
+    case "algorithmRecalculation": {
+      const owned = state.algorithms?.ARec?.owned ?? 0;
+      const unitStrength = strengths.ARec;
+      const conversionRatio = compLevel + 1;
+      const totalContrib = big(unitStrength).mul(owned);
+
+      return {
+        title: "Algorithm Recalculation (A.Rec)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Converts upgrades into higher-order facility masterwork computations.</div>
+            <div><strong>Conversion Cost:</strong> Consumes ${conversionFactor} A.Upg units per study.</div>
+            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s per unit</div>
+            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited from A.Upg${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
+            <div><strong>Conversion Efficiency:</strong> Yields <strong>${conversionRatio}x</strong> energy contribution per conversion (L + 1 = ${compLevel} + 1).</div>
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (Total: ${formatEnergy(totalContrib)}/s)</div>
+            <div><strong>Data Trade-off:</strong> Data contribution falls from ${conversionFactor * 9} to 81 per converted set.</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 4. Machine Learning (Soft Reset)
+    // ------------------------------------------------------------------------
+    case "ml":
+    case "machineLearning": {
+      const currentData = calculateEffectiveAvailableData(state, config);
+      const reqData = calculateRequiredDataForNextComputerLevel(compLevel, config);
+      const rawAnchor = config.dataXP?.machineLearning?.xpExponentialStartLevel ?? 5;
+      const rawGrowth = config.dataXP?.machineLearning?.xpGrowthFactor ?? 1.45;
+      const anchorLevel = Number.isFinite(rawAnchor) && rawAnchor >= 1 ? Math.floor(rawAnchor) : 5;
+      const growthFactor = Number.isFinite(rawGrowth) && rawGrowth > 1 ? rawGrowth : 1.45;
+      const isExp = compLevel > anchorLevel;
+
+      return {
+        title: "Machine Learning (Soft Reset)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Advances Computer Level from Level ${compLevel} to Level ${compLevel + 1}.</div>
+            <div><strong>Progress:</strong> ${formatInteger(currentData)} / ${formatInteger(reqData)} Available Data (XP)</div>
+            <div><strong>Data Cap:</strong> Usable Data is capped at the current level requirement. No surplus data carries over.</div>
+            <div><strong>XP Scaling Model:</strong> ${isExp ? `Exponential scaling (+${((growthFactor - 1) * 100).toFixed(0)}%/level, ×${growthFactor.toFixed(2)}) active (anchored after Level ${anchorLevel})` : `Polynomial baseline (transitions to +${((growthFactor - 1) * 100).toFixed(0)}%/level exponential scaling after Level ${anchorLevel})`}</div>
+            <div><strong>Cascading Effect:</strong> Progressively strengthens all algorithm features and scales conversion efficiency to ${(compLevel + 2)}x per tier.</div>
+            <div><strong>Preservation:</strong> Retains all purchased hardware, power cells, and stored energy; resets algorithm inventories and hard disk buffer.</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 4B. Facility Optimization / Setup Optimization Tooltip
+    // ------------------------------------------------------------------------
+    case "fo":
+    case "facilityOptimization":
+    case "setupOptimization": {
+      const foCount = state.facilityOptimizations ?? 0;
+      const reqLevel = calculateFacilityOptimizationRequirement(foCount, config);
+      const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
+      const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
+      const curLevel = state.computerLevel ?? 1;
+      const isEligible = curLevel >= reqLevel;
+
+      return {
+        title: "Setup Optimization (Facility Restructure)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.45;">
+            <div>A high-order prestige action that restructures the facility for scalable throughput.</div>
+            <div style="padding: 6px 10px; background: rgba(168, 85, 247, 0.12); border-left: 2px solid #a855f7; border-radius: 4px;">
+              <div><strong>Requirement:</strong> Computer Level ${reqLevel} (Current: Level ${curLevel})</div>
+              <div><strong>Status:</strong> ${isEligible ? "<span style='color: #c084fc; font-weight: bold;'>ELIGIBLE</span>" : `<span style='color: var(--tes-text-tertiary);'>Need Level ${reqLevel}</span>`}</div>
+            </div>
+            <div><strong>Permanent Multiplier:</strong> Currently <strong>${curBonus.toFixed(2)}×</strong> &rarr; Next: <strong style="color: #c084fc;">${nextBonus.toFixed(2)}×</strong> (+9% compounding on all devices).</div>
+            <div style="display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--tes-text-secondary); margin-top: 2px;">
+              <div><strong style="color: #34d399;">Preserves:</strong> Power Cells (sole hardware exception!), Permanent Multipliers.</div>
+              <div><strong style="color: #f87171;">Resets (Hard Reset):</strong> Facility Level (to Lv. 1), Stored Energy, Study Improvements, Algorithms, Conventional Devices.</div>
+              <div><strong style="color: #60a5fa;">Unlocks:</strong> Algorithm Recalculation (ARec) permanently.</div>
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 4C. Study Improve Tooltips (Section 2.4)
+    // ------------------------------------------------------------------------
+    case "study-improve-aimp":
+    case "study-improve-aupg":
+    case "study-improve-arec": {
+      const featureId = topic.endsWith("aimp") ? "AImp" : topic.endsWith("aupg") ? "AUpg" : "ARec";
+      const name = featureId === "AImp" ? "Algorithm Improvement" : featureId === "AUpg" ? "Algorithm Upgrade" : "Algorithm Recalculation";
+      const cur = state.studyImproves?.[featureId] ?? { completions: 0, claimed: 0 };
+      const curLevel = cur.claimed;
+      const curMult = calculateStudyImproveMultiplier(curLevel, config);
+      const nextMilestone = calculateStudyImproveMilestone(curLevel, config);
+      const nextMult = calculateStudyImproveMultiplier(curLevel + 1, config);
+      const isEligible = cur.completions >= nextMilestone;
+
+      return {
+        title: `Study Improve — ${name}`,
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Milestone-based speed enhancement for <strong>${name}</strong> studies.</div>
+            <div><strong>Improve Level:</strong> Level ${curLevel} (${curMult.toFixed(3)}x speed multiplier)</div>
+            <div><strong>Current ML Cycle Completions:</strong> ${formatInteger(cur.completions)} / ${formatInteger(nextMilestone)} studies</div>
+            <div><strong>Next Milestone:</strong> ${formatInteger(nextMilestone)} completions (${nextMult.toFixed(3)}x speed multiplier)</div>
+            <div><strong>Status:</strong> ${isEligible ? "<span style='color: var(--tes-cyan); font-weight: bold;'>READY TO CLAIM! Click arrow to claim.</span>" : `<span style='color: var(--tes-text-tertiary);'>Need ${formatInteger(nextMilestone - cur.completions)} more completions</span>`}</div>
+            <div style="color: var(--tes-text-tertiary); font-size: 11px;">
+              • Free to claim — costs no Energy, Data, or units.<br>
+              • Resets to Level 0 upon Machine Learning.
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 4C. Install Transistor Tooltips (Section 3.8)
+    // ------------------------------------------------------------------------
+    case "install-transistor-aimp":
+    case "install-transistor-aupg":
+    case "install-transistor-arec": {
+      const featureId = topic.endsWith("aimp") ? "AImp" : topic.endsWith("aupg") ? "AUpg" : "ARec";
+      const name = featureId === "AImp" ? "Algorithm Improvement" : featureId === "AUpg" ? "Algorithm Upgrade" : "Algorithm Recalculation";
+      const totalT = state.devices?.transistorsPurchased ?? 0;
+      const allocatedT = state.devices?.transistorAllocations?.[featureId] ?? 0;
+      const cost = calculateBulkDeviceCost("transistor", totalT, 1, config);
+      const speedMult = calculateEffectiveStudySpeed(featureId, state, config, resolver);
+
+      return {
+        title: `Install Transistor — ${name}`,
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Purchases exactly one global Transistor and installs it directly into <strong>${name}</strong>.</div>
+            <div><strong>Current Global Cost:</strong> ${formatEnergy(cost)}</div>
+            <div><strong>Transistors on ${name}:</strong> ${formatInteger(allocatedT)} units (Effective Speed: ${speedMult.toFixed(2)}x)</div>
+            <div><strong>Global Total:</strong> ${formatInteger(totalT)} purchased across all studies.</div>
+            <div style="color: var(--tes-text-tertiary); font-size: 11px;">
+              • Uses shared global pricing across all studies.<br>
+              • Can be redistributed at any time via the Transistor Board.
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 5. Automation: AutoCalculators
+    // ------------------------------------------------------------------------
+    case "device-chip-aimp":
+    case "autoCalculator_AImp": {
+      const dur = calculateEffectiveStudyDuration("AImp", state, config, resolver);
+      return {
+        title: "AutoCalculator — Improvements",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Independent automation worker. Automatically studies Algorithm Improvement continuously.</div>
+            <div><strong>Effective Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Output:</strong> Produces 1 A.Imp unit upon each completion. Respects all transistor speed bonuses.</div>
+          </div>
+        `,
+      };
+    }
+
+    case "device-chip-aupg":
+    case "autoCalculator_AUpg": {
+      const dur = calculateEffectiveStudyDuration("AUpg", state, config, resolver);
+      return {
+        title: "AutoCalculator — Upgrades",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Independent automation worker. Automatically studies Algorithm Upgrade continuously.</div>
+            <div><strong>Requirement:</strong> Requires ${conversionFactor} A.Imp units available to initiate study.</div>
+            <div><strong>Effective Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Output:</strong> Consumes ${conversionFactor} A.Imp and produces 1 A.Upg unit upon completion.</div>
+          </div>
+        `,
+      };
+    }
+
+    case "device-chip-arec":
+    case "autoCalculator_ARec": {
+      const dur = calculateEffectiveStudyDuration("ARec", state, config, resolver);
+      return {
+        title: "AutoCalculator — Recalculations",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Independent automation worker. Automatically studies Algorithm Recalculation continuously.</div>
+            <div><strong>Requirement:</strong> Requires ${conversionFactor} A.Upg units available to initiate study.</div>
+            <div><strong>Effective Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Output:</strong> Consumes ${conversionFactor} A.Upg and produces 1 A.Rec unit upon completion.</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 6. Computation Devices: Transistor Board, Transistors
+    // ------------------------------------------------------------------------
+    case "device-board":
+    case "transistorBoard": {
+      const totalT = state.devices?.transistorsPurchased ?? 0;
+      const baseBonusPercent = (config.devices?.transistor?.speedBonusPerUnit ?? 0.05) * 100;
+      const effectiveBonusPercent = baseBonusPercent * studySpeedMult;
+      const nextCost = calculateDeviceCost("transistor", totalT, config);
+      const hasPrestigeBonus = studySpeedMult > 1.0001;
+
+      return {
+        title: "Transistor Board",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Infrastructure to acquire and distribute Transistors across algorithm study targets.</div>
+            <div><strong>Purchased Transistors:</strong> ${formatInteger(totalT)} total units</div>
+            ${hasPrestigeBonus ? `
+              <div><strong>Effective Speed Bonus:</strong> +${effectiveBonusPercent.toFixed(2)}% per Transistor (+${baseBonusPercent.toFixed(1)}% base × ${studySpeedMult.toFixed(2)}x prestige bonus)</div>
+            ` : `
+              <div><strong>Base Speed Bonus:</strong> +${baseBonusPercent.toFixed(1)}% Study Speed per allocated Transistor</div>
+            `}
+            <div><strong>Next Transistor Cost:</strong> ${formatEnergy(nextCost)}</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. Microprocessor (Single-Purchase Unique Device)
+    // ------------------------------------------------------------------------
+    case "device-micro":
+    case "microprocessor": {
+      const target = state.devices?.microprocessor?.target ?? "AImp";
+      const isOwned = (state.devices?.microprocessor?.owned ?? 0) >= 1;
+      const cost = calculateDeviceCost("microprocessor", 0, config);
+      const allocatedT = state.devices?.transistorAllocations?.[target] ?? 0;
+      const multiplierBase = config.devices?.microprocessor?.multiplierBase ?? 1.12;
+      const speedMult = calculateEffectiveStudySpeed(target, state, config, resolver);
+      const rawMult = (multiplierBase ** allocatedT);
+      const effectiveMicroMult = calculateMicroprocessorStudyMultiplier(
+        allocatedT,
+        config,
+        studySpeedMult,
+        isOwned ? 1 : 0,
+      );
+      const hasPrestigeBonus = studySpeedMult > 1.0001;
+
+      return {
+        title: "Microprocessor (Unique Device)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Amplifies the speed of the selected study exponentially based on allocated Transistors.</div>
+            <div><strong>Status:</strong> ${isOwned ? `<span style="color: var(--tes-teal); font-weight: 600;">Installed (1 of 1)</span>` : `Uninstalled (Cost: ${formatEnergy(cost)})`}</div>
+            <div><strong>Selected Target:</strong> ${target}</div>
+            <div><strong>Allocated Transistors (T):</strong> ${formatInteger(allocatedT)} T on ${target}</div>
+            ${isOwned ? (hasPrestigeBonus ? `
+              <div><strong>Base Multiplier:</strong> ${rawMult.toFixed(2)}x (${multiplierBase.toFixed(2)}<sup>${allocatedT}</sup>)</div>
+              <div><strong>Prestige Multiplier:</strong> ${studySpeedMult.toFixed(2)}x (${foMult > 1.0001 ? `${foMult.toFixed(2)}x SO` : ""}${foMult > 1.0001 && procMult > 1.0001 ? " × " : ""}${procMult > 1.0001 ? `${procMult.toFixed(2)}x Processor` : ""})</div>
+              <div><strong>Effective Microprocessor Multiplier:</strong> <span style="color: var(--tes-teal); font-weight: 600;">${effectiveMicroMult.toFixed(2)}x</span></div>
+            ` : `
+              <div><strong>Speed Multiplier:</strong> ${rawMult.toFixed(2)}x (${multiplierBase.toFixed(2)}<sup>${allocatedT}</sup>)</div>
+            `) : `
+              <div><strong>Speed Multiplier:</strong> Inactive (Requires Installation)</div>
+            `}
+            <div><strong>Effective Target Study Speed:</strong> ${speedMult.toFixed(2)}x</div>
+            <div style="margin-top: 4px; padding: 4px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-family: monospace; font-size: 11px;">
+              ${hasPrestigeBonus
+                ? `Multiplier = 1 + (${multiplierBase.toFixed(2)}<sup>T</sup> - 1) × ${studySpeedMult.toFixed(2)}`
+                : `Multiplier = (${multiplierBase.toFixed(2)})<sup>T</sup>`}
+            </div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 8. Processor
+    // ------------------------------------------------------------------------
+    case "device-processor":
+    case "processor": {
+      const owned = state.devices?.processors ?? 0;
+      const bonusPerUnit = (config.devices?.processor?.bonusPerUnit ?? 0.05) * 100;
+      const totalBonus = (owned * bonusPerUnit);
+      const procMult = calculateProcessorDeviceMultiplier(owned, config);
+
+      return {
+        title: "Processor",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>High-tier efficiency hardware revealed upon reaching 1 µJ (1e-6 J) stored energy.</div>
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)}</div>
+            <div><strong>Study Speed-Efficiency Bonus:</strong> +${bonusPerUnit.toFixed(1)}% per unit (+${totalBonus.toFixed(1)}% total · ${procMult.toFixed(2)}x multiplier)</div>
+            <div>Improves study speed-efficiency devices (Transistors, Microprocessor, Overclocker).</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 9. Overclocker
+    // ------------------------------------------------------------------------
+    case "device-overclocker":
+    case "overclocker": {
+      const isOwned = (state.devices?.overclocker?.owned ?? 0) >= 1;
+      const minT = config.devices?.overclocker?.minTransistors ?? 2;
+      const target = state.devices?.microprocessor?.target ?? "AImp";
+      const allocatedT = state.devices?.transistorAllocations?.[target] ?? 0;
+      const durBase = config.devices?.overclocker?.durationBase ?? 1.5;
+      const bonusDiv = config.devices?.overclocker?.bonusDivisor ?? 3.0;
+      const hasPrestigeBonus = studySpeedMult > 1.0001;
+
+      return {
+        title: "Overclocker (Unique Device)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Temporarily accelerates the selected computation by sacrificing allocated Transistors.</div>
+            <div><strong>Status:</strong> ${isOwned ? "Installed" : "Uninstalled"}</div>
+            <div><strong>Activation Requirement:</strong> At least ${minT} Transistors on Microprocessor target (currently ${formatInteger(allocatedT)} T on ${target}).</div>
+            <div><strong>Boost Formula:</strong> Multiplies Microprocessor bonus by (1 + T/${bonusDiv.toFixed(0)}) for ln(T)/ln(${durBase.toFixed(1)}) seconds.</div>
+            ${hasPrestigeBonus ? `
+              <div><strong>Prestige Boost:</strong> ${studySpeedMult.toFixed(2)}x boost applied to overclock speed amplification.</div>
+            ` : ""}
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 10. CRC Gadget
+    // ------------------------------------------------------------------------
+    case "device-crc-gadget":
+    case "crcGadget": {
+      const isOwned = (state.devices?.crcGadget?.owned ?? 0) >= 1;
+      const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
+      const crcMult = calculateCrcMultiplier(state, config, deviceMult);
+      const hasPrestigeBonus = deviceMult > 1.0001;
+
+      return {
+        title: "CRC Gadget (Unique Device)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Permanently amplifies Cosmic Radiation Condenser energy output.</div>
+            <div><strong>Status:</strong> ${isOwned ? "Installed" : "Available"}</div>
+            ${hasPrestigeBonus ? `
+              <div><strong>Production Multiplier:</strong> ${crcMult.toFixed(2)}x (${baseMult.toFixed(2)}x base × ${deviceMult.toFixed(2)}x SO bonus)</div>
+            ` : `
+              <div><strong>Production Multiplier:</strong> ${baseMult.toFixed(2)}x global energy production boost.</div>
+            `}
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 11. Capacitor
+    // ------------------------------------------------------------------------
+    case "device-capacitor":
+    case "capacitor": {
+      const owned = state.devices?.capacitors ?? 0;
+      const hasPrestigeBonus = deviceMult > 1.0001;
+      const effectivePerUnit = capBonusPerUnit * deviceMult * 100;
+      const basePerUnit = capBonusPerUnit * 100;
+      const totalBonusPct = ((capacitorMult - 1) * 100).toFixed(hasPrestigeBonus ? 1 : 0);
+
+      return {
+        title: "Capacitor",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Capacitors directly increase the energy strength of Algorithm Improvements. Because higher-order Algorithm Features derive their strength from lower-order ones, this bonus also increases the energy contribution of Algorithm Upgrades and Algorithm Recalculations.</div>
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)}</div>
+            ${hasPrestigeBonus ? `
+              <div><strong>Unit Cascade Bonus:</strong> +${effectivePerUnit.toFixed(1)}% per unit (+${basePerUnit.toFixed(0)}% base × ${deviceMult.toFixed(2)}x SO bonus)</div>
+            ` : `
+              <div><strong>Unit Cascade Bonus:</strong> +${basePerUnit.toFixed(0)}% per unit</div>
+            `}
+            <div><strong>Effective Multiplier:</strong> ${capacitorMult.toFixed(2)}x (+${totalBonusPct}% total cascade bonus across all tiers)</div>
+            <div style="margin-top: 4px; padding: 6px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 11px;">
+              <div><strong>Cascaded Unit Strengths (Level ${compLevel}):</strong></div>
+              <div>• A.Imp: ${formatEnergy(strengths.AImp)}/s</div>
+              <div>• A.Upg: ${formatEnergy(strengths.AUpg)}/s</div>
+              <div>• A.Rec: ${formatEnergy(strengths.ARec)}/s</div>
+            </div>
+            <div style="color: var(--tes-text-tertiary); font-size: 10.5px;">All algorithm tiers increase by precisely ${capacitorMult.toFixed(2)}x without altering conversion efficiency.</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 12. Power Cell
+    // ------------------------------------------------------------------------
+    case "device-powercell":
+    case "powerCell": {
+      const owned = state.powerCells ?? 0;
+      const baseCap = config.devices?.powerCell?.baseCapacity ?? 1e-3;
+      const totalCap = calculatePowerCellCapacity(owned, state, config, resolver);
+
+      return {
+        title: "Power Cell",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Expands the facility's operational energy capacity to prevent loss from Overflow Decay.</div>
+            <div><strong>Base Capacity:</strong> ${formatEnergy(baseCap)} per cell</div>
+            <div><strong>Prestige Multiplier:</strong> 1.00x (Exempt from Setup Optimization and Processor bonuses)</div>
+            <div><strong>Current Stable Capacity:</strong> ${formatEnergy(totalCap)} (100% loss-free storage)</div>
+            <div><strong>Persistence:</strong> Owned Power Cells persist across Machine Learning and Facility Optimization.</div>
+            <div style="color: var(--tes-text-tertiary); font-size: 11px;">Note: Stable Capacity is a decay buffer, not a hard limit on total wallet energy.</div>
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 13. Hard Disk
+    // ------------------------------------------------------------------------
+    case "device-harddisk":
+    case "hardDisk": {
+      const owned = state.devices?.hardDisks?.owned ?? 0;
+      const status = state.devices?.hardDisks?.state ?? "off";
+      const buffer = state.devices?.hardDisks?.buffer ?? 0;
+      const dataRate = config.devices?.hardDisk?.dataRatePerDisk ?? 3.0;
+      const totalXpRate = calculateHardDiskXpRate(owned, state, config, resolver);
+      const hasPrestigeBonus = deviceMult > 1.0001;
+      const effectiveRatePerDisk = dataRate * deviceMult;
+
+      return {
+        title: "Hard Disk",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+            <div>Consumes Energy continuously to generate temporary Available Data (XP).</div>
+            <div><strong>Status:</strong> <span style="text-transform: uppercase; font-weight: 600;">${status}</span> (${formatInteger(owned)} disks)</div>
+            ${hasPrestigeBonus ? `
+              <div><strong>Generation Rate:</strong> +${formatNumber(totalXpRate, 1)} Data/s (+${effectiveRatePerDisk.toFixed(2)}/s per active disk · ${dataRate.toFixed(1)}/s base × ${deviceMult.toFixed(2)}x SO bonus)</div>
+            ` : `
+              <div><strong>Generation Rate:</strong> +${formatNumber(totalXpRate, 1)} Data/s (+${dataRate.toFixed(1)}/s base per active disk)</div>
+            `}
+            <div><strong>Buffered Data:</strong> +${formatInteger(buffer)} Available Data</div>
+            <div><strong>Standby Safety:</strong> If energy depletes, hard disks enter standby to preserve data buffer without consuming energy.</div>
+          </div>
+        `,
+      };
+    }
+
+    // Default fallback
+    default: {
+      return {
+        title: "Telemetry Information",
+        body: `Detailed operational metrics for ${topic}.`,
+      };
+    }
+  }
 }
 
 
 // ---- js/ui.js ----
 /**
  * ui.js
- * Clean, modern two-tab UI for The Eternal Simulation (Rebuild specification).
- * Renders Energy and Efficiency & Automation tabs, sticky status bar, and Dev Sandbox controls.
+ * The Eternal Simulation — Modern Sci-Fi Frontend Implementation
+ * Adheres to Antigravity_TES_UI_Frontend_Prompt.md:
+ * - Reduced element density, intentional empty spaces, dark sci-fi aesthetic
+ * - Persistent sticky Facility Level & Currency Rail across all tabs
+ * - Compact horizontal CRC and A-Feature study rows (64-74px)
+ * - Two independent columns on Devices screen with section headers
+ * - Slide-out drawers and contextual popovers
  */
 
 
+const TES_ICON_ROOT = "icons/";
+const tesIconPath = (name) => `${TES_ICON_ROOT}${name}.png`;
+
 function createRenderer(container, engine) {
   let isMounted = false;
+  let activeDrawer = null; // 'dev' | 'transistor' | 'microprocessor' | 'harddisk' | 'settings' | 'stats' | 'overclock'
+  let activePopover = null; // { title, content, x, y }
+  let newsIndex = 0;
+  let newsTimer = null;
+  let isNewsPaused = false;
+  let batchPopoverTarget = null; // target feature id or device id for batch menu
+
+  // Default news items if __TES_NEWS__ is missing or empty
+  const defaultNews = [
+    "The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...",
+    "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    "A muon at rest lives only about 2.2 microseconds on average before decaying.",
+    "Cosmic radiation flux within expected parameters across all sectors.",
+    "Relativistic effects make satellite clocks run slightly faster before corrections.",
+  ];
+
+  function getNewsList() {
+    if (
+      globalThis.__TES_NEWS__ &&
+      Array.isArray(globalThis.__TES_NEWS__) &&
+      globalThis.__TES_NEWS__.length > 0
+    ) {
+      return globalThis.__TES_NEWS__.map((item) =>
+        typeof item === "string" ? item : item.text,
+      );
+    }
+    return defaultNews;
+  }
+
+  function startNewsCarousel() {
+    if (newsTimer) clearInterval(newsTimer);
+    newsTimer = setInterval(() => {
+      if (!isNewsPaused) {
+        const list = getNewsList();
+        newsIndex = (newsIndex + 1) % list.length;
+        updateNewsDisplay();
+      }
+    }, 10000);
+  }
+
+  const setText = (field, val) => {
+    const el = container.querySelector(`[data-field="${field}"]`);
+    if (el && el.textContent !== String(val)) el.textContent = String(val);
+  };
+
+  function updateNewsDisplay() {
+    const el = container.querySelector('[data-field="news-content"]');
+    if (el) {
+      const list = getNewsList();
+      el.textContent = list[newsIndex % list.length] || list[0];
+    }
+  }
 
   function render() {
     if (!isMounted) {
       mountStructure();
+      startNewsCarousel();
     }
     updateDynamicValues(engine.state);
   }
 
   function mountStructure() {
+    const boardOwned = Boolean(engine.state.devices?.transistorBoard?.owned || engine.state.devMode);
     container.innerHTML = `
-      <div class="sandbox-shell">
-        <!-- Persistent Sticky Status Bar (§17) -->
-        <header class="sticky-status-bar" id="sticky-hud">
-          <div class="status-pills">
-            <div class="status-pill">
-              <span class="status-pill__label">Stored Energy</span>
-              <span class="status-pill__value status-pill__value--energy" data-field="hud-energy">0.00 pJ</span>
+      <div class="tes-shell">
+        <!-- TOP HEADER (Section 4) -->
+        <header class="tes-header">
+          <div class="tes-top-bar">
+            <!-- Brand -->
+            <div class="tes-brand">
+              <img src="${tesIconPath("brand-orbit")}" alt="" class="tes-brand-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-brand-title">The Eternal Simulation</span>
             </div>
-            <div class="status-pill">
-              <span class="status-pill__label">Energy Production</span>
-              <span class="status-pill__value status-pill__value--rate" data-field="hud-production">+0.00 pJ/s</span>
+
+            <!-- News Ticker -->
+            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
+              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-news-content" data-field="news-content">
+                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
+              </span>
+              <div class="tes-news-controls">
+                <button class="tes-news-btn" data-action="news-prev" aria-label="Previous headline">&lt;</button>
+                <button class="tes-news-btn" data-action="news-next" aria-label="Next headline">&gt;</button>
+              </div>
             </div>
-            <div class="status-pill" title="Also known as XP. Apparently, scientists still need experience points.">
-              <span class="status-pill__label">Available Data (XP)</span>
-              <span class="status-pill__value status-pill__value--data" data-field="hud-data">0</span>
-            </div>
-            <div class="status-pill">
-              <span class="status-pill__label">Computer Level</span>
-              <span class="status-pill__value status-pill__value--level" data-field="hud-level">1</span>
-            </div>
-            <div class="status-pill">
-              <span class="status-pill__label">Facility Optimizations</span>
-              <span class="status-pill__value" data-field="hud-optimizations" style="color: var(--cyan);">0</span>
+
+            <!-- Utility Controls -->
+            <div class="tes-utilities">
+              <button class="btn-utility btn-utility--active" data-action="open-drawer" data-drawer="dev" data-field="dev-mode-btn" title="Developer SandBox & Cheats">
+                <img src="${tesIconPath("icon-settings")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span data-field="dev-btn-label">DEV MODE</span>
+              </button>
+              <button class="btn-utility" data-action="open-drawer" data-drawer="measure" title="Telemetry & Measurement">
+                <img src="${tesIconPath("icon-measure")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span>Measure</span>
+              </button>
+              <button class="btn-utility" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
+                <img src="${tesIconPath("icon-statistics")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span>Stats</span>
+              </button>
+              <button class="btn-utility" data-action="open-drawer" data-drawer="settings" title="System Settings">
+                <img src="${tesIconPath("icon-power")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span>Config</span>
+              </button>
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button class="btn btn--sm btn--dev" data-action="toggle-dev-mode" data-field="dev-mode-btn">
-              DEV MODE: ON
+          <!-- Layer Navigation Bar (Section 4) -->
+          <nav class="tes-nav-bar" aria-label="Layer Navigation">
+            <button class="tes-nav-tab tes-nav-tab--active" data-action="set-tab" data-tab="energy">
+              <img src="${tesIconPath("nav-energy")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Energy</span>
             </button>
-          </div>
+            <button class="tes-nav-tab" data-action="set-tab" data-tab="devices">
+              <img src="${tesIconPath("nav-devices")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Devices</span>
+            </button>
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Science Layer unlocks in later phases">
+              <img src="${tesIconPath("nav-science")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Science</span>
+              <span class="badge-tab-locked">LOCKED</span>
+            </button>
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Particle synthesis unlocks in later phases">
+              <img src="${tesIconPath("nav-particles")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Particles</span>
+              <span class="badge-tab-locked">LOCKED</span>
+            </button>
+            <button class="tes-nav-tab" data-action="open-drawer" data-drawer="settings" title="More Options">
+              <img src="${tesIconPath("nav-more")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>...</span>
+            </button>
+          </nav>
         </header>
 
-        <!-- Developer Mode Toolbar (§21) -->
-        <nav class="dev-toolbar" id="dev-toolbar" style="display: flex;">
-          <span class="dev-toolbar__label">DEV CHEATS:</span>
-          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1e-9">+1 nJ</button>
-          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1e-6">+1 µJ</button>
-          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1e-3">+1 mJ</button>
-          <button class="btn btn--sm btn--dev" data-action="add-energy" data-amount="1">+1 J</button>
-          <button class="btn btn--sm btn--dev btn--danger" data-action="zero-energy">Zero J</button>
-
-          <span class="dev-toolbar__divider"></span>
-
-          <span class="dev-toolbar__label">ALGORITHMS:</span>
-          <button class="btn btn--sm btn--dev" data-action="add-afeature" data-target="AImp" data-count="12">+12 AImp</button>
-          <button class="btn btn--sm btn--dev" data-action="add-afeature" data-target="AUpg" data-count="12">+12 AUpg</button>
-          <button class="btn btn--sm btn--dev" data-action="add-afeature" data-target="ARec" data-count="12">+12 ARec</button>
-          <button class="btn btn--sm btn--dev btn--warning" data-action="add-comp-level">+1 Level</button>
-
-          <span class="dev-toolbar__divider"></span>
-
-          <span class="dev-toolbar__label">SPEED:</span>
-          <button class="btn btn--sm btn--dev" data-action="set-speed" data-speed="1">1x</button>
-          <button class="btn btn--sm btn--dev" data-action="set-speed" data-speed="5">5x</button>
-          <button class="btn btn--sm btn--dev" data-action="set-speed" data-speed="20">20x</button>
-
-          <span class="dev-toolbar__divider"></span>
-
-          <span class="dev-toolbar__label">STATE:</span>
-          <button class="btn btn--sm btn--dev btn--primary" data-action="quicksave">Quicksave</button>
-          <button class="btn btn--sm btn--dev" data-action="restore-quicksave" data-field="restore-qs-btn">Quick Restore</button>
-          <button class="btn btn--sm btn--dev btn--danger" data-action="reset-all">Reset All</button>
-        </nav>
-
-        <!-- Two Main Navigation Tabs (§17) -->
-        <nav class="tab-nav">
-          <button class="tab-btn tab-btn--active" data-action="set-tab" data-tab="energy">
-            1. Energy
-          </button>
-          <button class="tab-btn" data-action="set-tab" data-tab="efficiency">
-            2. Efficiency & Automation
-          </button>
-        </nav>
-
-        <!-- TAB 1: ENERGY -->
-        <main class="tab-content" id="tab-energy">
-          <!-- A. Introductory Narrative (§18.A) -->
-          <div class="panel" id="narrative-card" style="margin-bottom: 20px; border-left: 3px solid var(--blue);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <!-- MAIN SHELL: Sticky Rail + Content (Section 5) -->
+        <main class="tes-main-layout">
+          <!-- 1. PERSISTENT STICKY FACILITY & CURRENCY RAIL (Section 5) -->
+          <aside class="tes-rail" id="facility-rail" aria-label="Facility Status Rail">
+            <!-- Facility Level -->
+            <div class="tes-rail-header">
+              <img src="${tesIconPath("facility-level")}" alt="" class="tes-rail-level-icon" aria-hidden="true" />
               <div>
-                <span class="eyebrow">SYSTEM ACTIVATION</span>
-                <p class="muted" style="margin: 0; max-width: 800px;">
-                  You have activated an experimental computational system capable of improving its own algorithms
-                  and extracting usable Energy from cosmic radiation. Study algorithms to generate performance, produce
-                  energy, and build computational infrastructure.
-                </p>
+                <span class="eyebrow">FACILITY LEVEL</span>
+                <div class="tes-rail-level-title" data-field="rail-facility-level">Level 1</div>
               </div>
-              <button class="btn btn--sm" data-action="dismiss-narrative" style="align-self: center;">Dismiss</button>
-            </div>
-          </div>
-
-          <!-- B. Cosmic Radiation Condenser (CRC) (§18.B) -->
-          <div class="panel" style="margin-bottom: 20px;">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Energy Generator</span>
-                <h3 class="element-card__title">Cosmic Radiation Condenser (CRC)</h3>
-              </div>
-              <span class="badge badge--success" data-field="crc-status-badge">PRODUCING</span>
-            </div>
-            <p class="element-card__desc">
-              Converts total Algorithm Performance (AP) into pure Energy. Modifiers apply globally.
-            </p>
-            <div class="element-card__metrics">
-              <div class="metric-row">
-                <span class="metric-row__label">Total Algorithm Performance (AP):</span>
-                <span class="metric-row__val" data-field="crc-ap" style="color: var(--blue-bright);">0.00 pJ/s</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Computer Level Multiplier (1.5^(L-1)):</span>
-                <span class="metric-row__val" data-field="crc-comp-mult">1.00x</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">CRC Gadget Multiplier:</span>
-                <span class="metric-row__val" data-field="crc-gadget-mult">1.00x</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Effective Energy Production:</span>
-                <span class="metric-row__val" data-field="crc-prod-rate" style="color: var(--cyan); font-size: 1.1rem;">+0.00 pJ/s</span>
-              </div>
-              <div class="metric-row" data-field="crc-decay-row" style="display: none;">
-                <span class="metric-row__label" style="color: var(--red);">Overflow Decay:</span>
-                <span class="metric-row__val" data-field="crc-decay-rate" style="color: var(--red);">-0.00 pJ/s</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- C. Algorithm Features (§18.C) -->
-          <div class="panel" style="margin-bottom: 20px;">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Algorithm Learning</span>
-                <h3 class="element-card__title">Algorithm Features</h3>
-              </div>
-              <span class="muted" style="font-size: 0.8rem;">Conversion factor: 12 units</span>
             </div>
 
-            <div class="rebuild-grid" style="margin-top: 14px;">
-              <!-- 1. Algorithm Improvement (AImp) -->
-              <article class="element-card">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Base Feature</span>
-                    <h4 class="element-card__title">Algorithm Improvement (AImp)</h4>
-                  </div>
-                  <span class="badge badge--success" data-field="aimp-study-badge">READY</span>
+            <!-- Machine Learning Progress -->
+            <div class="tes-rail-progress-section">
+              <div class="tes-rail-progress-label">
+                <span>Data (XP)</span>
+                <span data-field="rail-data-fraction">0 / 693</span>
+              </div>
+              <div class="tes-rail-progress-bar">
+                <div class="tes-rail-progress-fill" data-field="rail-data-bar" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="tes-rail-divider"></div>
+
+            <!-- Currencies Stack -->
+            <div class="tes-rail-currencies">
+              <div class="tes-rail-currency-item">
+                <img src="${tesIconPath("resource-energy")}" alt="" class="tes-rail-currency-icon" aria-hidden="true" />
+                <div class="tes-rail-currency-details">
+                  <span class="tes-rail-currency-label">Stored Energy</span>
+                  <span class="tes-rail-currency-val" data-field="rail-energy">0.00 pJ</span>
                 </div>
-                <p class="element-card__desc">
-                  Primary study. Free to study. Base strength: <strong>1e-15 J/s</strong>.
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned / Produced (Cycle):</span>
-                    <span class="metric-row__val" data-field="aimp-owned">0 / 0</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Strength per unit:</span>
-                    <span class="metric-row__val" data-field="aimp-unit-strength">1.00 fJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Total Contribution:</span>
-                    <span class="metric-row__val" data-field="aimp-contribution" style="color: var(--cyan);">0.00 pJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Study Duration:</span>
-                    <span class="metric-row__val" data-field="aimp-duration">0.50s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Auto Chips Assigned:</span>
-                    <span class="metric-row__val" data-field="aimp-workers">0</span>
-                  </div>
+              </div>
+              <!-- Optional additional unlocked currencies -->
+              <div class="tes-rail-currency-item" id="rail-row-sp" style="display: none;">
+                <img src="${tesIconPath("resource-science-points")}" alt="" class="tes-rail-currency-icon" aria-hidden="true" />
+                <div class="tes-rail-currency-details">
+                  <span class="tes-rail-currency-label">Science Points</span>
+                  <span class="tes-rail-currency-val" data-field="rail-sp" style="color: var(--tes-purple-light);">0 SP</span>
                 </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--primary" data-action="study-feature" data-target="AImp" data-count="1" data-field="aimp-study-btn">
-                    STUDY 1 A.IMP
+              </div>
+            </div>
+          </aside>
+
+          <!-- 2. ACTIVE TAB CONTAINER -->
+          <div class="tes-tab-viewport">
+            <!-- TAB 1: ENERGY (Section 6) -->
+            <section class="tes-energy-tab" id="tab-energy">
+              <!-- A. Stored Energy Central Card (Section 6.1) -->
+              <article class="tes-stored-energy-card">
+                <div class="tes-card-top-row">
+                  <div class="tes-card-category-label">
+                    <img src="${tesIconPath("stored-energy")}" alt="" class="tes-card-icon-mini" aria-hidden="true" />
+                    <span>Stored Energy</span>
+                  </div>
+                  <button class="btn-icon-only" data-action="show-info" data-topic="energy-summary" aria-label="Energy Telemetry details" title="Energy Dynamics: Learn about Stable Capacity, Overflow Decay, and Net Production">
+                    <img src="${tesIconPath("icon-info")}" alt="" />
                   </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AImp" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AImp" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AImp" data-count="1000">+1000</button>
+                </div>
+
+                <div class="tes-big-energy-val tabular" data-field="stored-energy-main">0.00 pJ</div>
+
+                <!-- Telemetry Row: Net, Capacity, Overflow Decay -->
+                <div class="tes-energy-telemetry-row">
+                  <div class="telemetry-item" id="energy-net-item" data-action="show-info" data-topic="energy-summary" style="cursor: pointer;" title="Net Production = Gross Production (CRC) - Overflow Decay. Click or hover for details.">
+                    <span class="telemetry-label">Net:</span>
+                    <span class="telemetry-val--net tabular" data-field="energy-net">+0.00 pJ/s</span>
+                  </div>
+                  <div class="telemetry-item" id="energy-capacity-item" data-action="show-info" data-topic="device-powercell" style="cursor: pointer;" title="Stable Capacity provided by Power Cells. Energy below this threshold never decays. Click for details.">
+                    <span class="telemetry-label">Capacity:</span>
+                    <span class="telemetry-val--cap tabular" data-field="energy-capacity">0.00 pJ</span>
+                  </div>
+                  <div class="telemetry-item" id="energy-decay-item" style="display: none; cursor: pointer;" data-action="show-info" data-topic="energy-summary" title="Overflow Decay: Energy dissipating per second due to exceeding Stable Capacity. Click for details.">
+                    <span class="telemetry-label">Decay:</span>
+                    <span class="telemetry-val--decay tabular" data-field="energy-decay">-0.00 pJ/s</span>
+                  </div>
+                </div>
+
+                <!-- Energy Era Progression Bar (Section 5) -->
+                <div class="tes-energy-era-section">
+                  <div class="tes-energy-era-header">
+                    <span class="tes-energy-era-label">Total Stored Energy Required</span>
+                    <span class="tes-energy-era-percent tabular" data-field="energy-era-percent">0.0%</span>
+                  </div>
+                  <div class="tes-energy-era-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Total Stored Energy Required">
+                    <div class="tes-energy-era-fill" data-field="energy-era-fill" style="width: 0%;"></div>
                   </div>
                 </div>
               </article>
 
-              <!-- 2. Algorithm Upgrade (AUpg) -->
-              <article class="element-card">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Advanced Feature</span>
-                    <h4 class="element-card__title">Algorithm Upgrade (AUpg)</h4>
-                  </div>
-                  <span class="badge" data-field="aupg-badge">VISIBLE</span>
-                </div>
-                <p class="element-card__desc">
-                  Requires and consumes <strong>12 AImp</strong>. Base strength: <strong>24e-15 J/s</strong> (doubles Energy; trade-off: Data falls 12 → 9).
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned / Produced (Cycle):</span>
-                    <span class="metric-row__val" data-field="aupg-owned">0 / 0</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Strength per unit:</span>
-                    <span class="metric-row__val" data-field="aupg-unit-strength">24.00 fJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Total Contribution:</span>
-                    <span class="metric-row__val" data-field="aupg-contribution" style="color: var(--cyan);">0.00 pJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Study Duration:</span>
-                    <span class="metric-row__val" data-field="aupg-duration">0.50s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Auto Chips Assigned:</span>
-                    <span class="metric-row__val" data-field="aupg-workers">0</span>
+              <!-- B. Cosmic Radiation Condenser (CRC) Row (Section 6.2) -->
+              <article class="tes-crc-row">
+                <div class="tes-crc-left">
+                  <img src="${tesIconPath("crc")}" alt="" class="tes-crc-icon" aria-hidden="true" />
+                  <div class="tes-crc-meta">
+                    <span class="eyebrow">ACTIVE DEVICE</span>
+                    <h3 class="tes-crc-title">Cosmic Radiation Condenser</h3>
+                    <span class="tes-crc-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Converts algorithmic performance into Energy.</span>
                   </div>
                 </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="study-feature" data-target="AUpg" data-count="1" data-field="aupg-study-btn">
-                    STUDY 1 A.UPG (12 AImp)
+
+                <div class="tes-crc-right">
+                  <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                  <span class="badge-status badge-status--active" data-field="crc-level-mult">Level 1</span>
+                  <button class="btn-icon-only" data-action="show-info" data-topic="crc" aria-label="CRC Breakdown details">
+                    <img src="${tesIconPath("icon-info")}" alt="" />
                   </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AUpg" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AUpg" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="AUpg" data-count="1000">+1000</button>
-                  </div>
                 </div>
               </article>
 
-              <!-- 3. Algorithm Recalculation (ARec) -->
-              <article class="element-card" id="card-arec" style="display: none;">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Facility Masterwork</span>
-                    <h4 class="element-card__title">Algorithm Recalculation (ARec)</h4>
-                  </div>
-                  <span class="badge badge--success">UNLOCKED</span>
-                </div>
-                <p class="element-card__desc">
-                  Requires and consumes <strong>12 AUpg</strong>. Base strength: <strong>576e-15 J/s</strong> (doubles Energy; trade-off: Data falls 108 → 81).
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned / Produced (Cycle):</span>
-                    <span class="metric-row__val" data-field="arec-owned">0 / 0</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Strength per unit:</span>
-                    <span class="metric-row__val" data-field="arec-unit-strength">576.00 fJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Total Contribution:</span>
-                    <span class="metric-row__val" data-field="arec-contribution" style="color: var(--cyan);">0.00 pJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Study Duration:</span>
-                    <span class="metric-row__val" data-field="arec-duration">0.50s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Auto Chips Assigned:</span>
-                    <span class="metric-row__val" data-field="arec-workers">0</span>
-                  </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="study-feature" data-target="ARec" data-count="1" data-field="arec-study-btn">
-                    STUDY 1 A.REC (12 AUpg)
-                  </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="ARec" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="ARec" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="study-feature" data-target="ARec" data-count="1000">+1000</button>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </div>
+              <!-- C. Algorithm Features Compact Stack (Section 6.3) -->
+              <div class="tes-studies-stack">
+                <!-- 1. Algorithm Improvement (AImp) -->
+                <div class="tes-study-unit" id="study-unit-aimp">
+                  <article class="tes-study-row" id="study-row-aimp">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-improvement")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">BASE STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="aimp-title">Algorithm Improvement (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="AImp" data-field="aimp-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Improvement study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="aimp-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="aimp-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Generates Energy through computational improvements.</span>
+                      </div>
+                    </div>
 
-          <!-- D. Direct Energy Devices (§18.D) -->
-          <div class="panel">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Infrastructure</span>
-                <h3 class="element-card__title">Direct Energy Devices</h3>
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="aimp-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-cyan)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="aimp-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="AImp" data-count="1" data-field="aimp-study-btn" title="Study Algorithm Improvement (Hotkey: A)">
+                        Study <kbd class="tes-hotkey-hint">A</kbd>
+                      </button>
+                      <!-- Auto Toggle -->
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="AImp" data-field="aimp-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="aimp" aria-label="A.Imp info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="AImp" data-field="aimp-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Improvement" title="Install Transistor into Algorithm Improvement (Hotkey: T)">
+                    <span class="tes-install-transistor-label">Install Transistor <kbd class="tes-hotkey-hint">T</kbd></span>
+                    <span class="tes-install-transistor-cost tabular" data-field="aimp-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
+
+                <!-- 2. Algorithm Upgrade (AUpg) -->
+                <div class="tes-study-unit" id="study-unit-aupg">
+                  <article class="tes-study-row" id="study-row-aupg">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-upgrade")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">UPGRADE STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="aupg-title">Algorithm Upgrade (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="AUpg" data-field="aupg-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Upgrade study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="aupg-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="aupg-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Converts lower-order algorithms into more efficient computations.</span>
+                        <span class="tes-study-cost-hint">Req 12 A.Imp</span>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="aupg-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-purple-light)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="aupg-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="AUpg" data-count="1" data-field="aupg-study-btn" title="Study Algorithm Upgrade (Hotkey: U)">
+                        Study <kbd class="tes-hotkey-hint">U</kbd>
+                      </button>
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="AUpg" data-field="aupg-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="aupg" aria-label="A.Upg info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="AUpg" data-field="aupg-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Upgrade">
+                    <span class="tes-install-transistor-label">Install Transistor</span>
+                    <span class="tes-install-transistor-cost tabular" data-field="aupg-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
+
+                <!-- 3. Algorithm Recalculation (ARec) - Revealed only if unlocks.ARec -->
+                <div class="tes-study-unit" id="study-unit-arec" style="display: none;">
+                  <article class="tes-study-row" id="study-row-arec">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-recalculation")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">RECALCULATION STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="arec-title">Algorithm Recalculation (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="ARec" data-field="arec-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Recalculation study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="arec-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="arec-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Converts upgrades into higher-order computational structures.</span>
+                        <span class="tes-study-cost-hint">Req 12 A.Upg</span>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="arec-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-teal)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="arec-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="ARec" data-count="1" data-field="arec-study-btn" title="Study Algorithm Recalculation (Hotkey: R)">
+                        Study <kbd class="tes-hotkey-hint">R</kbd>
+                      </button>
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="ARec" data-field="arec-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="arec" aria-label="A.Rec info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="ARec" data-field="arec-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Recalculation">
+                    <span class="tes-install-transistor-label">Install Transistor</span>
+                    <span class="tes-install-transistor-cost tabular" data-field="arec-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div class="rebuild-grid" style="margin-top: 14px;">
-              <!-- CRC Gadget -->
-              <article class="element-card">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Production Boost</span>
-                    <h4 class="element-card__title">CRC Gadget</h4>
+              <!-- Prestige Actions Row (Side-by-Side: Machine Learning & Setup Optimization) -->
+              <div class="tes-prestige-row">
+                <!-- D. Machine Learning (Computer Learning) Card (Section 6.4) -->
+                <article class="tes-ml-card">
+                  <div class="tes-ml-header">
+                    <div class="tes-ml-title-group">
+                      <img src="${tesIconPath("run-machine-learning")}" alt="" class="tes-ml-icon" aria-hidden="true" />
+                      <div>
+                        <span class="eyebrow">COMPUTER LEARNING</span>
+                        <h4 class="tes-ml-title">Machine Learning (Soft Reset)</h4>
+                      </div>
+                    </div>
+                    <button class="btn-icon-only" data-action="show-info" data-topic="ml" aria-label="Machine Learning info">
+                      <img src="${tesIconPath("icon-info")}" alt="" />
+                    </button>
                   </div>
-                  <span class="badge" data-field="crc-gadget-badge">AVAILABLE</span>
-                </div>
-                <p class="element-card__desc">
-                  Permanently doubles CRC Energy Production rate (<strong>2x</strong>).
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned:</span>
-                    <span class="metric-row__val" data-field="crc-gadget-owned">0 / 1</span>
+
+                  <div class="tes-rail-progress-section">
+                    <div class="tes-rail-progress-label">
+                      <span>Available Data (XP)</span>
+                      <span data-field="ml-progress-text">0 / 693 Data</span>
+                    </div>
+                    <div class="tes-rail-progress-bar">
+                      <div class="tes-rail-progress-fill" data-field="ml-progress-bar" style="width: 0%;"></div>
+                    </div>
                   </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Cost:</span>
-                    <span class="metric-row__val" data-field="crc-gadget-cost">10.00 nJ</span>
+
+                  <button class="btn-primary" data-action="run-machine-learning" data-field="ml-action-btn" title="Run Machine Learning (Hotkey: M)">
+                    Run Machine Learning (Adv to Level 2) <kbd class="tes-hotkey-hint">M</kbd>
+                  </button>
+                </article>
+
+                <!-- E. Setup Optimization / Facility Optimization Card -->
+                <article class="tes-fo-card" id="fo-card" style="display: none;">
+                  <div class="tes-fo-header">
+                    <div class="tes-fo-title-group">
+                      <img src="${tesIconPath("facility-optimization")}" alt="" class="tes-fo-icon" aria-hidden="true" />
+                      <div>
+                        <span class="eyebrow eyebrow--purple">FACILITY PRESTIGE</span>
+                        <h4 class="tes-fo-title" data-field="fo-title">Setup Optimization (Hard Reset)</h4>
+                      </div>
+                    </div>
+                    <button class="btn-icon-only" data-action="show-info" data-topic="fo" aria-label="Setup Optimization info">
+                      <img src="${tesIconPath("icon-info")}" alt="" />
+                    </button>
                   </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="crcGadget" data-count="1" data-field="crc-gadget-btn">
-                    BUY CRC GADGET — 10.00 nJ
+
+                  <div class="tes-rail-progress-section">
+                    <div class="tes-rail-progress-label">
+                      <span>Facility Level</span>
+                      <span data-field="fo-progress-text">Level 1 / 6</span>
+                    </div>
+                    <div class="tes-rail-progress-bar">
+                      <div class="tes-rail-progress-fill tes-rail-progress-fill--purple" data-field="fo-progress-bar" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <button class="btn-primary btn-primary--purple" data-action="open-modal" data-modal="fo-confirm" data-field="fo-action-btn" title="Perform Setup Optimization">
+                    Perform Setup Optimization (Lv. 6)
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <!-- TAB 2: DEVICES (Section 7) -->
+            <section class="tes-devices-tab" id="tab-devices" style="display: none;">
+              <!-- Filter Bar (Section 7.3) -->
+              <div class="tes-filter-bar">
+                <div class="tes-category-pills">
+                  <button class="tes-filter-pill tes-filter-pill--active" data-action="set-device-filter" data-filter="all" data-field="filter-all-btn">
+                    All (11)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="automation" data-field="filter-automation-btn">
+                    Automation (3)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="computation" data-field="filter-computation-btn">
+                    Computation (4)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="energy" data-field="filter-energy-btn">
+                    Energy (3)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="learning" data-field="filter-learning-btn">
+                    Learning (1)
                   </button>
                 </div>
-              </article>
 
-              <!-- Capacitor -->
-              <article class="element-card" id="card-capacitor">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">AImp Amplification</span>
-                    <h4 class="element-card__title">Capacitor</h4>
-                  </div>
-                  <span class="badge" data-field="capacitor-badge">LOCKED</span>
+                <div class="tes-filter-toggles">
+                  <label class="tes-checkbox-label">
+                    <input type="checkbox" data-action="toggle-filter-added" checked id="toggle-show-added" />
+                    <span>Show Added</span>
+                  </label>
+                  <label class="tes-checkbox-label">
+                    <input type="checkbox" data-action="toggle-filter-unavailable" checked id="toggle-show-unavailable" />
+                    <span>Show Unavailable</span>
+                  </label>
                 </div>
-                <p class="element-card__desc">
-                  Increases A.Improvement Energy contribution by <strong>+50%</strong> per unit. Unlocks after 1st Machine Learning.
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned:</span>
-                    <span class="metric-row__val" data-field="capacitor-owned">0</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">AImp Multiplier:</span>
-                    <span class="metric-row__val" data-field="capacitor-mult" style="color: var(--cyan);">1.00x</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Next Cost:</span>
-                    <span class="metric-row__val" data-field="capacitor-next-cost">10.00 nJ</span>
-                  </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="capacitor" data-count="1" data-field="capacitor-btn">
-                    BUY CAPACITOR
-                  </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="capacitor" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="capacitor" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="capacitor" data-count="1000">+1000</button>
-                  </div>
-                </div>
-              </article>
+              </div>
 
-              <!-- Power Cells -->
-              <article class="element-card" id="card-powercell">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Storage Buffer</span>
-                    <h4 class="element-card__title">Power Cell</h4>
+              <!-- Two Independent Columns (Section 7.1 & 7.2) -->
+              <div class="tes-devices-two-column">
+                <!-- COLUMN 1: Efficiency & Automation -->
+                <div class="tes-device-column" id="col-efficiency">
+                  <!-- Section 1: AUTOMATION -->
+                  <div class="tes-device-group" id="group-automation">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">AUTOMATION</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- AutoCalculator AImp -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_AImp">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-imp")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Improvements</span>
+                            <span class="badge-status badge-status--off" data-field="chip-aimp-badge">30.00 pJ</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_AImp" data-field="chip-aimp-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-aimp" aria-label="AutoCalculator AImp info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- AutoCalculator AUpg -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_AUpg">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-upg")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Upgrades</span>
+                            <span class="badge-status badge-status--off" data-field="chip-aupg-badge">120.00 pJ</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_AUpg" data-field="chip-aupg-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-aupg" aria-label="AutoCalculator AUpg info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- AutoCalculator ARec (Revealed only if unlocks.ARec) -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_ARec" id="device-row-chip-arec" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-rec")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Recalculations</span>
+                            <span class="badge-status badge-status--off" data-field="chip-arec-badge">480.00 pJ</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_ARec" data-field="chip-arec-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-arec" aria-label="AutoCalculator ARec info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
-                  <span class="badge badge--success">STORAGE</span>
+
+                  <!-- Section 2: COMPUTATION & EFFICIENCY -->
+                  <div class="tes-device-group" id="group-computation">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">COMPUTATION & EFFICIENCY</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- Transistor Board -->
+                    <article class="tes-device-row" data-device-id="transistorBoard">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("transistor-board")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Transistor Board</span>
+                            <span class="badge-status badge-status--off" data-field="board-badge">${formatEnergy(2e-10)}</span>
+                          </div>
+                          <span class="tes-device-desc">Distributes computational resources between studies.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="transistorBoard" data-field="board-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-board" aria-label="Transistor Board info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Microprocessor -->
+                    <article class="tes-device-row" data-device-id="microprocessor">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("microprocessor")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Microprocessor</span>
+                            <span class="tes-device-data-pill" data-field="micro-data-pill">Target: AImp</span>
+                          </div>
+                          <span class="tes-device-desc">Amplifies the speed of the selected study.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="microprocessor" data-count="1" data-field="micro-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-secondary" data-action="open-drawer" data-drawer="microprocessor" data-field="micro-configure-btn" title="Configure target & preview bonuses">
+                          Configure
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-micro" aria-label="Microprocessor info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Processor (Revealed only if unlocks.processor) -->
+                    <article class="tes-device-row" data-device-id="processor" id="device-row-processor" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("processor")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Processor</span>
+                            <span class="tes-device-data-pill" data-field="processor-data-pill">+5.0% Study Speed/ea</span>
+                          </div>
+                          <span class="tes-device-desc">Improves the effectiveness of connected devices.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="processor" data-count="1" data-field="processor-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-processor" aria-label="Processor info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Overclocker -->
+                    <article class="tes-device-row" data-device-id="overclocker" id="device-row-overclocker">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("overclocker")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Overclocker</span>
+                            <span class="badge-status badge-status--off" data-field="overclock-badge">Ready</span>
+                          </div>
+                          <span class="tes-device-desc">Temporarily accelerates the selected computation.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="overclocker" data-field="overclock-buy-btn">
+                          Add
+                        </button>
+                        <button class="btn-danger" data-action="open-modal" data-modal="overclock" data-field="overclock-activate-btn" style="display: none;">
+                          Activate
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-overclocker" aria-label="Overclocker info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
                 </div>
-                <p class="element-card__desc">
-                  Provides operational Energy capacity (1 mJ/cell). Main Stored Energy wallet is unconstrained. Persists across Facility Optimization.
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned Cells:</span>
-                    <span class="metric-row__val" data-field="powercell-owned">0</span>
+
+                <!-- COLUMN 2: Resource Devices -->
+                <div class="tes-device-column" id="col-resources">
+                  <!-- Section 1: ENERGY DEVICES -->
+                  <div class="tes-device-group" id="group-energy">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">ENERGY DEVICES</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- CRC Gadget -->
+                    <article class="tes-device-row" data-device-id="crcGadget">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("crc-gadget")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">CRC Gadget</span>
+                            <span class="badge-status badge-status--off" data-field="crc-gadget-badge">${formatEnergy(1e-8)}</span>
+                          </div>
+                          <span class="tes-device-desc">Amplifies Cosmic Radiation Condenser energy output.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="crcGadget" data-field="crc-gadget-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-crc-gadget" aria-label="CRC Gadget info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Capacitor -->
+                    <article class="tes-device-row" data-device-id="capacitor" id="device-row-capacitor">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("capacitor")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Capacitor</span>
+                            <span class="tes-device-data-pill" data-field="capacitor-data-pill">+50%/ea (0 owned)</span>
+                          </div>
+                          <span class="tes-device-desc">Amplifies the energy contribution of the entire Algorithm Feature chain.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="capacitor" data-count="1" data-field="capacitor-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-capacitor" aria-label="Capacitor info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Power Cell -->
+                    <article class="tes-device-row" data-device-id="powerCell">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("power-cell")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Power Cell</span>
+                            <span class="tes-device-data-pill" data-field="powercell-data-pill">0.00 pJ Cap</span>
+                          </div>
+                          <span class="tes-device-desc">Expands the facility's operational energy capacity.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="powerCell" data-count="1" data-field="powercell-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-powercell" aria-label="Power Cell info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Operational Capacity:</span>
-                    <span class="metric-row__val" data-field="powercell-capacity" style="color: var(--cyan);">0.00 pJ</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Next Cost:</span>
-                    <span class="metric-row__val" data-field="powercell-next-cost">1.00 J</span>
+
+                  <!-- Section 2: LEARNING INFRASTRUCTURE -->
+                  <div class="tes-device-group" id="group-learning">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">LEARNING INFRASTRUCTURE</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- Hard Disk (Revealed only if unlocks.hardDisk) -->
+                    <article class="tes-device-row" data-device-id="hardDisk" id="device-row-harddisk" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("hard-disk")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Hard Disk</span>
+                            <span class="badge-status badge-status--off" data-field="harddisk-status-badge">Off</span>
+                          </div>
+                          <span class="tes-device-desc">Consumes Energy to generate temporary Data.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="hardDisk" data-count="1" data-field="harddisk-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-secondary" data-action="open-drawer" data-drawer="harddisk" data-field="harddisk-manage-btn">
+                          Manage
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-harddisk" aria-label="Hard Disk info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
                 </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="powerCell" data-count="1" data-field="powercell-btn">
-                    BUY POWER CELL — 1.00 J
-                  </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="powerCell" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="powerCell" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="powerCell" data-count="1000">+1000</button>
-                  </div>
-                </div>
-              </article>
-            </div>
+              </div>
+            </section>
           </div>
         </main>
 
-        <!-- TAB 2: EFFICIENCY & AUTOMATION -->
-        <main class="tab-content" id="tab-efficiency" style="display: none;">
-          <!-- A. Computer Learning (Soft Reset) (§19.A) -->
-          <div class="panel" style="margin-bottom: 20px;">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Computer Learning</span>
-                <h3 class="element-card__title">Machine Learning (Soft Reset)</h3>
-              </div>
-              <span class="badge badge--warning" data-field="ml-badge">THRESHOLD</span>
-            </div>
-            <p class="element-card__desc">
-              Advance global Computer Level to multiply overall Algorithm Performance by <strong>1.5^(L-1)</strong>.
-              Uses Available Data (XP). Resets algorithm inventories; preserves hardware and stored energy.
-            </p>
-            <div class="element-card__metrics">
-              <div class="metric-row">
-                <span class="metric-row__label">Current Computer Level:</span>
-                <span class="metric-row__val" data-field="ml-current-level" style="color: var(--amber); font-size: 1.1rem;">1</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Current AP Multiplier:</span>
-                <span class="metric-row__val" data-field="ml-multiplier" style="color: var(--cyan);">1.00x</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Available Data (XP):</span>
-                <span class="metric-row__val" data-field="ml-available-data" style="color: var(--violet);">0 / 693</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Data from Algorithms / Buffer:</span>
-                <span class="metric-row__val" data-field="ml-data-breakdown">0 / 0</span>
-              </div>
-            </div>
-            <div class="element-card__actions" style="margin-top: 10px;">
-              <button class="btn btn--block btn--eligible" data-action="run-machine-learning" data-field="ml-btn">
-                RUN MACHINE LEARNING (Req 693 Data)
-              </button>
-            </div>
-          </div>
-
-          <!-- B. AutoCalculator Chips (§19.B) -->
-          <div class="panel" style="margin-bottom: 20px;" id="panel-chips">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Study Automation</span>
-                <h3 class="element-card__title">AutoCalculator Chips</h3>
-              </div>
-              <span class="badge" data-field="chip-badge">LOCKED</span>
-            </div>
-            <p class="element-card__desc">
-              Independent study workers. Assignable to any unlocked A-Feature. Respects study durations and input requirements.
-            </p>
-            <div class="element-card__metrics">
-              <div class="metric-row">
-                <span class="metric-row__label">Chips Owned:</span>
-                <span class="metric-row__val" data-field="chips-owned">0</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Next Cost (3e-11 * 4^N):</span>
-                <span class="metric-row__val" data-field="chips-next-cost">30.00 pJ</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Allocations (AImp / AUpg / ARec):</span>
-                <span class="metric-row__val" data-field="chips-allocation-label">0 / 0 / 0</span>
-              </div>
-            </div>
-            <div class="element-card__actions">
-              <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="chip" data-count="1" data-field="chip-btn">
-                BUY CHIP — 30.00 pJ
-              </button>
-              <div class="btn-group--bulk">
-                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="chip" data-count="10">+10</button>
-                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="chip" data-count="100">+100</button>
-                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="chip" data-count="1000">+1000</button>
-              </div>
-            </div>
-            <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center;">
-              <span style="font-size: 0.8rem; color: var(--muted);">Reassign Chips:</span>
-              <button class="btn btn--sm" data-action="reassign-chip" data-from="AImp" data-to="AUpg">Move AImp → AUpg</button>
-              <button class="btn btn--sm" data-action="reassign-chip" data-from="AUpg" data-to="AImp">Move AUpg → AImp</button>
-              <button class="btn btn--sm" data-action="reassign-chip" data-from="AImp" data-to="ARec" data-field="chip-arec-btn" style="display: none;">Move AImp → ARec</button>
-            </div>
-          </div>
-
-          <!-- C. Transistor Board (§19.C) -->
-          <div class="panel" style="margin-bottom: 20px;" id="panel-transistor-board">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Study Fleet Infrastructure</span>
-                <h3 class="element-card__title">Transistor Board & Transistor Allocation</h3>
-              </div>
-              <span class="badge" data-field="board-badge">LOCKED</span>
-            </div>
-            <p class="element-card__desc">
-              Purchased once to enable Transistor acquisition and distribution. Each allocated Transistor adds <strong>+5% Study Speed</strong> to its target.
-            </p>
-
-            <div id="board-purchase-box">
-              <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="transistorBoard" data-field="buy-board-btn">
-                BUY TRANSISTOR BOARD — 200.00 pJ
-              </button>
-            </div>
-
-            <div id="board-active-content" style="display: none; margin-top: 12px;">
-              <div class="element-card__metrics" style="margin-bottom: 12px;">
-                <div class="metric-row">
-                  <span class="metric-row__label">Total Transistors Purchased:</span>
-                  <span class="metric-row__val" data-field="transistor-total">0</span>
-                </div>
-                <div class="metric-row">
-                  <span class="metric-row__label">Next Transistor Cost (3e-11 * 1.4^N):</span>
-                  <span class="metric-row__val" data-field="transistor-cost">30.00 pJ</span>
-                </div>
-              </div>
-
-              <div style="margin-bottom: 14px;">
-                <button class="btn btn--eligible" data-action="buy-element" data-element-id="transistor" data-count="1" data-field="buy-transistor-btn">
-                  BUY TRANSISTOR (+1)
-                </button>
-                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="transistor" data-count="10">+10</button>
-                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="transistor" data-count="100">+100</button>
-                <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="transistor" data-count="1000">+1000</button>
-              </div>
-
-              <table class="transistor-table">
-                <thead>
-                  <tr>
-                    <th>Study Target</th>
-                    <th>Allocated Transistors</th>
-                    <th>Effective Duration</th>
-                    <th>Speed Multiplier</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Algorithm Improvement (AImp)</strong></td>
-                    <td data-field="transistor-aimp-count">0</td>
-                    <td data-field="transistor-aimp-dur">0.50s</td>
-                    <td data-field="transistor-aimp-speed" style="color: var(--cyan);">1.00x</td>
-                    <td>
-                      <button class="btn btn--sm" data-action="reassign-transistor" data-from="AUpg" data-to="AImp">+1 from AUpg</button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>Algorithm Upgrade (AUpg)</strong></td>
-                    <td data-field="transistor-aupg-count">0</td>
-                    <td data-field="transistor-aupg-dur">0.50s</td>
-                    <td data-field="transistor-aupg-speed" style="color: var(--cyan);">1.00x</td>
-                    <td>
-                      <button class="btn btn--sm" data-action="reassign-transistor" data-from="AImp" data-to="AUpg">+1 from AImp</button>
-                    </td>
-                  </tr>
-                  <tr id="transistor-row-arec" style="display: none;">
-                    <td><strong>Algorithm Recalculation (ARec)</strong></td>
-                    <td data-field="transistor-arec-count">0</td>
-                    <td data-field="transistor-arec-dur">0.50s</td>
-                    <td data-field="transistor-arec-speed" style="color: var(--cyan);">1.00x</td>
-                    <td>
-                      <button class="btn btn--sm" data-action="reassign-transistor" data-from="AImp" data-to="ARec">+1 from AImp</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- D. Computing Devices (§19.D) -->
-          <div class="panel" style="margin-bottom: 20px;">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Hardware Synergies</span>
-                <h3 class="element-card__title">Computing Devices</h3>
-              </div>
-            </div>
-
-            <div class="rebuild-grid" style="margin-top: 14px;">
-              <!-- Microprocessor -->
-              <article class="element-card" id="card-microprocessor">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Exponential Multiplier</span>
-                    <h4 class="element-card__title">Microprocessor</h4>
-                  </div>
-                  <span class="badge" data-field="micro-badge">LOCKED</span>
-                </div>
-                <p class="element-card__desc">
-                  Geometrically amplifies the study speed of its selected target: <strong>1.12^T</strong> (where T is allocated Transistors).
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned:</span>
-                    <span class="metric-row__val" data-field="micro-owned">0</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Target:</span>
-                    <span class="metric-row__val" data-field="micro-target" style="color: var(--blue-bright);">AImp</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Study Speed Bonus:</span>
-                    <span class="metric-row__val" data-field="micro-bonus" style="color: var(--cyan);">1.00x</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Next Cost:</span>
-                    <span class="metric-row__val" data-field="micro-cost">3.00 nJ</span>
-                  </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="microprocessor" data-count="1" data-field="micro-btn">
-                    BUY MICROPROCESSOR — 3.00 nJ
-                  </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="microprocessor" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="microprocessor" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="microprocessor" data-count="1000">+1000</button>
-                  </div>
-                  <div style="display: flex; gap: 6px; margin-top: 6px;">
-                    <button class="btn btn--sm" data-action="set-micro-target" data-target="AImp">Target AImp</button>
-                    <button class="btn btn--sm" data-action="set-micro-target" data-target="AUpg">Target AUpg</button>
-                    <button class="btn btn--sm" data-action="set-micro-target" data-target="ARec" data-field="micro-arec-btn" style="display: none;">Target ARec</button>
-                  </div>
-                </div>
-              </article>
-
-              <!-- Overclocker -->
-              <article class="element-card" id="card-overclocker">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Sacrificial Burn</span>
-                    <h4 class="element-card__title">Overclocker</h4>
-                  </div>
-                  <span class="badge" data-field="overclock-badge">LOCKED</span>
-                </div>
-                <p class="element-card__desc">
-                  Consumes all allocated Transistors on target (min 2) to amplify Microprocessor bonus by <strong>(1 + T/3)</strong> for log(T)/log(1.5)s.
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Status:</span>
-                    <span class="metric-row__val" data-field="overclock-status" style="color: var(--amber);">INACTIVE</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Active Duration / Time Left:</span>
-                    <span class="metric-row__val" data-field="overclock-timer">0.0s / 0.0s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Cost:</span>
-                    <span class="metric-row__val">90.00 nJ</span>
-                  </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="overclocker" data-field="overclock-buy-btn">
-                    BUY OVERCLOCKER — 90.00 nJ
-                  </button>
-                  <button class="btn btn--block btn--danger" data-action="activate-overclock" data-field="overclock-burn-btn" style="margin-top: 6px;">
-                    BURN TRANSISTORS & OVERCLOCK
-                  </button>
-                </div>
-              </article>
-
-              <!-- Processor -->
-              <article class="element-card" id="card-processor">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Device Efficiency</span>
-                    <h4 class="element-card__title">Processor</h4>
-                  </div>
-                  <span class="badge" data-field="processor-badge">LOCKED (FACILITY OPT)</span>
-                </div>
-                <p class="element-card__desc">
-                  Improves the performance of all other eligible Devices by <strong>+3%</strong> per unit. Unlocks after 1st Facility Optimization.
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned:</span>
-                    <span class="metric-row__val" data-field="processor-owned">0</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Device Bonus (1 + 0.03*P):</span>
-                    <span class="metric-row__val" data-field="processor-bonus" style="color: var(--cyan);">1.00x</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Next Cost:</span>
-                    <span class="metric-row__val" data-field="processor-cost">100.00 µJ</span>
-                  </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="processor" data-count="1" data-field="processor-btn">
-                    BUY PROCESSOR — 100.00 µJ
-                  </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="processor" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="processor" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="processor" data-count="1000">+1000</button>
-                  </div>
-                </div>
-              </article>
-
-              <!-- Hard Disk -->
-              <article class="element-card" id="card-harddisk">
-                <div class="element-card__header">
-                  <div>
-                    <span class="element-card__category">Active Data Generation</span>
-                    <h4 class="element-card__title">Hard Disk</h4>
-                  </div>
-                  <span class="badge" data-field="harddisk-badge">LOCKED (FACILITY OPT)</span>
-                </div>
-                <p class="element-card__desc">
-                  Continuously consumes Energy to generate <strong>+3 Data/s</strong> per active Disk. Energy drain grows with running time.
-                </p>
-                <div class="element-card__metrics">
-                  <div class="metric-row">
-                    <span class="metric-row__label">Owned / State:</span>
-                    <span class="metric-row__val" data-field="harddisk-state">0 / OFF</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Data Production Rate:</span>
-                    <span class="metric-row__val" data-field="harddisk-rate" style="color: var(--violet);">0 Data/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Energy Drain:</span>
-                    <span class="metric-row__val" data-field="harddisk-drain" style="color: var(--red);">-0.00 pJ/s</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="metric-row__label">Buffer Content:</span>
-                    <span class="metric-row__val" data-field="harddisk-buffer">0 Data</span>
-                  </div>
-                </div>
-                <div class="element-card__actions">
-                  <button class="btn btn--block btn--eligible" data-action="buy-element" data-element-id="hardDisk" data-count="1" data-field="harddisk-btn">
-                    BUY HARD DISK — 10.00 µJ
-                  </button>
-                  <div class="btn-group--bulk">
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="hardDisk" data-count="10">+10</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="hardDisk" data-count="100">+100</button>
-                    <button class="btn btn--sm btn--dev" data-action="buy-element" data-element-id="hardDisk" data-count="1000">+1000</button>
-                  </div>
-                  <div style="display: flex; gap: 6px; margin-top: 6px;">
-                    <button class="btn btn--sm" data-action="set-harddisk-state" data-state="active">Active (On)</button>
-                    <button class="btn btn--sm" data-action="set-harddisk-state" data-state="standby">Standby</button>
-                    <button class="btn btn--sm btn--danger" data-action="set-harddisk-state" data-state="off">Turn Off (Wipe Buffer)</button>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </div>
-
-          <!-- E. Facility Optimization (Hard Reset) (§19.E) -->
-          <div class="panel" style="margin-bottom: 20px;" id="panel-facility-opt">
-            <div class="element-card__header">
-              <div>
-                <span class="element-card__category">Facility Prestige</span>
-                <h3 class="element-card__title">Facility Optimization (Hard Reset)</h3>
-              </div>
-              <span class="badge badge--warning" data-field="facility-opt-badge">REQUIREMENT</span>
-            </div>
-            <p class="element-card__desc">
-              Slightly improves the performance of all operational devices by <strong>1.09^H</strong> (+9% compounding per optimization).
-              <strong>Preserves Computer Level and Power Cells</strong>. Resets conventional hardware and energy. Unlocks ARec and Processor!
-            </p>
-            <div class="element-card__metrics">
-              <div class="metric-row">
-                <span class="metric-row__label">Completed Optimizations (H):</span>
-                <span class="metric-row__val" data-field="facility-opt-count" style="color: var(--cyan); font-size: 1.1rem;">0</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Required Computer Level (9 + 3*H):</span>
-                <span class="metric-row__val" data-field="facility-opt-req">Level 9</span>
-              </div>
-              <div class="metric-row">
-                <span class="metric-row__label">Permanent Device Multiplier:</span>
-                <span class="metric-row__val" data-field="facility-opt-mult" style="color: var(--amber);">1.00x</span>
-              </div>
-            </div>
-            <div class="element-card__actions" style="margin-top: 10px;">
-              <button class="btn btn--block btn--danger" data-action="perform-facility-optimization" data-field="facility-opt-btn">
-                PERFORM FACILITY OPTIMIZATION
-              </button>
-            </div>
-          </div>
-        </main>
-
-        <!-- AUDIT LOG & DATA EXPORT PANEL (§22) -->
-        <div class="panel" style="margin-top: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <div>
-              <h3 style="margin: 0;">Purchase & Action Audit Log</h3>
-              <span class="muted" data-field="audit-count">0 event(s) recorded</span>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn--sm" data-action="export-csv">Export CSV</button>
-              <button class="btn btn--sm" data-action="export-json">Export JSON</button>
-              <button class="btn btn--sm btn--danger" data-action="clear-audit">Clear</button>
-            </div>
-          </div>
-          <div class="audit-container">
-            <table class="audit-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Action</th>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Cost</th>
-                  <th>Status</th>
-                  <th>Energy After</th>
-                </tr>
-              </thead>
-              <tbody id="audit-tbody">
-                <tr>
-                  <td colspan="7" style="text-align: center; color: var(--muted); padding: 18px;">
-                    No transactions recorded yet.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <!-- DRAWERS & MODALS CONTAINER -->
+        <div id="tes-drawers-container"></div>
+        <div id="tes-popover-container"></div>
       </div>
     `;
+
+    // Bind local listeners for News hover pause
+    const newsBox = container.querySelector("#news-ticker");
+    if (newsBox) {
+      newsBox.addEventListener("mouseenter", () => {
+        isNewsPaused = true;
+      });
+      newsBox.addEventListener("mouseleave", () => {
+        isNewsPaused = false;
+      });
+      newsBox.addEventListener("focusin", () => {
+        isNewsPaused = true;
+      });
+      newsBox.addEventListener("focusout", () => {
+        isNewsPaused = false;
+      });
+    }
+
+    // Bind hover listeners for Energy Dynamics tooltip / popover
+    const netItem = container.querySelector("#energy-net-item");
+    const energyInfoBtn = container.querySelector(
+      '[data-action="show-info"][data-topic="energy-summary"]',
+    );
+    let energyHoverTimer = null;
+
+    const handleEnergyHoverEnter = (e) => {
+      clearTimeout(energyHoverTimer);
+      showInfoPopover("energy-summary", e.currentTarget, true);
+    };
+
+    const handleEnergyHoverLeave = () => {
+      energyHoverTimer = setTimeout(() => {
+        closeHoverPopover();
+      }, 200);
+    };
+
+    if (netItem) {
+      netItem.addEventListener("mouseenter", handleEnergyHoverEnter);
+      netItem.addEventListener("mouseleave", handleEnergyHoverLeave);
+    }
+    if (energyInfoBtn) {
+      energyInfoBtn.addEventListener("mouseenter", handleEnergyHoverEnter);
+      energyInfoBtn.addEventListener("mouseleave", handleEnergyHoverLeave);
+    }
+
+    cacheDomElements();
     isMounted = true;
   }
 
-  function updateDynamicValues(state) {
-    const config = engine.config;
+  let dom = null;
+  let lastActiveDrawer = null;
 
-    const setText = (field, val) => {
-      const el = container.querySelector(`[data-field="${field}"]`);
-      if (el && el.textContent !== String(val)) el.textContent = String(val);
-    };
-
-    // 1. Sticky HUD Values
-    setText("hud-energy", formatEnergy(state.energy));
-    const prod = calculateEnergyProduction(state, config, engine.statResolver);
-    setText("hud-production", formatRate(prod));
-    const data = calculateAvailableData(state, config);
-    setText("hud-data", formatInteger(data));
-    setText("hud-level", formatInteger(state.computerLevel ?? 1));
-    setText("hud-optimizations", formatInteger(state.facilityOptimizations ?? 0));
-
-    // Active Tab Display
-    const activeTab = state.ui?.activeTab || "energy";
-    const tabEnergy = container.querySelector("#tab-energy");
-    const tabEff = container.querySelector("#tab-efficiency");
-    if (tabEnergy) tabEnergy.style.display = activeTab === "energy" ? "block" : "none";
-    if (tabEff) tabEff.style.display = activeTab === "efficiency" ? "block" : "none";
-    const tabBtns = container.querySelectorAll(".tab-btn");
-    tabBtns.forEach((btn) => {
-      btn.classList.toggle("tab-btn--active", btn.dataset.tab === activeTab);
-    });
-
-    // Quicksave button state
-    const qsBtn = container.querySelector('[data-field="restore-qs-btn"]');
-    if (qsBtn && engine.hasQuicksave) {
-      qsBtn.disabled = !engine.hasQuicksave();
-    }
-
-    // Dev Mode Button
-    const devBtn = container.querySelector('[data-field="dev-mode-btn"]');
-    if (devBtn) {
-      devBtn.textContent = state.devMode ? "DEV MODE: ON (FORCE ACTIVE)" : "DEV MODE: OFF (STRICT)";
-      devBtn.className = `btn btn--sm ${state.devMode ? "btn--bypass" : "btn--muted"}`;
-    }
-
-    // 2. CRC Card
-    const ap = calculateAlgorithmPerformance(state, config, engine.statResolver);
-    setText("crc-ap", formatEnergy(ap) + "/s");
-    const compMult = calculateComputerPerformanceMultiplier(state.computerLevel ?? 1, config);
-    setText("crc-comp-mult", compMult.toFixed(2) + "x");
-    const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
-    setText("crc-gadget-mult", hasGadget ? "2.00x" : "1.00x");
-    setText("crc-prod-rate", formatRate(prod));
-
-    const stableCap = calculatePowerCellCapacity(state.powerCells ?? 0, state, config, engine.statResolver);
-    const decay = calculateEnergyOverflowDecay(state.energy, stableCap, config);
-    const decayRow = container.querySelector('[data-field="crc-decay-row"]');
-    if (decayRow) {
-      if (decay.gt(0)) {
-        decayRow.style.display = "flex";
-        setText("crc-decay-rate", "-" + formatEnergy(decay) + "/s");
-      } else {
-        decayRow.style.display = "none";
-      }
-    }
-
-    // 3. Algorithm Features
-    const strengths = calculateAlgorithmBaseStrengths(config);
-    // AImp
-    const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
-    const aImpProd = state.algorithms?.AImp?.produced ?? 0;
-    setText("aimp-owned", `${formatInteger(aImpOwned)} / ${formatInteger(aImpProd)}`);
-    const devMult = calculateTotalDeviceMultiplier(state, config);
-    const capMult = (state.devices?.capacitors ?? 0) > 0 ? (1 + 0.5 * state.devices.capacitors * devMult) : 1.0;
-    setText("aimp-unit-strength", formatEnergy(strengths.AImp * capMult) + "/s");
-    setText("aimp-contribution", formatEnergy(big(strengths.AImp).mul(aImpOwned).mul(capMult)) + "/s");
-    const aImpDur = calculateEffectiveStudyDuration("AImp", state, config, engine.statResolver);
-    setText("aimp-duration", aImpDur.toFixed(2) + "s");
-    setText("aimp-workers", formatInteger(state.devices?.chips?.allocations?.AImp ?? 0));
-
-    // AUpg
-    const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
-    const aUpgProd = state.algorithms?.AUpg?.produced ?? 0;
-    setText("aupg-owned", `${formatInteger(aUpgOwned)} / ${formatInteger(aUpgProd)}`);
-    setText("aupg-unit-strength", formatEnergy(strengths.AUpg) + "/s");
-    setText("aupg-contribution", formatEnergy(big(strengths.AUpg).mul(aUpgOwned)) + "/s");
-    const aUpgDur = calculateEffectiveStudyDuration("AUpg", state, config, engine.statResolver);
-    setText("aupg-duration", aUpgDur.toFixed(2) + "s");
-    setText("aupg-workers", formatInteger(state.devices?.chips?.allocations?.AUpg ?? 0));
-    const aupgCanAfford = (state.algorithms?.AImp?.owned ?? 0) >= 12;
-    const aupgBtn = container.querySelector('[data-field="aupg-study-btn"]');
-    if (aupgBtn) {
-      aupgBtn.className = `btn btn--block ${aupgCanAfford ? "btn--eligible" : "btn--bypass"}`;
-      aupgBtn.disabled = !aupgCanAfford && !state.devMode;
-    }
-
-    // ARec
-    const cardARec = container.querySelector("#card-arec");
-    if (cardARec) {
-      if (state.unlocks?.ARec) {
-        cardARec.style.display = "flex";
-        const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
-        const aRecProd = state.algorithms?.ARec?.produced ?? 0;
-        setText("arec-owned", `${formatInteger(aRecOwned)} / ${formatInteger(aRecProd)}`);
-        setText("arec-unit-strength", formatEnergy(strengths.ARec) + "/s");
-        setText("arec-contribution", formatEnergy(big(strengths.ARec).mul(aRecOwned)) + "/s");
-        const aRecDur = calculateEffectiveStudyDuration("ARec", state, config, engine.statResolver);
-        setText("arec-duration", aRecDur.toFixed(2) + "s");
-        setText("arec-workers", formatInteger(state.devices?.chips?.allocations?.ARec ?? 0));
-        const arecCanAfford = (state.algorithms?.AUpg?.owned ?? 0) >= 12;
-        const arecBtn = container.querySelector('[data-field="arec-study-btn"]');
-        if (arecBtn) {
-          arecBtn.className = `btn btn--block ${arecCanAfford ? "btn--eligible" : "btn--bypass"}`;
-          arecBtn.disabled = !arecCanAfford && !state.devMode;
-        }
-      } else {
-        cardARec.style.display = "none";
-      }
-    }
-
-    // --- BUTTON & BADGE DYNAMIC UPDATE ENGINE ---
-    const updateElementButton = (btnSelector, elementId, defaultLabel, count = 1, badgeSelector = null, unlockLabel = "UNLOCKED") => {
-      const btn = container.querySelector(btnSelector);
-      const element = getElement(elementId);
-      if (!btn || !element) return;
-
-      const evalResult = evaluateElement(element, state, config, count);
-      const { visualStatus, canClick, strictUnlocked, cost, unique, owned } = evalResult;
-      const formattedCost = cost ? formatEnergy(cost) : null;
-      const badge = badgeSelector ? container.querySelector(badgeSelector) : null;
-
-      if (unique && owned > 0) {
-        btn.disabled = true;
-        btn.className = "btn btn--block btn--muted";
-        btn.textContent = "ALREADY OWNED";
-        if (badge) {
-          badge.className = "badge badge--success";
-          badge.textContent = "OWNED";
-        }
-        return;
-      }
-
-      if (visualStatus === "eligible") {
-        btn.disabled = false;
-        btn.className = "btn btn--block btn--eligible";
-        btn.textContent = formattedCost ? `${defaultLabel} — ${formattedCost}` : defaultLabel;
-        if (badge) {
-          badge.className = "badge badge--success";
-          badge.textContent = unlockLabel;
-        }
-      } else if (visualStatus === "dev-bypass") {
-        btn.disabled = false;
-        btn.className = "btn btn--block btn--bypass";
-        const prefix = !strictUnlocked ? "[DEV BYPASS - LOCKED]" : "[DEV BYPASS]";
-        btn.textContent = formattedCost ? `${prefix} ${defaultLabel} — ${formattedCost}` : `${prefix} ${defaultLabel}`;
-        if (badge) {
-          badge.className = strictUnlocked ? "badge badge--warning" : "badge badge--bypass";
-          badge.textContent = strictUnlocked ? "UNAFFORDABLE" : "LOCKED (BYPASS)";
-        }
-      } else {
-        btn.disabled = true;
-        btn.className = "btn btn--block btn--muted";
-        if (!strictUnlocked) {
-          const reason = evalResult.reasons?.[0] || "LOCKED";
-          btn.textContent = `LOCKED (${reason})`;
-          if (badge) {
-            badge.className = "badge badge--muted";
-            badge.textContent = "LOCKED";
-          }
-        } else {
-          btn.textContent = formattedCost ? `${defaultLabel} — ${formattedCost}` : defaultLabel;
-          if (badge) {
-            badge.className = "badge badge--warning";
-            badge.textContent = "NEED ENERGY";
-          }
-        }
-      }
-    };
-
-    const updateBulkButtons = (cardSelector, elementId) => {
-      const card = container.querySelector(cardSelector);
-      if (!card) return;
-      const element = getElement(elementId);
-      if (!element) return;
-      const bulkBtns = card.querySelectorAll(".btn-group--bulk button[data-count]");
-      bulkBtns.forEach((btn) => {
-        const count = parseInt(btn.dataset.count || "10", 10);
-        const evalResult = evaluateElement(element, state, config, count);
-        btn.disabled = !evalResult.canClick;
-        btn.className = `btn btn--sm ${
-          evalResult.visualStatus === "dev-bypass"
-            ? "btn--bypass"
-            : evalResult.canClick
-            ? "btn--dev"
-            : "btn--muted"
-        }`;
-        if (evalResult.cost) {
-          btn.title = `Cost: ${formatEnergy(evalResult.cost)}`;
-        }
-      });
-    };
-
-    // Direct Devices: CRC Gadget
-    setText("crc-gadget-owned", (state.devices?.crcGadget?.owned ?? 0) + " / 1");
-    updateElementButton('[data-field="crc-gadget-btn"]', "crcGadget", "BUY CRC GADGET", 1, '[data-field="crc-gadget-badge"]', "AVAILABLE");
-
-    // Capacitor
-    const caps = state.devices?.capacitors ?? 0;
-    setText("capacitor-owned", formatInteger(caps));
-    setText("capacitor-mult", capMult.toFixed(2) + "x");
-    const capCost = calculateBulkDeviceCost("capacitor", caps, 1, config);
-    setText("capacitor-next-cost", formatEnergy(capCost));
-    updateElementButton('[data-field="capacitor-btn"]', "capacitor", "BUY CAPACITOR", 1, '[data-field="capacitor-badge"]', "UNLOCKED");
-    updateBulkButtons("#card-capacitor", "capacitor");
-
-    // Power Cells
-    const pCells = state.powerCells ?? 0;
-    setText("powercell-owned", formatInteger(pCells));
-    setText("powercell-capacity", formatEnergy(stableCap));
-    const cellCost = calculateBulkDeviceCost("powerCell", pCells, 1, config);
-    setText("powercell-next-cost", formatEnergy(cellCost));
-    updateElementButton('[data-field="powercell-btn"]', "powerCell", "BUY POWER CELL", 1);
-    updateBulkButtons("#card-powercell", "powerCell");
-
-    // Efficiency Tab: Machine Learning (Soft Reset)
-    const currentData = calculateAvailableData(state, config);
-    const reqData = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
-    setText("ml-current-level", state.computerLevel ?? 1);
-    setText("ml-multiplier", compMult.toFixed(2) + "x");
-    setText("ml-available-data", `${formatInteger(currentData)} / ${formatInteger(reqData)}`);
-    const dataFromAlgo = calculateDataFromAlgorithms(state, config);
-    const dataFromHD = state.devices?.hardDisks?.buffer ?? 0;
-    setText("ml-data-breakdown", `${formatInteger(dataFromAlgo)} from Algorithms / ${formatInteger(dataFromHD)} from HD Buffer`);
-    const mlBtn = container.querySelector('[data-field="ml-btn"]');
-    const mlBadge = container.querySelector('[data-field="ml-badge"]');
-    if (mlBtn) {
-      const canML = currentData >= reqData;
-      if (canML) {
-        mlBtn.className = "btn btn--block btn--eligible";
-        mlBtn.disabled = false;
-        mlBtn.textContent = `RUN MACHINE LEARNING (Adv to Level ${(state.computerLevel ?? 1) + 1})`;
-        if (mlBadge) {
-          mlBadge.className = "badge badge--success";
-          mlBadge.textContent = "READY";
-        }
-      } else if (state.devMode) {
-        mlBtn.className = "btn btn--block btn--bypass";
-        mlBtn.disabled = false;
-        mlBtn.textContent = `[DEV BYPASS] RUN MACHINE LEARNING (Adv to Level ${(state.computerLevel ?? 1) + 1})`;
-        if (mlBadge) {
-          mlBadge.className = "badge badge--bypass";
-          mlBadge.textContent = "BYPASS";
-        }
-      } else {
-        mlBtn.className = "btn btn--block btn--muted";
-        mlBtn.disabled = true;
-        mlBtn.textContent = `RUN MACHINE LEARNING (Need ${formatInteger(reqData)} Data)`;
-        if (mlBadge) {
-          mlBadge.className = "badge badge--warning";
-          mlBadge.textContent = "THRESHOLD";
-        }
-      }
-    }
-
-    // Chips
-    const chipsOwned = state.devices?.chips?.owned ?? 0;
-    setText("chips-owned", formatInteger(chipsOwned));
-    const chipCost = calculateBulkDeviceCost("chip", chipsOwned, 1, config);
-    setText("chips-next-cost", formatEnergy(chipCost));
-    setText(
-      "chips-allocation-label",
-      `${state.devices?.chips?.allocations?.AImp ?? 0} AImp / ${state.devices?.chips?.allocations?.AUpg ?? 0} AUpg / ${state.devices?.chips?.allocations?.ARec ?? 0} ARec`
-    );
-    updateElementButton('[data-field="chip-btn"]', "chip", "BUY CHIP", 1, '[data-field="chip-badge"]', "UNLOCKED");
-    updateBulkButtons("#panel-chips", "chip");
-
-    // Chip Reassignment Button States
-    const chipBtns = container.querySelectorAll('[data-action="reassign-chip"]');
-    chipBtns.forEach((btn) => {
-      const from = btn.dataset.from;
-      const available = state.devices?.chips?.allocations?.[from] ?? 0;
-      btn.disabled = available <= 0 && !state.devMode;
-      btn.style.opacity = available <= 0 && !state.devMode ? "0.45" : "1.0";
-    });
-
-    // Transistor Board
-    const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
-    const boardPurchaseBox = container.querySelector("#board-purchase-box");
-    const boardActiveContent = container.querySelector("#board-active-content");
-    if (boardPurchaseBox && boardActiveContent) {
-      if (hasBoard) {
-        boardPurchaseBox.style.display = "none";
-        boardActiveContent.style.display = "block";
-      } else {
-        boardPurchaseBox.style.display = "block";
-        boardActiveContent.style.display = "none";
-      }
-    }
-    updateElementButton('[data-field="buy-board-btn"]', "transistorBoard", "BUY TRANSISTOR BOARD", 1, '[data-field="board-badge"]', "UNLOCKED");
-
-    const tPurchased = state.devices?.transistorsPurchased ?? 0;
-    setText("transistor-total", formatInteger(tPurchased));
-    const tCost = calculateBulkDeviceCost("transistor", tPurchased, 1, config);
-    setText("transistor-cost", formatEnergy(tCost));
-    updateElementButton('[data-field="buy-transistor-btn"]', "transistor", "BUY TRANSISTOR (+1)", 1);
-    updateBulkButtons("#panel-transistor-board", "transistor");
-
-    // Transistor table rows & speed metrics
-    const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
-    const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
-    const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
-    setText("transistor-aimp-count", formatInteger(tAImp));
-    setText("transistor-aupg-count", formatInteger(tAUpg));
-    setText("transistor-arec-count", formatInteger(tARec));
-    setText("transistor-aimp-dur", aImpDur.toFixed(2) + "s");
-    setText("transistor-aupg-dur", aUpgDur.toFixed(2) + "s");
-    const aRecDur = calculateEffectiveStudyDuration("ARec", state, config, engine.statResolver);
-    setText("transistor-arec-dur", aRecDur.toFixed(2) + "s");
-    setText("transistor-aimp-speed", calculateEffectiveStudySpeed("AImp", state, config, engine.statResolver).toFixed(2) + "x");
-    setText("transistor-aupg-speed", calculateEffectiveStudySpeed("AUpg", state, config, engine.statResolver).toFixed(2) + "x");
-    setText("transistor-arec-speed", calculateEffectiveStudySpeed("ARec", state, config, engine.statResolver).toFixed(2) + "x");
-
-    // Transistor Reassignment Button States
-    const tBtns = container.querySelectorAll('[data-action="reassign-transistor"]');
-    tBtns.forEach((btn) => {
-      const from = btn.dataset.from;
-      const available = state.devices?.transistorAllocations?.[from] ?? 0;
-      btn.disabled = available <= 0 && !state.devMode;
-      btn.style.opacity = available <= 0 && !state.devMode ? "0.45" : "1.0";
-    });
-
-    // ARec Unlocks: Reveal table row and reassignment/target buttons
-    const hasARec = Boolean(state.unlocks?.ARec);
-    const chipARecBtn = container.querySelector('[data-field="chip-arec-btn"]');
-    if (chipARecBtn) chipARecBtn.style.display = hasARec ? "inline-block" : "none";
-    const microARecBtn = container.querySelector('[data-field="micro-arec-btn"]');
-    if (microARecBtn) microARecBtn.style.display = hasARec ? "inline-block" : "none";
-    const tRowARec = container.querySelector("#transistor-row-arec");
-    if (tRowARec) tRowARec.style.display = hasARec ? "table-row" : "none";
-
-    // Microprocessor
-    const microTarget = state.devices?.microprocessor?.target ?? "AImp";
-    setText("micro-target", microTarget);
-    const microOwned = state.devices?.microprocessor?.owned ?? 0;
-    setText("micro-owned", formatInteger(microOwned));
-    const microCost = calculateBulkDeviceCost("microprocessor", microOwned, 1, config);
-    setText("micro-cost", formatEnergy(microCost));
-    const microT = state.devices?.transistorAllocations?.[microTarget] ?? 0;
-    const microMultVal = microOwned > 0
-      ? calculateMicroprocessorStudyMultiplier(microT, config, 1, microOwned).toFixed(2) + "x"
-      : "1.00x";
-    setText("micro-bonus", microMultVal);
-    updateElementButton('[data-field="micro-btn"]', "microprocessor", "BUY MICROPROCESSOR", 1, '[data-field="micro-badge"]', "UNLOCKED");
-    updateBulkButtons("#card-microprocessor", "microprocessor");
-
-    // Microprocessor Target Buttons Styling
-    const microTargetBtns = container.querySelectorAll('[data-action="set-micro-target"]');
-    microTargetBtns.forEach((btn) => {
-      const isTarget = btn.dataset.target === microTarget;
-      btn.className = `btn btn--sm ${isTarget ? "btn--primary" : ""}`;
-    });
-
-    // Overclocker
-    const oc = state.devices?.overclocker;
-    if (oc) {
-      setText("overclock-status", oc.active ? "ACTIVE" : "INACTIVE");
-      setText("overclock-timer", `${oc.activeSeconds.toFixed(1)}s / ${Math.max(0, oc.remainingDuration).toFixed(1)}s`);
-    }
-    updateElementButton('[data-field="overclock-buy-btn"]', "overclocker", "BUY OVERCLOCKER", 1, '[data-field="overclock-badge"]', "UNLOCKED");
-    const ocBurnBtn = container.querySelector('[data-field="overclock-burn-btn"]');
-    if (ocBurnBtn) {
-      const ocOwned = (state.devices?.overclocker?.owned ?? 0) > 0;
-      const tOnTarget = state.devices?.transistorAllocations?.[microTarget] ?? 0;
-      if (!ocOwned) {
-        ocBurnBtn.disabled = true;
-        ocBurnBtn.className = "btn btn--block btn--muted";
-        ocBurnBtn.textContent = "REQUIRES OVERCLOCKER HARDWARE";
-      } else if (oc?.active) {
-        ocBurnBtn.disabled = true;
-        ocBurnBtn.className = "btn btn--block btn--muted";
-        ocBurnBtn.textContent = `OVERCLOCK ACTIVE (${Math.max(0, oc.remainingDuration).toFixed(1)}s left)`;
-      } else if (tOnTarget >= 2) {
-        ocBurnBtn.disabled = false;
-        ocBurnBtn.className = "btn btn--block btn--danger";
-        ocBurnBtn.textContent = `BURN ${tOnTarget} TRANSISTORS & OVERCLOCK (${microTarget})`;
-      } else if (state.devMode) {
-        ocBurnBtn.disabled = false;
-        ocBurnBtn.className = "btn btn--block btn--bypass";
-        ocBurnBtn.textContent = `[DEV BYPASS] BURN ${Math.max(2, tOnTarget)} TRANSISTORS & OVERCLOCK`;
-      } else {
-        ocBurnBtn.disabled = true;
-        ocBurnBtn.className = "btn btn--block btn--muted";
-        ocBurnBtn.textContent = `NEED 2+ TRANSISTORS ON ${microTarget} (Have ${tOnTarget})`;
-      }
-    }
-
-    // Processor
-    const procs = state.devices?.processors ?? 0;
-    setText("processor-owned", formatInteger(procs));
-    setText("processor-bonus", (1 + 0.03 * procs).toFixed(2) + "x");
-    const procCost = calculateBulkDeviceCost("processor", procs, 1, config);
-    setText("processor-cost", formatEnergy(procCost));
-    updateElementButton('[data-field="processor-btn"]', "processor", "BUY PROCESSOR", 1, '[data-field="processor-badge"]', "UNLOCKED");
-    updateBulkButtons("#card-processor", "processor");
-
-    // Hard Disk
-    const hds = state.devices?.hardDisks?.owned ?? 0;
-    const hdState = state.devices?.hardDisks?.state ?? "off";
-    setText("harddisk-state", `${hds} / ${hdState.toUpperCase()}`);
-    const hdRate = hdState === "active" ? calculateHardDiskXpRate(hds, state, config, engine.statResolver) : 0;
-    setText("harddisk-rate", `${hdRate.toFixed(1)} Data/s`);
-    const hdDrain = hdState === "active" ? calculateHardDiskEnergyDrain(hds, state.devices?.hardDisks?.activeSeconds ?? 0, config) : big(0);
-    setText("harddisk-drain", "-" + formatEnergy(hdDrain) + "/s");
-    setText("harddisk-buffer", formatInteger(state.devices?.hardDisks?.buffer ?? 0) + " Data");
-    const hdCost = calculateBulkDeviceCost("hardDisk", hds, 1, config);
-    updateElementButton('[data-field="harddisk-btn"]', "hardDisk", "BUY HARD DISK", 1, '[data-field="harddisk-badge"]', "UNLOCKED");
-    updateBulkButtons("#card-harddisk", "hardDisk");
-
-    // Hard Disk State Buttons
-    const hdBtns = container.querySelectorAll('[data-action="set-harddisk-state"]');
-    hdBtns.forEach((btn) => {
-      const isCurrent = btn.dataset.state === hdState;
-      if (btn.dataset.state === "off") {
-        btn.className = `btn btn--sm ${isCurrent ? "btn--danger" : ""}`;
-      } else {
-        btn.className = `btn btn--sm ${isCurrent ? "btn--primary" : ""}`;
-      }
-    });
-
-    // Facility Optimization
-    const reqLevel = calculateFacilityOptimizationRequirement(state.facilityOptimizations ?? 0, config);
-    setText("facility-opt-count", formatInteger(state.facilityOptimizations ?? 0));
-    setText("facility-opt-req", `Level ${reqLevel}`);
-    const facMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
-    setText("facility-opt-mult", facMult.toFixed(2) + "x");
-    const facBtn = container.querySelector('[data-field="facility-opt-btn"]');
-    const facBadge = container.querySelector('[data-field="facility-opt-badge"]');
-    if (facBtn) {
-      const canFO = (state.computerLevel ?? 1) >= reqLevel;
-      if (canFO) {
-        facBtn.className = "btn btn--block btn--danger";
-        facBtn.disabled = false;
-        facBtn.textContent = `PERFORM FACILITY OPTIMIZATION (H = ${(state.facilityOptimizations ?? 0) + 1})`;
-        if (facBadge) {
-          facBadge.className = "badge badge--danger";
-          facBadge.textContent = "READY";
-        }
-      } else if (state.devMode) {
-        facBtn.className = "btn btn--block btn--bypass";
-        facBtn.disabled = false;
-        facBtn.textContent = `[DEV BYPASS] FACILITY OPTIMIZATION (H = ${(state.facilityOptimizations ?? 0) + 1})`;
-        if (facBadge) {
-          facBadge.className = "badge badge--bypass";
-          facBadge.textContent = "BYPASS";
-        }
-      } else {
-        facBtn.className = "btn btn--block btn--muted";
-        facBtn.disabled = true;
-        facBtn.textContent = `LOCKED (Req Computer Level ${reqLevel})`;
-        if (facBadge) {
-          facBadge.className = "badge badge--warning";
-          facBadge.textContent = "REQUIREMENT";
-        }
-      }
-    }
-
-    // Study Feature Bulk Buttons Updates
-    const aupgCard = container.querySelector('[data-target="AUpg"]')?.closest(".element-card");
-    if (aupgCard) {
-      const aupgBulk = aupgCard.querySelectorAll(".btn-group--bulk button[data-count]");
-      aupgBulk.forEach((btn) => {
-        const count = parseInt(btn.dataset.count || "10", 10);
-        const req = count * 12;
-        const canAfford = (state.algorithms?.AImp?.owned ?? 0) >= req;
-        btn.disabled = !canAfford && !state.devMode;
-        btn.className = `btn btn--sm ${
-          !canAfford && state.devMode ? "btn--bypass" : canAfford ? "btn--dev" : "btn--muted"
-        }`;
-        btn.title = `Requires ${req} A.Imp`;
-      });
-    }
-    const arecCard = container.querySelector("#card-arec");
-    if (arecCard) {
-      const arecBulk = arecCard.querySelectorAll(".btn-group--bulk button[data-count]");
-      arecBulk.forEach((btn) => {
-        const count = parseInt(btn.dataset.count || "10", 10);
-        const req = count * 12;
-        const canAfford = (state.algorithms?.AUpg?.owned ?? 0) >= req;
-        btn.disabled = !canAfford && !state.devMode;
-        btn.className = `btn btn--sm ${
-          !canAfford && state.devMode ? "btn--bypass" : canAfford ? "btn--dev" : "btn--muted"
-        }`;
-        btn.title = `Requires ${req} A.Upg`;
-      });
-    }
-
-    // Audit logs update
-    setText("audit-count", `${state.auditLogs?.length ?? 0} event(s) recorded`);
-    const tbody = container.querySelector("#audit-tbody");
-    if (tbody && state.auditLogs && state.auditLogs.length > 0) {
-      const recent = state.auditLogs.slice(-15).reverse();
-      tbody.innerHTML = recent.map((log) => `
-        <tr>
-          <td>${log.timestamp}</td>
-          <td><strong>${log.actionType}</strong></td>
-          <td>${log.itemName}</td>
-          <td>${log.purchasedQuantity}</td>
-          <td>${log.nominalCostFormatted}</td>
-          <td><span class="badge ${log.ruleStatus === 'RULE_ELIGIBLE' ? 'badge--success' : 'badge--warning'}">${log.ruleStatus}</span></td>
-          <td>${log.energyAfterFormatted}</td>
-        </tr>
-      `).join("");
+  function setElText(el, val) {
+    if (el && el.textContent !== String(val)) {
+      el.textContent = String(val);
     }
   }
 
+  function cacheDomElements() {
+    dom = {
+      navTabs: Array.from(container.querySelectorAll(".tes-nav-tab")),
+      tabEnergy: container.querySelector("#tab-energy"),
+      tabDevices: container.querySelector("#tab-devices"),
+
+      railFacilityLevel: container.querySelector(
+        '[data-field="rail-facility-level"]',
+      ),
+      railDataFraction: container.querySelector(
+        '[data-field="rail-data-fraction"]',
+      ),
+      railDataBar: container.querySelector('[data-field="rail-data-bar"]'),
+      railEnergy: container.querySelector('[data-field="rail-energy"]'),
+      railSpRow: container.querySelector("#rail-row-sp"),
+      railSp: container.querySelector('[data-field="rail-sp"]'),
+
+      devBtn: container.querySelector('[data-field="dev-mode-btn"]'),
+      devBtnLabel: container.querySelector('[data-field="dev-btn-label"]'),
+      newsTicker: container.querySelector("#news-ticker"),
+      newsContent: container.querySelector('[data-field="news-content"]'),
+
+      storedEnergyMain: container.querySelector(
+        '[data-field="stored-energy-main"]',
+      ),
+      energyNetItem: container.querySelector("#energy-net-item"),
+      energyNet: container.querySelector('[data-field="energy-net"]'),
+      energyCapacityItem: container.querySelector("#energy-capacity-item"),
+      energyCapacity: container.querySelector('[data-field="energy-capacity"]'),
+      energyDecayItem: container.querySelector("#energy-decay-item"),
+      energyDecay: container.querySelector('[data-field="energy-decay"]'),
+      crcRate: container.querySelector('[data-field="crc-rate"]'),
+      crcLevelMult: container.querySelector('[data-field="crc-level-mult"]'),
+
+      energyEraPercent: container.querySelector('[data-field="energy-era-percent"]'),
+      energyEraFill: container.querySelector('[data-field="energy-era-fill"]'),
+      energyEraTrack: container.querySelector('.tes-energy-era-track'),
+
+      aimpTitle: container.querySelector('[data-field="aimp-title"]'),
+      aimpDur: container.querySelector('[data-field="aimp-dur"]'),
+      aimpRing: container.querySelector('[data-field="aimp-progress-ring"]'),
+      aimpAutoBadge: container.querySelector('[data-field="aimp-auto-badge"]'),
+      aimpImproveBtn: container.querySelector('[data-field="aimp-improve-btn"]'),
+      aimpImproveBadge: container.querySelector('[data-field="aimp-improve-badge"]'),
+      aimpImproveMilestone: container.querySelector('[data-field="aimp-improve-milestone"]'),
+      aimpInstallTransistor: container.querySelector('[data-field="aimp-install-transistor"]'),
+      aimpTransistorCost: container.querySelector('[data-field="aimp-transistor-cost"]'),
+
+      aupgTitle: container.querySelector('[data-field="aupg-title"]'),
+      aupgDur: container.querySelector('[data-field="aupg-dur"]'),
+      aupgRing: container.querySelector('[data-field="aupg-progress-ring"]'),
+      aupgAutoBadge: container.querySelector('[data-field="aupg-auto-badge"]'),
+      aupgBtn: container.querySelector('[data-field="aupg-study-btn"]'),
+      aupgImproveBtn: container.querySelector('[data-field="aupg-improve-btn"]'),
+      aupgImproveBadge: container.querySelector('[data-field="aupg-improve-badge"]'),
+      aupgImproveMilestone: container.querySelector('[data-field="aupg-improve-milestone"]'),
+      aupgInstallTransistor: container.querySelector('[data-field="aupg-install-transistor"]'),
+      aupgTransistorCost: container.querySelector('[data-field="aupg-transistor-cost"]'),
+
+      arecUnit: container.querySelector('#study-unit-arec'),
+      arecRow: container.querySelector("#study-row-arec"),
+      arecTitle: container.querySelector('[data-field="arec-title"]'),
+      arecDur: container.querySelector('[data-field="arec-dur"]'),
+      arecRing: container.querySelector('[data-field="arec-progress-ring"]'),
+      arecAutoBadge: container.querySelector('[data-field="arec-auto-badge"]'),
+      arecBtn: container.querySelector('[data-field="arec-study-btn"]'),
+      arecImproveBtn: container.querySelector('[data-field="arec-improve-btn"]'),
+      arecImproveBadge: container.querySelector('[data-field="arec-improve-badge"]'),
+      arecImproveMilestone: container.querySelector('[data-field="arec-improve-milestone"]'),
+      arecInstallTransistor: container.querySelector('[data-field="arec-install-transistor"]'),
+      arecTransistorCost: container.querySelector('[data-field="arec-transistor-cost"]'),
+
+      mlProgressText: container.querySelector(
+        '[data-field="ml-progress-text"]',
+      ),
+      mlProgressBar: container.querySelector('[data-field="ml-progress-bar"]'),
+      mlBtn: container.querySelector('[data-field="ml-action-btn"]'),
+
+      foCard: container.querySelector("#fo-card"),
+      foTitle: container.querySelector('[data-field="fo-title"]'),
+      foProgressText: container.querySelector('[data-field="fo-progress-text"]'),
+      foProgressBar: container.querySelector('[data-field="fo-progress-bar"]'),
+      foReqLevel: container.querySelector('[data-field="fo-req-level"]'),
+      foCurBonus: container.querySelector('[data-field="fo-cur-bonus"]'),
+      foNextBonus: container.querySelector('[data-field="fo-next-bonus"]'),
+      foBtn: container.querySelector('[data-field="fo-action-btn"]'),
+
+      filterPills: Array.from(container.querySelectorAll(".tes-filter-pill")),
+      toggleShowAdded: container.querySelector("#toggle-show-added"),
+      toggleShowUnavailable: container.querySelector(
+        "#toggle-show-unavailable",
+      ),
+      filterCounts: {
+        all: container.querySelector('[data-field="filter-all-btn"]'),
+        automation: container.querySelector(
+          '[data-field="filter-automation-btn"]',
+        ),
+        computation: container.querySelector(
+          '[data-field="filter-computation-btn"]',
+        ),
+        energy: container.querySelector('[data-field="filter-energy-btn"]'),
+        learning: container.querySelector('[data-field="filter-learning-btn"]'),
+      },
+
+      groups: {
+        automation: container.querySelector("#group-automation"),
+        computation: container.querySelector("#group-computation"),
+        energy: container.querySelector("#group-energy"),
+        learning: container.querySelector("#group-learning"),
+      },
+
+      deviceRows: {},
+      deviceControls: {},
+
+      drawersContainer: container.querySelector("#tes-drawers-container"),
+      popoverContainer: container.querySelector("#tes-popover-container"),
+    };
+
+    const deviceIds = [
+      "autoCalculator_AImp",
+      "autoCalculator_AUpg",
+      "autoCalculator_ARec",
+      "transistorBoard",
+      "microprocessor",
+      "processor",
+      "overclocker",
+      "crcGadget",
+      "capacitor",
+      "powerCell",
+      "hardDisk",
+    ];
+
+    deviceIds.forEach((id) => {
+      const row = container.querySelector(`[data-device-id="${id}"]`);
+      if (row) {
+        dom.deviceRows[id] = row;
+        switch (id) {
+          case "autoCalculator_AImp":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-aimp-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-aimp-action-btn"]',
+              ),
+            };
+            break;
+          case "autoCalculator_AUpg":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-aupg-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-aupg-action-btn"]',
+              ),
+            };
+            break;
+          case "autoCalculator_ARec":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-arec-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-arec-action-btn"]',
+              ),
+            };
+            break;
+          case "transistorBoard":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="board-badge"]'),
+              actionBtn: row.querySelector('[data-field="board-action-btn"]'),
+            };
+            break;
+          case "microprocessor":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="micro-data-pill"]'),
+              actionBtn: row.querySelector('[data-field="micro-action-btn"]'),
+            };
+            break;
+          case "processor":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="processor-data-pill"]'),
+              actionBtn: row.querySelector(
+                '[data-field="processor-action-btn"]',
+              ),
+            };
+            break;
+          case "overclocker":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="overclock-badge"]'),
+              buyBtn: row.querySelector('[data-field="overclock-buy-btn"]'),
+              actBtn: row.querySelector(
+                '[data-field="overclock-activate-btn"]',
+              ),
+            };
+            break;
+          case "crcGadget":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="crc-gadget-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="crc-gadget-action-btn"]',
+              ),
+            };
+            break;
+          case "capacitor":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="capacitor-data-pill"]'),
+              actionBtn: row.querySelector(
+                '[data-field="capacitor-action-btn"]',
+              ),
+            };
+            break;
+          case "powerCell":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="powercell-data-pill"]'),
+              actionBtn: row.querySelector(
+                '[data-field="powercell-action-btn"]',
+              ),
+            };
+            break;
+          case "hardDisk":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="harddisk-status-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="harddisk-action-btn"]',
+              ),
+            };
+            break;
+        }
+      }
+    });
+  }
+
+  function updateDynamicValues(state) {
+    if (!dom) cacheDomElements();
+    const config = engine.config;
+
+    // 1. Facility Rail Values (Always visible on all screens)
+    const compLevel = state.computerLevel ?? 1;
+    setElText(dom.railFacilityLevel, `Level ${compLevel}`);
+    const currentData = calculateEffectiveAvailableData(state, config);
+    const reqData = calculateRequiredDataForNextComputerLevel(
+      compLevel,
+      config,
+    );
+    setElText(
+      dom.railDataFraction,
+      `${formatInteger(currentData)} / ${formatInteger(reqData)}`,
+    );
+    const dataRatio = Math.min(100, Math.max(0, (currentData / reqData) * 100));
+    if (dom.railDataBar) {
+      const ratioStr = `${dataRatio.toFixed(1)}%`;
+      if (dom.railDataBar.style.width !== ratioStr)
+        dom.railDataBar.style.width = ratioStr;
+    }
+    setElText(dom.railEnergy, formatEnergy(state.energy));
+
+    // Science Points rail row if unlocked
+    if (dom.railSpRow) {
+      if ((state.sciencePoints ?? 0) > 0 || state.unlocks?.science) {
+        if (dom.railSpRow.style.display !== "flex")
+          dom.railSpRow.style.display = "flex";
+        setElText(dom.railSp, `${formatInteger(state.sciencePoints ?? 0)} SP`);
+      } else if (dom.railSpRow.style.display !== "none") {
+        dom.railSpRow.style.display = "none";
+      }
+    }
+
+    // Dev Mode Button & Cheats Indicator
+    if (dom.devBtn && dom.devBtnLabel) {
+      const targetTxt = state.devMode ? "DEV: ON (FORCE)" : "DEV MODE";
+      setElText(dom.devBtnLabel, targetTxt);
+      dom.devBtn.classList.toggle(
+        "btn-utility--active",
+        Boolean(state.devMode),
+      );
+    }
+
+    // Tab Switching Display
+    const activeTab = state.ui?.activeTab || "energy";
+    if (dom.tabEnergy) {
+      const showEnergy = activeTab === "energy";
+      const curDisplay = dom.tabEnergy.style.display;
+      if (showEnergy && curDisplay !== "flex")
+        dom.tabEnergy.style.display = "flex";
+      else if (!showEnergy && curDisplay !== "none")
+        dom.tabEnergy.style.display = "none";
+    }
+    if (dom.tabDevices) {
+      const showDevices = activeTab === "devices";
+      const curDisplay = dom.tabDevices.style.display;
+      if (showDevices && curDisplay !== "flex")
+        dom.tabDevices.style.display = "flex";
+      else if (!showDevices && curDisplay !== "none")
+        dom.tabDevices.style.display = "none";
+    }
+    dom.navTabs.forEach((tabBtn) => {
+      tabBtn.classList.toggle(
+        "tes-nav-tab--active",
+        tabBtn.dataset.tab === activeTab,
+      );
+    });
+
+    // 2. Tab-Conditional Execution: Only update active tab to prevent lag!
+    if (activeTab === "energy") {
+      updateEnergyTab(
+        state,
+        config,
+        compLevel,
+        currentData,
+        reqData,
+        dataRatio,
+      );
+    } else if (activeTab === "devices") {
+      updateDevicesFilterAndRows(state, config);
+    }
+
+    // 3. Render Active Drawers / Modals (only if open or closed)
+    renderDrawersAndModals(state, config);
+  }
+
+  function updateEnergyTab(
+    state,
+    config,
+    compLevel,
+    currentData,
+    reqData,
+    dataRatio,
+  ) {
+    // Central Energy Summary Card
+    setElText(dom.storedEnergyMain, formatEnergy(state.energy));
+    const prodRate = calculateEnergyProduction(
+      state,
+      config,
+      engine.statResolver,
+    );
+    const stableCap = calculatePowerCellCapacity(
+      state.powerCells ?? 0,
+      state,
+      config,
+      engine.statResolver,
+    );
+    setElText(dom.energyCapacity, formatEnergy(stableCap));
+    const overflowDecay = calculateEnergyOverflowDecay(
+      state.energy,
+      stableCap,
+      config,
+    );
+    if (dom.energyDecayItem) {
+      if (overflowDecay.gt(0)) {
+        if (dom.energyDecayItem.style.display !== "flex")
+          dom.energyDecayItem.style.display = "flex";
+        setElText(dom.energyDecay, `-${formatEnergy(overflowDecay)}/s`);
+      } else if (dom.energyDecayItem.style.display !== "none") {
+        dom.energyDecayItem.style.display = "none";
+      }
+    }
+
+    // Cosmic Radiation Condenser (CRC) displays GROSS Production
+    setElText(dom.crcRate, formatRate(prodRate));
+    setElText(dom.crcLevelMult, `Level ${compLevel}`);
+
+    // Stored Energy displays NET Production: Gross - Decay (and any active device drain)
+    let totalDrain = overflowDecay;
+    const hardDisks = state.devices?.hardDisks;
+    if (hardDisks && hardDisks.owned > 0 && hardDisks.state === "active" && !hardDisks.dataPaused) {
+      const hdDrain = calculateHardDiskEnergyDrain(
+        hardDisks.owned,
+        hardDisks.activeSeconds,
+        config,
+      );
+      totalDrain = totalDrain.add(hdDrain);
+    }
+    const netRate = prodRate.sub(totalDrain);
+    setElText(dom.energyNet, formatRate(netRate));
+
+    if (dom.energyNet) {
+      if (netRate.lt(0)) {
+        dom.energyNet.style.color = "var(--tes-danger)";
+      } else if (netRate.eq(0)) {
+        dom.energyNet.style.color = "var(--tes-text-tertiary)";
+      } else {
+        dom.energyNet.style.color = "var(--tes-teal)";
+      }
+    }
+
+    // Energy Era Progression Bar (Section 5)
+    if (dom.energyEraPercent) {
+      const eraProgress = calculateEnergyEraProgress(state.energy, config);
+      const eraPercent = calculateEnergyEraPercent(state.energy, config);
+      setElText(dom.energyEraPercent, `${eraPercent.toFixed(1)}%`);
+      if (dom.energyEraFill) {
+        const fillWidth = `${(eraProgress * 100).toFixed(1)}%`;
+        if (dom.energyEraFill.style.width !== fillWidth) {
+          dom.energyEraFill.style.width = fillWidth;
+        }
+      }
+      if (dom.energyEraTrack) {
+        dom.energyEraTrack.setAttribute("aria-valuenow", eraPercent.toFixed(1));
+      }
+    }
+
+    const updateStudyExtraControls = (target, btnImprove, badgeImprove, milestoneImprove, cardInstall, costInstall) => {
+      // 1. Study Improve (Section 1)
+      const curImprove = state.studyImproves?.[target] ?? { completions: 0, claimed: 0 };
+      const nextMilestone = calculateStudyImproveMilestone(curImprove.claimed, config);
+      const currentStudies = state.algorithms?.[target]?.owned ?? 0;
+      const canImprove = currentStudies >= nextMilestone;
+      if (btnImprove) {
+        btnImprove.disabled = !canImprove;
+        btnImprove.setAttribute("aria-disabled", String(!canImprove));
+        btnImprove.classList.toggle("btn-study-improve--available", canImprove);
+        btnImprove.classList.toggle("btn-study-improve--disabled", !canImprove);
+        btnImprove.title = canImprove
+          ? `Click to claim Level ${curImprove.claimed + 1} Improve (${calculateStudyImproveMultiplier(curImprove.claimed + 1, config).toFixed(3)}x study speed)`
+          : `Study Improve: ${curImprove.claimed > 0 ? `Level ${curImprove.claimed} | ` : ""}${formatInteger(currentStudies)} / ${formatInteger(nextMilestone)} current studies`;
+      }
+      if (milestoneImprove) {
+        setElText(milestoneImprove, `${formatInteger(currentStudies)}/${formatInteger(nextMilestone)}`);
+      }
+      if (badgeImprove) {
+        if (curImprove.claimed > 0) {
+          if (badgeImprove.style.display !== "inline") badgeImprove.style.display = "inline";
+          setElText(badgeImprove, `L${curImprove.claimed}`);
+        } else if (badgeImprove.style.display !== "none") {
+          badgeImprove.style.display = "none";
+        }
+      }
+
+      // 2. Install Transistor (Section 3)
+      const totalT = state.devices?.transistorsPurchased ?? 0;
+      const tCost = calculateBulkDeviceCost("transistor", totalT, 1, config);
+      const boardOwned = Boolean(state.devices?.transistorBoard?.owned || state.devMode);
+      const studyUnlocked = target === "AImp" || Boolean(state.unlocks?.[target]);
+      const canAfford = big(state.energy).gte(tCost);
+      const isEligible = studyUnlocked && boardOwned && canAfford;
+
+      if (costInstall) {
+        setElText(costInstall, formatEnergy(tCost));
+      }
+      if (cardInstall) {
+        // Install transistor card must NOT be visible until Transistor Board is owned
+        const shouldShow = boardOwned && studyUnlocked;
+        const desiredDisplay = shouldShow ? "flex" : "none";
+        if (cardInstall.style.display !== desiredDisplay) {
+          cardInstall.style.display = desiredDisplay;
+        }
+
+        cardInstall.disabled = !isEligible;
+        cardInstall.classList.toggle("tes-install-transistor-card--available", isEligible);
+        cardInstall.classList.toggle("tes-install-transistor-card--disabled", !isEligible);
+        if (!boardOwned) {
+          cardInstall.title = "Requires Transistor Board";
+        } else if (!studyUnlocked) {
+          cardInstall.title = "Study locked";
+        } else if (!canAfford) {
+          cardInstall.title = `Insufficient Energy (${formatEnergy(tCost)} required)`;
+        } else {
+          const alloc = state.devices?.transistorAllocations?.[target] ?? 0;
+          cardInstall.title = `Install 1 Transistor into ${target} (currently ${alloc} installed)`;
+        }
+      }
+    };
+
+    updateStudyExtraControls("AImp", dom.aimpImproveBtn, dom.aimpImproveBadge, dom.aimpImproveMilestone, dom.aimpInstallTransistor, dom.aimpTransistorCost);
+    updateStudyExtraControls("AUpg", dom.aupgImproveBtn, dom.aupgImproveBadge, dom.aupgImproveMilestone, dom.aupgInstallTransistor, dom.aupgTransistorCost);
+    updateStudyExtraControls("ARec", dom.arecImproveBtn, dom.arecImproveBadge, dom.arecImproveMilestone, dom.arecInstallTransistor, dom.arecTransistorCost);
+
+    // Algorithm Improvement
+    const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+    setElText(
+      dom.aimpTitle,
+      `Algorithm Improvement (${formatInteger(aImpOwned)})`,
+    );
+    const aImpDur = calculateEffectiveStudyDuration(
+      "AImp",
+      state,
+      config,
+      engine.statResolver,
+    );
+    setElText(dom.aimpDur, formatStudyDuration(aImpDur));
+    if (dom.aimpRing) {
+      const aImpStudy = state.manualStudies?.AImp ?? (state.manualStudy?.target === "AImp" ? state.manualStudy : null);
+      const isAImpActive = Boolean(aImpStudy?.active);
+      if (isAImpActive && aImpDur > 0) {
+        if (aImpDur < 0.05) {
+          // At sub-0.05s continuous rate, illuminate ring completely
+          dom.aimpRing.setAttribute("stroke-dashoffset", "0");
+        } else {
+          const progress = Math.min(
+            1,
+            (aImpStudy?.elapsed ?? 0) / aImpDur,
+          );
+          const offset = (56.5 * (1 - progress)).toFixed(1);
+          if (dom.aimpRing.getAttribute("stroke-dashoffset") !== offset) {
+            dom.aimpRing.setAttribute("stroke-dashoffset", offset);
+          }
+        }
+      } else if (dom.aimpRing.getAttribute("stroke-dashoffset") !== "56.5") {
+        dom.aimpRing.setAttribute("stroke-dashoffset", "56.5");
+      }
+    }
+    if (dom.aimpAutoBadge) {
+      const hasChip = (state.devices?.chips?.allocations?.AImp ?? 0) > 0;
+      if (!hasChip) {
+        if (dom.aimpAutoBadge.className !== "badge-auto badge-auto--locked") {
+          dom.aimpAutoBadge.className = "badge-auto badge-auto--locked";
+          dom.aimpAutoBadge.textContent = "Auto: Locked";
+          dom.aimpAutoBadge.title = "Requires AutoCalculator — Improvements";
+        }
+      } else {
+        const isEnabled = state.devices?.chips?.enabled?.AImp !== false;
+        const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+        const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+        if (dom.aimpAutoBadge.className !== targetClass) {
+          dom.aimpAutoBadge.className = targetClass;
+          dom.aimpAutoBadge.textContent = targetText;
+          dom.aimpAutoBadge.title = "Click to toggle automated studying";
+        }
+      }
+    }
+
+    // Algorithm Upgrade
+    const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+    setElText(dom.aupgTitle, `Algorithm Upgrade (${formatInteger(aUpgOwned)})`);
+    const aUpgDur = calculateEffectiveStudyDuration(
+      "AUpg",
+      state,
+      config,
+      engine.statResolver,
+    );
+    setElText(dom.aupgDur, formatStudyDuration(aUpgDur));
+    const aUpgCanAfford = (state.algorithms?.AImp?.owned ?? 0) >= 12;
+    if (dom.aupgBtn) {
+      const disabled = !aUpgCanAfford && !state.devMode;
+      if (dom.aupgBtn.disabled !== disabled) dom.aupgBtn.disabled = disabled;
+    }
+    if (dom.aupgRing) {
+      const aUpgStudy = state.manualStudies?.AUpg ?? (state.manualStudy?.target === "AUpg" ? state.manualStudy : null);
+      const isAUpgActive = Boolean(aUpgStudy?.active);
+      if (isAUpgActive && aUpgDur > 0) {
+        if (aUpgDur < 0.05) {
+          dom.aupgRing.setAttribute("stroke-dashoffset", "0");
+        } else {
+          const progress = Math.min(
+            1,
+            (aUpgStudy?.elapsed ?? 0) / aUpgDur,
+          );
+          const offset = (56.5 * (1 - progress)).toFixed(1);
+          if (dom.aupgRing.getAttribute("stroke-dashoffset") !== offset) {
+            dom.aupgRing.setAttribute("stroke-dashoffset", offset);
+          }
+        }
+      } else if (dom.aupgRing.getAttribute("stroke-dashoffset") !== "56.5") {
+        dom.aupgRing.setAttribute("stroke-dashoffset", "56.5");
+      }
+    }
+    if (dom.aupgAutoBadge) {
+      const hasChip = (state.devices?.chips?.allocations?.AUpg ?? 0) > 0;
+      if (!hasChip) {
+        if (dom.aupgAutoBadge.className !== "badge-auto badge-auto--locked") {
+          dom.aupgAutoBadge.className = "badge-auto badge-auto--locked";
+          dom.aupgAutoBadge.textContent = "Auto: Locked";
+        }
+      } else {
+        const isEnabled = state.devices?.chips?.enabled?.AUpg !== false;
+        const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+        const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+        if (dom.aupgAutoBadge.className !== targetClass) {
+          dom.aupgAutoBadge.className = targetClass;
+          dom.aupgAutoBadge.textContent = targetText;
+        }
+      }
+    }
+
+    // Algorithm Recalculation
+    if (dom.arecRow) {
+      if (state.unlocks?.ARec) {
+        if (dom.arecUnit && dom.arecUnit.style.display !== "flex")
+          dom.arecUnit.style.display = "flex";
+        if (dom.arecRow.style.display !== "flex")
+          dom.arecRow.style.display = "flex";
+        const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+        setElText(
+          dom.arecTitle,
+          `Algorithm Recalculation (${formatInteger(aRecOwned)})`,
+        );
+        const aRecDur = calculateEffectiveStudyDuration(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        setElText(dom.arecDur, formatStudyDuration(aRecDur));
+        const aRecCanAfford = (state.algorithms?.AUpg?.owned ?? 0) >= 12;
+        if (dom.arecBtn) {
+          const disabled = !aRecCanAfford && !state.devMode;
+          if (dom.arecBtn.disabled !== disabled)
+            dom.arecBtn.disabled = disabled;
+        }
+        if (dom.arecRing) {
+          const aRecStudy = state.manualStudies?.ARec ?? (state.manualStudy?.target === "ARec" ? state.manualStudy : null);
+          const isARecActive = Boolean(aRecStudy?.active);
+          if (isARecActive && aRecDur > 0) {
+            if (aRecDur < 0.05) {
+              dom.arecRing.setAttribute("stroke-dashoffset", "0");
+            } else {
+              const progress = Math.min(
+                1,
+                (aRecStudy?.elapsed ?? 0) / aRecDur,
+              );
+              const offset = (56.5 * (1 - progress)).toFixed(1);
+              if (dom.arecRing.getAttribute("stroke-dashoffset") !== offset) {
+                dom.arecRing.setAttribute("stroke-dashoffset", offset);
+              }
+            }
+          } else if (dom.arecRing.getAttribute("stroke-dashoffset") !== "56.5") {
+            dom.arecRing.setAttribute("stroke-dashoffset", "56.5");
+          }
+        }
+        if (dom.arecAutoBadge) {
+          const hasChip = (state.devices?.chips?.allocations?.ARec ?? 0) > 0;
+          if (!hasChip) {
+            if (
+              dom.arecAutoBadge.className !== "badge-auto badge-auto--locked"
+            ) {
+              dom.arecAutoBadge.className = "badge-auto badge-auto--locked";
+              dom.arecAutoBadge.textContent = "Auto: Locked";
+            }
+          } else {
+            const isEnabled = state.devices?.chips?.enabled?.ARec !== false;
+            const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+            const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+            if (dom.arecAutoBadge.className !== targetClass) {
+              dom.arecAutoBadge.className = targetClass;
+              dom.arecAutoBadge.textContent = targetText;
+            }
+          }
+        }
+      } else {
+        if (dom.arecUnit && dom.arecUnit.style.display !== "none") {
+          dom.arecUnit.style.display = "none";
+        }
+        if (dom.arecRow.style.display !== "none") {
+          dom.arecRow.style.display = "none";
+        }
+      }
+    }
+
+    // Machine Learning Card
+    setElText(
+      dom.mlProgressText,
+      `${formatInteger(currentData)} / ${formatInteger(reqData)} Data`,
+    );
+    if (dom.mlProgressBar) {
+      const ratioStr = `${dataRatio.toFixed(1)}%`;
+      if (dom.mlProgressBar.style.width !== ratioStr)
+        dom.mlProgressBar.style.width = ratioStr;
+    }
+    if (dom.mlBtn) {
+      const canML = currentData >= reqData;
+      if (canML) {
+        if (dom.mlBtn.disabled) dom.mlBtn.disabled = false;
+        if (dom.mlBtn.className !== "btn-primary")
+          dom.mlBtn.className = "btn-primary";
+        dom.mlBtn.innerHTML = `Run Machine Learning (Adv to Level ${compLevel + 1}) <kbd class="tes-hotkey-hint">M</kbd>`;
+      } else if (state.devMode) {
+        if (dom.mlBtn.disabled) dom.mlBtn.disabled = false;
+        if (dom.mlBtn.className !== "btn-primary btn-utility--active")
+          dom.mlBtn.className = "btn-primary btn-utility--active";
+        dom.mlBtn.innerHTML = `[DEV BYPASS] Advance to Level ${compLevel + 1} <kbd class="tes-hotkey-hint">M</kbd>`;
+      } else {
+        if (!dom.mlBtn.disabled) dom.mlBtn.disabled = true;
+        if (dom.mlBtn.className !== "btn-primary")
+          dom.mlBtn.className = "btn-primary";
+        dom.mlBtn.innerHTML = `Need ${formatInteger(reqData)} Data <kbd class="tes-hotkey-hint">M</kbd>`;
+      }
+    }
+
+    // Facility Optimization / Setup Optimization Prestige Card
+    if (dom.foCard) {
+      const foCount = state.facilityOptimizations ?? 0;
+      const reqFoLevel = calculateFacilityOptimizationRequirement(foCount, config);
+      const curLevel = state.computerLevel ?? 1;
+      const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
+      const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
+
+      // Trigger condition: show when at or above required level, or 1 level prior, or already completed, or devMode
+      const isFoVisible = curLevel >= reqFoLevel - 1 || foCount > 0 || Boolean(state.devMode);
+      const foDisplay = isFoVisible ? "flex" : "none";
+      if (dom.foCard && dom.foCard.style.display !== foDisplay) {
+        dom.foCard.style.display = foDisplay;
+      }
+
+      if (isFoVisible && dom.foCard) {
+        const isEligible = curLevel >= reqFoLevel || Boolean(state.devMode);
+        dom.foCard.classList.toggle("tes-fo-card--eligible", isEligible);
+
+        const levelPct = Math.min(100, Math.max(0, (curLevel / reqFoLevel) * 100));
+        setElText(dom.foProgressText, `Level ${curLevel} / ${reqFoLevel}`);
+        if (dom.foProgressBar) {
+          dom.foProgressBar.style.width = `${levelPct.toFixed(1)}%`;
+        }
+
+        if (dom.foReqLevel) setElText(dom.foReqLevel, `Level ${reqFoLevel}`);
+        if (dom.foCurBonus) setElText(dom.foCurBonus, `${curBonus.toFixed(2)}×`);
+        if (dom.foNextBonus) setElText(dom.foNextBonus, `${nextBonus.toFixed(2)}×`);
+
+        if (dom.foBtn) {
+          if (isEligible) {
+            dom.foBtn.disabled = false;
+            dom.foBtn.innerHTML = `Perform Setup Optimization (Lv. ${curLevel})`;
+          } else {
+            dom.foBtn.disabled = true;
+            dom.foBtn.innerHTML = `Requires Computer Level ${reqFoLevel} (Current: Lv. ${curLevel})`;
+          }
+        }
+      }
+    }
+  }
+
+  function updateDevicesFilterAndRows(state, config) {
+    const filter = state.ui?.deviceCategoryFilter || "all";
+    const showAdded = state.ui?.showAdded !== false;
+    const showUnavailable = state.ui?.showUnavailable !== false;
+
+    // Checkbox synchronization
+    if (dom.toggleShowAdded && dom.toggleShowAdded.checked !== showAdded) {
+      dom.toggleShowAdded.checked = showAdded;
+    }
+    if (
+      dom.toggleShowUnavailable &&
+      dom.toggleShowUnavailable.checked !== showUnavailable
+    ) {
+      dom.toggleShowUnavailable.checked = showUnavailable;
+    }
+
+    // Category button active states
+    dom.filterPills.forEach((pill) => {
+      pill.classList.toggle(
+        "tes-filter-pill--active",
+        pill.dataset.filter === filter,
+      );
+    });
+
+    const devicesList = [
+      "autoCalculator_AImp",
+      "autoCalculator_AUpg",
+      "autoCalculator_ARec",
+      "transistorBoard",
+      "microprocessor",
+      "processor",
+      "overclocker",
+      "crcGadget",
+      "capacitor",
+      "powerCell",
+      "hardDisk",
+    ];
+
+    let counts = {
+      all: 0,
+      automation: 0,
+      computation: 0,
+      energy: 0,
+      learning: 0,
+    };
+    let visibleInGroup = {
+      automation: 0,
+      computation: 0,
+      energy: 0,
+      learning: 0,
+    };
+
+    devicesList.forEach((id) => {
+      const element = getElement(id);
+      if (!element) return;
+      const row = dom.deviceRows[id];
+      if (!row) return;
+
+      const evalResult = evaluateElement(element, state, config, 1);
+      const isRevealed = evalResult.isRevealed;
+      const isOwned = evalResult.owned > 0;
+      const isUnlocked = evalResult.strictUnlocked;
+
+      // Count only revealed devices
+      if (isRevealed) {
+        counts.all++;
+        if (counts[element.category] !== undefined) counts[element.category]++;
+      }
+
+      // Check visibility rules
+      let visible = isRevealed;
+      if (filter !== "all" && element.category !== filter) visible = false;
+      if (!showAdded && evalResult.unique && isOwned) visible = false;
+      if (!showUnavailable && !isUnlocked) visible = false;
+
+      const displayVal = visible ? "flex" : "none";
+      if (row.style.display !== displayVal) {
+        row.style.display = displayVal;
+      }
+
+      if (visible) {
+        if (visibleInGroup[element.category] !== undefined)
+          visibleInGroup[element.category]++;
+        updateDeviceRowUI(
+          id,
+          evalResult,
+          state,
+          config,
+          row,
+          dom.deviceControls[id],
+        );
+      }
+    });
+
+    // Update filter pill counts
+    setElText(dom.filterCounts.all, `All (${counts.all})`);
+    setElText(dom.filterCounts.automation, `Automation (${counts.automation})`);
+    setElText(
+      dom.filterCounts.computation,
+      `Computation (${counts.computation})`,
+    );
+    setElText(dom.filterCounts.energy, `Energy (${counts.energy})`);
+    setElText(dom.filterCounts.learning, `Learning (${counts.learning})`);
+
+    // Hide section headers if all rows in that group are hidden
+    for (const cat of ["automation", "computation", "energy", "learning"]) {
+      const group = dom.groups[cat];
+      if (group) {
+        const showGrp = (visibleInGroup[cat] ?? 0) > 0;
+        const grpVal = showGrp ? "flex" : "none";
+        if (group.style.display !== grpVal) {
+          group.style.display = grpVal;
+        }
+      }
+    }
+  }
+
+  function updateDeviceRowUI(
+    id,
+    evalResult,
+    state,
+    config,
+    row,
+    controls = {},
+  ) {
+    const { owned, cost, unique, strictUnlocked, visualStatus, canClick } =
+      evalResult;
+
+    switch (id) {
+      case "autoCalculator_AImp": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-aimp-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-aimp-action-btn"]');
+        const hasAImp = (state.devices?.chips?.allocations?.AImp ?? 0) > 0;
+        if (hasAImp) {
+          const isEnabled = state.devices?.chips?.enabled?.AImp !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "AImp") btn.dataset.target = "AImp";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_AImp")
+              btn.dataset.elementId = "autoCalculator_AImp";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "autoCalculator_AUpg": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-aupg-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-aupg-action-btn"]');
+        const hasAUpg = (state.devices?.chips?.allocations?.AUpg ?? 0) > 0;
+        if (hasAUpg) {
+          const isEnabled = state.devices?.chips?.enabled?.AUpg !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "AUpg") btn.dataset.target = "AUpg";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_AUpg")
+              btn.dataset.elementId = "autoCalculator_AUpg";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "autoCalculator_ARec": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-arec-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-arec-action-btn"]');
+        const hasARec = (state.devices?.chips?.allocations?.ARec ?? 0) > 0;
+        if (hasARec) {
+          const isEnabled = state.devices?.chips?.enabled?.ARec !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "ARec") btn.dataset.target = "ARec";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_ARec")
+              btn.dataset.elementId = "autoCalculator_ARec";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "transistorBoard": {
+        const badge =
+          controls?.badge || row.querySelector('[data-field="board-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="board-action-btn"]');
+        const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
+        if (hasBoard) {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--active")
+              badge.className = "badge-status badge-status--active";
+            const totalT = state.devices?.transistorsPurchased ?? 0;
+            const studySpeedMult = engine?.statResolver
+              ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+              : calculateStudySpeedDeviceMultiplier(state, config);
+            const effBonus = (config.devices?.transistor?.speedBonusPerUnit ?? 0.05) * 100 * studySpeedMult;
+            const txt = studySpeedMult > 1.0001
+              ? `${formatInteger(totalT)} Transistors (+${effBonus.toFixed(1)}%/ea)`
+              : `${formatInteger(totalT)} Transistors`;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            if (btn.textContent !== "Allocate") btn.textContent = "Allocate";
+            if (btn.dataset.action !== "open-drawer")
+              btn.dataset.action = "open-drawer";
+            if (btn.dataset.drawer !== "transistor")
+              btn.dataset.drawer = "transistor";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : formatEnergy(config.devices?.transistorBoard?.initialCost ?? 2e-10);
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "transistorBoard")
+              btn.dataset.elementId = "transistorBoard";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "microprocessor": {
+        const pill =
+          controls?.pill || row.querySelector('[data-field="micro-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="micro-action-btn"]');
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const mOwned = state.devices?.microprocessor?.owned ?? 0;
+        const studySpeedMult = engine?.statResolver
+          ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+          : calculateStudySpeedDeviceMultiplier(state, config);
+        const allocatedT = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const microMult = calculateMicroprocessorStudyMultiplier(
+          allocatedT,
+          config,
+          studySpeedMult,
+          mOwned,
+        );
+        if (pill) {
+          const txt = mOwned >= 1
+            ? `Target: ${mTarget} (${microMult.toFixed(2)}x)`
+            : `Target: ${mTarget}`;
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          if (mOwned >= 1) {
+            const txt = "Installed";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.disabled !== true) btn.disabled = true;
+            btn.removeAttribute("title");
+          } else if (!strictUnlocked) {
+            const txt = "Locked";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.disabled !== true) btn.disabled = true;
+            btn.title = evalResult.reasons.join(". ");
+          } else {
+            const txt = cost ? `Install (${formatEnergy(cost)})` : "Install";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+            if (disabled && evalResult.reasons.length > 0) {
+              btn.title = evalResult.reasons.join(". ");
+            } else {
+              btn.title = `Install Microprocessor for ${formatEnergy(cost)}`;
+            }
+          }
+        }
+        break;
+      }
+
+      case "processor": {
+        const pill =
+          controls?.pill ||
+          row.querySelector('[data-field="processor-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="processor-action-btn"]');
+        const pOwned = state.devices?.processors ?? 0;
+        const pBonusUnit = (config.devices?.processor?.bonusPerUnit ?? 0.05) * 100;
+        if (pill) {
+          const txt = pOwned > 0
+            ? `+${(pOwned * pBonusUnit).toFixed(1)}% Study Speed (${formatInteger(pOwned)} owned)`
+            : `+${pBonusUnit.toFixed(1)}% Study Speed/ea (0 owned)`;
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+
+      case "overclocker": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="overclock-badge"]');
+        const buyBtn =
+          controls?.buyBtn ||
+          row.querySelector('[data-field="overclock-buy-btn"]');
+        const actBtn =
+          controls?.actBtn ||
+          row.querySelector('[data-field="overclock-activate-btn"]');
+        const oc = state.devices?.overclocker;
+        const ocOwned = (oc?.owned ?? 0) > 0;
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const tOnTarget = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+
+        if (!ocOwned) {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const ocCost = cost ? formatEnergy(cost) : formatEnergy(config.devices?.overclocker?.initialCost ?? 9e-8);
+            if (badge.textContent !== ocCost)
+              badge.textContent = ocCost;
+          }
+          if (buyBtn) {
+            if (buyBtn.style.display !== "inline-flex")
+              buyBtn.style.display = "inline-flex";
+            const disabled = !canClick;
+            if (buyBtn.disabled !== disabled) buyBtn.disabled = disabled;
+          }
+          if (actBtn && actBtn.style.display !== "none")
+            actBtn.style.display = "none";
+        } else {
+          if (buyBtn && buyBtn.style.display !== "none")
+            buyBtn.style.display = "none";
+          if (actBtn && actBtn.style.display !== "inline-flex")
+            actBtn.style.display = "inline-flex";
+
+          if (oc?.active) {
+            if (badge) {
+              if (badge.className !== "badge-status badge-status--standby")
+                badge.className = "badge-status badge-status--standby";
+              const txt = `Active (${Math.max(0, oc.remainingDuration).toFixed(1)}s)`;
+              if (badge.textContent !== txt) badge.textContent = txt;
+            }
+            if (actBtn) {
+              if (!actBtn.disabled) actBtn.disabled = true;
+              if (actBtn.textContent !== "Active")
+                actBtn.textContent = "Active";
+            }
+          } else if (tOnTarget >= 2) {
+            if (badge) {
+              if (badge.className !== "badge-status badge-status--active")
+                badge.className = "badge-status badge-status--active";
+              if (badge.textContent !== "Ready") badge.textContent = "Ready";
+            }
+            if (actBtn) {
+              if (actBtn.disabled) actBtn.disabled = false;
+              const txt = `Activate (${formatInteger(tOnTarget)} T)`;
+              if (actBtn.textContent !== txt) actBtn.textContent = txt;
+            }
+          } else {
+            if (badge) {
+              if (badge.className !== "badge-status badge-status--off")
+                badge.className = "badge-status badge-status--off";
+              const txt = `Need 2+ T on ${mTarget}`;
+              if (badge.textContent !== txt) badge.textContent = txt;
+            }
+            if (actBtn) {
+              const disabled = !state.devMode;
+              if (actBtn.disabled !== disabled) actBtn.disabled = disabled;
+              const txt = state.devMode ? "[Bypass] Activate" : "Needs 2+ T";
+              if (actBtn.textContent !== txt) actBtn.textContent = txt;
+            }
+          }
+        }
+        break;
+      }
+
+      case "crcGadget": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="crc-gadget-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="crc-gadget-action-btn"]');
+        const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+        const deviceMultiplier = engine?.statResolver
+          ? engine.statResolver.resolve("devices.globalMultiplier", { state, config })
+          : calculateTotalDeviceMultiplier(state, config);
+        const crcMult = calculateCrcMultiplier(state, config, deviceMultiplier);
+        if (hasGadget) {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--active")
+              badge.className = "badge-status badge-status--active";
+            const txt = `Active (${crcMult.toFixed(2)}x)`;
+            if (badge.textContent !== txt)
+              badge.textContent = txt;
+          }
+          if (btn) {
+            if (!btn.disabled) btn.disabled = true;
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            if (btn.textContent !== "Owned") btn.textContent = "Owned";
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : formatEnergy(config.devices?.crcGadget?.initialCost ?? 1e-8);
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+          }
+        }
+        break;
+      }
+
+      case "capacitor": {
+        const pill =
+          controls?.pill ||
+          row.querySelector('[data-field="capacitor-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="capacitor-action-btn"]');
+        const cOwned = state.devices?.capacitors ?? 0;
+        const baseBonusPerUnit = (config.devices?.capacitor?.bonusPerUnit ?? 0.5) * 100;
+        const deviceMultiplier = engine?.statResolver
+          ? engine.statResolver.resolve("devices.globalMultiplier", { state, config })
+          : calculateTotalDeviceMultiplier(state, config);
+        const capMult = calculateCapacitorMultiplier(cOwned, config, deviceMultiplier);
+        const hasPrestigeBonus = deviceMultiplier > 1.0001;
+        const effBonusPerUnit = baseBonusPerUnit * deviceMultiplier;
+        if (pill) {
+          let txt = "";
+          if (cOwned > 0) {
+            txt = `+${((capMult - 1) * 100).toFixed(hasPrestigeBonus ? 1 : 0)}% Cascade (${formatInteger(cOwned)} owned)`;
+          } else {
+            txt = `+${(hasPrestigeBonus ? effBonusPerUnit : baseBonusPerUnit).toFixed(hasPrestigeBonus ? 1 : 0)}%/ea (0 owned)`;
+          }
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+
+      case "powerCell": {
+        const pill =
+          controls?.pill ||
+          row.querySelector('[data-field="powercell-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="powercell-action-btn"]');
+        const pCells = state.powerCells ?? 0;
+        const cap = calculatePowerCellCapacity(
+          pCells,
+          state,
+          config,
+          engine.statResolver,
+        );
+        if (pill) {
+          const txt = `${formatEnergy(cap)} Cap (${formatInteger(pCells)} owned)`;
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+
+      case "hardDisk": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="harddisk-status-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="harddisk-action-btn"]');
+        const hds = state.devices?.hardDisks?.owned ?? 0;
+        const hdState = state.devices?.hardDisks?.state ?? "off";
+        const isDataPaused = Boolean(state.devices?.hardDisks?.dataPaused);
+        const totalXpRate = calculateHardDiskXpRate(
+          hds,
+          state,
+          config,
+          engine.statResolver,
+        );
+        if (badge) {
+          const cls = `badge-status badge-status--${hdState === "active" ? (isDataPaused ? "standby" : "active") : hdState === "standby" ? "standby" : "off"}`;
+          if (badge.className !== cls) badge.className = cls;
+          let txt = `${hdState.toUpperCase()} (${formatInteger(hds)} owned)`;
+          if (isDataPaused && hdState === "active") {
+            txt = `PAUSED (DATA LIMIT) (${formatInteger(hds)} owned)`;
+          } else if (hdState === "active" && hds > 0) {
+            txt = `ACTIVE (${formatInteger(hds)} owned · +${formatNumber(totalXpRate, 1)} Data/s)`;
+          }
+          if (badge.textContent !== txt) badge.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+    }
+  }
+
+  function updateActiveDrawerValues(drawerId, state, config, containerEl) {
+    switch (drawerId) {
+      case "transistor": {
+        const hasARecInDom = Boolean(
+          containerEl.querySelector('[data-field="drawer-t-arec"]'),
+        );
+        const isARecUnlocked = Boolean(state.unlocks?.ARec);
+        if (hasARecInDom !== isARecUnlocked) {
+          lastActiveDrawer = null;
+          renderDrawersAndModals(state, config);
+          return;
+        }
+
+        const tTotal = state.devices?.transistorsPurchased ?? 0;
+        const nextCost = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          1,
+          config,
+        );
+        const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
+        const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
+        const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const speedAImp = calculateEffectiveStudySpeed(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedAUpg = calculateEffectiveStudySpeed(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedARec = calculateEffectiveStudySpeed(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAImp = calculateEffectiveStudyDuration(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAUpg = calculateEffectiveStudyDuration(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARec = calculateEffectiveStudyDuration(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-total"]'),
+          `${formatInteger(tTotal)} Transistors`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-cost"]'),
+          formatEnergy(nextCost),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-aimp"]'),
+          formatInteger(tAImp),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-dur-aimp"]'),
+          formatStudyDuration(durAImp),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-speed-aimp"]'),
+          `${speedAImp.toFixed(2)}x`,
+        );
+
+        const cost1 = calculateBulkDeviceCost("transistor", tTotal, 1, config);
+        const cost10 = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          10,
+          config,
+        );
+        const cost100 = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          100,
+          config,
+        );
+        const cost1000 = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          1000,
+          config,
+        );
+
+        const btnBuy1 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-1"]',
+        );
+        const btnBuy10 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-10"]',
+        );
+        const btnBuy100 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-100"]',
+        );
+        const btnBuy1000 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-1000"]',
+        );
+        if (btnBuy1)
+          btnBuy1.disabled = !state.energy.gte(cost1) && !state.devMode;
+        if (btnBuy10)
+          btnBuy10.disabled = !state.energy.gte(cost10) && !state.devMode;
+        if (btnBuy100)
+          btnBuy100.disabled = !state.energy.gte(cost100) && !state.devMode;
+        if (btnBuy1000)
+          btnBuy1000.disabled = !state.energy.gte(cost1000) && !state.devMode;
+
+        const btnRebalance = containerEl.querySelector(
+          '[data-field="drawer-rebalance-btn"]',
+        );
+        if (btnRebalance) btnRebalance.disabled = tTotal <= 0;
+
+        const btnUpgToImp = containerEl.querySelector(
+          '[data-field="drawer-reassign-aupg-aimp"]',
+        );
+        if (btnUpgToImp) btnUpgToImp.disabled = tAUpg <= 0;
+        const btnRecToImp = containerEl.querySelector(
+          '[data-field="drawer-reassign-arec-aimp"]',
+        );
+        if (btnRecToImp) btnRecToImp.disabled = tARec <= 0;
+
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-aupg"]'),
+          formatInteger(tAUpg),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-dur-aupg"]'),
+          formatStudyDuration(durAUpg),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-speed-aupg"]'),
+          `${speedAUpg.toFixed(2)}x`,
+        );
+        const btnImpToUpg = containerEl.querySelector(
+          '[data-field="drawer-reassign-aimp-aupg"]',
+        );
+        if (btnImpToUpg) btnImpToUpg.disabled = tAImp <= 0;
+        const btnRecToUpg = containerEl.querySelector(
+          '[data-field="drawer-reassign-arec-aupg"]',
+        );
+        if (btnRecToUpg) btnRecToUpg.disabled = tARec <= 0;
+
+        const rowARec = containerEl.querySelector(
+          '[data-field="drawer-row-arec"]',
+        );
+        if (rowARec) {
+          setElText(
+            containerEl.querySelector('[data-field="drawer-t-arec"]'),
+            formatInteger(tARec),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-dur-arec"]'),
+            formatStudyDuration(durARec),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-speed-arec"]'),
+            `${speedARec.toFixed(2)}x`,
+          );
+          const btnImpToRec = containerEl.querySelector(
+            '[data-field="drawer-reassign-aimp-arec"]',
+          );
+          if (btnImpToRec) btnImpToRec.disabled = tAImp <= 0;
+          const btnUpgToRec = containerEl.querySelector(
+            '[data-field="drawer-reassign-aupg-arec"]',
+          );
+          if (btnUpgToRec) btnUpgToRec.disabled = tAUpg <= 0;
+        }
+        break;
+      }
+
+      case "microprocessor": {
+        const hasARecBtn = Boolean(
+          containerEl.querySelector('[data-micro-target-btn="ARec"]'),
+        );
+        const isARecUnlocked = Boolean(state.unlocks?.ARec);
+        if (hasARecBtn !== isARecUnlocked) {
+          lastActiveDrawer = null;
+          renderDrawersAndModals(state, config);
+          return;
+        }
+
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const mOwned = state.devices?.microprocessor?.owned ?? 0;
+        const nextCost = calculateBulkDeviceCost(
+          "microprocessor",
+          mOwned,
+          1,
+          config,
+        );
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const studySpeedMult = engine?.statResolver
+          ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+          : calculateStudySpeedDeviceMultiplier(state, config);
+        const microMult = calculateMicroprocessorStudyMultiplier(
+          tCount,
+          config,
+          studySpeedMult,
+          mOwned,
+        );
+        const currentSpeedMult = calculateEffectiveStudySpeed(
+          mTarget,
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        const evalResult = engine.evaluateElement("microprocessor", 1);
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-owned"]'),
+          mOwned >= 1 ? "1 (Installed)" : "Not Installed",
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-cost"]'),
+          formatEnergy(nextCost),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-t"]'),
+          `${tCount} T`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-target"]'),
+          mTarget,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-direct-mult"]'),
+          `${microMult.toFixed(2)}x`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-mult"]'),
+          `${currentSpeedMult.toFixed(2)}x`,
+        );
+
+        const installBtn = containerEl.querySelector(
+          '[data-field="drawer-micro-install-btn"]',
+        );
+        const reasonsEl = containerEl.querySelector(
+          '[data-field="drawer-micro-reasons"]',
+        );
+        const installContainer = containerEl.querySelector(
+          '[data-field="drawer-micro-install-container"]',
+        );
+
+        if (mOwned >= 1) {
+          if (installContainer && !installContainer.querySelector(".badge-status--active")) {
+            installContainer.innerHTML = `<span class="badge-status badge-status--active" style="display: inline-block; padding: 6px 14px; font-weight: 600;">Installed (Unique Device)</span>`;
+          }
+        } else {
+          if (installBtn) {
+            installBtn.disabled = !evalResult.canClick;
+          }
+          if (reasonsEl) {
+            if (!evalResult.canClick && evalResult.reasons.length > 0) {
+              reasonsEl.style.display = "flex";
+              reasonsEl.innerHTML = `<span aria-hidden="true">⚠️</span><span>${evalResult.reasons.join(". ")}</span>`;
+            } else {
+              reasonsEl.style.display = "none";
+            }
+          }
+        }
+
+        containerEl
+          .querySelectorAll("[data-micro-target-btn]")
+          .forEach((btn) => {
+            const isTarget = btn.dataset.microTargetBtn === mTarget;
+            btn.className = isTarget ? "btn-primary" : "btn-secondary";
+          });
+        break;
+      }
+
+      case "overclock": {
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const dur = calculateOverclockDuration(tCount, config);
+        const bonus = calculateOverclockBonusMultiplier(tCount, config);
+
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-target"]'),
+          mTarget,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-burn"]'),
+          `${tCount} T`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-dur"]'),
+          `${dur.toFixed(1)}s`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-bonus"]'),
+          `${bonus.toFixed(2)}x`,
+        );
+        break;
+      }
+
+      case "harddisk": {
+        const hds = state.devices?.hardDisks?.owned ?? 0;
+        const hdState = state.devices?.hardDisks?.state ?? "off";
+        const buf = state.devices?.hardDisks?.buffer ?? 0;
+        const isDataPaused = Boolean(state.devices?.hardDisks?.dataPaused);
+        const rate =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskXpRate(hds, state, config, engine.statResolver)
+            : 0;
+        const drain =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskEnergyDrain(
+                hds,
+                state.devices?.hardDisks?.activeSeconds ?? 0,
+                config,
+              )
+            : big(0);
+
+        setElText(
+          containerEl.querySelector('[data-field="drawer-hd-buf"]'),
+          `${formatInteger(buf)} Data`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-hd-rate"]'),
+          `${formatNumber(rate, 1)} Data/s`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-hd-drain"]'),
+          drain.gt(0) ? `-${formatEnergy(drain)}/s` : "0.00 J/s",
+        );
+
+        const btnActive = containerEl.querySelector('[data-hd-btn="active"]');
+        const btnStandby = containerEl.querySelector('[data-hd-btn="standby"]');
+        const btnOff = containerEl.querySelector('[data-hd-btn="off"]');
+        if (btnActive)
+          btnActive.className =
+            hdState === "active" ? "btn-primary" : "btn-secondary";
+        if (btnStandby)
+          btnStandby.className =
+            hdState === "standby" ? "btn-primary" : "btn-secondary";
+        if (btnOff)
+          btnOff.className = hdState === "off" ? "btn-danger" : "btn-secondary";
+        break;
+      }
+
+      case "dev": {
+        const btnDev = containerEl.querySelector(
+          '[data-action="toggle-dev-mode"]',
+        );
+        if (btnDev) {
+          const cls = `btn-secondary ${state.devMode ? "btn-utility--active" : ""}`;
+          if (btnDev.className !== cls) btnDev.className = cls;
+          setElText(btnDev, state.devMode ? "DEV MODE: ON" : "DEV MODE: OFF");
+        }
+        const btnRestore = containerEl.querySelector(
+          '[data-action="restore-quicksave"]',
+        );
+        if (btnRestore) {
+          btnRestore.disabled = engine.hasQuicksave && !engine.hasQuicksave();
+        }
+        setElText(
+          containerEl.querySelector('[data-field="dev-audit-count"]'),
+          `AUDIT LOG (${state.auditLogs?.length ?? 0})`,
+        );
+        const tbody = containerEl.querySelector(
+          '[data-field="dev-audit-tbody"]',
+        );
+        if (tbody) {
+          const curLen = parseInt(tbody.dataset.logCount || "0", 10);
+          const newLen = state.auditLogs?.length ?? 0;
+          if (curLen !== newLen) {
+            tbody.dataset.logCount = String(newLen);
+            tbody.innerHTML =
+              (state.auditLogs ?? [])
+                .slice(-10)
+                .reverse()
+                .map(
+                  (l) => `
+              <tr>
+                <td>${l.timestamp?.split("T")[1]?.split(".")[0] ?? ""}</td>
+                <td><strong>${l.itemName}</strong></td>
+                <td>${l.purchasedQuantity}</td>
+                <td>${l.nominalCostFormatted}</td>
+                <td><span class="badge-status ${l.ruleStatus === "RULE_ELIGIBLE" ? "badge-status--active" : "badge-status--standby"}">${l.ruleStatus}</span></td>
+              </tr>
+            `,
+                )
+                .join("") ||
+              '<tr><td colspan="5" style="text-align:center;">No logs recorded</td></tr>';
+          }
+        }
+        break;
+      }
+
+      case "stats": {
+        setElText(
+          containerEl.querySelector('[data-field="stat-comp-level"]'),
+          state.computerLevel ?? 1,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-mls"]'),
+          formatInteger(state.stats?.totalMachineLearnings ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-fos"]'),
+          formatInteger(state.facilityOptimizations ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-purchases"]'),
+          formatInteger(state.stats?.totalPurchases ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-energy"]'),
+          formatEnergy(state.energy),
+        );
+        break;
+      }
+
+      case "measure": {
+        const compLevel = state.computerLevel ?? 1;
+        const ap = calculateAlgorithmPerformance(
+          state,
+          config,
+          engine.statResolver,
+        );
+        const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+        const totalProd = calculateEnergyProduction(
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        setElText(
+          containerEl.querySelector('[data-field="measure-ap"]'),
+          `${formatEnergy(ap)}/s`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="measure-level-mult"]'),
+          `Level ${compLevel}`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="measure-gadget-mult"]'),
+          hasGadget ? "2.00x" : "1.00x",
+        );
+        setElText(
+          containerEl.querySelector('[data-field="measure-total-prod"]'),
+          formatRate(totalProd),
+        );
+        break;
+      }
+    }
+  }
+
+  function renderDrawersAndModals(state, config) {
+    const containerEl =
+      dom?.drawersContainer ||
+      container.querySelector("#tes-drawers-container");
+    if (!containerEl) return;
+
+    if (!activeDrawer) {
+      if (lastActiveDrawer !== null) {
+        containerEl.innerHTML = "";
+        lastActiveDrawer = null;
+      }
+      return;
+    }
+
+    if (activeDrawer === lastActiveDrawer) {
+      updateActiveDrawerValues(activeDrawer, state, config, containerEl);
+      return;
+    }
+    lastActiveDrawer = activeDrawer;
+
+    switch (activeDrawer) {
+      // 1. Transistor Allocation Drawer (Section 7.6)
+      case "transistor": {
+        const tTotal = state.devices?.transistorsPurchased ?? 0;
+        const nextCost = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          1,
+          config,
+        );
+        const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
+        const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
+        const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const speedAImp = calculateEffectiveStudySpeed(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedAUpg = calculateEffectiveStudySpeed(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedARec = calculateEffectiveStudySpeed(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAImp = calculateEffectiveStudyDuration(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAUpg = calculateEffectiveStudyDuration(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARec = calculateEffectiveStudyDuration(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("transistor-board")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Transistor Fleet Management</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <p class="muted" style="margin-bottom: 12px;">
+                  Each allocated Transistor provides <strong>+2.5% Study Speed</strong> to its target algorithm.
+                  Purchasing increments a shared global geometric price.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <div>
+                    <span class="eyebrow">TOTAL PURCHASED</span>
+                    <div data-field="drawer-t-total" style="font-size: 18px; font-weight: 700; color: var(--tes-cyan);">${formatInteger(tTotal)} Transistors</div>
+                  </div>
+                  <div>
+                    <span class="eyebrow">NEXT COST</span>
+                    <div data-field="drawer-t-cost" style="font-size: 15px; font-weight: 700; color: var(--tes-text);">${formatEnergy(nextCost)}</div>
+                  </div>
+                </div>
+
+                <!-- Purchase Buttons -->
+                <div style="display: flex; gap: 6px; margin-bottom: 18px;">
+                  <button class="btn-primary" data-field="drawer-buy-t-1" data-action="buy-element" data-element-id="transistor" data-count="1">+1 Transistor</button>
+                  <button class="btn-secondary" data-field="drawer-buy-t-10" data-action="buy-element" data-element-id="transistor" data-count="10">+10</button>
+                  <button class="btn-secondary" data-field="drawer-buy-t-100" data-action="buy-element" data-element-id="transistor" data-count="100">+100</button>
+                  <button class="btn-secondary" data-field="drawer-buy-t-1000" data-action="buy-element" data-element-id="transistor" data-count="1000">+1000</button>
+                </div>
+
+                <div class="tes-section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="tes-section-title">ALLOCATION DISTRIBUTION</span>
+                  <button class="btn-secondary" style="font-size: 11px; padding: 4px 10px;" data-action="rebalance-transistors" data-field="drawer-rebalance-btn">Distribute Evenly</button>
+                </div>
+
+                <table class="tes-table">
+                  <thead>
+                    <tr>
+                      <th>Algorithm</th>
+                      <th>Allocated</th>
+                      <th>Duration</th>
+                      <th>Speed</th>
+                      <th>Reassign</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>A.Improvement</strong></td>
+                      <td data-field="drawer-t-aimp" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tAImp)}</td>
+                      <td data-field="drawer-dur-aimp">${formatStudyDuration(durAImp)}</td>
+                      <td data-field="drawer-speed-aimp">${speedAImp.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aupg-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="AImp" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                          ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AImp" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>A.Upgrade</strong></td>
+                      <td data-field="drawer-t-aupg" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tAUpg)}</td>
+                      <td data-field="drawer-dur-aupg">${formatStudyDuration(durAUpg)}</td>
+                      <td data-field="drawer-speed-aupg">${speedAUpg.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aimp-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="AUpg" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
+                          ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AUpg" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                        </div>
+                      </td>
+                    </tr>
+                    ${
+                      state.unlocks?.ARec
+                        ? `
+                    <tr data-field="drawer-row-arec">
+                      <td><strong>A.Recalculation</strong></td>
+                      <td data-field="drawer-t-arec" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tARec)}</td>
+                      <td data-field="drawer-dur-arec">${formatStudyDuration(durARec)}</td>
+                      <td data-field="drawer-speed-arec">${speedARec.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aimp-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="ARec" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
+                          <button data-field="drawer-reassign-aupg-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="ARec" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                        </div>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 2. Microprocessor Configuration Drawer (Section 7.7)
+      case "microprocessor": {
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const mOwned = state.devices?.microprocessor?.owned ?? 0;
+        const evalResult = engine.evaluateElement("microprocessor", 1);
+        const nextCost = evalResult.cost ?? calculateBulkDeviceCost(
+          "microprocessor",
+          mOwned,
+          1,
+          config,
+        );
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const currentSpeedMult = calculateEffectiveStudySpeed(
+          mTarget,
+          state,
+          config,
+          engine.statResolver,
+        );
+        const studySpeedMult = engine?.statResolver
+          ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+          : calculateStudySpeedDeviceMultiplier(state, config);
+        const microMult = calculateMicroprocessorStudyMultiplier(
+          tCount,
+          config,
+          studySpeedMult,
+          mOwned,
+        );
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("microprocessor")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Microprocessor Configuration</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <p class="muted" style="margin-bottom: 14px;">
+                  Amplifies study speed on the selected algorithm based on allocated Transistors.
+                </p>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <div>
+                    <span class="eyebrow">INSTALLATION</span>
+                    <div data-field="drawer-micro-owned" style="font-size: 16px; font-weight: 700; color: var(--tes-cyan);">${mOwned >= 1 ? "1 (Installed)" : "Not Installed"}</div>
+                  </div>
+                  <div>
+                    <span class="eyebrow">UNIT COST</span>
+                    <div data-field="drawer-micro-cost" style="font-size: 15px; font-weight: 700; color: var(--tes-text);">${formatEnergy(nextCost)}</div>
+                  </div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">TARGET ALGORITHM</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                  <button data-micro-target-btn="AImp" class="${mTarget === "AImp" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AImp">Target A.Imp</button>
+                  <button data-micro-target-btn="AUpg" class="${mTarget === "AUpg" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AUpg">Target A.Upg</button>
+                  ${state.unlocks?.ARec ? `<button data-micro-target-btn="ARec" class="${mTarget === "ARec" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="ARec">Target A.Rec</button>` : ""}
+                </div>
+
+                <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px; margin-bottom: 16px;">
+                  <span class="eyebrow">ACTIVE EFFECT PREVIEW</span>
+                  <div style="font-size: 13.5px; margin-top: 6px; line-height: 1.5;">
+                    Allocated Transistors: <strong data-field="drawer-micro-t">${tCount} T</strong> on <span data-field="drawer-micro-target">${mTarget}</span><br />
+                    Microprocessor Boost: <strong data-field="drawer-micro-direct-mult" style="color: var(--tes-teal);">${microMult.toFixed(2)}x</strong>${studySpeedMult > 1.0001 ? ` <span style="font-size: 11px; color: var(--tes-text-tertiary);">(${studySpeedMult.toFixed(2)}x prestige bonus)</span>` : ""}<br />
+                    Effective Target Speed: <strong data-field="drawer-micro-mult" style="color: var(--tes-cyan);">${currentSpeedMult.toFixed(2)}x</strong>
+                  </div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">INSTALLATION STATUS</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div data-field="drawer-micro-install-container">
+                  ${mOwned >= 1
+                    ? `<span class="badge-status badge-status--active" style="display: inline-block; padding: 6px 14px; font-weight: 600;">Installed (Unique Device)</span>`
+                    : `
+                      <button class="btn-primary" data-field="drawer-micro-install-btn" data-action="buy-element" data-element-id="microprocessor" data-count="1" ${!evalResult.canClick ? "disabled" : ""}>
+                        Install Microprocessor (${formatEnergy(nextCost)})
+                      </button>
+                      ${!evalResult.canClick && evalResult.reasons.length > 0 ? `
+                        <div data-field="drawer-micro-reasons" class="tes-warning-banner" style="margin-top: 8px; font-size: 13px; color: var(--tes-amber); display: flex; align-items: center; gap: 6px;">
+                          <span aria-hidden="true">⚠️</span>
+                          <span>${evalResult.reasons.join(". ")}</span>
+                        </div>
+                      ` : `<div data-field="drawer-micro-reasons" style="display:none;"></div>`}
+                    `
+                  }
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 3. Overclock Modal (Section 7.9)
+      case "overclock": {
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const dur = calculateOverclockDuration(tCount, config);
+        const bonus = calculateOverclockBonusMultiplier(tCount, config);
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("overclocker")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title" style="color: var(--tes-danger);">Activate Overclocker</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+
+              <div>
+                <p style="margin-bottom: 14px;">
+                  <strong style="color: var(--tes-danger);">Warning:</strong> This operation will permanently <strong>burn all ${formatInteger(tCount)} Transistors</strong> allocated to <strong>${mTarget}</strong> to supercharge Microprocessor performance temporarily!
+                </p>
+
+                <div style="background: rgba(255,105,139,0.1); border: 1px solid rgba(255,105,139,0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                  <div>Target Algorithm: <strong data-field="modal-overclock-target">${mTarget}</strong></div>
+                  <div>Transistors to Burn: <strong data-field="modal-overclock-burn" style="color: var(--tes-danger);">${formatInteger(tCount)} T</strong></div>
+                  <div>Active Boost Duration: <strong data-field="modal-overclock-dur">${dur.toFixed(1)}s</strong></div>
+                  <div>Microprocessor Bonus: <strong data-field="modal-overclock-bonus" style="color: var(--tes-teal);">${bonus.toFixed(2)}x</strong></div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                  <button class="btn-secondary" data-action="close-drawer">Cancel</button>
+                  <button class="btn-danger" data-action="activate-overclock">Burn Transistors & Overclock</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 4. Hard Disk Drawer (Section 7.13)
+      case "harddisk": {
+        const hds = state.devices?.hardDisks?.owned ?? 0;
+        const hdState = state.devices?.hardDisks?.state ?? "off";
+        const buf = state.devices?.hardDisks?.buffer ?? 0;
+        const isDataPaused = Boolean(state.devices?.hardDisks?.dataPaused);
+        const rate =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskXpRate(hds, state, config, engine.statResolver)
+            : 0;
+        const drain =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskEnergyDrain(
+                hds,
+                state.devices?.hardDisks?.activeSeconds ?? 0,
+                config,
+              )
+            : big(0);
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("hard-disk")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Hard Disk Buffer Management</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <p class="muted" style="margin-bottom: 14px;">
+                  Hard Disks continuously generate Available Data (XP) by consuming Stored Energy. Energy drain grows with uptime.
+                </p>
+
+                <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px; margin-bottom: 16px;">
+                  <div>Accumulated Buffer: <strong data-field="drawer-hd-buf" style="color: var(--tes-purple-light); font-size: 16px;">${formatInteger(buf)} Data</strong></div>
+                  <div>Data Generation Rate: <strong data-field="drawer-hd-rate" style="color: var(--tes-teal);">${formatNumber(rate, 1)} Data/s</strong></div>
+                  <div>Energy Drain: <strong data-field="drawer-hd-drain" style="color: var(--tes-danger);">${drain.gt(0) ? `-${formatEnergy(drain)}/s` : "0.00 J/s"}</strong></div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">OPERATIONAL STATE</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                  <button data-hd-btn="active" class="${hdState === "active" ? "btn-primary" : "btn-secondary"}" data-action="set-harddisk-state" data-state="active">Active (On)</button>
+                  <button data-hd-btn="standby" class="${hdState === "standby" ? "btn-primary" : "btn-secondary"}" data-action="set-harddisk-state" data-state="standby">Standby</button>
+                  <button data-hd-btn="off" class="${hdState === "off" ? "btn-danger" : "btn-secondary"}" data-action="set-harddisk-state" data-state="off">Turn Off (Wipes Buffer)</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 5. Developer Tools Drawer (Section 8.5)
+      case "dev": {
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer" style="width: min(600px, 95vw);">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("icon-settings")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Developer Mode & Cheats</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <span>Dev Mode (Force Active):</span>
+                  <button class="btn-secondary ${state.devMode ? "btn-utility--active" : ""}" data-action="toggle-dev-mode">
+                    ${state.devMode ? "DEV MODE: ON" : "DEV MODE: OFF"}
+                  </button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">ENERGY INJECTION</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 14px;">
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1e-9">+1 nJ</button>
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1e-6">+1 µJ</button>
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1e-3">+1 mJ</button>
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1">+1 J</button>
+                  <button class="btn-danger" data-action="zero-energy">Zero J</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">ALGORITHMS & LEVEL</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 14px;">
+                  <button class="btn-secondary" data-action="add-afeature" data-target="AImp" data-count="12">+12 AImp</button>
+                  <button class="btn-secondary" data-action="add-afeature" data-target="AUpg" data-count="12">+12 AUpg</button>
+                  <button class="btn-secondary" data-action="add-afeature" data-target="ARec" data-count="12">+12 ARec</button>
+                  <button class="btn-secondary" data-action="add-comp-level">+1 Level</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">SIMULATION SPEED</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                  <button class="btn-secondary" data-action="set-speed" data-speed="1">1x</button>
+                  <button class="btn-secondary" data-action="set-speed" data-speed="5">5x</button>
+                  <button class="btn-secondary" data-action="set-speed" data-speed="20">20x</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">STATE MILESTONES</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+                  <button class="btn-primary" data-action="quicksave">Quicksave</button>
+                  <button class="btn-secondary" data-action="restore-quicksave" ${engine.hasQuicksave && !engine.hasQuicksave() ? "disabled" : ""}>Restore Quicksave</button>
+                  <button class="btn-danger" data-action="reset-all">Reset All</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title" data-field="dev-audit-count">AUDIT LOG (${state.auditLogs?.length ?? 0})</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                  <button class="btn-secondary" data-action="export-csv">Export CSV</button>
+                  <button class="btn-secondary" data-action="export-json">Export JSON</button>
+                  <button class="btn-secondary" data-action="clear-audit">Clear</button>
+                </div>
+
+                <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--tes-border); border-radius: 6px;">
+                  <table class="tes-table" style="font-size: 11px;">
+                    <thead>
+                      <tr><th>Time</th><th>Item</th><th>Qty</th><th>Cost</th><th>Status</th></tr>
+                    </thead>
+                    <tbody data-field="dev-audit-tbody" data-log-count="${state.auditLogs?.length ?? 0}">
+                      ${
+                        (state.auditLogs ?? [])
+                          .slice(-10)
+                          .reverse()
+                          .map(
+                            (l) => `
+                        <tr>
+                          <td>${l.timestamp?.split("T")[1]?.split(".")[0] ?? ""}</td>
+                          <td><strong>${l.itemName}</strong></td>
+                          <td>${l.purchasedQuantity}</td>
+                          <td>${l.nominalCostFormatted}</td>
+                          <td><span class="badge-status ${l.ruleStatus === "RULE_ELIGIBLE" ? "badge-status--active" : "badge-status--standby"}">${l.ruleStatus}</span></td>
+                        </tr>
+                      `,
+                          )
+                          .join("") ||
+                        '<tr><td colspan="5" style="text-align:center;">No logs recorded</td></tr>'
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 6. Settings Modal
+      case "settings": {
+        const curNotation = state.settings?.notation || "engineering";
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal" style="max-width: 520px; width: 100%;">
+              <div class="tes-modal-header">
+                <h3 class="tes-modal-title">System Settings</h3>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <p class="muted" style="margin: 0; font-size: 13px;">Configure simulation visual formatting, notation, and data storage.</p>
+
+                <!-- Number Notation Setting -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <span style="font-size: 13px; font-weight: 600; color: var(--tes-text); text-transform: uppercase; letter-spacing: 0.5px;">Notação de Engenharia</span>
+                  <div style="display: flex; flex-direction: column; gap: 8px;" role="radiogroup" aria-label="Notação de Engenharia">
+                    
+                    <label class="tes-setting-option" style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; background: ${curNotation === 'engineering' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${curNotation === 'engineering' ? 'var(--tes-cyan)' : 'var(--tes-border)'};">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="tes-notation" value="engineering" data-action="set-notation" ${curNotation === 'engineering' ? 'checked' : ''} style="cursor: pointer; accent-color: var(--tes-cyan);" />
+                        <span style="font-size: 14px; font-weight: 600; color: ${curNotation === 'engineering' ? 'var(--tes-cyan)' : 'var(--tes-text)'};">Engenharia (m, u, n, p, K, M, G, T)</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--tes-text-dim); padding-left: 24px;">Exemplo: 30.00 pJ · 4.00 nJ · 1.50 J · 2.50 KJ · 10.00 MJ</div>
+                    </label>
+
+                    <label class="tes-setting-option" style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; background: ${curNotation === 'engineering_num' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${curNotation === 'engineering_num' ? 'var(--tes-cyan)' : 'var(--tes-border)'};">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="tes-notation" value="engineering_num" data-action="set-notation" ${curNotation === 'engineering_num' ? 'checked' : ''} style="cursor: pointer; accent-color: var(--tes-cyan);" />
+                        <span style="font-size: 14px; font-weight: 600; color: ${curNotation === 'engineering_num' ? 'var(--tes-cyan)' : 'var(--tes-text)'};">Engenharia Num (-3, -6, -9, ...)</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--tes-text-dim); padding-left: 24px;">Exemplo: 30.00e-12 J · 4.00e-9 J · 1.50 J · 2.50e3 J · 10.00e6 J</div>
+                    </label>
+
+                    <label class="tes-setting-option" style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; background: ${curNotation === 'alpha' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${curNotation === 'alpha' ? 'var(--tes-cyan)' : 'var(--tes-border)'};">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="tes-notation" value="alpha" data-action="set-notation" ${curNotation === 'alpha' ? 'checked' : ''} style="cursor: pointer; accent-color: var(--tes-cyan);" />
+                        <span style="font-size: 14px; font-weight: 600; color: ${curNotation === 'alpha' ? 'var(--tes-cyan)' : 'var(--tes-text)'};">Alpha (c, b, a, A, B, C)</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--tes-text-dim); padding-left: 24px;">Exemplo: 30.00 dJ · 4.00 cJ · 1.50 J · 2.50 AJ · 10.00 BJ</div>
+                    </label>
+
+                  </div>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                  <span class="muted">Autosave Frequency:</span>
+                  <span style="font-weight: 600; color: var(--tes-cyan);">5.0 seconds</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                  <span class="muted">Theme:</span>
+                  <span style="font-weight: 600; color: var(--tes-purple-light);">Dark Minimal Sci-Fi</span>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <button class="btn-danger" data-action="reset-all" style="font-size: 12px; padding: 6px 12px;">Wipe Simulation Progress</button>
+                  <button class="btn-primary" data-action="close-drawer">Done</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 7. Statistics Modal
+      case "stats": {
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal">
+              <div class="tes-modal-header">
+                <h3 class="tes-modal-title">Simulation Statistics</h3>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Facility Level:</span>
+                  <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.computerLevel ?? 1}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Machine Learnings:</span>
+                  <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Facility Optimizations:</span>
+                  <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Total Hardware Purchases:</span>
+                  <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Stored Energy:</span>
+                  <strong data-field="stat-energy">${formatEnergy(state.energy)}</strong>
+                </div>
+                <div class="tes-rail-divider"></div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn-primary" data-action="close-drawer">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 8. Measurement / Telemetry Modal
+      case "measure": {
+        const compLevel = state.computerLevel ?? 1;
+        const ap = calculateAlgorithmPerformance(
+          state,
+          config,
+          engine.statResolver,
+        );
+        const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+        const totalProd = calculateEnergyProduction(
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal">
+              <div class="tes-modal-header">
+                <h3 class="tes-modal-title">Energy Telemetry & Metrics</h3>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Algorithm Performance (AP):</span>
+                  <strong data-field="measure-ap">${formatEnergy(ap)}/s</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Computer Level:</span>
+                  <strong data-field="measure-level-mult" style="color: var(--tes-cyan);">Level ${compLevel}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">CRC Gadget Multiplier:</span>
+                  <strong data-field="measure-gadget-mult" style="color: var(--tes-teal);">${hasGadget ? "2.00x" : "1.00x"}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Gross Production Rate:</span>
+                  <strong data-field="measure-total-prod" style="color: var(--tes-cyan); font-size: 15px;">${formatRate(totalProd)}</strong>
+                </div>
+                <div class="tes-rail-divider"></div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn-primary" data-action="close-drawer">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 9. Offline Recovery Modal
+      case "offline": {
+        const summary = state.lastOfflineSummary ?? {
+          offlineSeconds: 0,
+          simulatedSeconds: 0,
+          capped: false,
+          netEnergy: big(0),
+          totalEnergyProduced: big(0),
+          studiesCompleted: { AImp: 0, AUpg: 0, ARec: 0 },
+        };
+        const awayStr = formatDuration(summary.offlineSeconds ?? 0);
+        const simStr = formatDuration(summary.simulatedSeconds ?? 0);
+        const netEn = big(summary.netEnergy ?? 0);
+        const netEnStr = formatEnergy(netEn);
+        const isNetPositive = netEn.gte(0);
+        const aImpDiff = summary.studiesCompleted?.AImp ?? summary.algorithmImprovementsCompleted ?? 0;
+        const aUpgDiff = summary.studiesCompleted?.AUpg ?? summary.algorithmUpgradesCompleted ?? 0;
+        const aRecDiff = summary.studiesCompleted?.ARec ?? summary.algorithmRefactoringsCompleted ?? 0;
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal" style="max-width: 520px; width: 100%;">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("auto-calculator")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Facility Offline Recovery</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <p class="muted" style="margin: 0; font-size: 13px;">
+                  Autonomous facility systems simulated operations across your absence.
+                </p>
+
+                <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span class="muted">Time Away:</span>
+                    <strong style="color: var(--tes-text);">${awayStr}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span class="muted">Simulated Duration:</span>
+                    <strong style="color: var(--tes-cyan);">${simStr}${summary.capped ? " (Capped)" : ""}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span class="muted">Net Energy Stored:</span>
+                    <strong style="color: ${isNetPositive ? "var(--tes-green)" : "var(--tes-danger)"}; font-size: 15px;">${isNetPositive ? "+" : ""}${netEnStr}</strong>
+                  </div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">AUTONOMOUS COMPUTATION</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                  <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; border: 1px solid var(--tes-border);">
+                    <span style="color: var(--tes-text);">Algorithm Improvements (A.Imp):</span>
+                    <strong style="color: var(--tes-cyan);">+${formatInteger(aImpDiff)}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; border: 1px solid var(--tes-border);">
+                    <span style="color: var(--tes-text);">Algorithm Upgrades (A.Upg):</span>
+                    <strong style="color: var(--tes-purple-light);">+${formatInteger(aUpgDiff)}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; border: 1px solid var(--tes-border);">
+                    <span style="color: var(--tes-text);">Algorithm Refactorings (A.Rec):</span>
+                    <strong style="color: var(--tes-yellow);">+${formatInteger(aRecDiff)}</strong>
+                  </div>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn-primary" data-action="close-drawer" style="padding: 8px 24px;">Resume Simulation</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 10. Setup Optimization / Facility Restructure Disclaimer Modal
+      case "fo-confirm": {
+        const foCount = state.facilityOptimizations ?? 0;
+        const curLevel = state.computerLevel ?? 1;
+        const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
+        const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
+        const isFirstTime = foCount === 0;
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal" style="max-width: 540px; width: 100%;">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("facility-optimization")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title" style="color: #c084fc;">Setup Optimization Disclaimer</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                ${
+                  isFirstTime
+                    ? `
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px;">
+                    <img src="${tesIconPath("algorithm-recalculation")}" alt="" style="width: 28px; height: 28px;" />
+                    <div style="font-size: 13px; line-height: 1.4;">
+                      <strong style="color: #e9d5ff; display: block; margin-bottom: 2px;">Nova Descoberta Científica!</strong>
+                      <span style="color: #f3e8ff;">Uma nova forma de melhoria de algoritmo foi descoberta: <strong>Algorithm Recalculation (ARec)</strong>!</span>
+                    </div>
+                  </div>
+                `
+                    : ""
+                }
+
+                <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--tes-text-secondary);">
+                  Executar o <strong>Setup Optimization</strong> realiza uma reestruturação profunda da infraestrutura computacional (<strong>HARD RESET na camada de Energy</strong>).
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+                  <div style="padding: 10px 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px;">
+                    <strong style="color: #fca5a5; display: block; margin-bottom: 4px;">⚠ O que será reiniciado (HARD RESET):</strong>
+                    <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
+                      <li><strong>Stored Energy:</strong> Zerada completamente.</li>
+                      <li><strong>Study Improvements:</strong> Todas as melhorias e milestones de estudos são zerados.</li>
+                      <li><strong>Algoritmos & Inventários:</strong> AImp, AUpg e ARec zerados.</li>
+                      <li><strong>Hardware Convencional:</strong> Chips, Transistores, Microprocessor, Capacitores, Processors e Hard Disks removidos.</li>
+                    </ul>
+                  </div>
+
+                  <div style="padding: 10px 12px; background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 6px;">
+                    <strong style="color: #6ee7b7; display: block; margin-bottom: 4px;">✓ O que é PRESERVADO:</strong>
+                    <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
+                      <li><strong>Computer Level & MLs:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservados</span> (não são reiniciados).</li>
+                      <li><strong>Power Cells:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservadas intactas</span> (única exceção de hardware!).</li>
+                      <li><strong>Multiplicador Permanente:</strong> Bônus de <strong>+9% composto</strong> (de ${(curBonus).toFixed(2)}× para <strong style="color: #c084fc;">${(nextBonus).toFixed(2)}×</strong>) em hardware operacional.</li>
+                      <li><strong>Algorithm Recalculation (ARec):</strong> Desbloqueado permanentemente.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                  <button class="btn-secondary" data-action="close-drawer">Cancelar</button>
+                  <button class="btn-primary btn-primary--purple" data-action="perform-facility-optimization">
+                    Confirmar Restruturação (Lv. ${curLevel})
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+    }
+  }
+
+  function closeHoverPopover() {
+    const popoverContainer = container.querySelector("#tes-popover-container");
+    if (popoverContainer && activePopover?.isHover) {
+      activePopover = null;
+      popoverContainer.innerHTML = "";
+    }
+  }
+
+  // Popover info handler
+  function showInfoPopover(topic, triggerEl, isHover = false) {
+    const popoverContainer = container.querySelector("#tes-popover-container");
+    if (!popoverContainer) return;
+
+    if (!isHover && activePopover?.topic === topic && !activePopover.isHover) {
+      activePopover = null;
+      popoverContainer.innerHTML = "";
+      return;
+    }
+
+    if (isHover && activePopover && !activePopover.isHover) {
+      // Don't override a locked popover opened by click
+      return;
+    }
+
+    const config = engine?.config || globalThis.__TES_GAME_CONFIG__ || {};
+    const rect = triggerEl ? triggerEl.getBoundingClientRect() : { bottom: 100, left: 100 };
+    const data = getTooltipContent(topic, {
+      state: engine.state,
+      config,
+      engine,
+      statResolver: engine.statResolver,
+    });
+    activePopover = { topic, isHover, ...data };
+
+    const popoverWidth = 380;
+    const top = Math.min(
+      window.innerHeight - 280,
+      Math.max(10, rect.bottom + 6),
+    );
+    const left = Math.min(
+      Math.max(10, window.innerWidth - popoverWidth - 20),
+      Math.max(10, rect.left - 100),
+    );
+
+    popoverContainer.innerHTML = `
+      <div class="tes-popover" style="top: ${top}px; left: ${left}px;">
+        <div style="font-weight: 700; color: var(--tes-text); margin-bottom: 4px;">${data.title}</div>
+        <div class="tes-popover-body">${data.body}</div>
+      </div>
+    `;
+
+    const popoverEl = popoverContainer.querySelector(".tes-popover");
+    if (popoverEl && isHover) {
+      popoverEl.addEventListener("mouseleave", () => {
+        closeHoverPopover();
+      });
+    }
+
+    const closeHandler = (e) => {
+      if (
+        !e.target.closest(".tes-popover") &&
+        !e.target.closest('[data-action="show-info"]') &&
+        !e.target.closest("#energy-net-item")
+      ) {
+        activePopover = null;
+        popoverContainer.innerHTML = "";
+        window.removeEventListener("click", closeHandler);
+      }
+    };
+    setTimeout(() => window.addEventListener("click", closeHandler), 10);
+  }
+
+  // Public methods on renderer
   render.render = render;
+  render.getActiveDrawer = () => activeDrawer;
+  render.openDrawer = (drawerName) => {
+    if (activeDrawer !== drawerName) {
+      activeDrawer = drawerName;
+      lastActiveDrawer = null;
+      render();
+    }
+  };
+  render.closeDrawer = () => {
+    if (activeDrawer !== null) {
+      activeDrawer = null;
+      render();
+    }
+  };
+  render.refreshDrawer = () => {
+    lastActiveDrawer = null;
+    render();
+  };
+  render.showInfo = showInfoPopover;
+  render.nextNews = () => {
+    const list = getNewsList();
+    newsIndex = (newsIndex + 1) % list.length;
+    updateNewsDisplay();
+  };
+  render.prevNews = () => {
+    const list = getNewsList();
+    newsIndex = (newsIndex - 1 + list.length) % list.length;
+    updateNewsDisplay();
+  };
+
   return render;
 }
 
@@ -11380,7 +15297,39 @@ function downloadFile(content, fileName, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-function bindActions(app, engine, saveActions, config) {
+function bindHotkeys(engine, renderer) {
+  if (typeof window === "undefined") return;
+
+  window.addEventListener("keydown", (event) => {
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.target && typeof event.target.matches === "function" && (event.target.matches("input, textarea, select") || event.target.isContentEditable)) {
+      return;
+    }
+
+    const key = event.key.toUpperCase();
+    if (["A", "U", "R", "T", "M"].includes(key)) {
+      event.preventDefault();
+      engine.setHotkeyState(key, true);
+      if (renderer?.render) renderer.render();
+    }
+  });
+
+  window.addEventListener("keyup", (event) => {
+    const key = event.key.toUpperCase();
+    if (["A", "U", "R", "T", "M"].includes(key)) {
+      engine.setHotkeyState(key, false);
+      if (renderer?.render) renderer.render();
+    }
+  });
+
+  window.addEventListener("blur", () => {
+    engine.clearAllHotkeys();
+    if (renderer?.render) renderer.render();
+  });
+}
+
+function bindActions(app, engine, saveActions, config, renderer) {
+  // Handle click actions
   app.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
@@ -11391,41 +15340,119 @@ function bindActions(app, engine, saveActions, config) {
       // 1. Navigation / Tabs
       case "set-tab": {
         const tab = target.dataset.tab || "energy";
-        engine.state.ui.activeTab = tab;
-        engine.notify();
+        if (engine.state.ui.activeTab !== tab) {
+          engine.state.ui.activeTab = tab;
+          renderer.render();
+        }
         break;
       }
 
-      // 2. Narrative
-      case "dismiss-narrative": {
-        const card = target.closest("#narrative-card") || target.closest(".panel");
-        if (card) card.style.display = "none";
+      // 2. Drawer & Modal Management
+      case "open-drawer": {
+        if (renderer?.openDrawer) renderer.openDrawer(target.dataset.drawer);
+        break;
+      }
+      case "close-drawer": {
+        if (target.classList.contains("tes-modal-overlay") && event.target !== target) break;
+        if (renderer?.closeDrawer) renderer.closeDrawer();
+        break;
+      }
+      case "open-modal": {
+        if (renderer?.openDrawer) renderer.openDrawer(target.dataset.modal);
+        break;
+      }
+      case "close-modal": {
+        if (target.classList.contains("tes-modal-overlay") && event.target !== target) break;
+        if (renderer?.closeDrawer) renderer.closeDrawer();
         break;
       }
 
-      // 3. Algorithm Studies
+      // 3. News Carousel Navigation
+      case "news-prev": {
+        if (renderer?.prevNews) renderer.prevNews();
+        break;
+      }
+      case "news-next": {
+        if (renderer?.nextNews) renderer.nextNews();
+        break;
+      }
+
+      // 4. Info Popovers
+      case "show-info": {
+        if (renderer?.showInfo) renderer.showInfo(target.dataset.topic, target);
+        break;
+      }
+
+      // 5. Algorithm Studies & Automation Toggles
       case "study-feature": {
         const feat = target.dataset.target;
         const count = parseInt(target.dataset.count || "1", 10);
         engine.startManualStudy(feat, count);
         break;
       }
-
-      // 4. Element Purchases (General)
-      case "buy-element": {
-        const elementId = target.dataset.elementId;
-        const count = parseInt(target.dataset.count || "1", 10);
-        engine.purchaseElement(elementId, count);
+      case "toggle-auto-study": {
+        const feat = target.dataset.target;
+        if (feat && engine.toggleAutoStudy) {
+          engine.toggleAutoStudy(feat);
+        }
+        break;
+      }
+      case "claim-study-improve": {
+        const feat = target.dataset.target;
+        if (feat && engine.claimStudyImprove) {
+          const success = engine.claimStudyImprove(feat);
+          if (success) {
+            const row = document.querySelector(`#study-row-${feat.toLowerCase()}`);
+            if (row) {
+              row.classList.remove("tes-study-row--improved");
+              void row.offsetWidth;
+              row.classList.add("tes-study-row--improved");
+            }
+            if (renderer?.render) renderer.render();
+          }
+        }
+        break;
+      }
+      case "install-transistor": {
+        const feat = target.dataset.target;
+        if (feat && engine.installTransistor) {
+          const success = engine.installTransistor(feat);
+          if (success && renderer?.render) {
+            renderer.render();
+          }
+        }
         break;
       }
 
-      // 5. Machine Learning (Soft Reset)
+      // 6. Device Category Filters
+      case "set-device-filter": {
+        const filter = target.dataset.filter || "all";
+        engine.state.ui.deviceCategoryFilter = filter;
+        engine.notify();
+        break;
+      }
+
+      // 7. Element Purchases (General)
+      case "buy-element": {
+        const elementId = target.dataset.elementId;
+        const count = parseInt(target.dataset.count || "1", 10);
+        const success = engine.purchaseElement(elementId, count);
+        if (!success) {
+          const evalResult = engine.evaluateElement(elementId, count);
+          if (evalResult?.reasons?.length > 0) {
+            console.warn(`[UI] Purchase blocked for '${elementId}':`, evalResult.reasons.join(". "));
+          }
+        }
+        break;
+      }
+
+      // 8. Machine Learning (Soft Reset)
       case "run-machine-learning": {
         engine.runMachineLearning();
         break;
       }
 
-      // 6. Chips Reassignment
+      // 9. Chips Reassignment
       case "reassign-chip": {
         const from = target.dataset.from;
         const to = target.dataset.to;
@@ -11434,7 +15461,7 @@ function bindActions(app, engine, saveActions, config) {
         break;
       }
 
-      // 7. Transistors Reassignment
+      // 10. Transistors Reassignment
       case "reassign-transistor": {
         const from = target.dataset.from;
         const to = target.dataset.to;
@@ -11443,38 +15470,42 @@ function bindActions(app, engine, saveActions, config) {
         break;
       }
 
-      // 8. Microprocessor Target
+      // 11. Microprocessor Target
+      case "rebalance-transistors": {
+        if (engine.rebalanceTransistors) engine.rebalanceTransistors();
+        break;
+      }
       case "set-micro-target": {
         const microTarget = target.dataset.target;
         engine.setMicroprocessorTarget(microTarget);
         break;
       }
 
-      // 9. Overclocker Activation
+      // 12. Overclocker Activation
       case "activate-overclock": {
         engine.activateOverclocker();
+        if (renderer?.closeDrawer) renderer.closeDrawer();
         break;
       }
 
-      // 10. Hard Disk State
+      // 13. Hard Disk State
       case "set-harddisk-state": {
         const state = target.dataset.state;
         engine.setHardDiskState(state);
         break;
       }
 
-      // 11. Facility Optimization (Hard Reset)
+      // 14. Facility Optimization / Setup Optimization (Hard Reset)
       case "perform-facility-optimization": {
-        const confirmed = window.confirm(
-          "Perform Facility Optimization? This will reset energy and conventional hardware, but preserve Computer Level, Power Cells, and grant a permanent +9% compounding bonus."
-        );
-        if (confirmed) {
-          engine.performFacilityOptimization();
+        const success = engine.performFacilityOptimization();
+        if (success) {
+          if (renderer?.closeDrawer) renderer.closeDrawer();
+          if (renderer?.render) renderer.render();
         }
         break;
       }
 
-      // 12. Dev Mode & Cheats
+      // 15. Dev Mode & Cheats
       case "toggle-dev-mode": {
         engine.toggleDevMode();
         break;
@@ -11511,17 +15542,27 @@ function bindActions(app, engine, saveActions, config) {
         engine.restoreQuicksave();
         break;
       }
+      case "set-notation": {
+        const notation = target.dataset.notation || target.value;
+        if (notation) {
+          engine.setNotation(notation);
+          if (renderer?.refreshDrawer) renderer.refreshDrawer();
+          renderer.render();
+        }
+        break;
+      }
       case "reset-all": {
         const confirmed = window.confirm(
           "Delete all simulation progress? This cannot be undone."
         );
         if (confirmed) {
           engine.resetAllProgress();
+          if (renderer?.closeDrawer) renderer.closeDrawer();
         }
         break;
       }
 
-      // 13. Audit Log Data Export
+      // 16. Audit Log Data Export
       case "export-csv": {
         const csv = engine.exportAuditLogsCSV();
         downloadFile(csv, `tes-audit-${Date.now()}.csv`, "text/csv");
@@ -11534,8 +15575,31 @@ function bindActions(app, engine, saveActions, config) {
       }
       case "clear-audit": {
         engine.state.auditLogs = [];
+        if (renderer?.refreshDrawer) renderer.refreshDrawer();
         engine.notify();
         break;
+      }
+    }
+  });
+
+  // Handle change actions (checkboxes)
+  app.addEventListener("change", (event) => {
+    const target = event.target.closest("[data-action]");
+    if (!target) return;
+
+    const action = target.dataset.action;
+    if (action === "toggle-filter-added") {
+      engine.state.ui.showAdded = target.checked;
+      engine.notify();
+    } else if (action === "toggle-filter-unavailable") {
+      engine.state.ui.showUnavailable = target.checked;
+      engine.notify();
+    } else if (action === "set-notation") {
+      const notation = target.value;
+      if (notation) {
+        engine.setNotation(notation);
+        if (renderer?.refreshDrawer) renderer.refreshDrawer();
+        renderer.render();
       }
     }
   });
@@ -11545,17 +15609,83 @@ async function start() {
   const app = document.querySelector("#app");
   const query = new URLSearchParams(window.location.search);
   const developmentMode = query.get("dev") === "1";
+  const initialTab = query.get("tab");
+  const initialDrawer = query.get("drawer");
 
   try {
     const config = await loadConfig();
     const state = loadState(config, developmentMode);
-    simulateOfflineProgress(state, config, { developmentMode });
-    const engine = new GameEngine({ state, config, developmentMode });
-    const renderer = createRenderer(app, engine);
+    if (initialTab && ["energy", "devices", "science", "particles"].includes(initialTab)) {
+      state.ui.activeTab = initialTab;
+    }
+
+    let saveSuppressed = false;
+    if (query.get("demo") === "1") {
+      saveSuppressed = true;
+      state.energy = big("125.4e-6");
+      state.peakEnergy = big("125.4e-6");
+      state.computerLevel = 3;
+      state.algorithms.AImp = { owned: 48, produced: 120 };
+      state.algorithms.AUpg = { owned: 4, produced: 6 };
+      state.devices.capacitors = 2;
+      state.devices.chips.owned = 1;
+      state.devices.chips.allocations = { AImp: 1, AUpg: 0, ARec: 0 };
+      state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+      state.devices.microprocessor.owned = 0;
+      state.devices.crcGadget.owned = 1;
+      state.devices.transistorBoard.owned = true;
+      state.devices.transistorsPurchased = 4;
+      state.devices.transistorAllocations = { AImp: 2, AUpg: 2, ARec: 0 };
+      state.devices.overclocker.owned = 1;
+      state.powerCells = 2;
+      state.powerCellCharge = big("1.8e-3");
+      state.unlocks.chips = true;
+      state.unlocks.transistorBoard = true;
+      state.unlocks.crcGadget = true;
+      state.unlocks.microprocessor = true;
+      state.unlocks.overclocker = true;
+      state.unlocks.capacitor = true;
+      state.unlocks.powerCell = true;
+
+      // Study Improves initial demo state
+      state.studyImproves = {
+        AImp: { completions: 40, claimed: 0 },
+        AUpg: { completions: 0, claimed: 0 },
+        ARec: { completions: 0, claimed: 0 },
+      };
+
+      const scenario = query.get("scenario");
+      if (scenario === "improve-unavailable") {
+        state.algorithms.AImp.owned = 10;
+        state.studyImproves.AImp = { completions: 10, claimed: 0 };
+      } else if (scenario === "transistor-disabled") {
+        state.energy = big("0");
+      } else if (scenario === "data-cap") {
+        state.algorithms.AImp = { owned: 10000, produced: 10000 };
+        state.devices.hardDisks = { owned: 1, active: true, buffer: 25, dataPaused: true };
+        state.unlocks.hardDisk = true;
+      } else if (scenario === "energy-advanced") {
+        state.energy = big("50e9");
+        state.peakEnergy = big("50e9");
+      } else if (scenario === "so-card") {
+        state.computerLevel = 6;
+      } else if (scenario === "so-modal") {
+        state.computerLevel = 6;
+        setTimeout(() => {
+          if (renderer?.openDrawer) renderer.openDrawer("fo-confirm");
+        }, 80);
+      }
+    }
 
     window.clearTimeout(window.__TES_BOOT_TIMEOUT__);
 
-    let saveSuppressed = false;
+    const offlineSummary = simulateOfflineProgress(state, config, { developmentMode });
+    const engine = new GameEngine({ state, config, developmentMode });
+    const renderer = createRenderer(app, engine);
+    if (typeof window !== "undefined") {
+      window.__TES_ENGINE__ = engine;
+      window.__TES_RENDERER__ = renderer;
+    }
 
     bindActions(
       app,
@@ -11564,20 +15694,40 @@ async function start() {
         saveNow: () => engine.save(),
         resetAll: () => engine.resetAllProgress(),
       },
-      config
+      config,
+      renderer
     );
+
+    bindHotkeys(engine, renderer);
 
     engine.subscribe(() => renderer.render());
     renderer.render();
+
+    if (initialDrawer && renderer?.openDrawer) {
+      renderer.openDrawer(initialDrawer);
+    } else if (offlineSummary && offlineSummary.simulatedSeconds >= 5 && renderer?.openDrawer) {
+      renderer.openDrawer("offline");
+    }
 
     let previousTime = performance.now();
     let previousRender = previousTime;
     let previousSave = previousTime;
 
     function frame(now) {
-      const deltaSeconds = (now - previousTime) / 1000;
+      const rawDelta = (now - previousTime) / 1000;
       previousTime = now;
-      engine.tick(deltaSeconds);
+
+      if (rawDelta > 3.0) {
+        const bgSummary = simulateOfflineProgress(engine.state, config, { developmentMode, now: Date.now() });
+        if (bgSummary && bgSummary.simulatedSeconds >= 5 && !renderer.getActiveDrawer?.()) {
+          renderer.openDrawer("offline");
+        }
+        renderer.render();
+        if (!saveSuppressed) saveState(engine.state, developmentMode);
+      } else {
+        const deltaSeconds = Math.min(rawDelta, config.timing?.maximumTickSeconds ?? 1.0);
+        engine.tick(deltaSeconds);
+      }
 
       if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
         renderer.render();
@@ -11592,7 +15742,34 @@ async function start() {
       window.requestAnimationFrame(frame);
     }
 
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        engine.state.lastSavedAt = Date.now();
+        if (!saveSuppressed) saveState(engine.state, developmentMode);
+      } else {
+        const now = Date.now();
+        const elapsed = (now - (engine.state.lastSavedAt ?? now)) / 1000;
+        if (elapsed >= 3.0) {
+          const bgSummary = simulateOfflineProgress(engine.state, config, { developmentMode, now });
+          previousTime = performance.now();
+          if (bgSummary && bgSummary.simulatedSeconds >= 5 && !renderer.getActiveDrawer?.()) {
+            renderer.openDrawer("offline");
+          }
+          renderer.render();
+          if (!saveSuppressed) saveState(engine.state, developmentMode);
+        } else {
+          previousTime = performance.now();
+        }
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      engine.state.lastSavedAt = Date.now();
+      if (!saveSuppressed) saveState(engine.state, developmentMode);
+    });
+
     window.addEventListener("beforeunload", () => {
+      engine.state.lastSavedAt = Date.now();
       if (!saveSuppressed) saveState(engine.state, developmentMode);
     });
 
@@ -11607,6 +15784,7 @@ async function start() {
             <p class="eyebrow eyebrow--warning">BOOT FAILURE</p>
             <h1>The facility did not respond.</h1>
             <p>${error.message || "An error occurred while loading the game."}</p>
+            <pre>${error.stack || ""}</pre>
           </div>
         </section>
       `;

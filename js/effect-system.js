@@ -16,7 +16,7 @@ import {
 
 export function createStandardEffects(config = {}) {
   return [
-    // 1. Facility Optimization multiplier on global device performance
+    // 1. Facility Optimization multiplier on global device performance (Capacitors, CRC, Hard Disk)
     {
       id: "facility-optimization-multiplier",
       label: "Facility Optimization Multiplier",
@@ -29,12 +29,23 @@ export function createStandardEffects(config = {}) {
       },
     },
 
-    // 2. Processor multiplier on global device performance
+    // 2. Study Speed Multiplier: base inherits Facility Optimization, multiplied by Processor (+5% per unit)
+    {
+      id: "study-speed-facility-multiplier",
+      label: "Facility Multiplier on Study Speed",
+      source: "facilityOptimization",
+      targetStatId: "devices.studySpeedMultiplier",
+      operation: "base",
+      value: (context) => {
+        const H = context.state?.facilityOptimizations ?? 0;
+        return calculateFacilityDeviceMultiplier(H, context.config ?? config);
+      },
+    },
     {
       id: "processor-device-multiplier",
-      label: "Processor Device Multiplier",
+      label: "Processor Study Speed Multiplier",
       source: "processor",
-      targetStatId: "devices.globalMultiplier",
+      targetStatId: "devices.studySpeedMultiplier",
       operation: "multiply",
       value: (context) => {
         const P = context.state?.devices?.processors ?? 0;

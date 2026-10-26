@@ -17,6 +17,7 @@ const sources = [
   "js/save-system.js",
   "js/engine.js",
   "js/offline-progress.js",
+  "js/ui-tooltip-content.js",
   "js/ui.js",
   "js/main.js",
 ];

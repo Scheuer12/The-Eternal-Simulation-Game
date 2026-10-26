@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node tools/build-bundle.mjs",
     "test": "node --test \"simulation/tests/*.test.js\"",
+    "test:qa": "node tools/run-user-qa.mjs",
     "simulate": "python simulation/simulator.py"
   },
   "engines": {

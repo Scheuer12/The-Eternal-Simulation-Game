@@ -4,7 +4,7 @@
  * Declarative definitions for Devices, Storage, and Prestige Resets.
  */
 
-import { big } from "./numeric.js";
+import { big, formatEnergy } from "./numeric.js";
 import {
   calculateDeviceCost,
   calculateBulkDeviceCost,
@@ -29,17 +29,20 @@ export function getAllElements() {
 }
 
 // ----------------------------------------------------------------------------
-// 1. AutoCalculator Chip
+// 1. AutoCalculator Chip (Base Generic & Specific Targets)
 // ----------------------------------------------------------------------------
 registerElement({
   id: "chip",
   name: "AutoCalculator Chip",
   category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator",
   description: "Automates studies of one selected A-Feature. Independent worker respecting conversion costs and duration.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, count, config),
   getOwned: (state) => state.devices?.chips?.owned ?? 0,
+  isRevealed: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
   isUnlocked: (state, config) => {
     if (state.unlocks?.chips) return true;
     const aupgDone = (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
@@ -67,17 +70,167 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("chip", state.devices?.chips?.owned ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: state.devices?.chips?.owned ?? 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.chips.owned = (state.devices.chips.owned ?? 0) + k;
     // Newly acquired chips default to AImp
     state.devices.chips.allocations.AImp = (state.devices.chips.allocations.AImp ?? 0) + k;
     state.unlocks.chips = true;
     state.unlocks.transistorBoard = true; // Purchasing first chip reveals Transistor Board
-    return { newCount: state.devices.chips.owned, cost, count: k };
+    return { success: true, newCount: state.devices.chips.owned, cost, count: k };
+  },
+});
+
+// AutoCalculator — Improvements
+registerElement({
+  id: "autoCalculator_AImp",
+  name: "AutoCalculator — Improvements",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-imp",
+  description: "Automates Algorithm Improvement studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.AImp > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isUnlocked: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.AImp ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires completing your first A.Upgrade study");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.AImp ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    state.devices.chips.allocations.AImp = (state.devices.chips.allocations.AImp ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    state.devices.chips.enabled.AImp = true;
+    state.unlocks.chips = true;
+    state.unlocks.transistorBoard = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// AutoCalculator — Upgrades
+registerElement({
+  id: "autoCalculator_AUpg",
+  name: "AutoCalculator — Upgrades",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-upg",
+  description: "Automates Algorithm Upgrade studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.AUpg > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isUnlocked: (state) => Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0,
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.chips) || (state.algorithms?.AUpg?.produced ?? 0) > 0 || (state.algorithms?.AUpg?.owned ?? 0) > 0;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.AUpg ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires completing your first A.Upgrade study");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.AUpg ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    state.devices.chips.allocations.AUpg = (state.devices.chips.allocations.AUpg ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    state.devices.chips.enabled.AUpg = true;
+    state.unlocks.chips = true;
+    state.unlocks.transistorBoard = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// AutoCalculator — Recalculations
+registerElement({
+  id: "autoCalculator_ARec",
+  name: "AutoCalculator — Recalculations",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-rec",
+  description: "Automates Algorithm Recalculation studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.ARec > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.ARec),
+  isUnlocked: (state) => Boolean(state.unlocks?.ARec),
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.ARec);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.ARec ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires unlocking Algorithm Recalculation via Facility Optimization");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.ARec ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    state.devices.chips.allocations.ARec = (state.devices.chips.allocations.ARec ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+    state.devices.chips.enabled.ARec = true;
+    state.unlocks.chips = true;
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -87,11 +240,14 @@ registerElement({
 registerElement({
   id: "transistorBoard",
   name: "Transistor Board",
-  category: "efficiency",
-  description: "Provides infrastructure to purchase and allocate Transistors among study types.",
+  category: "computation",
+  lane: "efficiency",
+  icon: "transistor-board",
+  description: "Distributes computational resources between studies.",
   unique: true,
   getCost: (state, config) => calculateDeviceCost("transistorBoard", 0, config),
   getOwned: (state) => (state.devices?.transistorBoard?.owned ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.transistorBoard) || (state.devices?.chips?.owned ?? 0) >= 1,
   isUnlocked: (state, config) => {
     if (state.unlocks?.transistorBoard) return true;
     return (state.devices?.chips?.owned ?? 0) >= 1;
@@ -117,14 +273,19 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("transistorBoard", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.transistorBoard.owned = true;
     state.unlocks.transistorBoard = true;
-    return { newCount: 1, cost, count: 1 };
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    if ((state.devices.transistorsPurchased ?? 0) >= reqT) {
+      state.unlocks.microprocessor = true;
+    }
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -134,12 +295,15 @@ registerElement({
 registerElement({
   id: "transistor",
   name: "Transistor",
-  category: "efficiency",
-  description: "Adds +5% Study Speed per unit allocated to an A-Feature. Shared global purchase cost.",
+  category: "computation",
+  lane: "efficiency",
+  icon: "transistor",
+  description: "Accelerates study speed when allocated.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, count, config),
   getOwned: (state) => state.devices?.transistorsPurchased ?? 0,
+  isRevealed: (state) => Boolean(state.devices?.transistorBoard?.owned),
   isUnlocked: (state, config) => Boolean(state.devices?.transistorBoard?.owned),
   isEligible: (state, config, count = 1) => {
     const strictUnlocked = Boolean(state.devices?.transistorBoard?.owned);
@@ -161,21 +325,23 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false, target = "AImp" } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("transistor", state.devices?.transistorsPurchased ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: state.devices?.transistorsPurchased ?? 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.transistorsPurchased = (state.devices.transistorsPurchased ?? 0) + k;
     const dest = ["AImp", "AUpg", "ARec"].includes(target) ? target : "AImp";
     state.devices.transistorAllocations[dest] = (state.devices.transistorAllocations[dest] ?? 0) + k;
 
-    // Check Microprocessor unlock: Board + 4 Transistors
-    if (state.devices.transistorBoard.owned && state.devices.transistorsPurchased >= 4) {
+    // Check Microprocessor unlock: Board + required Transistors
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    if (state.devices.transistorBoard.owned && (state.devices.transistorsPurchased ?? 0) >= reqT) {
       state.unlocks.microprocessor = true;
     }
 
-    return { newCount: state.devices.transistorsPurchased, cost, count: k };
+    return { success: true, newCount: state.devices.transistorsPurchased, cost, count: k };
   },
 });
 
@@ -185,27 +351,35 @@ registerElement({
 registerElement({
   id: "microprocessor",
   name: "Microprocessor",
-  category: "efficiency",
-  description: "Geometrically amplifies the study speed of one selected A-Feature: 1.12^T (where T is allocated Transistors). Each unit increases study amplification.",
-  unique: false,
-  getCost: (state, config, count = 1) =>
-    calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config),
+  category: "computation",
+  lane: "efficiency",
+  icon: "microprocessor",
+  description: "Amplifies the speed of the selected study.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("microprocessor", 0, config),
   getOwned: (state) => state.devices?.microprocessor?.owned ?? 0,
+  isRevealed: (state, config) => Boolean(state.devices?.transistorBoard?.owned),
   isUnlocked: (state, config) => {
     if (state.unlocks?.microprocessor) return true;
-    return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4;
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    return Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= reqT;
   },
   isEligible: (state, config, count = 1) => {
-    const strictUnlocked = (state.unlocks?.microprocessor) ||
-      (Boolean(state.devices?.transistorBoard?.owned) && (state.devices?.transistorsPurchased ?? 0) >= 4);
+    const isOwned = (state.devices?.microprocessor?.owned ?? 0) >= 1;
+    const reqT = config.devices?.microprocessor?.transistorsRequiredToUnlock ?? 0;
+    const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
+    const hasTransistors = (state.devices?.transistorsPurchased ?? 0) >= reqT;
+    const strictUnlocked = (state.unlocks?.microprocessor) || (hasBoard && hasTransistors);
     const unlocked = strictUnlocked || Boolean(state.devMode);
-    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, count, config);
+    const cost = calculateDeviceCost("microprocessor", 0, config);
     const canAfford = big(state.energy).gte(cost);
     const reasons = [];
-    if (!strictUnlocked) reasons.push("Requires Transistor Board and at least 4 Transistors");
-    if (!canAfford) reasons.push("Insufficient energy");
+    if (isOwned) reasons.push("Microprocessor is already installed (Unique device)");
+    if (!hasBoard) reasons.push("Requires Transistor Board");
+    if (!hasTransistors && reqT > 0) reasons.push(`Requires at least ${reqT} Transistors (have ${state.devices?.transistorsPurchased ?? 0})`);
+    if (!canAfford) reasons.push(`Insufficient energy (needs ${formatEnergy(cost)})`);
     return {
-      eligible: unlocked && canAfford,
+      eligible: unlocked && canAfford && !isOwned,
       isUnlocked: unlocked,
       strictUnlocked,
       canAfford,
@@ -214,16 +388,20 @@ registerElement({
     };
   },
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
-    const k = Math.max(1, Math.floor(count ?? 1));
-    const cost = calculateBulkDeviceCost("microprocessor", state.devices?.microprocessor?.owned ?? 0, k, config);
+    const isOwned = (state.devices?.microprocessor?.owned ?? 0) >= 1;
+    if (isOwned && !isForced) {
+      return { success: false, newCount: 1, cost: big(0), count: 0 };
+    }
+    const cost = calculateDeviceCost("microprocessor", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: state.devices?.microprocessor?.owned ?? 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
-    state.devices.microprocessor.owned = (state.devices.microprocessor.owned ?? 0) + k;
+    state.devices.microprocessor.owned = 1;
     state.unlocks.microprocessor = true;
-    return { newCount: state.devices.microprocessor.owned, cost, count: k };
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -233,11 +411,14 @@ registerElement({
 registerElement({
   id: "overclocker",
   name: "Overclocker",
-  category: "efficiency",
-  description: "Sacrifices Transistors to temporarily amplify Microprocessor bonus: (1 + T/3) for log(T)/log(1.5) seconds.",
+  category: "computation",
+  lane: "efficiency",
+  icon: "overclocker",
+  description: "Temporarily accelerates the selected computation.",
   unique: true,
   getCost: (state, config) => calculateDeviceCost("overclocker", 0, config),
   getOwned: (state) => state.devices?.overclocker?.owned ?? 0,
+  isRevealed: (state) => (state.devices?.microprocessor?.owned ?? 0) > 0 || Boolean(state.unlocks?.overclocker),
   isUnlocked: (state, config) => {
     if (state.unlocks?.overclocker) return true;
     const microOwned = (state.devices?.microprocessor?.owned ?? 0) > 0;
@@ -269,14 +450,15 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("overclocker", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.overclocker.owned = 1;
     state.unlocks.overclocker = true;
-    return { newCount: 1, cost, count: 1 };
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -287,10 +469,13 @@ registerElement({
   id: "crcGadget",
   name: "CRC Gadget",
   category: "energy",
-  description: "Multiplies total CRC Energy Production by 2x.",
+  lane: "resources",
+  icon: "crc-gadget",
+  description: "Amplifies Cosmic Radiation Condenser energy output.",
   unique: true,
   getCost: (state, config) => calculateDeviceCost("crcGadget", 0, config),
   getOwned: (state) => state.devices?.crcGadget?.owned ?? 0,
+  isRevealed: () => true,
   isUnlocked: () => true,
   isEligible: (state, config) => {
     const cost = calculateDeviceCost("crcGadget", 0, config);
@@ -310,13 +495,14 @@ registerElement({
   },
   applyPurchase: (state, config, { isForced = false } = {}) => {
     const cost = calculateDeviceCost("crcGadget", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.crcGadget.owned = 1;
-    return { newCount: 1, cost, count: 1 };
+    return { success: true, newCount: 1, cost, count: 1 };
   },
 });
 
@@ -327,11 +513,14 @@ registerElement({
   id: "capacitor",
   name: "Capacitor",
   category: "energy",
-  description: "Increases the Energy contribution of A.Improvements by +50% per unit (1 + 0.5 * C).",
+  lane: "resources",
+  icon: "capacitor",
+  description: "Amplifies the energy contribution of the entire Algorithm Feature chain.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, count, config),
   getOwned: (state) => state.devices?.capacitors ?? 0,
+  isRevealed: (state) => (state.computerLevel ?? 1) >= 2 || Boolean(state.unlocks?.capacitor),
   isUnlocked: (state, config) => {
     if (state.unlocks?.capacitor) return true;
     return (state.computerLevel ?? 1) >= 2;
@@ -356,14 +545,15 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("capacitor", state.devices?.capacitors ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.capacitors ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.capacitors = (state.devices.capacitors ?? 0) + k;
     state.unlocks.capacitor = true;
-    return { newCount: state.devices.capacitors, cost, count: k };
+    return { success: true, newCount: state.devices.capacitors, cost, count: k };
   },
 });
 
@@ -373,23 +563,23 @@ registerElement({
 registerElement({
   id: "processor",
   name: "Processor",
-  category: "efficiency",
-  description: "Slightly improves the performance of other eligible Devices by +3% per unit (1 + 0.03 * P).",
+  category: "computation",
+  lane: "efficiency",
+  icon: "processor",
+  description: "Improves the effectiveness of study speed-efficiency devices (+5% per unit).",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, count, config),
   getOwned: (state) => state.devices?.processors ?? 0,
-  isUnlocked: (state, config) => {
-    if (state.unlocks?.processor) return true;
-    return (state.facilityOptimizations ?? 0) >= 1;
-  },
+  isRevealed: (state) => Boolean(state.unlocks?.processor) || big(state.energy).gte(1e-6) || big(state.peakEnergy ?? 0).gte(1e-6),
+  isUnlocked: (state, config) => Boolean(state.unlocks?.processor) || big(state.energy).gte(1e-6) || big(state.peakEnergy ?? 0).gte(1e-6),
   isEligible: (state, config, count = 1) => {
-    const strictUnlocked = (state.unlocks?.processor) || (state.facilityOptimizations ?? 0) >= 1;
+    const strictUnlocked = Boolean(state.unlocks?.processor) || big(state.energy).gte(1e-6) || big(state.peakEnergy ?? 0).gte(1e-6);
     const unlocked = strictUnlocked || Boolean(state.devMode);
     const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, count, config);
     const canAfford = big(state.energy).gte(cost);
     const reasons = [];
-    if (!strictUnlocked) reasons.push("Unlocked only after the first Facility Optimization");
+    if (!strictUnlocked) reasons.push("Requires reaching 1 µJ (1e-6 J) stored energy");
     if (!canAfford) reasons.push("Insufficient energy");
     return {
       eligible: unlocked && canAfford,
@@ -403,14 +593,15 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("processor", state.devices?.processors ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.processors ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.processors = (state.devices.processors ?? 0) + k;
     state.unlocks.processor = true;
-    return { newCount: state.devices.processors, cost, count: k };
+    return { success: true, newCount: state.devices.processors, cost, count: k };
   },
 });
 
@@ -421,11 +612,14 @@ registerElement({
   id: "hardDisk",
   name: "Hard Disk",
   category: "learning",
-  description: "Consumes Energy continuously to produce +3 Data/s per active Disk into a temporary buffer.",
+  lane: "resources",
+  icon: "hard-disk",
+  description: "Consumes Energy to generate temporary Data.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, count, config),
   getOwned: (state) => state.devices?.hardDisks?.owned ?? 0,
+  isRevealed: (state) => Boolean(state.unlocks?.hardDisk),
   isUnlocked: (state, config) => {
     if (state.unlocks?.hardDisk) return true;
     return (state.facilityOptimizations ?? 0) >= 1;
@@ -450,17 +644,18 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("hardDisk", state.devices?.hardDisks?.owned ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.hardDisks?.owned ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.devices.hardDisks.owned = (state.devices.hardDisks.owned ?? 0) + k;
     if (state.devices.hardDisks.state === "off") {
       state.devices.hardDisks.state = "active";
     }
     state.unlocks.hardDisk = true;
-    return { newCount: state.devices.hardDisks.owned, cost, count: k };
+    return { success: true, newCount: state.devices.hardDisks.owned, cost, count: k };
   },
 });
 
@@ -470,12 +665,15 @@ registerElement({
 registerElement({
   id: "powerCell",
   name: "Power Cell",
-  category: "storage",
-  description: "Provides operational Energy capacity (1 mJ/cell). Persists through Facility Optimization.",
+  category: "energy",
+  lane: "resources",
+  icon: "power-cell",
+  description: "Expands the facility's operational energy capacity.",
   unique: false,
   getCost: (state, config, count = 1) =>
     calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, count, config),
   getOwned: (state) => state.powerCells ?? 0,
+  isRevealed: () => true,
   isUnlocked: () => true,
   isEligible: (state, config, count = 1) => {
     const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, count, config);
@@ -494,14 +692,15 @@ registerElement({
   applyPurchase: (state, config, { count = 1, isForced = false } = {}) => {
     const k = Math.max(1, Math.floor(count ?? 1));
     const cost = calculateBulkDeviceCost("powerCell", state.powerCells ?? 0, k, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.powerCells ?? 0), cost: big(0), count: 0 };
+    }
     if (big(state.energy).gte(cost)) {
       state.energy = big(state.energy).sub(cost);
-    } else if (!isForced) {
-      state.energy = big(0);
     }
     state.powerCells = (state.powerCells ?? 0) + k;
     state.unlocks.powerCell = true;
-    return { newCount: state.powerCells, cost, count: k };
+    return { success: true, newCount: state.powerCells, cost, count: k };
   },
 });
 
@@ -512,14 +711,15 @@ registerElement({
   id: "machineLearning",
   name: "Run Machine Learning",
   category: "reset",
-  description: "Advances global Computer Level (+50% AP per level). Clears A-Feature inventories; keeps hardware and energy.",
+  description: "Advances Computer Level, strengthening Algorithm Features and conversion efficiency.",
   unique: false,
   getCost: () => null,
   getOwned: (state) => state.computerLevel ?? 1,
   isUnlocked: () => true,
   isEligible: (state, config) => {
-    const currentData = calculateAvailableData(state, config);
+    const rawData = calculateAvailableData(state, config);
     const requiredData = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+    const currentData = Math.min(Math.max(0, rawData), requiredData);
     const naturallyEligible = currentData >= requiredData;
     const eligible = naturallyEligible || Boolean(state.devMode);
     const reasons = [];
@@ -533,7 +733,7 @@ registerElement({
       canAfford: true,
       cost: null,
       reasons,
-      meta: { currentData, requiredData },
+      meta: { currentData, rawData, requiredData },
     };
   },
   applyPurchase: (state, config) => {
@@ -546,6 +746,13 @@ registerElement({
     state.algorithms.ARec.owned = 0;
     state.algorithms.ARec.produced = 0;
 
+    // Reset study improve milestones & multipliers on Machine Learning (Section 1.8)
+    if (state.studyImproves) {
+      state.studyImproves.AImp = { completions: 0, claimed: 0 };
+      state.studyImproves.AUpg = { completions: 0, claimed: 0 };
+      state.studyImproves.ARec = { completions: 0, claimed: 0 };
+    }
+
     // Clear study queues and pending worker reservations
     state.studyQueues.AImp = 0;
     state.studyQueues.AUpg = 0;
@@ -554,6 +761,12 @@ registerElement({
     state.reservedInputs.AUpg = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
+    if (state.manualStudies) {
+      for (const t of ["AImp", "AUpg", "ARec"]) {
+        state.manualStudies[t].active = false;
+        state.manualStudies[t].elapsed = 0;
+      }
+    }
 
     // Clear accumulated Hard Disk data buffer
     state.devices.hardDisks.buffer = 0;
@@ -580,7 +793,7 @@ registerElement({
   id: "facilityOptimization",
   name: "Facility Optimization",
   category: "reset",
-  description: "Improves all operational Devices by +9% permanent compounding multiplier (1.09^H). Preserves Computer Level & Power Cells.",
+  description: "Permanently improves operational device effectiveness across future cycles.",
   unique: false,
   getCost: () => null,
   getOwned: (state) => state.facilityOptimizations ?? 0,
@@ -609,6 +822,13 @@ registerElement({
   applyPurchase: (state, config) => {
     state.facilityOptimizations = (state.facilityOptimizations ?? 0) + 1;
 
+    // Reset all Study Improvements
+    state.studyImproves = {
+      AImp: { completions: 0, claimed: 0 },
+      AUpg: { completions: 0, claimed: 0 },
+      ARec: { completions: 0, claimed: 0 },
+    };
+
     // 1. Reset A-Feature inventories
     state.algorithms.AImp.owned = 0;
     state.algorithms.AImp.produced = 0;
@@ -625,9 +845,16 @@ registerElement({
     state.reservedInputs.AUpg = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
+    if (state.manualStudies) {
+      for (const t of ["AImp", "AUpg", "ARec"]) {
+        state.manualStudies[t].active = false;
+        state.manualStudies[t].elapsed = 0;
+      }
+    }
 
-    // 3. Reset Stored Energy to zero
+    // 3. Reset Stored Energy and Peak Energy to zero
     state.energy = big(0);
+    state.peakEnergy = big(0);
 
     // 4. Reset Hard Disk buffer
     state.devices.hardDisks.buffer = 0;
@@ -651,14 +878,19 @@ registerElement({
     state.devices.hardDisks.state = "off";
     state.devices.hardDisks.activeSeconds = 0;
 
-    // 6. Reset Power Cell charge to zero (owned cells are preserved!)
+    // 6. Reset Power Cell charge to zero (owned Power Cells are PRESERVED as the sole exception!)
     state.powerCellCharge = big(0);
 
-    // 7. Tech unlocks: Unlock ARec and Processor permanently!
+    // 7. Tech unlocks:
+    // ARec is unlocked permanently across facility optimizations!
     state.unlocks.ARec = true;
-    state.unlocks.processor = true;
     state.unlocks.hardDisk = true;
-    // Chips and Board need to be rebought, but tech unlock flags for ARec/Processor stay permanent
+    state.unlocks.processor = false; // Only appears when 1e-6 J is reached
+    state.unlocks.transistorBoard = false;
+    state.unlocks.microprocessor = false;
+    state.unlocks.overclocker = false;
+    state.unlocks.capacitor = false;
+    state.unlocks.chips = false;
 
     state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
 
@@ -671,19 +903,30 @@ export function evaluateElement(element, state, config, count = 1) {
   const check = element.isEligible(state, config, k);
   const cost = element.getCost ? element.getCost(state, config, k) : null;
   const owned = element.getOwned ? element.getOwned(state) : 0;
+  const isRevealed = element.isRevealed ? element.isRevealed(state, config) : (check.isUnlocked || check.strictUnlocked);
 
-  const naturallyEligible = Boolean(check.strictUnlocked && check.canAfford);
+  const strictUnlocked = Boolean(check.strictUnlocked);
+  const canAfford = Boolean(check.canAfford);
   const isDevMode = Boolean(state.devMode);
 
-  let visualStatus = "eligible";
-  let canClick = naturallyEligible;
+  // Eligible naturally: unlocked + affordable + eligible (e.g. unique not owned)
+  const naturallyEligible = Boolean(strictUnlocked && canAfford && check.eligible);
+
+  // In devMode, player can bypass tech milestone locks, but MUST ALWAYS AFFORD THE COST!
+  const devBypassUnlocked = Boolean(isDevMode && !strictUnlocked && canAfford && check.eligible);
+
+  let visualStatus = "locked";
+  let canClick = false;
 
   if (naturallyEligible) {
     visualStatus = "eligible";
     canClick = true;
-  } else if (isDevMode) {
+  } else if (devBypassUnlocked) {
     visualStatus = "dev-bypass";
     canClick = true;
+  } else if (!canAfford) {
+    visualStatus = "unaffordable";
+    canClick = false;
   } else {
     visualStatus = "locked";
     canClick = false;
@@ -694,11 +937,14 @@ export function evaluateElement(element, state, config, count = 1) {
     id: element.id,
     name: element.name,
     category: element.category,
+    lane: element.lane ?? "efficiency",
+    icon: element.icon ?? "auto-calculator",
     description: element.description,
     unique: element.unique ?? false,
     owned,
     cost,
     count: k,
+    isRevealed,
     isUnlocked: check.isUnlocked,
     strictUnlocked: check.strictUnlocked,
     canAfford: check.canAfford,
