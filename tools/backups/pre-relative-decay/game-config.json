@@ -1,0 +1,114 @@
+{
+  "version": "sandbox-rebuild-v1",
+  "timing": {
+    "baseTickSeconds": 0.05,
+    "simulationStepMs": 50,
+    "renderIntervalMs": 50,
+    "autosaveIntervalMs": 5000,
+    "maximumTickSeconds": 1.0
+  },
+  "offlineProgress": {
+    "maxOfflineSeconds": 86400,
+    "stepSeconds": 0.25,
+    "maxSteps": 345600
+  },
+  "energyEraProgress": {
+    "targetStoredEnergy": 100000000000,
+    "logScale": 1e-12
+  },
+  "studyImprove": {
+    "enabled": true,
+    "initialMilestones": [21, 36, 99],
+    "milestoneGrowthFactor": 1.8,
+    "speedCoefficient": 0.69,
+    "resetOnMachineLearning": true
+  },
+  "economy": {
+    "algorithmBaseStrength": 1e-15,
+    "algorithmConversionFactor": 12,
+    "conversionPerformanceRatio": 2,
+    "initialComputerLevel": 1,
+    "computerPerformanceBase": 1.5,
+    "baseStudyDurationSeconds": 0.5,
+    "initialEnergy": 0
+  },
+  "decay": {
+    "overflowDecayRate": 0.012,
+    "overflowDecayPower": 1.42
+  },
+  "dataXP": {
+    "aImpData": 1,
+    "aUpgData": 9,
+    "aRecData": 81,
+    "machineLearning": {
+      "baseRequirement": 693,
+      "scaleMultiplier": 2304,
+      "powerExponent": 1.6643485138,
+      "xpExponentialStartLevel": 6,
+      "xpGrowthFactor": 2.1
+    }
+  },
+  "facilityOptimization": {
+    "initialLevelRequired": 6,
+    "levelIncrement": 3,
+    "deviceMultiplierBase": 1.09
+  },
+  "devices": {
+    "chip": {
+      "initialCost": 3e-11,
+      "costMultiplier": 4.0,
+      "defaultTarget": "AImp"
+    },
+    "transistorBoard": {
+      "initialCost": 500e-12,
+      "unique": true
+    },
+    "transistor": {
+      "initialCost": 250e-12,
+      "costMultiplier": 1.6,
+      "speedBonusPerUnit": 0.069
+    },
+    "microprocessor": {
+      "initialCost": 3e-9,
+      "costMultiplier": 1.25,
+      "unique": true,
+      "multiplierBase": 1.12,
+      "defaultTarget": "AImp",
+      "transistorsRequiredToUnlock": 0
+    },
+    "overclocker": {
+      "initialCost": 9e-8,
+      "unique": true,
+      "minTransistors": 2,
+      "durationBase": 1.5,
+      "bonusDivisor": 3.0
+    },
+    "crcGadget": {
+      "initialCost": 1e-8,
+      "unique": true,
+      "productionMultiplier": 2.0
+    },
+    "capacitor": {
+      "initialCost": 1e-8,
+      "costMultiplier": 3,
+      "bonusPerUnit": 0.5
+    },
+    "processor": {
+      "initialCost": 33e-6,
+      "costMultiplier": 30,
+      "bonusPerUnit": 0.05
+    },
+    "hardDisk": {
+      "initialCost": 1e-5,
+      "costMultiplier": 9.0,
+      "dataRatePerDisk": 3.0,
+      "baseEnergyDrainPerSecond": 1e-10,
+      "drainTimeConstant": 60.0
+    },
+    "powerCell": {
+      "initialCost": 1.0,
+      "costMultiplier": 2.25,
+      "baseCapacity": 1e-3
+    }
+  }
+}

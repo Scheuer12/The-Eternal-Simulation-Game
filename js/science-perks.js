@@ -24,7 +24,7 @@ export const SCIENCE_PERKS = [
     ],
     effect:
       "Unlocks the Particle Generator and begins the transition to the Particles Era, with new particle manipulation systems.",
-    revealHint: "Reach 100e60 J Stored Energy to reveal this technology.",
+    revealHint: "Reach 1e36 J Stored Energy to reveal this technology.",
     storedEnergyRequiredConfigPath:
       "science.quantumPerks.particleGeneratorStoredEnergyRequired",
     summary: "Opens particle generation and the Particles Era.",
@@ -121,8 +121,8 @@ export const SCIENCE_PERKS = [
     cost: 1,
     requires: ["fiftyGCalculator"],
     effect:
-      "Allows the Calculator to automate Calculation Method Upgrades (CMUs).",
-    summary: "Automates Calculation Method Upgrades.",
+      "Allows the Calculator to automate Setup Improvements (SI).",
+    summary: "Automates Setup Improvements.",
   },
   {
     id: "roboticArms",
@@ -254,12 +254,12 @@ export const SCIENCE_PERKS = [
   },
   {
     id: "calculatorBonusX2ToX22",
-    name: "Calculator Bonus +50% → +70%",
+    name: "Calculator Overthreading +40%",
     branch: "studies",
     cost: 2,
     requires: ["calculatorBonusAppliesAUpgrades"],
-    effect: "Increases the Auto Calculator base unit bonus from +50% to +70%.",
-    summary: "Raises Calculator unit bonus from +50% to +70%.",
+    effect: "Increases each Auto Calculator thread execution throughput by +40% (1.0x → 1.4x per core).",
+    summary: "Raises Calculator thread throughput by +40%.",
   },
   {
     id: "processorBonusAppliesAImprovementSpeed",

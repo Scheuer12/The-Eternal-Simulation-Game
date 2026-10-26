@@ -108,7 +108,7 @@ test("reset layer requirements rise as configured", () => {
         config,
       ),
     ),
-    [12, 18, 24, 30],
+    [15, 23, 31, 39],
   );
 
   assert.deepEqual(
@@ -118,7 +118,7 @@ test("reset layer requirements rise as configured", () => {
         config,
       ),
     ),
-    [2, 4, 6, 8],
+    [2, 3, 4, 6],
   );
 });
 
@@ -161,58 +161,61 @@ test("production breakdown shows active production contributors matching total",
   assertBigEqual(total, calculateProduction(state, config));
 });
 
-test("Setup Optimization device performance D(S) = 1 + 2 ln(1+S)", () => {
+test("Setup Optimization device performance D(S) = 1 + 5*S + 2*S^2", () => {
   assert.equal(calculateSetupDevicePerformance(0, config), 1);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(1, config) - 2.38629) < 0.001);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(2, config) - 3.19722) < 0.001);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(5, config) - 4.58351) < 0.001);
-  assert.ok(Math.abs(calculateSetupDevicePerformance(10, config) - 5.79579) < 0.001);
+  assert.equal(calculateSetupDevicePerformance(1, config), 8);
+  assert.equal(calculateSetupDevicePerformance(2, config), 19);
+  assert.equal(calculateSetupDevicePerformance(5, config), 76);
+  assert.equal(calculateSetupDevicePerformance(10, config), 251);
 
-  // Setup performance increases CRC base production
+  // Setup Upgrade does NOT multiply CRC base production directly
   const state = createInitialState(config);
   state.setupOptimizations = 1;
   const d1 = calculateSetupDevicePerformance(1, config);
-  assertBigEqual(calculateProduction(state, config), big(1e-12).mul(d1));
+  assertBigEqual(calculateProduction(state, config), big(1e-12));
+
+  // But Setup Upgrade multiplies Auto Calculator thread speed
+  state.devices.autoCalculators = 1;
+  const expectedCalcSpeed = 2.0 * d1 ** (config.economyV2?.autoCalculators?.setupOptimizationExponent ?? 0.72);
+  assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedCalcSpeed, 1e-12);
 });
 
 test("CMU exclusively scales Processor unit bonus by 1.2^M", () => {
   const state = createInitialState(config);
   state.devices.processors = 1;
 
+  const baseBonus = 0.25;
   const unitBonus0 = calculateProcessorBonusUnit(state, config);
-  assert.equal(unitBonus0, 0.15);
+  assertBigClose(unitBonus0, baseBonus, 1e-12);
 
   state.calculationMethods = 1;
   const unitBonus1 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus1, 0.15 * 1.2, 1e-12);
+  assertBigClose(unitBonus1, baseBonus * 1.2, 1e-12);
 
   state.calculationMethods = 2;
   const unitBonus2 = calculateProcessorBonusUnit(state, config);
-  assertBigClose(unitBonus2, 0.15 * 1.44, 1e-12);
+  assertBigClose(unitBonus2, baseBonus * 1.44, 1e-12);
 
   // When P=0, CMU has zero effect on Auto Calculator speed
   state.devices.processors = 0;
   state.devices.autoCalculators = 1;
-  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 1.5);
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 2);
+  state.devices.autoCalculators = 2;
+  assert.equal(calculateAutoCalculatorSpeedMultiplier(state, config), 4);
 });
 
-test("Processor aggregated effectiveness E_P = (1 + unitBonus)^P compounds into each Calculator", () => {
+test("Processor aggregated effectiveness E_P (direct linear: E_P = 1 + unitBonus * P)", () => {
   const state = createInitialState(config);
   state.devices.processors = 2;
   state.devices.autoCalculators = 2;
 
-  const unitBonus = 0.15;
-  const ep = (1 + unitBonus) ** 2; // 1.15^2 = 1.3225
+  const unitBonus = 0.25;
+  const ep = 1 + unitBonus * 2; // 1 + 0.50 = 1.50
   assertBigClose(calculateProcessorEfficiencyMultiplier(state, config), ep, 1e-12);
 
-  // Each calculator has baseUnitBonus = 0.5. With EP, unit bonus is 0.5 * EP.
-  // Fleet speed = (1 + 0.5 * EP)^2
-  const expectedFleetSpeed = (1 + 0.5 * ep) ** 2;
+  // 2 calculators = 2 nominal threads at speed = 2 * 2.0 * ep = 6.00
+  const expectedFleetSpeed = 2 * 2.0 * ep;
   assertBigClose(calculateAutoCalculatorSpeedMultiplier(state, config), expectedFleetSpeed, 1e-12);
-
-  // Crucial test from spec §11.1: verify difference between compounding E_P into each calculator vs multiplying at the end
-  const wrongMultiplyAtEnd = ((1 + 0.5) ** 2) * ep;
-  assert.notEqual(expectedFleetSpeed, wrongMultiplyAtEnd);
 });
 
 test("Overclocker acts on Processor bonus while active, not directly on fleet speed", () => {
@@ -224,7 +227,7 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
   // Inactive
   assert.equal(calculateOverclockerSpeedMultiplier(state, config), 1);
   assertBigEqual(calculateOverclockerDrainPerSecond(state, config), 0);
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.15);
+  assertBigClose(calculateProcessorBonusUnit(state, config), 0.25, 1e-12);
 
   // Active: O_0(1) = 5
   state.overclocker.active = true;
@@ -233,8 +236,8 @@ test("Overclocker acts on Processor bonus while active, not directly on fleet sp
     calculateOverclockerDrainPerSecond(state, config),
     config.overclocker.baseEnergyDrainPerSecond,
   );
-  // Processor unit bonus becomes 0.15 * 5 = 0.75
-  assert.equal(calculateProcessorBonusUnit(state, config), 0.75);
+  // Processor unit bonus becomes 0.25 * 5 = 1.25
+  assertBigClose(calculateProcessorBonusUnit(state, config), 1.25, 1e-12);
 
   // 2 Overclockers: O_0(2) = 5 * 1.5 = 7.5
   state.devices.overclockers = 2;
@@ -293,11 +296,17 @@ test("Power Cell capacity and cost scale from owned cells and Setup", () => {
     calculatePowerCellCost(3, config).gt(calculatePowerCellCost(2, config)),
   );
 
+  // Setup Upgrade does NOT multiply raw cells directly
   state.setupOptimizations = 1;
-  const ds = calculateSetupDevicePerformance(1, config);
   assertBigEqual(
     calculateStableEnergyCapacity(state, config),
-    big(config.energy.powerCellCapacity * 3).mul(ds),
+    config.energy.powerCellCapacity * 3,
+  );
+
+  // But adding Power Modules applies Setup Upgrade capacity scaling
+  state.powerModules = 1;
+  assert.ok(
+    calculateStableEnergyCapacity(state, config).gt(config.energy.powerCellCapacity * 3),
   );
 });
 
@@ -369,7 +378,7 @@ test("Science Era quark formulas use synthesis energy, safe capacity, and overfl
 
 test("Algorithm Improvement duration follows quadratic curve T_I(I) = 0.5*(1 + b*I^2)/V", () => {
   const state = createInitialState(config);
-  const b = config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.001;
+  const b = config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.0012;
 
   state.improvements = 0;
   assert.equal(calculateStudyDuration(state, config), 0.5);

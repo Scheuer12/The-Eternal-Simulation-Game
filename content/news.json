@@ -7,143 +7,1053 @@
     "weight": 80
   },
   {
-    "id": "solar_wind_shift",
-    "text": "Solar wind velocity shifted by +0.04 AU/h. Background noise density stable.",
-    "category": "TELEMETRY",
-    "rarity": 1,
-    "weight": 100
-  },
-  {
-    "id": "thermal_equilibrium",
-    "text": "Cryo-containment manifold delta: 0.003 K. Thermal drift within nominal boundaries.",
-    "category": "SYSTEM",
-    "rarity": 1,
-    "weight": 90
-  },
-  {
-    "id": "subspace_resonance",
-    "text": "Secondary capacitor bank harmonics aligned with cosmic background radiation.",
-    "category": "ENERGY",
-    "rarity": 1,
-    "weight": 85
-  },
-  {
-    "id": "buffer_clearing",
-    "text": "Automated diagnostic routine cleared 4,096 unreferenced telemetry buffers.",
-    "category": "MAINTENANCE",
-    "rarity": 1,
-    "weight": 80
-  },
-  {
-    "id": "particle_flux_nominal",
-    "text": "Atmospheric sensor array reports cosmic ray flux at 1.42 particles/cm²/s.",
-    "category": "SENSORS",
-    "rarity": 1,
-    "weight": 75
-  },
-  {
-    "id": "clock_sync",
-    "text": "Atomic reference clock synchronized with galactic pulsar beacon J0437-4715.",
-    "category": "CHRONO",
-    "rarity": 2,
-    "weight": 50
-  },
-  {
-    "id": "packet_echo",
-    "text": "Echo trace returned from Sub-Level 7. Round-trip latency: 12.4 picoseconds.",
-    "category": "NETWORK",
-    "rarity": 2,
-    "weight": 45
-  },
-  {
-    "id": "algorithm_divergence",
-    "text": "Algorithm optimization branch pruned: 1,024 redundant iterations collapsed.",
-    "category": "COMPUTE",
-    "rarity": 2,
-    "weight": 40
-  },
-  {
-    "id": "vacuum_fluctuation",
-    "text": "Transient energy spike observed at quantum boundary. Flux collapsed to zero.",
-    "category": "SENSORS",
-    "rarity": 2,
-    "weight": 35
-  },
-  {
-    "id": "magnetic_reversal",
-    "text": "Local field coil micro-fluctuation compensated by primary dampener circuits.",
-    "category": "SYSTEM",
-    "rarity": 2,
-    "weight": 30
-  },
-  {
-    "id": "stray_signal",
-    "text": "Unidentified narrowband carrier signal detected on 1420 MHz. Signal decayed in 3s.",
-    "category": "ANOMALY",
-    "rarity": 3,
-    "weight": 20
-  },
-  {
-    "id": "memory_ghost",
-    "text": "Recovered corrupted memory partition from prior cycle: '...do not turn off the...' .",
-    "category": "ARCHIVE",
+    "id": "muon_lifetime",
+    "text": "A muon at rest lives only about 2.2 microseconds on average before decaying.",
+    "category": "PARTICLE PHYSICS",
     "rarity": 3,
     "weight": 18
   },
   {
-    "id": "micro_singularity",
-    "text": "Gravimetric sensor registers micro-distortion near the particle manifold.",
-    "category": "GRAVIMETRY",
-    "rarity": 3,
-    "weight": 15
+    "id": "universe_apartments",
+    "text": "The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
   },
   {
-    "id": "quantum_entanglement_noise",
-    "text": "Entanglement pair correlation dropped to 99.4%. Re-calibrating spin detectors.",
-    "category": "QUANTUM",
-    "rarity": 3,
-    "weight": 12
+    "id": "jupiter_rest_energy",
+    "text": "Jupiter's mass corresponds to roughly 1.7e44 joules of rest energy, using E = mc².",
+    "category": "ENERGY",
+    "rarity": 2,
+    "weight": 45
   },
   {
-    "id": "temporal_leak",
-    "text": "Chronometer reported a timestamp dated 4,200 years in the future, then reverted.",
-    "category": "ANOMALY",
+    "id": "gps_microseconds",
+    "text": "Relativistic effects make GPS satellite clocks run about 38 microseconds faster per day than clocks on Earth's surface before corrections.",
+    "category": "RELATIVITY",
     "rarity": 4,
     "weight": 6
   },
   {
-    "id": "facility_architect",
-    "text": "Decrypted supervisor log: 'Iteration #14,082 was our best hope. Continue the run.'",
-    "category": "CLASSIFIED",
-    "rarity": 4,
-    "weight": 4
+    "id": "cosmic_muons_ground",
+    "text": "Many muons created high in Earth's atmosphere reach the ground because relativistic time dilation extends their journey.",
+    "category": "RELATIVITY",
+    "rarity": 3,
+    "weight": 18
   },
   {
-    "id": "sub_zero_quantum_spin",
-    "text": "Sensor reports negative thermodynamic entropy in dormant containment cell C-12.",
-    "category": "DEEP VOID",
-    "rarity": 4,
-    "weight": 3
+    "id": "sunlight_travel_time",
+    "text": "Sunlight takes about 8 minutes and 20 seconds to reach Earth.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
   },
   {
-    "id": "simulation_breach",
-    "text": "Warning: Memory address 0xDEADBEEF responded with conscious intent.",
-    "category": "SYSTEM FAULT",
-    "rarity": 5,
-    "weight": 2
+    "id": "sun_rest_energy",
+    "text": "The Sun's mass corresponds to about 1.8e47 joules of rest energy.",
+    "category": "ENERGY",
+    "rarity": 2,
+    "weight": 45
   },
   {
-    "id": "cosmic_whisper",
-    "text": "The universe is not expanding. It is just making room for the next calculation.",
-    "category": "TRANSMISSION",
+    "id": "fellowship_energy",
+    "text": "Welcome to the Fellowship of the Energy. One CRC to rule them all, one Algorithm Upgrade to reset them.",
+    "category": "EASTER EGG",
     "rarity": 5,
     "weight": 1
   },
   {
-    "id": "ouroboros",
-    "text": "Simulation state matches initial conditions of universe #1. We have been here before.",
+    "id": "free_neutron_lifetime",
+    "text": "A free neutron lasts about 15 minutes on average before decaying; bound neutrons can remain stable.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "ligo_precision",
+    "text": "Gravitational waves detected at Earth can change distances by a fractional amount of order 1e-21.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "light_speed_vacuum",
+    "text": "Light travels at exactly 299,792,458 meters per second in a vacuum.",
+    "category": "RELATIVITY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "observable_atoms",
+    "text": "A common order-of-magnitude estimate puts the number of atoms in the observable universe near 1e80.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "top_quark_short_life",
+    "text": "The top quark decays so quickly that it usually never forms a bound hadron.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "tau_lepton_lifetime",
+    "text": "The tau lepton survives for roughly 3e-13 seconds on average.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "moon_moves_away",
+    "text": "The Moon is drifting away from Earth by about 3.8 centimeters per year.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "observable_baryonic_rest_energy",
+    "text": "Ordinary matter in the observable universe contains roughly 1e70 joules of rest energy. That is a lot of batteries.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "gravitational_redshift",
+    "text": "Light climbing out of a gravitational well loses frequency, a phenomenon called gravitational redshift.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "strong_force_confinement",
+    "text": "Quarks are confined inside composite particles under ordinary conditions. Pulling them apart creates new particles instead.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "earth_orbital_speed",
+    "text": "Earth travels around the Sun at roughly 30 kilometers per second.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "chess_positions_and_atoms",
+    "text": "Estimated legal chess positions: roughly 4.8e44. Estimated atoms in the observable universe: about 1e80.",
+    "category": "MATHEMATICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "anti_matter_energy",
+    "text": "Annihilating 1 gram of antimatter with 1 gram of matter would release roughly 1.8e14 joules.",
+    "category": "ENERGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "frame_dragging",
+    "text": "Rotating masses slightly drag spacetime around them. Earth does it too, and the effect has been measured.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "solar_granules",
+    "text": "The Sun's visible surface boils with convection cells called granules, often around a thousand kilometers wide.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "one_light_year",
+    "text": "One light-year is a distance, not a time: about 9.46 trillion kilometers.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "shannon_chess_games",
+    "text": "Possible chess games are often estimated on the order of 1e120, far more than the number of legal board positions.",
+    "category": "MATHEMATICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "solar_corona_hotter",
+    "text": "The Sun's corona reaches millions of kelvin, far hotter than the visible surface below it.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "proxima_distance",
+    "text": "The nearest star beyond the Sun, Proxima Centauri, is about 4.24 light-years away.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "crab_pulsar_spin",
+    "text": "The pulsar inside the Crab Nebula rotates about 30 times per second.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "answer_is_42",
+    "text": "The answer is 42. We are still working on the question.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "solar_cycle",
+    "text": "Solar magnetic activity follows a cycle averaging roughly 11 years, though individual cycles vary.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "light_deflection_eclipse",
+    "text": "The 1919 solar-eclipse expedition helped make Einstein famous by testing gravitational light deflection.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "magnetar_fields",
+    "text": "Magnetars can have magnetic fields around 1e10 to 1e11 tesla, vastly stronger than Earth's.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "solar_core_heat",
+    "text": "Temperatures at the Sun's core reach roughly 15 million kelvin.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "fastest_pulsar",
+    "text": "One of the fastest known pulsars spins around 716 times each second.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "white_dwarf_crystallization",
+    "text": "As white dwarfs cool, portions of their dense interiors can crystallize.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "space_time_not_universal",
+    "text": "There is no single universal 'now' shared by all observers in special relativity.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "solar_power_output",
+    "text": "The Sun radiates about 3.8e26 joules every second.",
+    "category": "ENERGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "sagittarius_a_mass",
+    "text": "Sagittarius A*, the black hole at our galaxy's center, has a mass of about four million Suns.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "white_dwarf_electron_pressure",
+    "text": "Electron degeneracy pressure helps support white dwarfs against gravity.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "light_carries_momentum",
+    "text": "Photons have no rest mass, yet they carry energy and momentum.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "m87_black_hole_mass",
+    "text": "The black hole imaged in M87 has a mass of roughly 6.5 billion Suns.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "neutron_star_neutron_pressure",
+    "text": "Neutron stars resist collapse through dense-matter physics, including degeneracy pressure and nuclear interactions.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "redshift_lookback",
+    "text": "Looking far into space is looking back in time: the most distant galaxies are seen as they were long ago.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "neutron_star_teaspoon",
+    "text": "A teaspoon of neutron-star-density matter could have a mass of billions of tonnes. The teaspoon would not survive.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_observer_myth",
+    "text": "Quantum measurement is a physical interaction. Consciousness is not a required ingredient.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "black_hole_earth_size",
+    "text": "If Earth's mass formed a non-rotating black hole, its Schwarzschild radius would be about 9 millimeters.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "tidal_disruption",
+    "text": "Stars passing too close to supermassive black holes can be torn apart by tidal forces.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "reionization",
+    "text": "Early ultraviolet starlight helped reionize intergalactic hydrogen during the universe's first billion years.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "electron_clouds",
+    "text": "Electrons in atoms are described by quantum states, not tiny planetary orbits.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "solar_mass_loss",
+    "text": "Solar fusion converts around four million tonnes of mass into emitted energy every second.",
+    "category": "ENERGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "black_hole_accretion",
+    "text": "Glowing matter around some black holes can outshine entire galaxies before crossing the event horizon.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "schrodinger_customer_support",
+    "text": "Schrodinger's cat contacted customer support. Ticket status: OPEN / CLOSED.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "black_hole_ringdown",
+    "text": "After two black holes merge, the remnant can ring in gravitational waves as spacetime settles down.",
+    "category": "RELATIVITY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "pauli_exclusion",
+    "text": "Identical electrons cannot occupy the same quantum state in one system.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "blackbody_sun",
+    "text": "The Sun's visible surface is about 5,800 kelvin, much cooler than its core.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "primordial_hydrogen_helium",
+    "text": "Most primordial helium was produced in the universe's first few minutes, not inside stars.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "supermassive_vs_small_tides",
+    "text": "Tidal forces at an event horizon can be milder for a supermassive black hole than for a stellar-mass one.",
+    "category": "RELATIVITY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "uncertainty_not_bad_tools",
+    "text": "The uncertainty principle is built into quantum mechanics; it is not just a problem with measuring devices.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "lightning_temperature",
+    "text": "A lightning channel can briefly reach temperatures hotter than the Sun's visible surface.",
+    "category": "PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "black_hole_shadow",
+    "text": "The dark region in a black-hole image is larger than the event horizon because gravity bends nearby light.",
+    "category": "ASTROPHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "primordial_neutrino_background",
+    "text": "The Big Bang predicts a relic neutrino background; its effects are inferred, but individual relic neutrinos remain undetected.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "space_not_empty",
+    "text": "The cosmic voids contain far fewer galaxies than filaments, but they are not perfectly empty.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_tunneling_intro",
+    "text": "Quantum tunneling allows particles to cross barriers that classical physics would forbid.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "solar_neutrinos",
+    "text": "Trillions of neutrinos from the Sun pass through your body every second.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cmb_first_atoms",
+    "text": "The cosmic microwave background was released when the universe became transparent, around 380,000 years after the Big Bang.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "entanglement_no_faster_messages",
+    "text": "Entanglement creates correlations, but it cannot send usable messages faster than light.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "neutrino_flavors",
+    "text": "Neutrinos come in three known flavors: electron, muon, and tau.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cmb_photon_density",
+    "text": "Even now, each cubic centimeter of space contains roughly 400 cosmic microwave background photons.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_evaporation",
+    "text": "Hawking's theory predicts black-hole evaporation, but direct detection of Hawking radiation from astrophysical black holes remains elusive.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "wave_particle_interference",
+    "text": "Even single electrons can build up an interference pattern when sent through a double slit.",
+    "category": "QUANTUM",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "neutrino_oscillation",
+    "text": "Neutrinos can change flavor while traveling. Their oscillations show that neutrinos have mass.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "dark_matter_fraction",
+    "text": "Dark matter accounts for roughly 27% of the universe's energy budget in the standard cosmological model.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "chess_vs_universe",
+    "text": "There may be more possible chess games than atoms in the observable universe. Still no excuse for hanging your queen.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "dark_energy_fraction",
+    "text": "Dark energy accounts for roughly 68% of the universe's energy budget in the standard cosmological model.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "small_black_hole_evaporation",
+    "text": "Smaller black holes should emit Hawking radiation more intensely than larger ones.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "sound_needs_matter",
+    "text": "Sound needs a medium. In the vacuum of space, an ordinary scream makes no sound.",
+    "category": "PHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quarks_fractional_charge",
+    "text": "Quarks carry fractional electric charges, such as +2/3 or -1/3 of the proton's charge.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "dark_matter_lensing",
+    "text": "Astronomers can map dark matter indirectly from the gravitational lensing it produces.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_gravity",
+    "text": "A black hole does not pull from afar more strongly than any other object with the same mass.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "proton_mass_origin",
+    "text": "Most of the proton's mass comes from strong-interaction energy, not directly from the Higgs mechanism.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cosmic_expansion_superluminal",
+    "text": "Space can expand so that very distant galaxies recede faster than light without violating local relativity.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_information",
+    "text": "Whether black-hole evaporation preserves information is one of the deepest questions in quantum gravity.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "cosmic_horizon_not_edge",
+    "text": "The observable universe has a horizon, but that horizon is not necessarily the edge of the entire universe.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "black_hole_horizon",
+    "text": "An event horizon is a boundary in spacetime, not a solid shell around a black hole.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "higgs_discovery",
+    "text": "The Higgs boson was discovered at CERN in 2012, decades after it was predicted.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "space_flatness",
+    "text": "Observations indicate that the universe is very close to spatially flat on large scales.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "event_horizon_local",
+    "text": "An astronaut crossing a sufficiently large black hole's event horizon need not notice anything special at that exact boundary.",
+    "category": "RELATIVITY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "night_sky_dark",
+    "text": "The night sky is dark partly because the universe has a finite age and cosmic light is redshifted.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quantum_spin",
+    "text": "Electron spin is intrinsic quantum angular momentum, not a tiny sphere literally spinning in space.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "cosmic_inflation",
+    "text": "Cosmic inflation is a leading hypothesis for an extremely rapid expansion in the universe's earliest moments.",
+    "category": "COSMOLOGY",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_hall",
+    "text": "The quantum Hall effect produces extraordinarily precise steps in electrical conductance.",
+    "category": "CONDENSED MATTER",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "cosmic_background_temp",
+    "text": "The cosmic microwave background fills space at a temperature of about 2.725 kelvin.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quantum_teleportation",
+    "text": "Quantum teleportation transfers a quantum state using entanglement and classical communication. It does not teleport matter.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "architect_coffee",
+    "text": "The architect of the simulation requested one coffee. The request spawned twelve additional universes.",
     "category": "DEEP LORE",
     "rarity": 5,
     "weight": 1
+  },
+  {
+    "id": "negative_absolute_temperature",
+    "text": "Special systems with bounded energies can have negative absolute temperatures; they are hotter than any positive temperature.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "casimir_force",
+    "text": "Conducting surfaces placed very close together can experience a measurable Casimir force.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "universe_age",
+    "text": "The universe is approximately 13.8 billion years old.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "quantum_decoherence",
+    "text": "Interactions with the environment can suppress quantum interference through decoherence.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "lamb_shift",
+    "text": "Tiny shifts in hydrogen's energy levels helped reveal the importance of quantum electrodynamics.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "boltzmann_entropy",
+    "text": "Boltzmann's equation S = k ln W links thermodynamic entropy to the number of microscopic arrangements.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "earth_age",
+    "text": "Earth formed around 4.54 billion years ago, long after the earliest stars.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "superconductors",
+    "text": "Below a critical temperature, superconductors can carry steady electric current without electrical resistance.",
+    "category": "CONDENSED MATTER",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "quantum_zeno",
+    "text": "Under suitable conditions, repeated quantum measurements can inhibit a system's evolution: the quantum Zeno effect.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "quantum_eraser",
+    "text": "Quantum-eraser experiments probe how available which-path information affects interference, without changing the past.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "observable_universe_width",
+    "text": "The observable universe is about 92 billion light-years across, despite being only 13.8 billion years old.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "meissner_effect",
+    "text": "Superconductors expel magnetic fields from their interior in the Meissner effect.",
+    "category": "CONDENSED MATTER",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "bell_inequalities",
+    "text": "Experiments violating Bell inequalities challenge local hidden-variable explanations under Bell's assumptions.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "maxwell_demon",
+    "text": "Maxwell's demon challenges thermodynamics with a sorting trick. Information processing brings the entropy bill back.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "ordinary_matter_fraction",
+    "text": "Ordinary matter makes up only about 5% of the universe's total energy budget.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "helium_superfluid",
+    "text": "Superfluid helium can creep along surfaces in an astonishingly thin film.",
+    "category": "CONDENSED MATTER",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "no_cloning",
+    "text": "The no-cloning theorem says an arbitrary unknown quantum state cannot be copied perfectly.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "spin_half_rotation",
+    "text": "A spin-1/2 state can require a 720-degree rotation to return to its original quantum phase.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "neutron_star_size",
+    "text": "A neutron star can pack more than the Sun's mass into a sphere roughly 20 kilometers across.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "bec_intro",
+    "text": "In a Bose-Einstein condensate, many atoms can occupy the same quantum state.",
+    "category": "QUANTUM",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "landauer_limit",
+    "text": "Erasing one bit of information has a minimum heat cost of kT ln 2 in an idealized irreversible operation.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "cosmic_winter_joke",
+    "text": "The universe is expanding. Does that mean winter is... going?",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "quantum_vacuum",
+    "text": "Even a quantum field's lowest-energy state can have nonzero fluctuations.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "white_dwarf_future",
+    "text": "The Sun is expected to finish its stellar life as a white dwarf.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "first_gravitational_waves",
+    "text": "The first direct gravitational-wave detection came from merging black holes in 2015.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "uncertainty_energy_time",
+    "text": "Energy-time uncertainty is subtler than position-momentum uncertainty: time is usually a parameter, not an operator.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "false_vacuum",
+    "text": "Vacuum metastability is a theoretical possibility in quantum field theory; it is not an observed countdown to catastrophe.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "photon_frequency_energy",
+    "text": "A photon's energy is proportional to its frequency: E = h f.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "stars_blue_hotter",
+    "text": "Blue stars are generally hotter at the surface than red stars.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "gravitational_lens",
+    "text": "Gravity bends light. A massive galaxy can act like a giant lens for objects behind it.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "planck_constant",
+    "text": "The Planck constant is exactly 6.62607015e-34 joule-seconds in the modern SI definition.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "the_moon_rotates",
+    "text": "The Moon rotates once per orbit, which is why nearly the same face points toward Earth.",
+    "category": "ASTROPHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "mercury_precession",
+    "text": "General relativity explains an extra 43 arcseconds per century in Mercury's orbital precession.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "quantum_fields_all_space",
+    "text": "In quantum field theory, fields extend through spacetime; particles are excitations of those fields.",
+    "category": "QUANTUM",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "elementary_charge",
+    "text": "The magnitude of an electron's charge is exactly 1.602176634e-19 coulombs in the modern SI definition.",
+    "category": "PARTICLE PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "carbon_fourteen",
+    "text": "Carbon-14 has a half-life of about 5,730 years, making it useful for dating once-living material.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "hubble_tension",
+    "text": "Different methods of estimating the universe's expansion rate still give results in tension.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "bohr_radius",
+    "text": "The Bohr radius is about 5.29e-11 meters, a useful atomic length scale despite the limits of the Bohr model.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "entropy_time_arrow",
+    "text": "The thermodynamic arrow of time is tied to the growth of entropy in macroscopic systems.",
+    "category": "THERMODYNAMICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "hydrogen_spectral_lines",
+    "text": "Hydrogen emits specific spectral lines because its electronic energy levels are quantized.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "absolute_zero",
+    "text": "Absolute zero is 0 kelvin, equivalent to -273.15 degrees Celsius.",
+    "category": "THERMODYNAMICS",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "cosmic_web",
+    "text": "Galaxies trace a cosmic web of filaments, clusters, and enormous voids.",
+    "category": "COSMOLOGY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "entropy_no_refunds",
+    "text": "Entropy always increases. Terms and conditions apply. No refunds.",
+    "category": "EASTER EGG",
+    "rarity": 5,
+    "weight": 1
+  },
+  {
+    "id": "nuclear_binding_iron",
+    "text": "Fusion of light nuclei generally releases energy, but fusing nuclei beyond the iron region no longer helps power ordinary stars.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "energy_mass_equivalence",
+    "text": "E = mc² means even a small amount of mass corresponds to an enormous amount of energy.",
+    "category": "RELATIVITY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "rogue_planets",
+    "text": "Some planets drift through the galaxy without orbiting any star.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "nuclear_decay_random",
+    "text": "Radioactive decay is unpredictable for any one nucleus, yet statistically reliable across enormous populations.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "baryogenesis_unknown",
+    "text": "Physics has not yet fully explained why the observable universe contains so much more matter than antimatter.",
+    "category": "COSMOLOGY",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "neutron_moderation",
+    "text": "Water can slow fast neutrons in certain nuclear reactors, changing how likely they are to trigger fission.",
+    "category": "NUCLEAR PHYSICS",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "gps_relativistic",
+    "text": "GPS satellites must correct for relativity or their timing would drift far too quickly.",
+    "category": "RELATIVITY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "exoplanet_transit",
+    "text": "An exoplanet passing in front of its star can cause a tiny, measurable dip in starlight.",
+    "category": "ASTROPHYSICS",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "fermi_dirac_vs_bose",
+    "text": "Fermions obey exclusion rules, while bosons can share quantum states in large numbers.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
+  },
+  {
+    "id": "cosmic_rays_extreme",
+    "text": "The most energetic cosmic rays detected carry particle energies around 1e20 electronvolts.",
+    "category": "ASTROPHYSICS",
+    "rarity": 4,
+    "weight": 6
+  },
+  {
+    "id": "space_is_expanding",
+    "text": "Cosmic expansion increases distances between many distant galaxies, not the size of atoms or your coffee cup.",
+    "category": "COSMOLOGY",
+    "rarity": 1,
+    "weight": 100
+  },
+  {
+    "id": "science_clock_height",
+    "text": "A clock at higher altitude ticks slightly faster than a similar clock deeper in Earth's gravitational field.",
+    "category": "RELATIVITY",
+    "rarity": 2,
+    "weight": 45
+  },
+  {
+    "id": "quantum_computing_limits",
+    "text": "Quantum computers exploit interference and entanglement; they do not simply try every answer and read out the best one.",
+    "category": "QUANTUM",
+    "rarity": 3,
+    "weight": 18
   }
 ]

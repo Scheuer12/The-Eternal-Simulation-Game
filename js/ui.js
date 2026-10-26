@@ -1,4015 +1,3615 @@
-import { TEXT } from "../content/texts.js";
-import { big, bigMax, formatEngineering } from "./numeric.js";
+/**
+ * ui.js
+ * The Eternal Simulation — Modern Sci-Fi Frontend Implementation
+ * Adheres to Antigravity_TES_UI_Frontend_Prompt.md:
+ * - Reduced element density, intentional empty spaces, dark sci-fi aesthetic
+ * - Persistent sticky Facility Level & Currency Rail across all tabs
+ * - Compact horizontal CRC and A-Feature study rows (64-74px)
+ * - Two independent columns on Devices screen with section headers
+ * - Slide-out drawers and contextual popovers
+ */
+
+import { formatEnergy, formatRate, formatInteger, formatNumber, formatDuration, formatStudyDuration, big } from "./numeric.js";
+import { getTooltipContent } from "./ui-tooltip-content.js";
 import {
-  calculateAlgorithmUpgradeDuration,
-  calculateAlgorithmUpgradeRequirement,
-  calculateAutoCalculatorSpeedMultiplier,
-  calculateBlueprintResearchDuration,
-  calculateCalculationMethodRequirement,
-  calculateCrcCost,
-  calculateDeviceEfficiencyMultiplier,
-  calculateDoorProgress,
-  calculateEffectiveProduction,
+  getElement,
+  evaluateElement,
+  getAllElements,
+} from "./component-registry.js";
+import {
+  calculateAvailableData,
+  calculateEffectiveAvailableData,
+  calculateDataFromAlgorithms,
+  calculateRequiredDataForNextComputerLevel,
+  calculateFacilityOptimizationRequirement,
+  calculateFacilityDeviceMultiplier,
+  calculateProcessorDeviceMultiplier,
+  calculateStudySpeedDeviceMultiplier,
+  calculateTotalDeviceMultiplier,
+  calculateCapacitorMultiplier,
+  calculateCrcMultiplier,
+  calculateMicroprocessorStudyMultiplier,
+  calculateAlgorithmBaseStrengths,
+  calculateAlgorithmPerformance,
+  calculateComputerPerformanceMultiplier,
+  calculateEnergyProduction,
   calculateEnergyOverflowDecay,
-  calculateImprovementBonus,
-  calculateImprovementRatePerSecond,
-  calculateOverclockerDrainPerSecond,
-  calculateOverclockerSpeedMultiplier,
-  calculateParticleSynthesizerProgress,
-  calculateParticleSynthesizerCost,
-  calculateQuarksGenerated,
-  calculateSciencePointCost,
-  calculateSciencePointReward,
-  calculateQuarkCapacity,
-  calculateQuarkDecay,
-  calculatePowerModuleCapacityMultiplier,
-  calculateProcessorEfficiencyMultiplier,
-  calculateProductionBreakdown,
-  calculateProduction,
-  calculateSetupDevicePerformance,
-  calculateSetupOptimizationRequirement,
-  calculateStableEnergyCapacity,
-  calculateStudyDuration,
-  canAccessParticleLab,
-  canResearchBlueprint,
-  clamp,
-  formatDuration,
-  formatEnergy,
-  formatPercent,
-  formatRate,
+  calculateEffectiveStudyDuration,
+  calculateEffectiveStudySpeed,
+  calculatePowerCellCapacity,
+  calculateBulkDeviceCost,
+  calculateHardDiskXpRate,
+  calculateHardDiskEnergyDrain,
+  calculateOverclockDuration,
+  calculateOverclockBonusMultiplier,
+  calculateStudyImproveMilestone,
+  calculateStudyImproveMultiplier,
+  calculateEnergyEraProgress,
+  calculateEnergyEraPercent,
 } from "./formulas.js";
-import {
-  buildAvailabilitySnapshot,
-  evaluateComponent,
-} from "./availability.js";
-import { COMPONENT_REGISTRY } from "./component-registry.js";
-import {
-  evaluateSciencePerk,
-  getSciencePerk,
-  SCIENCE_PERK_BRANCHES,
-} from "./science-perks.js";
-import {
-  hasUnlockedAutomations,
-  isAutoCalculatorAutomationActive,
-  isAutomationEnabled,
-  listUnlockedAutomations,
-} from "./automations.js";
-import {
-  DEFAULT_NEWS,
-  getNewsItem,
-  getRarityClass,
-  getRarityLabel,
-} from "./news.js";
 
-function button(label, action, options = {}) {
-  const {
-    disabled = false,
-    variant = "primary",
-    detail = "",
-    className = "",
-  } = options;
+export const TES_ICON_ROOT = "icons/";
+export const tesIconPath = (name) => `${TES_ICON_ROOT}${name}.png`;
 
-  return `
-    <button
-      class="button button--${variant} ${className}"
-      data-action="${action}"
-      ${disabled ? "disabled" : ""}
-    >
-      <span>${label}</span>
-      ${detail ? `<small>${detail}</small>` : ""}
-    </button>
-  `;
-}
+export function createRenderer(container, engine) {
+  let isMounted = false;
+  let activeDrawer = null; // 'dev' | 'transistor' | 'microprocessor' | 'harddisk' | 'settings' | 'stats' | 'overclock'
+  let activePopover = null; // { title, content, x, y }
+  let newsIndex = 0;
+  let newsTimer = null;
+  let isNewsPaused = false;
+  let batchPopoverTarget = null; // target feature id or device id for batch menu
 
-function progressBar(value, label, tone = "energy", key = "") {
-  const percentage = clamp(value, 0, 1) * 100;
-  return `
-    <div class="progress" ${key ? `data-progress="${key}"` : ""} role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percentage.toFixed(1)}">
-      <div class="progress__fill progress__fill--${tone}" style="width:${percentage}%"></div>
-    </div>
-  `;
-}
+  // Default news items if __TES_NEWS__ is missing or empty
+  const defaultNews = [
+    "The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...",
+    "PROCESSING NETWORK ONLINE // Additional computing cores detected in facility sub-grid.",
+    "A muon at rest lives only about 2.2 microseconds on average before decaying.",
+    "Cosmic radiation flux within expected parameters across all sectors.",
+    "Relativistic effects make satellite clocks run slightly faster before corrections.",
+  ];
 
-function helpNote(text) {
-  return `
-    <div class="help-note" tabindex="0" aria-label="${text}">
-      <span>?</span>
-      <p role="tooltip">${text}</p>
-    </div>
-  `;
-}
-
-function headingAction(label, action, options = {}) {
-  const {
-    cost = null,
-    costLabel = cost !== null ? formatEnergy(cost) : "",
-    count = null,
-    disabled = false,
-    variant = "primary",
-  } = options;
-  const countLabel = count === null ? "" : ` (${count})`;
-
-  return `
-    <div class="panel__action">
-      ${cost !== null ? `<small>${costLabel}</small>` : ""}
-      ${button(`${label}${countLabel}`, action, {
-        disabled,
-        variant,
-        className: "button--compact",
-      })}
-    </div>
-  `;
-}
-
-function statusPill(text, tone = "") {
-  return `<span class="status ${tone ? `status--${tone}` : ""}">${text}</span>`;
-}
-
-function renderCardTags(type, extra = null) {
-  const typeLabel = type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
-  const extraClass = extra ? extra.toLowerCase().replace(/\s+/g, "-") : "";
-  return `
-    <div class="card-tags">
-      <span class="card-tag card-tag--${(type || "device").toLowerCase()}">${typeLabel}</span>
-      ${extra ? `<span class="card-tag card-tag--${extraClass}">${extra}</span>` : ""}
-    </div>
-  `;
-}
-
-function getEffectiveBuyMode(state) {
-  const mode = state.ui?.buyMode ?? "1";
-  if (mode === "max") {
-    return state.devices.t2SoftDataDisplay ? "max" : "1";
-  }
-  if (mode === "10") {
-    return state.devices.softDataDisplay ? "10" : "1";
-  }
-  return "1";
-}
-
-function renderBuyModeSelector(state) {
-  const buyMode = state.ui?.buyMode ?? "1";
-  const hasSoft = Boolean(state.devices.softDataDisplay);
-  const hasT2 = Boolean(state.devices.t2SoftDataDisplay);
-  if (!hasSoft && !hasT2) return "";
-  return `
-    <div class="buy-mode-selector" role="group" aria-label="Purchase quantity">
-      <button class="buy-mode-btn ${buyMode === "1" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="1" type="button">Buy 1</button>
-      ${hasSoft ? `<button class="buy-mode-btn ${buyMode === "10" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="10" type="button">Buy 10</button>` : ""}
-      ${hasT2 ? `<button class="buy-mode-btn ${buyMode === "max" ? "buy-mode-btn--active" : ""}" data-action="set-buy-mode" data-mode="max" type="button">Buy Max</button>` : ""}
-    </div>
-  `;
-}
-
-const TAB_DEFINITIONS = [
-  { id: "energy", label: "Energy Production" },
-  { id: "automation", label: "Automation and Efficiency" },
-  {
-    id: "science",
-    label: "Science",
-    visible: (state, config) =>
-      canAccessParticleLab(state, config) ||
-      state.sciencePoints > 0 ||
-      (state.science?.syntheses ?? 0) > 0,
-  },
-  { id: "history", label: "History" },
-];
-
-function isTabVisible(tab, state, config) {
-  return tab.visible ? tab.visible(state, config) : true;
-}
-
-function getActiveTab(state, config) {
-  let requested = state.ui?.activeTab ?? "energy";
-  if (requested === "devices" || requested === "studies") requested = "energy";
-  if (
-    requested === "automations" ||
-    requested === "measure" ||
-    requested === "statistics" ||
-    requested === "save"
-  ) {
-    requested = "automation";
-  }
-  return TAB_DEFINITIONS.some(
-    (tab) => tab.id === requested && isTabVisible(tab, state, config),
-  )
-    ? requested
-    : "energy";
-}
-
-function getComponentsForTab(tabId) {
-  return Object.values(COMPONENT_REGISTRY).filter((spec) => {
-    if (tabId === "energy") {
-      return (
-        spec.functionalTab === "energy" ||
-        spec.tab === "energy" ||
-        spec.tab === "devices" ||
-        spec.tab === "studies"
+  function getNewsList() {
+    if (
+      globalThis.__TES_NEWS__ &&
+      Array.isArray(globalThis.__TES_NEWS__) &&
+      globalThis.__TES_NEWS__.length > 0
+    ) {
+      return globalThis.__TES_NEWS__.map((item) =>
+        typeof item === "string" ? item : item.text,
       );
     }
-    if (tabId === "automation") {
-      return (
-        spec.functionalTab === "automation" ||
-        spec.tab === "automation" ||
-        spec.tab === "automations" ||
-        spec.tab === "measure"
-      );
-    }
-    if (tabId === "science") {
-      return spec.functionalTab === "science" || spec.tab === "science";
-    }
-    return spec.functionalTab === tabId || spec.tab === tabId;
-  });
-}
-
-export function getVisibleComponentIdsForTab(tabId, state, config) {
-  return getComponentsForTab(tabId)
-    .filter((spec) => evaluateComponent(spec.id, state, config).visible)
-    .map((spec) => spec.id);
-}
-
-export function markTabComponentsSeen(state, config, tabId = null) {
-  const activeTab = tabId ?? getActiveTab(state, config);
-  if (!state.ui) return;
-
-  const seen = { ...state.ui.seenComponents };
-  for (const componentId of getVisibleComponentIdsForTab(
-    activeTab,
-    state,
-    config,
-  )) {
-    seen[componentId] = true;
+    return defaultNews;
   }
-  state.ui.seenComponents = seen;
-}
 
-function getTabIndicators(tabId, state, config) {
-  const seen = state.ui?.seenComponents ?? {};
-  const availability = getComponentsForTab(tabId).map((spec) =>
-    evaluateComponent(spec.id, state, config),
-  );
+  function startNewsCarousel() {
+    if (newsTimer) clearInterval(newsTimer);
+    newsTimer = setInterval(() => {
+      if (!isNewsPaused) {
+        const list = getNewsList();
+        newsIndex = (newsIndex + 1) % list.length;
+        updateNewsDisplay();
+      }
+    }, 10000);
+  }
 
-  return {
-    ready: availability.filter(
-      (item) => item.visible && item.enabled && !item.completed,
-    ).length,
-    newlyVisible: availability.filter((item) => item.visible && !seen[item.id])
-      .length,
+  const setText = (field, val) => {
+    const el = container.querySelector(`[data-field="${field}"]`);
+    if (el && el.textContent !== String(val)) el.textContent = String(val);
   };
-}
 
-function renderTabBar(state, config) {
-  const activeTab = getActiveTab(state, config);
+  function updateNewsDisplay() {
+    const el = container.querySelector('[data-field="news-content"]');
+    if (el) {
+      const list = getNewsList();
+      el.textContent = list[newsIndex % list.length] || list[0];
+    }
+  }
 
-  return `
-    <nav class="tabbar" aria-label="Facility sections">
-      ${TAB_DEFINITIONS.filter((tab) => isTabVisible(tab, state, config))
-        .map((tab) => {
-          const indicators = getTabIndicators(tab.id, state, config);
-          return `
-            <button
-              class="tabbar__button ${tab.id === activeTab ? "tabbar__button--active" : ""}"
-              data-action="set-tab"
-              data-tab="${tab.id}"
-              type="button"
-            >
-              <span>${tab.label}</span>
-              ${indicators.ready > 0 ? `<strong class="tab-alert tab-alert--ready">${indicators.ready}</strong>` : ""}
-              ${indicators.newlyVisible > 0 ? '<strong class="tab-alert tab-alert--new">NEW</strong>' : ""}
+  function render() {
+    if (!isMounted) {
+      mountStructure();
+      startNewsCarousel();
+    }
+    updateDynamicValues(engine.state);
+  }
+
+  function mountStructure() {
+    const boardOwned = Boolean(engine.state.devices?.transistorBoard?.owned || engine.state.devMode);
+    container.innerHTML = `
+      <div class="tes-shell">
+        <!-- TOP HEADER (Section 4) -->
+        <header class="tes-header">
+          <div class="tes-top-bar">
+            <!-- Brand -->
+            <div class="tes-brand">
+              <img src="${tesIconPath("brand-orbit")}" alt="" class="tes-brand-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-brand-title">The Eternal Simulation</span>
+            </div>
+
+            <!-- News Ticker -->
+            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
+              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-news-content" data-field="news-content">
+                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
+              </span>
+              <div class="tes-news-controls">
+                <button class="tes-news-btn" data-action="news-prev" aria-label="Previous headline">&lt;</button>
+                <button class="tes-news-btn" data-action="news-next" aria-label="Next headline">&gt;</button>
+              </div>
+            </div>
+
+            <!-- Utility Controls -->
+            <div class="tes-utilities">
+              <button class="btn-utility btn-utility--active" data-action="open-drawer" data-drawer="dev" data-field="dev-mode-btn" title="Developer SandBox & Cheats">
+                <img src="${tesIconPath("icon-settings")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span data-field="dev-btn-label">DEV MODE</span>
+              </button>
+              <button class="btn-utility" data-action="open-drawer" data-drawer="measure" title="Telemetry & Measurement">
+                <img src="${tesIconPath("icon-measure")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span>Measure</span>
+              </button>
+              <button class="btn-utility" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
+                <img src="${tesIconPath("icon-statistics")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span>Stats</span>
+              </button>
+              <button class="btn-utility" data-action="open-drawer" data-drawer="settings" title="System Settings">
+                <img src="${tesIconPath("icon-power")}" alt="" class="btn-utility-icon" aria-hidden="true" />
+                <span>Config</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Layer Navigation Bar (Section 4) -->
+          <nav class="tes-nav-bar" aria-label="Layer Navigation">
+            <button class="tes-nav-tab tes-nav-tab--active" data-action="set-tab" data-tab="energy">
+              <img src="${tesIconPath("nav-energy")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Energy</span>
             </button>
-          `;
-        })
-        .join("")}
-    </nav>
-  `;
-}
-
-function renderTabTools(state) {
-  const hidden = Boolean(state.ui?.hideCompletedPurchases);
-
-  return `
-    <div class="tab-tools">
-      <button
-        class="toggle-control ${hidden ? "toggle-control--on" : ""}"
-        data-action="toggle-hide-completed"
-        type="button"
-        role="switch"
-        aria-checked="${hidden}"
-      >
-        <span aria-hidden="true"></span>
-        <strong>${hidden ? "Show completed" : "Hide completed"}</strong>
-      </button>
-    </div>
-  `;
-}
-
-function shouldHideCompletedComponent(componentId, state, config) {
-  if (!state.ui?.hideCompletedPurchases) return false;
-  const availability = evaluateComponent(componentId, state, config);
-  return availability.completed;
-}
-
-function renderComponent(componentId, state, config, render) {
-  return shouldHideCompletedComponent(componentId, state, config)
-    ? ""
-    : render();
-}
-
-function renderTelemetry(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const netProduction = calculateEffectiveProduction(
-    state,
-    config,
-    developmentMode,
-  );
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const overflowDecay = calculateEnergyOverflowDecay(state, config);
-  const remainingCapacity = bigMax(0, capacity.sub(state.energy));
-  const fillTime =
-    production.gt(0) && remainingCapacity.gt(0)
-      ? formatDuration(remainingCapacity.div(production))
-      : big(state.energy).gt(capacity)
-        ? "EQUILIBRATING"
-        : "FULL";
-
-  if (!state.devices.softDataDisplay) return "";
-
-  return `
-    <div class="telemetry-grid">
-      <div>
-        <span>Raw production</span>
-        <strong data-field="energy-rate">${formatRate(production)}</strong>
-      </div>
-      <div>
-        <span>Net flow</span>
-        <strong data-field="retained-rate">${formatRate(netProduction)}</strong>
-      </div>
-      <div>
-        <span>Stable fill estimate</span>
-        <strong data-field="fill-time">${fillTime}</strong>
-      </div>
-      <div>
-        <span>Overflow decay</span>
-        <strong data-field="energy-retention">${formatRate(overflowDecay)}</strong>
-      </div>
-      <div>
-        <span>Total condensed</span>
-        <strong data-field="total-energy">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
-      </div>
-    </div>
-  `;
-}
-
-function calculateNextMilestone(state, config) {
-  if (
-    state.crcCount === 1 &&
-    !state.discoveries.crcBlueprint &&
-    !state.blueprintStudy.active
-  ) {
-    const cost = config.blueprint?.revealAtPeakEnergy ?? 10;
-    return {
-      title: "CRC Blueprint Research",
-      requirement: `Reach ${formatEnergy(cost)} peak energy to reveal blueprint`,
-      progress: clamp(state.peakEnergy / cost, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.blueprintStudy?.active) {
-    const elapsed = state.blueprintStudy.elapsed;
-    const dur = state.blueprintStudy.duration;
-    return {
-      title: "Blueprint Reconstruction",
-      requirement: `Active research in progress (${formatDuration(Math.max(0, dur - elapsed))})`,
-      progress: dur > 0 ? clamp(elapsed / dur, 0, 1) : 0,
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.discoveries.crcBlueprint && state.crcCount === 1) {
-    const cost = calculateCrcCost(state.crcCount, config);
-    return {
-      title: "Fabricate 2nd CRC",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (!state.devices.softDataDisplay) {
-    const cost = config.softDataDisplay.cost;
-    return {
-      title: "Restore Soft Display",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (state.devices.autoCalculators === 0) {
-    const cost = config.autoCalculator.baseCost;
-    return {
-      title: "Activate Auto Calculator",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
-  if (state.upgrades === 0 && state.improvements < reqUpgrade) {
-    return {
-      title: "Algorithm Upgrade 1",
-      requirement: `${state.improvements} / ${reqUpgrade} Improvements completed`,
-      progress: clamp(state.improvements / reqUpgrade, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.devices.processors === 0) {
-    const cost = config.processor.baseCost;
-    return {
-      title: "Install Processor",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  const reqCMU = calculateCalculationMethodRequirement(state, config);
-  if (state.calculationMethods === 0 && state.upgrades < reqCMU) {
-    return {
-      title: "Calculation Method Upgrade 1",
-      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
-      progress: clamp(state.upgrades / reqCMU, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (state.calculationMethods < 2) {
-    return {
-      title: "Calculation Method Upgrade 2",
-      requirement: `${state.upgrades} / ${reqCMU} Algorithm Upgrades`,
-      progress: clamp(state.upgrades / reqCMU, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (!state.devices.t2SoftDataDisplay) {
-    const cost = config.t2SoftDataDisplay.cost;
-    return {
-      title: "Restore T2 Soft Display",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (
-    !state.discoveries.overclockerBlueprint &&
-    !state.overclockerBlueprintStudy?.active &&
-    state.devices.processors >= 3
-  ) {
-    return {
-      title: "Overclocker Blueprint",
-      requirement: "Transistor overclocking blueprint ready for research",
-      progress: 1,
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (state.overclockerBlueprintStudy?.active) {
-    const elapsed = state.overclockerBlueprintStudy.elapsed;
-    const dur = state.overclockerBlueprintStudy.duration;
-    return {
-      title: "Overclocker Blueprint Research",
-      requirement: `Active research (${formatDuration(Math.max(0, dur - elapsed))})`,
-      progress: dur > 0 ? clamp(elapsed / dur, 0, 1) : 0,
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  if (
-    state.discoveries.overclockerBlueprint &&
-    state.devices.overclockers === 0
-  ) {
-    const cost = config.overclocker.baseCost;
-    return {
-      title: "Install Overclocker",
-      requirement: `Cost: ${formatEnergy(cost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(cost).toNumber(), 0, 1),
-      tab: "automation",
-      tabLabel: "Automation",
-    };
-  }
-
-  const reqSetup = calculateSetupOptimizationRequirement(state, config);
-  if (
-    state.setupOptimizations === 0 &&
-    state.calculationMethods >= 1 &&
-    state.calculationMethods < reqSetup
-  ) {
-    return {
-      title: "Setup Optimization 1",
-      requirement: `${state.calculationMethods} / ${reqSetup} Method Upgrades`,
-      progress: clamp(state.calculationMethods / reqSetup, 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if (!canAccessParticleLab(state, config)) {
-    const doorReq = config.particleLab.doorEnergyRequired;
-    return {
-      title: "Particle Laboratory Access",
-      requirement: `Charge to ${formatEnergy(doorReq)} Stored Energy`,
-      progress: calculateDoorProgress(state, config),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  if ((state.science?.syntheses ?? 0) === 0) {
-    const synthCost = calculateParticleSynthesizerCost(state, config);
-    return {
-      title: "First Particle Synthesis",
-      requirement: `Synthesizer needs ${formatEnergy(synthCost)} Stored Energy`,
-      progress: clamp(big(state.energy).div(synthCost).toNumber(), 0, 1),
-      tab: "energy",
-      tabLabel: "Energy",
-    };
-  }
-
-  // Science Era
-  const spCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  return {
-    title: "Next Science Point Threshold",
-    requirement: `Threshold: ${formatEnergy(spCost)} Stored Energy`,
-    progress: clamp(big(state.energy).div(spCost).toNumber(), 0, 1),
-    tab: "science",
-    tabLabel: "Science",
-  };
-}
-
-function getLastDiscovery(state) {
-  if (state.history?.length) {
-    const last = state.history.find(
-      (h) => h.kind === "Discoveries" || h.kind === "Milestones",
-    );
-    if (last) return last.title;
-  }
-  if (state.discoveries?.crcBlueprint) return "CRC Blueprint";
-  if (state.devices?.softDataDisplay) return "Soft Data Display";
-  return "Cosmic Radiation Condenser";
-}
-
-function getResetPreviewData(state, config, resetType) {
-  if (resetType === "cmu") {
-    const nextCMU = state.calculationMethods + 1;
-    const studyRunning = Boolean(
-      state.study?.active ||
-        state.algorithmUpgradeStudy?.active ||
-        state.blueprintStudy?.active ||
-        state.overclockerBlueprintStudy?.active,
-    );
-    const eligible = evaluateComponent(
-      "calculationMethodUpgrade",
-      state,
-      config,
-    ).enabled;
-    return {
-      type: "cmu",
-      title: "Confirm Calculation Method Upgrade",
-      gain: `Calculation Method Upgrade ${state.calculationMethods} → ${nextCMU} (Processor unit bonus × 1.2)`,
-      lost: "Resets Algorithm Improvements (I → 0), Algorithm Upgrades (U → 0), active studies, and blueprint research.",
-      preserved:
-        "Preserves Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, and Stored Energy.",
-      warnings: studyRunning
-        ? "Warning: A research study or blueprint reconstruction is currently active and will be aborted!"
-        : null,
-      isEligible: eligible,
-    };
-  }
-
-  if (resetType === "setup") {
-    const nextSetup = state.setupOptimizations + 1;
-    const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
-    const nextD = 1 + 2 * Math.log(1 + nextSetup);
-    const eligible = evaluateComponent(
-      "setupOptimization",
-      state,
-      config,
-    ).enabled;
-    return {
-      type: "setup",
-      title: "Confirm Setup Optimization",
-      gain: `Setup Optimization ${state.setupOptimizations} → ${nextSetup} (Device performance D(S): ${currentD.toFixed(2)} → ${nextD.toFixed(2)})`,
-      lost: "HARD RESET: Stored Energy resets to 0. Resets CRCs to 1, Auto Calculators to 0, Processors to 0, Overclockers to 0, studies, and CMUs to 0.",
-      preserved:
-        "Preserves Power Cells, Science Points, Quarks, Science Perks, and History.",
-      warnings:
-        "High-impact Hard Reset! Lower Energy Layer machinery and accumulated Stored Energy will be cleared.",
-      isEligible: eligible,
-    };
-  }
-
-  if (resetType === "synthesis") {
-    const activationCost = calculateParticleSynthesizerCost(state, config);
-    const spReward = calculateSciencePointReward(
-      state.energy,
-      state.science?.totalScienceEarned ?? 0,
-      config,
-    );
-    const quarksReward = calculateQuarksGenerated(state.energy, config);
-    const eligible = evaluateComponent(
-      "particleSynthesizer",
-      state,
-      config,
-    ).enabled;
-    return {
-      type: "synthesis",
-      title: "Confirm Particle Synthesis",
-      gain: `+${spReward} Science Point${spReward === 1 ? "" : "s"} and +${quarksReward} Quarks`,
-      lost: "FULL RESET of the Energy Layer: Stored Energy, Power Cells, Power Modules, CRCs, Auto Calculators, Processors, Overclockers, studies, CMUs, and Setup Optimizations.",
-      preserved:
-        "Preserves Science Points, Quarks, Science Perks, and History.",
-      warnings:
-        "Complete reset of all physical devices, power cells, and stored energy.",
-      isEligible: eligible,
-      activationCost,
-      spReward,
-      quarksReward,
-    };
-  }
-
-  return null;
-}
-
-function renderIntro() {
-  return `
-    <section class="screen intro-screen">
-      <div class="intro-atmosphere" aria-hidden="true"></div>
-      <div class="intro-copy panel panel--narrative">
-        <p class="eyebrow">${TEXT.intro.eyebrow}</p>
-        <h1>${TEXT.intro.title}</h1>
-        ${TEXT.intro.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("")}
-        <div class="button-row button-row--intro">
-          ${button(TEXT.intro.press, "press-button", { variant: "glow" })}
-          ${button(TEXT.intro.leave, "leave-room", { variant: "ghost" })}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function renderEnding() {
-  return `
-    <section class="screen screen--centered">
-      <div class="panel panel--narrative ending-card">
-        <p class="eyebrow eyebrow--warning">${TEXT.ending.eyebrow}</p>
-        <h1>${TEXT.ending.title}</h1>
-        <p>${TEXT.ending.body}</p>
-        ${button(TEXT.ending.restart, "return-to-room", { variant: "ghost" })}
-      </div>
-    </section>
-  `;
-}
-
-function renderCrcBriefing() {
-  return `
-    <section class="screen screen--centered">
-      <div class="panel panel--narrative system-briefing">
-        <p class="eyebrow">${TEXT.crcBriefing.eyebrow}</p>
-        <h1>${TEXT.crcBriefing.title}</h1>
-        ${TEXT.crcBriefing.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("")}
-        <div class="briefing-note">
-          <span>CRC</span>
-          <p>A condenser is passive infrastructure: once online, it gathers energy continuously.</p>
-        </div>
-        <div class="button-row button-row--intro">
-          ${button(TEXT.crcBriefing.continue, "activate-crc", { variant: "glow" })}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function renderHeader(state, developmentMode) {
-  const showRestoreNews =
-    (state.prototypeComplete || developmentMode) && state.ui?.newsDismissed;
-
-  return `
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">THE ETERNAL SIMULATION</p>
-        <h1>Facility Control</h1>
-      </div>
-      <div class="topbar__actions">
-        ${developmentMode ? '<span class="badge badge--dev">DEVELOPMENT</span>' : ""}
-        ${
-          developmentMode
-            ? button("Exit dev", "exit-dev-mode", { variant: "text" })
-            : button("Dev mode", "enter-dev-mode", { variant: "text" })
-        }
-        ${
-          showRestoreNews
-            ? button("News Feed", "restore-news-section", {
-                variant: "text",
-                className: "button--news-toggle",
-              })
-            : ""
-        }
-        ${button("Save now", "save-now", { variant: "text" })}
-        ${button("Reset current", "reset-current-save", { variant: "text" })}
-      </div>
-    </header>
-  `;
-}
-
-function formatSaveTime(timestamp) {
-  if (!timestamp) return "EMPTY";
-  const savedAt = new Date(timestamp);
-  if (Number.isNaN(savedAt.getTime())) return "CORRUPT";
-  return savedAt.toLocaleString(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function renderSaveManagement(saveSlots, developmentMode) {
-  const slots = saveSlots?.length ? saveSlots : [];
-
-  return `
-    <article class="panel save-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">SAVE MANAGEMENT</p>
-          <h2>Simulation Memory</h2>
-        </div>
-      </div>
-      <div class="save-slots">
-        ${slots
-          .map(
-            (slot) => `
-              <div class="save-slot ${slot.developmentMode === developmentMode ? "save-slot--current" : ""}">
-                <span>${slot.label}</span>
-                <strong>${formatSaveTime(slot.lastSavedAt)}</strong>
-              </div>
-            `,
-          )
-          .join("")}
-      </div>
-      <div class="dev-actions save-actions">
-        ${button("Save now", "save-now", { variant: "secondary" })}
-        ${button("Reset current", "reset-current-save", { variant: "ghost" })}
-        ${button("Reset normal", "reset-normal-save", { variant: "ghost" })}
-        ${button("Reset dev", "reset-development-save", { variant: "ghost" })}
-        ${button("Reset all", "reset-all-saves", { variant: "ghost" })}
-      </div>
-    </article>
-  `;
-}
-
-function renderRecord() {
-  return `
-    <article class="ambient-record">
-      <p class="panel__label">BEST SIMULATION RECORD</p>
-      <strong>${TEXT.record}</strong>
-      <span>ORIGIN // UNKNOWN</span>
-      <p>The number repeats in recovered logs. It is not a task yet.</p>
-    </article>
-  `;
-}
-
-function renderGlobalHUD(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const netProduction = calculateEffectiveProduction(
-    state,
-    config,
-    developmentMode,
-  );
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const overflowDecay = calculateEnergyOverflowDecay(state, config);
-  const capacityProgress = big(state.energy).div(capacity).toNumber();
-  const displayTelemetry = Boolean(state.devices.softDataDisplay);
-  const overflowing = big(state.energy).gt(capacity);
-  const milestone = calculateNextMilestone(state, config);
-  const phase =
-    (state.science?.syntheses ?? 0) > 0
-      ? "Science Era // Particle Synthesis"
-      : "Energy Era // Cosmic Condensation";
-  const lastDiscovery = getLastDiscovery(state);
-
-  return `
-    <section class="global-hud" aria-label="Global status and next milestone">
-      <div class="global-hud__grid">
-        <article class="panel global-hud__primary">
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">STORED ENERGY</p>
-              <strong class="energy-readout" data-field="energy">${formatEnergy(state.energy)}</strong>
-            </div>
-            <div class="hud-rate-box">
-              <span class="panel__label">ENERGY / SECOND</span>
-              <strong class="rate-readout" data-field="energy-rate">${
-                displayTelemetry ? formatRate(production) : "UNREADABLE"
-              }</strong>
-            </div>
-          </div>
-          ${progressBar(capacityProgress, "Stable Power Cell charge", "energy", "energy")}
-          <div class="hud-telemetry-row">
-            <div>
-              <span>Stable capacity:</span>
-              <strong data-field="stable-capacity">${
-                displayTelemetry ? formatEnergy(capacity) : "UNREADABLE"
-              }</strong>
-            </div>
-            <div>
-              <span>Net flow:</span>
-              <strong data-field="retained-rate-main">${
-                displayTelemetry ? formatRate(netProduction) : "UNREADABLE"
-              }</strong>
-            </div>
-            <div>
-              <span>Status:</span>
-              <strong class="${overflowing ? "text--warning" : "text--online"}">${
-                overflowing
-                  ? displayTelemetry
-                    ? `EXCESS DECAY (${formatRate(overflowDecay)})`
-                    : "EXCESS UNSTABLE"
-                  : "CELL STABLE"
-              }</strong>
-            </div>
-          </div>
-        </article>
-
-        <article class="panel global-hud__milestone">
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">NEXT MILESTONE</p>
-              <h2 class="milestone-title">${milestone.title}</h2>
-            </div>
-            <button class="button button--compact button--ghost" data-action="set-tab" data-tab="${milestone.tab}" type="button">
-              <span>Go to ${milestone.tabLabel}</span>
+            <button class="tes-nav-tab" data-action="set-tab" data-tab="devices">
+              <img src="${tesIconPath("nav-devices")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Devices</span>
             </button>
-          </div>
-          <p class="muted milestone-req">${milestone.requirement}</p>
-          ${milestone.progress !== null ? progressBar(milestone.progress, milestone.title, "discovery", "milestone") : ""}
-        </article>
-      </div>
-
-      <div class="global-hud__subbar">
-        <span><strong>Phase:</strong> ${phase}</span>
-        <span><strong>Last discovery:</strong> ${lastDiscovery}</span>
-      </div>
-    </section>
-  `;
-}
-
-function renderCrcDevice(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const baseRate =
-    config?.economyV2?.crc?.baseProductionPerSecond ??
-    config?.energy?.baseProductionPerSecond ??
-    1e-12;
-  const crcCount = Math.max(0, state.crcCount ?? 0);
-  const improvements = Math.max(0, state.improvements ?? 0);
-  const algorithmFactor = 1 + improvements;
-  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
-
-  return `
-    <article class="panel device-card condenser-card device-card--online">
-      ${helpNote("Each active condenser collects cosmic radiation at a base rate of 1e-12 J/s. Each completed Algorithm Improvement adds +1 base output to every active condenser simultaneously.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Stage 1")}
-        ${statusPill(`${crcCount} ONLINE`, "online")}
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Cosmic Radiation Condenser</h2>
-        </div>
-      </div>
-      <p class="muted">Collects cosmic radiation at a base rate of ${isSoftUnlocked ? formatRate(baseRate) : "1e-12 J/s"} per CRC. Each Algorithm Improvement adds +1 base production to every active condenser via the (1 + I) multiplier.</p>
-      <div class="study-metrics crc-metrics">
-        <div>
-          <span>Base rate per CRC</span>
-          <strong>${isSoftUnlocked ? formatRate(baseRate) + " / unit" : "UNREADABLE"}</strong>
-        </div>
-        <div>
-          <span>Algorithm Multiplier (1 + I)</span>
-          <strong data-field="crc-algorithm-multiplier">x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small></strong>
-        </div>
-      </div>
-      <div class="metric-row">
-        <span>Current total output</span>
-        <strong data-field="crc-total-output">${
-          isSoftUnlocked ? formatRate(production) : "UNREADABLE"
-        }</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderPowerCellArray(state, config) {
-  const availability = evaluateComponent("powerCell", state, config);
-  if (!availability.visible) return "";
-
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel =
-    effectiveMode === "max" ? "Buy Max" : `Add (${effectiveMode})`;
-  const cost = availability.cost;
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const nextCapacity = calculateStableEnergyCapacity(
-    { ...state, powerCells: state.powerCells + 1 },
-    config,
-  );
-  const moduleMultiplier = calculatePowerModuleCapacityMultiplier(
-    state,
-    config,
-  );
-
-  return `
-    <article class="panel device-card power-cell-card">
-      ${helpNote("Buying a Power Cell expands stable capacity. It does not increase raw production, but it raises the point where overflow decay starts pushing back against Stored Energy.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Storage")}
-        <span class="card-subsystem">Stable Capacity</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Power Cell Array</h2>
-        </div>
-        <div class="panel__action-group">
-          ${headingAction(actionLabel, "buy-power-cell", {
-            cost,
-            count: state.powerCells,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          })}
-        </div>
-      </div>
-      <p class="muted">Stable cells give condensed energy somewhere to stay. Storage hardware does not produce energy.</p>
-      <div class="metric-row">
-        <span>Current stable capacity</span>
-        <strong>${formatEnergy(capacity)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Next stable capacity</span>
-        <strong>${formatEnergy(nextCapacity)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Module routing</span>
-        <strong>${state.powerModules} / x${formatEngineering(moduleMultiplier)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderPowerModule(state, config) {
-  const availability = evaluateComponent("powerModule", state, config);
-  if (!availability.visible) return "";
-
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = `Install (${effectiveMode === "max" ? "Max" : effectiveMode})`;
-  const requirement = availability.requirement;
-  const currentMultiplier = calculatePowerModuleCapacityMultiplier(
-    state,
-    config,
-  );
-  const nextMultiplier = calculatePowerModuleCapacityMultiplier(
-    { ...state, powerModules: state.powerModules + 1 },
-    config,
-  );
-
-  return `
-    <article class="panel device-card power-module-card">
-      ${helpNote("Power Modules do not consume Power Cells. They activate capture and conduction circuits around each full group of 100 cells, increasing effective stable capacity.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Amplification")}
-        <span class="card-subsystem">Group Multiplier</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Power Module</h2>
-        </div>
-        ${headingAction(actionLabel, "buy-power-module", {
-          cost: availability.cost,
-          count: state.powerModules,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">Activates capture and conduction circuits that organize Power Cells into a stronger storage route.</p>
-      <div class="metric-row">
-        <span>Cell requirement</span>
-        <strong>${Math.min(state.powerCells, requirement)} / ${requirement}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Capacity route</span>
-        <strong>x${formatEngineering(currentMultiplier)} -> x${formatEngineering(nextMultiplier)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderSoftDataDisplay(state, config) {
-  const availability = evaluateComponent("softDataDisplay", state, config);
-
-  return `
-    <article class="panel device-card ${state.devices.softDataDisplay ? "device-card--online" : ""}">
-      ${helpNote("Soft Display reveals usable energy production rate, Power Cell capacity, capacity occupation, and the current decay rate of unstable overflow energy.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Display")}
-        <span class="card-subsystem">Telemetry Unit</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Soft Display</h2>
-        </div>
-        ${
-          state.devices.softDataDisplay
-            ? statusPill("ONLINE", "online")
-            : headingAction("Restore", "buy-soft-display", {
-                cost: availability.cost,
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">${
-        state.devices.softDataDisplay
-          ? "Shows basic useful information."
-          : "Seems like with enough power this display could show some useful information."
-      }</p>
-      ${
-        state.devices.softDataDisplay
-          ? '<p class="effect-line">TELEMETRY READABLE // ENERGY FLOW EXPOSED</p>'
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderT2SoftDataDisplay(state, config) {
-  const availability = evaluateComponent("t2SoftDataDisplay", state, config);
-  if (!availability.visible) return "";
-
-  return `
-    <article class="panel device-card ${state.devices.t2SoftDataDisplay ? "device-card--online" : ""}">
-      ${helpNote("T2 Soft Display unlocks the Measure tab, separating current output into base condenser signal and active production bonuses. It does not change production by itself.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Spectrometry")}
-        <span class="card-subsystem">Diagnostic Spectrometry</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>T2 Soft Display</h2>
-        </div>
-        ${
-          state.devices.t2SoftDataDisplay
-            ? statusPill("ONLINE", "online")
-            : headingAction("Restore", "buy-t2-soft-display", {
-                cost: availability.cost,
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">${
-        state.devices.t2SoftDataDisplay
-          ? "The Measure tab now separates condenser output into readable source layers."
-          : "A dim second layer under the Soft Display waits for enough stored power to decode output composition."
-      }</p>
-      ${
-        state.devices.t2SoftDataDisplay
-          ? '<p class="effect-line">OUTPUT COMPOSITION READABLE</p>'
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderStudy(state, config, developmentMode) {
-  const currentFactor = 1 + (state.improvements ?? 0);
-  const previewDuration = calculateStudyDuration(
-    state,
-    config,
-    developmentMode,
-  );
-  const studyProgress = state.study.active
-    ? state.study.elapsed / state.study.duration
-    : 0;
-  const rate = previewDuration > 0 ? 1 / previewDuration : 0;
-  const rateDisplay =
-    rate >= 10
-      ? `${rate.toFixed(1)} Improvements/s`
-      : formatDuration(previewDuration);
-
-  return `
-    <article class="panel study-panel">
-      ${helpNote("Algorithm Improvements always complete. Each cycle adds +1 base production unit to every CRC via the (1 + I) multiplier: P = 10⁻¹² · C · (1 + I) · 2ᵁ · D(S). After enough Improvements, an Algorithm Upgrade study can be run manually to double structural production and reset Improvements.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Stage 2")}
-        <span class="card-subsystem">Continuous Optimization</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Algorithm Improvement</h2>
-        </div>
-        ${headingAction(
-          state.study.active ? "Running" : "Start Study",
-          "start-study",
-          {
-            count: state.improvements,
-            disabled:
-              state.study.active || isAutoCalculatorAutomationActive(state),
-            variant: isAutoCalculatorAutomationActive(state)
-              ? "ghost"
-              : "primary",
-          },
-        )}
-      </div>
-      <p class="muted">Refines the Theseus algorithm. Each cycle adds +1 base production to every CRC via the (1 + I) multiplier.</p>
-      <div class="study-metrics">
-        <div><span>Algorithm Multiplier (1 + I)</span><strong data-field="study-algorithm-factor">x${currentFactor} (+1.0 / cycle)</strong></div>
-        <div><span>${rate >= 10 ? "Improvement speed" : "Estimated duration"}</span><strong data-field="study-rate-display">${rateDisplay}</strong></div>
-      </div>
-      ${progressBar(studyProgress, "Algorithm Improvement progress", "study", "study")}
-      <div class="progress-caption">
-        <span data-field="study-status">${state.study.active ? (state.study.automated ? "AUTO CALCULATION" : "CALCULATION IN PROGRESS") : "READY"}</span>
-        <span data-field="study-remaining">${state.study.active ? formatDuration(Math.max(0, state.study.duration - state.study.elapsed)) : ""}</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderAlgorithmUpgrade(state, config) {
-  const requirement = calculateAlgorithmUpgradeRequirement(state, config);
-  const visible = state.upgrades > 0 || state.improvements >= requirement;
-  if (!visible) return "";
-
-  const ready = state.improvements >= requirement;
-  const availability = evaluateComponent("algorithmUpgrade", state, config);
-  const progress = state.algorithmUpgradeStudy.active
-    ? state.algorithmUpgradeStudy.elapsed / state.algorithmUpgradeStudy.duration
-    : state.improvements / requirement;
-
-  const currentMultiplier = 2 ** state.upgrades;
-  const nextMultiplier = 2 ** (state.upgrades + 1);
-
-  return `
-    <article class="panel study-panel panel--upgrade ${ready ? "panel--upgrade-ready" : ""}">
-      ${helpNote("Manual Algorithm Upgrades complete instantly and reset Improvements. Each completed Upgrade permanently doubles production (x2 multiplier).")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Stage 3")}
-        <span class="card-subsystem text--warning">Resets Improvements</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Algorithm Upgrade</h2>
-        </div>
-        ${headingAction(
-          state.algorithmUpgradeStudy.active ? "Running" : "Upgrade",
-          "start-algorithm-upgrade",
-          {
-            count: state.upgrades,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          },
-        )}
-      </div>
-      <p class="muted">Rebuild the Theseus algorithm into a stronger version. Each completed upgrade doubles production. <strong class="text--warning">Resets Improvements.</strong></p>
-      <div class="study-metrics">
-        <div>
-          <span>Active Upgrade Multiplier</span>
-          <strong>x${currentMultiplier}</strong>
-        </div>
-        <div>
-          <span>Next Upgrade Multiplier</span>
-          <strong>x${nextMultiplier} (2x)</strong>
-        </div>
-      </div>
-      ${progressBar(progress, "Algorithm Upgrade readiness", "discovery", "algorithm-upgrade")}
-      <div class="progress-caption">
-        <span data-field="algorithm-upgrade-status">${
-          state.algorithmUpgradeStudy.active
-            ? "UPGRADE STUDY"
-            : ready
-              ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
-              : `${state.improvements} / ${requirement} Improvements`
-        }</span>
-        <span data-field="algorithm-upgrade-remaining">${
-          state.algorithmUpgradeStudy.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.algorithmUpgradeStudy.duration -
-                    state.algorithmUpgradeStudy.elapsed,
-                ),
-              )
-            : "INSTANT"
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderStudyOverclockControl(state, config) {
-  const overclockers = state.devices.overclockers;
-  if (overclockers <= 0) return "";
-
-  const overclockActive = state.overclocker.active;
-  const cooling = !overclockActive && state.overclocker.activeSeconds > 0;
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const canToggleOverclock =
-    overclockActive ||
-    (state.devices.autoCalculators > 0 && big(state.energy).gt(stableCapacity));
-  const previewState = {
-    ...state,
-    overclocker: {
-      ...state.overclocker,
-      active: true,
-    },
-  };
-  const speed = calculateOverclockerSpeedMultiplier(previewState, config);
-  const drain = calculateOverclockerDrainPerSecond(previewState, config);
-
-  return `
-    <article class="panel study-panel study-overclock-card ${overclockActive ? "device-card--overclocking" : ""}">
-      ${helpNote("Overclock burns unstable energy above stable Power Cell capacity to accelerate Auto Calculator-driven Algorithm Improvements. The energy draw rises while active.")}
-      <div class="panel__header-row">
-        ${renderCardTags("System", "Control")}
-        <span class="card-subsystem">Thermal Acceleration</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Processor Overclock</h2>
-        </div>
-      </div>
-      <button
-        class="button button--${overclockActive ? "ghost" : "primary"} study-overclock-button"
-        data-action="toggle-overclocker"
-        ${!canToggleOverclock ? "disabled" : ""}
-      >
-        <span>${overclockActive ? "Stop Overclock" : "Overclock"}</span>
-        <small data-field="study-overclock-button-detail">x${speed.toFixed(2)} // ${formatRate(drain)}</small>
-      </button>
-      <p class="muted" data-field="study-overclock-status">${
-        overclockActive
-          ? "The calculator route is running hot."
-          : cooling
-            ? "Cooling. Re-engaging now resumes from the current thermal load."
-            : "Available while Auto Calculator is online and excess Stored Energy exists."
-      }</p>
-    </article>
-  `;
-}
-
-function renderAutoCalculator(state, config) {
-  const owned = state.devices.autoCalculators;
-  const availability = evaluateComponent("autoCalculator", state, config);
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = owned > 0 ? `Add (${effectiveMode})` : "Activate";
-  const cost = availability.cost;
-  const speedMultiplier = calculateAutoCalculatorSpeedMultiplier(state, config);
-
-  return `
-    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("The first Auto Calculator automates Algorithm Improvements and runs them 2x faster than manual runs. Each additional calculator doubles Algorithm Improvement speed again.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Automation")}
-        <span class="card-subsystem">Autonomous Processing</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Auto Calculator</h2>
-        </div>
-        ${headingAction(actionLabel, "buy-auto", {
-          cost,
-          count: owned,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">${
-        owned > 0
-          ? "Glows softly while automatically calculating better condensing methods."
-          : "Fadingly glows and then goes dark every time the CRC collects energy."
-      }</p>
-      ${
-        owned > 0
-          ? `<p class="effect-line">${
-              isAutoCalculatorAutomationActive(state)
-                ? "AUTOMATION ACTIVE"
-                : "AUTOMATION PAUSED"
-            } // STUDY SPEED x${speedMultiplier.toFixed(2)}</p>`
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderOverclocker(state, config) {
-  const availability = evaluateComponent("overclocker", state, config);
-  if (!availability.visible) return "";
-
-  const owned = state.devices.overclockers;
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = owned > 0 ? `Upgrade (${effectiveMode})` : "Install";
-  const active = owned > 0 && state.overclocker.active;
-  const cooling = owned > 0 && !active && state.overclocker.activeSeconds > 0;
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const canToggle =
-    owned > 0 &&
-    (active ||
-      (state.devices.autoCalculators > 0 &&
-        big(state.energy).gt(stableCapacity)));
-  const previewState = {
-    ...state,
-    devices: {
-      ...state.devices,
-      overclockers: Math.max(1, owned),
-    },
-    overclocker: { ...state.overclocker, active: true },
-  };
-  const speedMultiplier =
-    owned > 0
-      ? calculateOverclockerSpeedMultiplier(previewState, config)
-      : config.overclocker.baseCalculatorSpeedMultiplier;
-  const drain =
-    owned > 0
-      ? calculateOverclockerDrainPerSecond(previewState, config)
-      : config.overclocker.baseEnergyDrainPerSecond;
-
-  return `
-    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""} ${active ? "device-card--overclocking" : ""}">
-      ${helpNote("The Overclocker expands the Processor control loop. Each unit increases Auto Calculator acceleration, but the energy draw scales faster than the speed gain. Single On/Off switch with no slider or heat gauge.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Acceleration")}
-        <span class="card-subsystem">Thermal Governor</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Overclocker</h2>
-        </div>
-        <div class="panel__action-group">
-          ${headingAction(actionLabel, "buy-overclocker", {
-            cost: availability.cost,
-            count: owned,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          })}
-          ${
-            owned > 0
-              ? button(
-                  active ? "Stop Overclock" : "Overclock",
-                  "toggle-overclocker",
-                  {
-                    disabled: !canToggle,
-                    variant: active ? "ghost" : "primary",
-                    className: "button--compact",
-                  },
-                )
-              : ""
-          }
-        </div>
-      </div>
-      <p class="muted">${
-        owned > 0
-          ? "Additional overclock routes push calculators harder, with sharply worsening energy efficiency."
-          : "The processors and stable cells can now support a controlled calculator overload."
-      }</p>
-      <div class="metric-row">
-        <span>Overclock multiplier & drain</span>
-        <strong data-field="overclock-current">x${speedMultiplier.toFixed(2)} / ${formatRate(drain)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Thermal state</span>
-        <strong data-field="overclock-runtime">${
-          active
-            ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
-            : cooling
-              ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
-              : "STANDBY"
-        }</strong>
-      </div>
-      ${owned > 0 ? `<p class="effect-line" data-field="overclock-effect">${active ? "OVERCLOCK ACTIVE" : cooling ? "COOLING" : "OVERCLOCK ROUTE EXPANDED"}</p>` : ""}
-    </article>
-  `;
-}
-
-function renderOverclockerBlueprint(state, config, developmentMode) {
-  const availability = evaluateComponent("overclockerBlueprint", state, config);
-  if (!availability.visible && !state.overclockerBlueprintStudy?.active) {
-    return "";
-  }
-
-  const progress = state.overclockerBlueprintStudy?.active
-    ? state.overclockerBlueprintStudy.elapsed /
-      state.overclockerBlueprintStudy.duration
-    : state.discoveries.overclockerBlueprint
-      ? 1
-      : 0;
-
-  return `
-    <article class="panel discovery-card">
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Schematic")}
-        <span class="card-subsystem">${state.discoveries.overclockerBlueprint ? "Technology Recovered" : "Research Signal"}</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Overclocker Blueprint</h2>
-        </div>
-        ${
-          state.discoveries.overclockerBlueprint
-            ? statusPill("RECOVERED", "discovery")
-            : headingAction("Research", "start-overclocker-blueprint-research", {
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">A theoretical architecture for driving calculation arrays beyond nominal thermal limits.</p>
-      ${state.overclockerBlueprintStudy?.active ? progressBar(progress, "Overclocker Blueprint progress", "discovery", "overclocker-blueprint") : ""}
-      <div class="progress-caption">
-        <span data-field="overclocker-blueprint-status">${
-          state.overclockerBlueprintStudy?.active
-            ? "BLUEPRINT RESEARCH"
-            : state.discoveries.overclockerBlueprint
-              ? "FABRICATION READY"
-              : "RESEARCH READY"
-        }</span>
-        <span data-field="overclocker-blueprint-remaining">${
-          state.overclockerBlueprintStudy?.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.overclockerBlueprintStudy.duration -
-                    state.overclockerBlueprintStudy.elapsed,
-                ),
-              )
-            : state.discoveries.overclockerBlueprint
-              ? "Overclocker fabrication unlocked"
-              : formatDuration(45)
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderBlueprint(state, config, developmentMode) {
-  const available = canResearchBlueprint(state, config);
-  if (
-    !state.discoveries.crcBlueprint &&
-    !available &&
-    !state.blueprintStudy.active
-  ) {
-    return "";
-  }
-
-  const researchDuration = calculateBlueprintResearchDuration(
-    state,
-    config,
-    developmentMode,
-  );
-  const progress = state.blueprintStudy.active
-    ? state.blueprintStudy.elapsed / state.blueprintStudy.duration
-    : state.discoveries.crcBlueprint
-      ? 1
-      : 0;
-  const researchAvailability = evaluateComponent("crcBlueprint", state, config);
-
-  return `
-    <article class="panel discovery-card">
-      ${helpNote("Blueprint research reconstructs the fabrication plan for additional CRCs. Once completed, each new CRC costs Stored Energy and increases base condensation.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Schematic")}
-        <span class="card-subsystem">${state.discoveries.crcBlueprint ? "Technology Recovered" : "Research Signal"}</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>CRC Blueprint</h2>
-        </div>
-        ${
-          state.discoveries.crcBlueprint
-            ? statusPill("RECOVERED", "discovery")
-            : headingAction("Research", "start-blueprint-research", {
-                count: 0,
-                disabled: !researchAvailability.enabled,
-                variant: researchAvailability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">A structural plan for fabricating additional Cosmic Radiation Condensers.</p>
-      ${state.blueprintStudy.active ? progressBar(progress, "CRC Blueprint progress", "discovery", "blueprint") : ""}
-      <div class="progress-caption">
-        <span data-field="blueprint-status">${
-          state.blueprintStudy.active
-            ? "BLUEPRINT RESEARCH"
-            : state.discoveries.crcBlueprint
-              ? "FABRICATION READY"
-              : "RESEARCH READY"
-        }</span>
-        <span data-field="blueprint-remaining">${
-          state.blueprintStudy.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.blueprintStudy.duration - state.blueprintStudy.elapsed,
-                ),
-              )
-            : state.discoveries.crcBlueprint
-              ? "Device fabrication unlocked"
-              : formatDuration(researchDuration)
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderCrcConstruction(state, config) {
-  const availability = evaluateComponent("crcConstruction", state, config);
-  if (!availability.visible && !state.construction.active) return "";
-
-  const progress = state.construction.active
-    ? state.construction.elapsed / state.construction.duration
-    : 0;
-
-  return `
-    <article class="panel device-card">
-      ${helpNote("CRC fabrication uses the recovered Blueprint to build another Cosmic Radiation Condenser. Each completed condenser adds another base energy source.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Fabrication")}
-        <span class="card-subsystem">Hardware Assembly</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Cosmic Radiation Condenser Fabrication</h2>
-        </div>
-        ${headingAction(
-          state.construction.active ? "Building" : "Construct",
-          "construct-crc",
-          {
-            cost: availability.cost,
-            count: state.crcCount,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          },
-        )}
-      </div>
-      <p class="muted">Uses the recovered condenser plan to add another passive radiation collection point.</p>
-      ${state.construction.active ? progressBar(progress, "CRC construction progress", "discovery", "construction") : ""}
-      <div class="progress-caption">
-        <span data-field="construction-status">${state.construction.active ? "CRC CONSTRUCTION" : "FABRICATION READY"}</span>
-        <span data-field="construction-remaining">${
-          state.construction.active
-            ? formatDuration(
-                Math.max(
-                  0,
-                  state.construction.duration - state.construction.elapsed,
-                ),
-              )
-            : `Cost: ${formatEnergy(availability.cost)}`
-        }</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderProcessor(state, config) {
-  const owned = state.devices.processors;
-  const availability = evaluateComponent("processor", state, config);
-  const effectiveMode = getEffectiveBuyMode(state);
-  const actionLabel = owned > 0 ? `Add (${effectiveMode})` : "Install";
-  const cost = availability.cost;
-  const efficiencyMultiplier = calculateDeviceEfficiencyMultiplier(
-    state,
-    config,
-  );
-  const overclockers = state.devices.overclockers;
-  const overclockActive = overclockers > 0 && state.overclocker.active;
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const canToggleOverclock =
-    overclockers > 0 &&
-    (overclockActive ||
-      (state.devices.autoCalculators > 0 &&
-        big(state.energy).gt(stableCapacity)));
-  const overclockSpeed = calculateOverclockerSpeedMultiplier(state, config);
-  const overclockDrain =
-    overclockers > 0
-      ? calculateOverclockerDrainPerSecond(
-          { ...state, overclocker: { ...state.overclocker, active: true } },
-          config,
-        )
-      : 0;
-
-  return `
-    <article class="panel device-card ${owned > 0 ? "device-card--online" : ""}">
-      ${helpNote("Each Processor adds multiplicative efficiency to computational and fabrication systems. Amplified by CMU.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Device", "Hardware")}
-        <span class="card-subsystem">Processing Core</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Processor</h2>
-        </div>
-        ${headingAction(actionLabel, "buy-processor", {
-          cost,
-          count: owned,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">${
-        owned > 0
-          ? "Improves calculator throughput and fabrication control with transistor-based processment."
-          : "Seems like a better technology for devices control."
-      }</p>
-      ${owned > 0 ? `<p class="effect-line">COMPUTE / FABRICATION EFFICIENCY x${formatEngineering(efficiencyMultiplier)}</p>` : ""}
-      ${
-        overclockers > 0
-          ? `<div class="device-inline-actions">
-              ${button(
-                overclockActive ? "Stop Overclock" : "Overclock",
-                "toggle-overclocker",
-                {
-                  disabled: !canToggleOverclock,
-                  variant: overclockActive ? "ghost" : "primary",
-                  className: "button--compact",
-                },
-              )}
-              <span data-field="overclock-inline">${overclockActive ? `x${overclockSpeed.toFixed(2)} active` : `x${calculateOverclockerSpeedMultiplier({ ...state, overclocker: { ...state.overclocker, active: true } }, config).toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"}`} // ${formatRate(overclockDrain)}</span>
-            </div>`
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderCalculationMethod(state, config) {
-  const visible = state.upgrades > 0 || state.calculationMethods > 0;
-  if (!visible) return "";
-
-  const required = calculateCalculationMethodRequirement(state, config);
-  const ready = state.upgrades >= required;
-  const availability = evaluateComponent(
-    "calculationMethodUpgrade",
-    state,
-    config,
-  );
-  const progress = state.upgrades / required;
-
-  return `
-    <article class="panel method-card ${ready ? "method-card--ready" : ""}">
-      ${helpNote("A Calculation Method Upgrade requires Algorithm Upgrades. Completing one resets studies, keeps hardware, and amplifies Processor unit bonus by 1.2^M.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Soft Reset")}
-        <span class="card-subsystem text--amber">Tier 1 Reset</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Calculation Method Upgrade</h2>
-        </div>
-        ${headingAction("Perform CMU", "claim-method", {
-          count: state.calculationMethods,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">A whole new method. Starts studies over, but amplifies Processor effectiveness by 1.2^M.</p>
-      ${progressBar(progress, "Calculation Method Upgrade readiness", "study")}
-      <div class="progress-caption">
-        <span>${ready ? "METHOD UPGRADE READY" : `${Math.min(state.upgrades, required)} / ${required} Algorithm Upgrades`}</span>
-        <span>Scaling multiplier ×${(1.2 ** state.calculationMethods).toFixed(2)}</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderSetupOptimization(state, config) {
-  const visible =
-    state.upgrades > 0 ||
-    state.calculationMethods > 0 ||
-    state.setupOptimizations > 0;
-  if (!visible) return "";
-
-  const required = calculateSetupOptimizationRequirement(state, config);
-  const ready = state.calculationMethods >= required;
-  const availability = evaluateComponent("setupOptimization", state, config);
-  const progress = state.calculationMethods / required;
-  const currentD = 1 + 2 * Math.log(1 + state.setupOptimizations);
-
-  return `
-    <article class="panel method-card panel--hard-reset ${ready ? "method-card--ready" : ""}">
-      ${helpNote("Setup Optimization costs no energy, but resets energy to 0, studies, CRCs and hardware except Power Cells. It permanently scales device performance D(S) = 1 + 2 ln(1+S).")}
-      <div class="panel__header-row">
-        ${renderCardTags("Study", "Hard Reset")}
-        <span class="card-subsystem text--danger">Facility Reconfiguration</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Setup Optimization</h2>
-        </div>
-        ${headingAction("Optimize Setup", "claim-setup", {
-          count: state.setupOptimizations,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "danger" : "ghost",
-        })}
-      </div>
-      <p class="muted">A whole new setup. Discards lower hardware and stored energy, but permanently amplifies device performance.</p>
-      ${progressBar(progress, "Setup Optimization readiness", "discovery")}
-      <div class="progress-caption">
-        <span>${ready ? "SETUP READY" : `${Math.min(state.calculationMethods, required)} / ${required} Method Upgrades`}</span>
-        <span>Device scale D(S): ${currentD.toFixed(2)}</span>
-      </div>
-    </article>
-  `;
-}
-function renderDoor(state, config) {
-  const progress = calculateDoorProgress(state, config);
-  const labOpen = canAccessParticleLab(state, config);
-
-  if (labOpen) {
-    if ((state.science?.syntheses ?? 0) > 0) {
-      return `
-        <article class="ambient-door ambient-door--open">
-          <p class="panel__label">PARTICLE LABORATORY</p>
-          <div class="ambient-door__heading">
-            <h2>Particle Sintetizer</h2>
-            <strong class="door-status">CONTROLS RELOCATED</strong>
-          </div>
-          <p class="muted">The laboratory remains open. Further synthesis controls are now available under Science Devices.</p>
-        </article>
-      `;
-    }
-
-    const availability = evaluateComponent(
-      "particleSynthesizer",
-      state,
-      config,
-    );
-    const synthesizerProgress = calculateParticleSynthesizerProgress(
-      state,
-      config,
-    );
-
-    return `
-      <article class="ambient-door ambient-door--open">
-        <p class="panel__label">PARTICLE LABORATORY</p>
-        <div class="ambient-door__heading">
-          <h2>Particle Sintetizer</h2>
-          <strong class="door-status">${
-            state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT"
-          }</strong>
-        </div>
-        ${progressBar(synthesizerProgress, "Activate Particle Sintetizer", "door", "particle-synthesizer")}
-        <p class="muted">Inside the laboratory, dormant machines surround a weak central panel. It shows the scheme of an immense structure and waits for ${formatEnergy(availability.cost)}.</p>
-        ${headingAction(
-          state.particleSynthesizer.activated ? "Activated" : "Activate",
-          "open-particle-synthesis",
-          {
-            cost: availability.cost,
-            disabled: !availability.enabled,
-            variant: availability.enabled ? "primary" : "ghost",
-          },
-        )}
-      </article>
-    `;
-  }
-
-  let status = "LOW POWER";
-  if (progress > 0.75) status = "AUXILIARY CURRENT DETECTED";
-  else if (progress > 0.45) status = "SYSTEM RESPONSE DETECTED";
-  else if (progress > 0.2) status = "TRACE CURRENT";
-
-  return `
-    <article class="ambient-door">
-      <p class="panel__label">UNOPENED ROUTE</p>
-      <div class="ambient-door__heading">
-        <h2>Particle Laboratory</h2>
-        <strong class="door-status">${status}</strong>
-      </div>
-      ${progressBar(progress, "Particle Laboratory power response", "door", "door")}
-      <p class="muted">A dead line on the facility map mentions particle synthesis. It should open once the facility has proven it can hold ${formatEnergy(config.particleLab.doorEnergyRequired)}.</p>
-    </article>
-  `;
-}
-
-function renderParticleLabDetails(state, config) {
-  const progress = calculateParticleSynthesizerProgress(state, config);
-  const sciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedSciencePoints = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-
-  return `
-    <article class="panel science-panel">
-      ${helpNote("The Particle Sintetizer is the next layer bridge. At full charge it will become the reset point into particle synthesis and Science Points.")}
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">PARTICLE LABORATORY</p>
-          <h2>Particle Sintetizer</h2>
-        </div>
-        ${statusPill(state.particleSynthesizer.activated ? "ACTIVE" : "DORMANT", state.particleSynthesizer.activated ? "online" : "locked")}
-      </div>
-      <p class="muted">The central panel shows an immense structure. Most lines are still dark, waiting for a complete activation charge.</p>
-      <div class="metric-row">
-        <span>Activation charge (fixed)</span>
-        <strong>${formatPercent(progress)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Next Science Point threshold</span>
-        <strong><span data-field="science-point-cost">${formatEnergy(sciencePointCost)}</span> · projected <span data-field="science-sp-on-synthesis">${projectedSciencePoints}</span> SP</strong>
-      </div>
-      ${progressBar(big(state.energy).div(sciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
-      <div class="metric-row">
-        <span>Stored Energy</span>
-        <strong>${formatEnergy(state.energy)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderScienceStatus(state, config) {
-  const hasSynthesized = (state.science?.syntheses ?? 0) > 0;
-  const availableQuarks = formatEngineering(state.quarks?.available ?? 0);
-
-  if (!hasSynthesized) {
-    return `
-      <article class="panel science-panel">
-        <div class="panel__heading">
-          <div>
-            <p class="panel__label">SCIENCE</p>
-            <h2>Preserved Knowledge</h2>
-          </div>
-          ${statusPill(`${state.sciencePoints} SP`, "locked")}
-        </div>
-        <div class="metric-row">
-          <span>Science Points</span>
-          <strong>${state.sciencePoints}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Total Quarks</span>
-          <strong>${availableQuarks}</strong>
-        </div>
-      </article>
-    `;
-  }
-
-  const quarkCapacity = calculateQuarkCapacity(state, config);
-  const quarkDecay = calculateQuarkDecay(state, config);
-  const quarksOnSynthesis = calculateQuarksGenerated(state.energy, config);
-  const sciencePointsOnSynthesis = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const nextSciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-
-  return `
-    <article class="panel science-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">SCIENCE</p>
-          <h2>Preserved Knowledge</h2>
-        </div>
-        ${statusPill(`${state.sciencePoints} SP`, state.sciencePoints > 0 ? "discovery" : "locked")}
-      </div>
-      <div class="metric-row">
-        <span>Science Points</span>
-        <strong>${state.sciencePoints}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Total Quarks</span>
-        <strong>${availableQuarks} / ${formatEngineering(quarkCapacity)} stable</strong>
-      </div>
-      <div class="metric-row">
-        <span>SP gained on Sintetization</span>
-        <strong data-field="science-sp-on-synthesis">${sciencePointsOnSynthesis}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Energy threshold for next SP</span>
-        <strong data-field="science-point-cost">${formatEnergy(nextSciencePointCost)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Quarks gained on Sintetization</span>
-        <strong data-field="science-quarks-on-synthesis">${quarksOnSynthesis}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Total Quarks Earned</span>
-        <strong>${state.quarks?.totalEarned ?? 0}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Quark decay</span>
-        <strong>${formatEngineering(quarkDecay)} q/s</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderScienceTreeNode(id, state, config, tone, extraClass = "") {
-  const perk = getSciencePerk(id);
-  const evaluation = evaluateSciencePerk(id, state, config);
-  const revealed = evaluation.revealed;
-  const isSelected = state.ui?.selectedSciencePerkId === perk.id;
-  const isCapped = evaluation.owned && perk.id === "redundancyElimination";
-  const visibleName = revealed ? perk.name : "???";
-  const visibleSummary = revealed ? perk.summary : "???";
-  const effect = revealed ? perk.effect : "Undiscovered technology";
-  const prerequisiteNames = revealed
-    ? perk.requires.map((prerequisiteId) => getSciencePerk(prerequisiteId).name)
-    : [];
-  const status = !revealed
-    ? "UNDISCOVERED"
-    : isCapped
-      ? "CAPPED"
-      : evaluation.owned
-        ? "ACQUIRED"
-        : evaluation.missingPrerequisites.length ||
-            !evaluation.energyRequirementMet
-          ? "LOCKED"
-          : !evaluation.hasEnoughScience
-            ? `Need ${evaluation.cost} SP`
-            : "Ready";
-  const classes = [
-    "science-tree__node-wrap",
-    `science-tree__node-wrap--${tone}`,
-    extraClass,
-    !revealed && "science-tree__node-wrap--hidden",
-    revealed && "science-tree__node-wrap--revealed",
-    evaluation.owned && "science-tree__node-wrap--owned",
-    evaluation.canPurchase && "science-tree__node-wrap--ready",
-    !evaluation.owned &&
-      !evaluation.canPurchase &&
-      "science-tree__node-wrap--locked",
-    isSelected && "science-tree__node-wrap--selected",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const accessibleLabel = revealed
-    ? `${visibleName}. ${status}. Costs ${evaluation.cost} Science Point${evaluation.cost === 1 ? "" : "s"}. Effect: ${effect}`
-    : "Undiscovered technology";
-
-  return `
-    <div class="${classes}" tabindex="0" role="group" aria-label="${accessibleLabel}">
-      <button
-        class="science-tree__node ${evaluation.owned ? "science-tree__node--owned" : ""} ${!evaluation.owned && !evaluation.canPurchase ? "science-tree__node--locked" : ""} ${isSelected ? "science-tree__node--selected" : ""}"
-        type="button"
-        data-action="select-science-perk"
-        data-perk-id="${perk.id}"
-        aria-describedby="science-tooltip-${perk.id}"
-        aria-label="${accessibleLabel}"
-      >
-        <span class="science-tree__node-name">${visibleName}</span>
-        <span class="science-tree__node-meta">${!revealed ? "???" : isCapped ? "Capped" : evaluation.owned ? "Acquired" : `${evaluation.cost} SP`}</span>
-      </button>
-      <span class="science-tree__tooltip" id="science-tooltip-${perk.id}" role="tooltip">
-        <strong>${visibleName}</strong>
-        <span>${revealed ? effect : "Undiscovered technology"}</span>
-        ${revealed && perk.requirement ? `<small>Unlock condition: ${perk.requirement}</small>` : ""}
-        ${revealed ? `<small>${prerequisiteNames.length ? `Requires: ${prerequisiteNames.join(" + ")} · ` : "No perk prerequisite · "}Cost: ${evaluation.cost} SP</small>` : ""}
-      </span>
-      <span class="science-tree__node-summary">${visibleSummary}</span>
-      <span class="science-tree__node-state">${status}</span>
-    </div>
-  `;
-}
-
-function renderSciencePerkDrawer(state, config) {
-  const selectedId = state.ui?.selectedSciencePerkId;
-  if (!selectedId) {
-    return `
-      <aside class="science-drawer science-drawer--empty panel">
-        <p class="panel__label">PERK SPECIFICATION</p>
-        <p class="muted">Select a perk in the science tree to inspect technical parameters, prerequisites, and unlock controls.</p>
-      </aside>
-    `;
-  }
-
-  const perk = getSciencePerk(selectedId);
-  if (!perk) return "";
-
-  const evaluation = evaluateSciencePerk(selectedId, state, config);
-  const revealed = evaluation.revealed;
-
-  if (!revealed) {
-    return `
-      <aside class="science-drawer panel science-panel">
-        <div class="panel__heading">
-          <div>
-            <p class="panel__label">SCIENCE PERK // CLASSIFIED</p>
-            <h2>???</h2>
-          </div>
-          ${statusPill("UNDISCOVERED", "locked")}
-        </div>
-        <p class="muted">This principle is currently unmapped. Complete prerequisite research and expand facility energy thresholds to reveal.</p>
-        <div class="metric-row">
-          <span>Cost</span>
-          <strong>??? SP</strong>
-        </div>
-        <div class="metric-row">
-          <span>Requirements</span>
-          <strong>Undiscovered</strong>
-        </div>
-        <div class="panel__action" style="margin-top: 1rem;">
-          <button class="button button--ghost" disabled type="button">Locked</button>
-        </div>
-      </aside>
-    `;
-  }
-
-  const isCapped = evaluation.owned && perk.id === "redundancyElimination";
-  const prerequisiteNames = perk.requires.map(
-    (reqId) => getSciencePerk(reqId)?.name || reqId,
-  );
-
-  return `
-    <aside class="science-drawer panel science-panel">
-      <div class="panel__heading">
-        <div>
-          <p class="panel__label">SCIENCE PERK</p>
-          <h2>${perk.name}</h2>
-        </div>
-        ${
-          isCapped
-            ? statusPill("CAPPED", "online")
-            : evaluation.owned
-              ? statusPill("ACQUIRED", "online")
-              : evaluation.canPurchase
-                ? statusPill("READY", "discovery")
-                : statusPill("LOCKED", "locked")
-        }
-      </div>
-      <p class="muted">${perk.summary}</p>
-      <div class="metric-row">
-        <span>Effect</span>
-        <strong>${perk.effect}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Cost</span>
-        <strong>${evaluation.cost} SP</strong>
-      </div>
-      ${
-        prerequisiteNames.length
-          ? `
-        <div class="metric-row">
-          <span>Prerequisites</span>
-          <strong>${prerequisiteNames.join(" + ")}</strong>
-        </div>
-      `
-          : ""
-      }
-      ${
-        perk.requirement
-          ? `
-        <div class="metric-row">
-          <span>Requirement</span>
-          <strong>${perk.requirement}</strong>
-        </div>
-      `
-          : ""
-      }
-      <div class="panel__action" style="margin-top: 1rem;">
-        ${
-          isCapped
-            ? '<button class="button button--ghost" disabled type="button">Capped</button>'
-            : evaluation.owned
-              ? '<button class="button button--ghost" disabled type="button">Acquired</button>'
-              : `<button
-                  class="button button--primary"
-                  type="button"
-                  data-action="buy-science-perk"
-                  data-perk-id="${perk.id}"
-                  ${evaluation.canPurchase ? "" : "disabled"}
-                >
-                  <span>Unlock ${perk.name} (${evaluation.cost} SP)</span>
-                </button>`
-        }
-      </div>
-    </aside>
-  `;
-}
-
-function renderScienceBranch(branch, state, config) {
-  return `
-    <section class="science-tree__branch science-tree__branch--${branch.tone}" aria-label="${branch.title}">
-      <h3 class="science-tree__branch-title">${branch.title}</h3>
-      <div class="science-tree__branch-track" aria-label="${branch.title} perk progression">
-        ${branch.tiers
-          .map(
-            (tier, tierIndex) => `
-          ${tierIndex > 0 ? '<span class="science-tree__connector" aria-hidden="true">↓</span>' : ""}
-          <div class="science-tree__tier">
-            ${tier.map((perkId) => renderScienceTreeNode(perkId, state, config, branch.tone)).join("")}
-          </div>
-        `,
-          )
-          .join("")}
-      </div>
-    </section>
-  `;
-}
-
-function renderScienceTree(state, config) {
-  const allocatedSciencePoints = Math.max(
-    0,
-    (state.science?.totalScienceEarned ?? 0) - state.sciencePoints,
-  );
-  const zoom = state.ui?.treeZoom ?? 1.0;
-  return `
-    <section class="science-tree" aria-label="Science perks skill tree">
-      <div class="science-tree__heading">
-        <span>Click a perk to inspect or unlock · Branches grow from Redundancy Elimination</span>
-        <div class="science-tree__heading-actions">
-          <div class="tree-zoom-toolbar" role="group" aria-label="Tree zoom controls">
-            <button type="button" class="btn btn--ghost btn--small" data-action="zoom-tree-in" aria-label="Zoom in">+</button>
-            <button type="button" class="btn btn--ghost btn--small" data-action="zoom-tree-out" aria-label="Zoom out">-</button>
-            <button type="button" class="btn btn--ghost btn--small" data-action="reset-tree-zoom" aria-label="Reset zoom">Fit</button>
-            <span class="tree-zoom-level">${Math.round(zoom * 100)}%</span>
-          </div>
-          <span>${state.sciencePoints} SP available</span>
-          ${button("Reset SP allocation", "reset-science-points", {
-            disabled: allocatedSciencePoints <= 0,
-            variant: "ghost",
-          })}
-        </div>
-      </div>
-      <div class="science-tree-viewport" style="transform: scale(${zoom}); transform-origin: top left; transition: transform 0.15s ease-out;">
-        <div class="science-tree__lateral-scroll">
-          <div class="science-tree__lateral" aria-label="Quantum and Layer Perks progression">
-            <svg class="science-tree__lateral-connectors" viewBox="0 0 1000 220" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M295 110 H370 M370 54 V166 M370 68 H405 M370 152 H405 M675 68 H766 M675 152 H766 M766 68 V152 M766 110 H790 M160 145 V194 H500 V220" />
-            </svg>
-            <div class="science-tree__lateral-root">
-              ${renderScienceTreeNode("redundancyElimination", state, config, "root", "science-tree__node-wrap--root")}
-            </div>
-            <div class="science-tree__quantum-nodes" aria-label="Quark perks">
-              <span class="science-tree__layer-perks-label">QUANTUM PRINCIPLES</span>
-              <div class="science-tree__quantum-node">
-                ${renderScienceTreeNode("quantumCalculationPrinciples", state, config, "quantum")}
-              </div>
-              <div class="science-tree__quantum-node">
-                ${renderScienceTreeNode("quantumSuperposition", state, config, "quantum")}
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Science Layer unlocks in later phases">
+              <img src="${tesIconPath("nav-science")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Science</span>
+              <span class="badge-tab-locked">LOCKED</span>
+            </button>
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Particle synthesis unlocks in later phases">
+              <img src="${tesIconPath("nav-particles")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>Particles</span>
+              <span class="badge-tab-locked">LOCKED</span>
+            </button>
+            <button class="tes-nav-tab" data-action="open-drawer" data-drawer="settings" title="More Options">
+              <img src="${tesIconPath("nav-more")}" alt="" class="tes-nav-icon" aria-hidden="true" />
+              <span>...</span>
+            </button>
+          </nav>
+        </header>
+
+        <!-- MAIN SHELL: Sticky Rail + Content (Section 5) -->
+        <main class="tes-main-layout">
+          <!-- 1. PERSISTENT STICKY FACILITY & CURRENCY RAIL (Section 5) -->
+          <aside class="tes-rail" id="facility-rail" aria-label="Facility Status Rail">
+            <!-- Facility Level -->
+            <div class="tes-rail-header">
+              <img src="${tesIconPath("facility-level")}" alt="" class="tes-rail-level-icon" aria-hidden="true" />
+              <div>
+                <span class="eyebrow">FACILITY LEVEL</span>
+                <div class="tes-rail-level-title" data-field="rail-facility-level">Level 1</div>
               </div>
             </div>
-            <div class="science-tree__lateral-generator">
-              ${renderScienceTreeNode("particleGenerator", state, config, "layer", "science-tree__node-wrap--root")}
+
+            <!-- Machine Learning Progress -->
+            <div class="tes-rail-progress-section">
+              <div class="tes-rail-progress-label">
+                <span>Data (XP)</span>
+                <span data-field="rail-data-fraction">0 / 693</span>
+              </div>
+              <div class="tes-rail-progress-bar">
+                <div class="tes-rail-progress-fill" data-field="rail-data-bar" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-        </div>
-        <span class="science-tree__trunk" aria-hidden="true"></span>
-        <div class="science-tree__splitter" aria-hidden="true"><span></span><i></i><span></span></div>
-        <div class="science-tree__branches">
-          ${SCIENCE_PERK_BRANCHES.map((branch) => renderScienceBranch(branch, state, config)).join("")}
-        </div>
-      </div>
-    </section>
-  `;
-}
 
-function renderParticleSynthesizerDevice(state, config) {
-  if ((state.science?.syntheses ?? 0) <= 0) return "";
+            <div class="tes-rail-divider"></div>
 
-  const availability = evaluateComponent("particleSynthesizer", state, config);
-  const progress = calculateParticleSynthesizerProgress(state, config);
-  const nextSciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedSciencePoints = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const projectedQuarks = calculateQuarksGenerated(state.energy, config);
-
-  return `
-    <article class="panel science-panel">
-      ${helpNote("Activation always spends 100 GJ. Science Points and quarks are calculated from the Stored Energy held at activation.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Science", "Hardware")}
-        <span class="card-subsystem">Synthesis Core</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Particle Sintetizer</h2>
-        </div>
-        ${headingAction("Activate", "open-particle-synthesis", {
-          cost: availability.cost,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">The laboratory control route is stable enough to initiate another full-energy synthesis.</p>
-      ${progressBar(progress, "Particle Sintetizer activation charge", "door", "particle-synthesizer-device")}
-      ${progressBar(big(state.energy).div(nextSciencePointCost).toNumber(), "Next Science Point energy threshold", "science", "science-point")}
-      <div class="metric-row">
-        <span>Fixed activation cost</span>
-        <strong>${formatEnergy(calculateParticleSynthesizerCost(state, config))}</strong>
-      </div>
-      <div class="metric-row">
-        <span>SP gained on Sintetization</span>
-        <strong data-field="science-sp-on-synthesis">${projectedSciencePoints}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Energy threshold for next SP</span>
-        <strong>${formatEnergy(nextSciencePointCost)}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Quarks gained on Sintetization</span>
-        <strong data-field="device-quarks-on-synthesis">${projectedQuarks}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderParticleSynthesisModal(state, config) {
-  const modal = state.ui?.particleSynthesisModal;
-  if (!modal) return "";
-
-  if (modal === "narrative") {
-    return `
-      <div class="modal-backdrop">
-        <section class="synthesis-modal" role="dialog" aria-modal="true" aria-labelledby="synthesis-narrative-title">
-          <p class="panel__label">PARTICLE SYNTHESIS // FIRST ACTIVATION</p>
-          <h2 id="synthesis-narrative-title">The structure answers.</h2>
-          <div class="synthesis-modal__narrative">
-            <p>The laboratory rings ignite in sequence. For a fraction of a second, the entire facility feeds one impossible concentration of energy into the central chamber.</p>
-            <p>A new signature appears on the display. Then the Sintetizer overloads. Protection circuits sever every route at once, and the facility falls dark.</p>
-            <p>When the first condenser returns, something survived the collapse: preserved scientific knowledge and the quarks formed during synthesis.</p>
-          </div>
-          <div class="synthesis-modal__era">
-            <h3>Science Era</h3>
-            <p>Science Points survive synthesis and unlock permanent principles in the Science Tree. Quarks are produced from the Stored Energy held at activation; quarks beyond safe Cage capacity decay over time.</p>
-            <p>The Particle Sintetizer is now located in <strong>Science Devices</strong>. Future activations will confirm their rewards before resetting the Energy Era again.</p>
-          </div>
-          <div class="synthesis-modal__actions">
-            ${button("Enter Science Era", "close-particle-synthesis-narrative", { variant: "primary" })}
-          </div>
-        </section>
-      </div>
-    `;
-  }
-
-  const activationCost = calculateParticleSynthesizerCost(state, config);
-  const scienceGained = calculateSciencePointReward(
-    state.energy,
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const sciencePointCost = calculateSciencePointCost(
-    state.science?.totalScienceEarned ?? 0,
-    config,
-  );
-  const quarksGained = calculateQuarksGenerated(state.energy, config);
-
-  return `
-    <div class="modal-backdrop">
-      <section class="synthesis-modal" role="dialog" aria-modal="true" aria-labelledby="synthesis-confirm-title">
-        <p class="panel__label">IRREVERSIBLE SYNTHESIS</p>
-        <h2 id="synthesis-confirm-title">Activate Particle Sintetizer?</h2>
-        <p class="muted">This spends ${formatEnergy(activationCost)} and resets all Energy Era progress. Rewards use the Stored Energy held at activation.</p>
-        <div class="synthesis-modal__rewards">
-          <div>
-            <span>Science Points gained (${formatEnergy(sciencePointCost)} threshold)</span>
-            <strong>${scienceGained}</strong>
-          </div>
-          <div>
-            <span>Quarks gained</span>
-            <strong>${quarksGained}</strong>
-          </div>
-        </div>
-        <div class="synthesis-modal__actions">
-          ${button("Cancel", "cancel-particle-synthesis", { variant: "ghost" })}
-          ${button("Activate", "confirm-particle-synthesis", { variant: "primary" })}
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderQuarkCage(state, config) {
-  const availability = evaluateComponent("quarkCage", state, config);
-  if (!availability.visible) return "";
-
-  const currentCapacity = calculateQuarkCapacity(state, config);
-  const nextCapacity = calculateQuarkCapacity(
-    {
-      ...state,
-      scienceDevices: {
-        ...state.scienceDevices,
-        quarkCages: state.scienceDevices.quarkCages + 1,
-      },
-    },
-    config,
-  );
-
-  return `
-    <article class="panel science-panel">
-      ${helpNote("Quarks outside safe containment decay continuously. Quarks Cages are run hardware: synthesis resets cages, but the base containment of 1 quark remains.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Science", "Hardware")}
-        <span class="card-subsystem">Containment Unit</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>Quarks Cage</h2>
-        </div>
-        ${headingAction("Install", "buy-quark-cage", {
-          cost: availability.cost,
-          count: state.scienceDevices.quarkCages,
-          disabled: !availability.enabled,
-          variant: availability.enabled ? "primary" : "ghost",
-        })}
-      </div>
-      <p class="muted">A high-energy containment chamber capable of stabilizing synthesized quarks and preventing their natural decay.</p>
-      <div class="metric-row">
-        <span>Safe containment</span>
-        <strong>${currentCapacity} -> ${nextCapacity} quarks</strong>
-      </div>
-      <div class="metric-row">
-        <span>Available Quarks</span>
-        <strong>${formatEngineering(state.quarks?.available ?? 0)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderFiftyGCalculator(state, config) {
-  const availability = evaluateComponent("fiftyGCalculator", state, config);
-  if (!availability.visible) return "";
-
-  const nextDuration = calculateAlgorithmUpgradeDuration(state, config, false);
-
-  return `
-    <article class="panel science-panel ${state.science.fiftyGCalculator ? "device-card--online" : ""}">
-      ${helpNote("Extends Auto Calculator routing to Algorithm Upgrades. Manual Upgrades remain instant; automated Upgrades use their growing execution time.")}
-      <div class="panel__header-row">
-        ${renderCardTags("Science", "Automation")}
-        <span class="card-subsystem">Upgrade Pipeline</span>
-      </div>
-      <div class="panel__heading">
-        <div>
-          <h2>50G Calculator</h2>
-        </div>
-        ${
-          state.science.fiftyGCalculator
-            ? statusPill("ACTIVE", "online")
-            : headingAction("Study", "buy-fifty-g-calculator", {
-                cost: availability.cost,
-                costLabel: `${availability.cost} SP`,
-                disabled: !availability.enabled,
-                variant: availability.enabled ? "primary" : "ghost",
-              })
-        }
-      </div>
-      <p class="muted">Routes completed improvement sets into an automated algorithm reconstruction.</p>
-      <div class="metric-row">
-        <span>Effect</span>
-        <strong>Automates A. Upgrades with growing execution time</strong>
-      </div>
-      <div class="metric-row">
-        <span>Current automated duration</span>
-        <strong>${formatDuration(nextDuration)}</strong>
-      </div>
-    </article>
-  `;
-}
-
-function renderLog(state) {
-  const entries = state.log.length
-    ? state.log
-        .slice(0, 12)
-        .map(
-          (entry) => `
-            <li class="log-entry log-entry--${entry.tone}">
-              <time>${formatDuration(entry.at)}</time>
-              <span>${entry.message}</span>
-            </li>
-          `,
-        )
-        .join("")
-    : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
-
-  return `
-    <article class="panel log-panel">
-      <p class="panel__label">FACILITY LOG</p>
-      <ol class="log-list" data-latest-id="${state.log[0]?.id ?? ""}">${entries}</ol>
-    </article>
-  `;
-}
-
-function renderDevelopmentPanel(state) {
-  return `
-    <article class="panel dev-panel">
-      <p class="panel__label">DEVELOPMENT CONTROLS</p>
-      <div class="metric-row">
-        <span>Production multiplier</span>
-        <strong>x${state.devSettings.productionMultiplier}</strong>
-      </div>
-      <div class="metric-row">
-        <span>Duration multiplier</span>
-        <strong>x${state.devSettings.durationMultiplier}</strong>
-      </div>
-      <div class="dev-actions">
-        ${button("Add 0.25 J", "dev-add-energy", { variant: "ghost" })}
-        ${button("Double Energy", "dev-add-large-energy", { variant: "ghost" })}
-        ${button("Complete Study", "dev-complete-study", { variant: "ghost" })}
-        ${button("Complete Upgrade", "dev-complete-upgrade", { variant: "ghost" })}
-        ${button("Force Blueprint", "dev-force-blueprint", { variant: "ghost" })}
-        ${button("Cycle Production", "dev-cycle-production", { variant: "ghost" })}
-        ${button("Cycle Duration", "dev-cycle-duration", { variant: "ghost" })}
-        ${button(state.ui?.devShowNews ? "Hide News (Dev)" : "Force News (Dev)", "dev-toggle-news", { variant: "ghost" })}
-        ${button("Cycle News", "cycle-news", { variant: "ghost" })}
-      </div>
-    </article>
-  `;
-}
-
-export function renderNewsSection(state, newsList = DEFAULT_NEWS) {
-  if (state.ui?.newsDismissed) {
-    return "";
-  }
-
-  const currentItem = getNewsItem(newsList, state.ui?.currentNewsId);
-  const rarityNum = Number(currentItem?.rarity) || 1;
-  const rarityLabel = getRarityLabel(rarityNum);
-  const rarityClass = getRarityClass(rarityNum);
-  const showRarityBadge = rarityNum >= 2;
-
-  const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
-  const circumference = 37.7;
-  const initialOffset = (circumference * (1 - timerFraction)).toFixed(2);
-
-  return `
-    <aside class="news-section" role="region" aria-label="News Section">
-      <div class="news-section__badge">
-        <span class="news-section__pulse" aria-hidden="true"></span>
-        <span>NEWS FEED</span>
-      </div>
-      <div class="news-section__timer" title="Time to next dispatch (6s - pauses on hover)">
-        <svg class="news-timer-ring" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-          <circle class="news-timer-ring__bg" cx="8" cy="8" r="6" />
-          <circle class="news-timer-ring__fill" data-progress="news-timer" cx="8" cy="8" r="6" style="stroke-dashoffset: ${initialOffset};" />
-        </svg>
-      </div>
-      <span class="news-section__category" data-field="news-category">${currentItem?.category || "TELEMETRY"}</span>
-      <span class="news-section__rarity ${rarityClass}" data-field="news-rarity" style="${showRarityBadge ? "" : "display: none;"}">${showRarityBadge ? rarityLabel : ""}</span>
-      <div class="news-section__ticker" data-action="cycle-news" title="Click to cycle headline">
-        <span class="news-section__text" data-field="news-text">${currentItem?.text || "Monitoring facility background telemetry."}</span>
-      </div>
-      <div class="news-section__actions">
-        <button
-          type="button"
-          class="news-section__action-btn"
-          data-action="cycle-news"
-          title="Next news item"
-          aria-label="Next news item"
-        >↻</button>
-        <button
-          type="button"
-          class="news-section__close"
-          data-action="dismiss-news-section"
-          title="Close News Section"
-          aria-label="Close News Section"
-        >×</button>
-      </div>
-    </aside>
-  `;
-}
-
-function renderCompletion(state, newsList = DEFAULT_NEWS) {
-  return renderNewsSection(state, newsList);
-}
-
-function renderSection(title, label, note, content, className = "") {
-  return `
-    <section class="layer-section ${className}">
-      <div class="section-heading">
-        <div>
-          <p class="panel__label">${label}</p>
-          <h2>${title}</h2>
-        </div>
-        <p>${note}</p>
-      </div>
-      ${content}
-    </section>
-  `;
-}
-
-function renderDeviceGroup(group, content) {
-  const cleanContent = content.trim();
-  if (!cleanContent) return "";
-
-  return `
-    <section class="device-group" aria-label="${group.label}">
-      <div class="device-group__heading">
-        <div>
-          <p class="panel__label">${group.label.toUpperCase()}</p>
-          <h2>${group.label}</h2>
-        </div>
-        <p>${group.note}</p>
-      </div>
-      <div class="section-stack">${cleanContent}</div>
-    </section>
-  `;
-}
-
-function renderEnergyTab(state, config, developmentMode) {
-  const storageDevices = `
-    <div class="energy-storage-section">
-      <div class="energy-storage-header">
-        <span class="muted">Expand facility capacity to avoid overflow decay.</span>
-        ${renderBuyModeSelector(state)}
-      </div>
-      <div class="energy-storage-grid">
-        ${renderComponent("powerCell", state, config, () => renderPowerCellArray(state, config))}
-        ${renderComponent("powerModule", state, config, () => renderPowerModule(state, config))}
-      </div>
-    </div>
-  `;
-
-  const upgradeRendered = renderAlgorithmUpgrade(state, config);
-  const currentBonus = calculateImprovementBonus(
-    state.improvements,
-    config,
-    state.calculationMethods,
-  );
-  const upgradeBonus = 2 ** state.upgrades;
-
-  const cascadeContent = `
-    <div class="cascade-flow">
-      <div class="cascade-stage cascade-stage--crc">
-        ${renderCrcDevice(state, config, developmentMode)}
-        ${renderComponent("crcBlueprint", state, config, () => renderBlueprint(state, config, developmentMode))}
-        ${renderComponent("crcConstruction", state, config, () => renderCrcConstruction(state, config))}
-      </div>
-
-      <div class="cascade-conduit" aria-hidden="true">
-        <div class="cascade-conduit__line"></div>
-        <div class="cascade-conduit__node">
-          <span class="cascade-conduit__icon">▼</span>
-          <span class="cascade-conduit__label">ALGORITHM INJECTION</span>
-          <span class="cascade-conduit__sub" data-field="cascade-algorithm-sub">Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${1 + state.improvements})</span>
-        </div>
-        <div class="cascade-conduit__line"></div>
-      </div>
-
-      <div class="cascade-stage cascade-stage--study">
-        ${renderStudy(state, config, developmentMode)}
-      </div>
-
-      ${
-        upgradeRendered.trim()
-          ? `
-        <div class="cascade-conduit cascade-conduit--upgrade" aria-hidden="true">
-          <div class="cascade-conduit__line"></div>
-          <div class="cascade-conduit__node">
-            <span class="cascade-conduit__icon">▼</span>
-            <span class="cascade-conduit__label">PARADIGM COMPILATION</span>
-            <span class="cascade-conduit__sub">Algorithm Upgrades restructure architecture (2<sup>${state.upgrades}</sup> = x${upgradeBonus} multiplier · Resets Improvements)</span>
-          </div>
-          <div class="cascade-conduit__line"></div>
-        </div>
-
-        <div class="cascade-stage cascade-stage--upgrade">
-          ${upgradeRendered}
-        </div>
-      `
-          : ""
-      }
-    </div>
-  `;
-
-  const resetCards = `
-    <div class="reset-routes-grid">
-      ${renderCalculationMethod(state, config)}
-      ${renderSetupOptimization(state, config)}
-    </div>
-  `;
-
-  const labReadable = canAccessParticleLab(state, config);
-  const labContent = labReadable
-    ? `
-      <section class="energy-section energy-section--lab" aria-label="Particle Laboratory Access">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">PARTICLE LABORATORY</p>
-            <h2>Laboratory Threshold</h2>
-          </div>
-          <p>The high-energy bridge to particle synthesis and scientific breakthroughs.</p>
-        </div>
-        <div class="section-stack">
-          ${renderParticleLabDetails(state, config)}
-        </div>
-      </section>
-    `
-    : "";
-
-  return `
-    ${renderTabTools(state)}
-    <div class="tab-grid energy-tab-layout">
-      <section class="tab-main-column">
-        <section class="energy-section" aria-label="Energy Storage">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">ENERGY STORAGE</p>
-              <h2>Containment & Capacity</h2>
+            <!-- Currencies Stack -->
+            <div class="tes-rail-currencies">
+              <div class="tes-rail-currency-item">
+                <img src="${tesIconPath("resource-energy")}" alt="" class="tes-rail-currency-icon" aria-hidden="true" />
+                <div class="tes-rail-currency-details">
+                  <span class="tes-rail-currency-label">Stored Energy</span>
+                  <span class="tes-rail-currency-val" data-field="rail-energy">0.00 pJ</span>
+                </div>
+              </div>
+              <!-- Optional additional unlocked currencies -->
+              <div class="tes-rail-currency-item" id="rail-row-sp" style="display: none;">
+                <img src="${tesIconPath("resource-science-points")}" alt="" class="tes-rail-currency-icon" aria-hidden="true" />
+                <div class="tes-rail-currency-details">
+                  <span class="tes-rail-currency-label">Science Points</span>
+                  <span class="tes-rail-currency-val" data-field="rail-sp" style="color: var(--tes-purple-light);">0 SP</span>
+                </div>
+              </div>
             </div>
-            <p>Power Cells preserve energy across Setup Optimizations; Power Modules scale bulk capacity.</p>
-          </div>
-          <div class="section-stack">${storageDevices}</div>
-        </section>
+          </aside>
 
-        <section class="energy-section" aria-label="Energy Production Cascade">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">ENERGY PRODUCTION CASCADE</p>
-              <h2>Condensation & Algorithms</h2>
-            </div>
-            <p>CRCs harvest cosmic radiation, amplified by refined calculation algorithms.</p>
-          </div>
-          <div class="section-stack">${cascadeContent}</div>
-        </section>
-
-        <section class="energy-section" aria-label="Breakthroughs and Reset Routes">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">BREAKTHROUGHS & RESET ROUTES</p>
-              <h2>Strategic Progression</h2>
-            </div>
-            <p>Soft and hard resets that reconfigure facility architecture for long-term growth.</p>
-          </div>
-          <div class="section-stack">${resetCards}</div>
-        </section>
-
-        ${labContent}
-      </section>
-    </div>
-  `;
-}
-
-function renderAutomationTab(state, config, developmentMode, saveSlots) {
-  const impRate =
-    state.devices.autoCalculators > 0
-      ? calculateImprovementRatePerSecond(state, config, developmentMode)
-      : 0;
-  const fleetSummary = `
-    <article class="panel fleet-summary-panel">
-      <p class="panel__label">COMPUTATIONAL FLEET</p>
-      <div class="panel__heading">
-        <div>
-          <h2>Automation Fleet Telemetry</h2>
-        </div>
-        ${statusPill(impRate > 0 ? `${formatRate(impRate).replace("/s", "")} imp/s` : "IDLE", impRate > 0 ? "online" : "")}
-      </div>
-      <div class="metric-row">
-        <span>Auto Calculators</span>
-        <strong>${state.devices.autoCalculators} units</strong>
-      </div>
-      <div class="metric-row">
-        <span>Processors (Amplification)</span>
-        <strong>${state.devices.processors} units (x${calculateProcessorEfficiencyMultiplier(state, config).toFixed(2)})</strong>
-      </div>
-      <div class="metric-row">
-        <span>Overclocker status</span>
-        <strong>${
-          state.devices.overclockers > 0
-            ? state.overclocker?.active
-              ? `ONLINE (x${calculateOverclockerSpeedMultiplier(state, config).toFixed(2)})`
-              : state.overclocker?.activeSeconds > 0
-                ? "COOLING"
-                : "READY"
-            : "NOT INSTALLED"
-        }</strong>
-      </div>
-    </article>
-  `;
-
-  const computationalDevices = `
-    <div class="computational-devices-stack">
-      ${renderComponent("autoCalculator", state, config, () => renderAutoCalculator(state, config))}
-      ${renderComponent("processor", state, config, () => renderProcessor(state, config))}
-      ${renderComponent("overclockerBlueprint", state, config, () => renderOverclockerBlueprint(state, config, developmentMode))}
-      ${renderComponent("overclocker", state, config, () => renderOverclocker(state, config))}
-    </div>
-  `;
-
-  const instrumentationDevices = `
-    <div class="instrumentation-stack">
-      ${renderComponent("softDataDisplay", state, config, () => renderSoftDataDisplay(state, config))}
-      ${renderComponent("t2SoftDataDisplay", state, config, () => renderT2SoftDataDisplay(state, config))}
-    </div>
-  `;
-
-  const unlockedAutomations = listUnlockedAutomations(state);
-  const automationsContent = `
-    <div class="automations-stack">
-      ${renderFiftyGCalculator(state, config)}
-      ${
-        unlockedAutomations.length
-          ? `
-        <article class="panel automations-panel">
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">CONTROL LOOP</p>
-              <h2>Automation Toggles</h2>
-            </div>
-            ${statusPill(`${unlockedAutomations.length} UNLOCKED`, "online")}
-          </div>
-          <div class="automation-list">
-            ${unlockedAutomations
-              .map((automation) => {
-                const enabled = isAutomationEnabled(state, automation.id);
-                const acquired = automation.isAcquired(state);
-                return `
-                  <div class="automation-row ${enabled ? "automation-row--on" : ""}">
-                    <div>
-                      <strong>${automation.name}</strong>
-                      <p class="muted">${automation.description}</p>
-                      <small>${
-                        acquired
-                          ? enabled
-                            ? "ONLINE"
-                            : "PAUSED"
-                          : "UNLOCKED // CURRENTLY OFFLINE"
-                      }</small>
-                    </div>
-                    <button
-                      class="toggle-control ${enabled ? "toggle-control--on" : ""}"
-                      data-action="toggle-automation"
-                      data-automation-id="${automation.id}"
-                      type="button"
-                      role="switch"
-                      aria-checked="${enabled}"
-                    >
-                      <span aria-hidden="true"></span>
-                      <strong>${enabled ? "Enabled" : "Disabled"}</strong>
-                    </button>
+          <!-- 2. ACTIVE TAB CONTAINER -->
+          <div class="tes-tab-viewport">
+            <!-- TAB 1: ENERGY (Section 6) -->
+            <section class="tes-energy-tab" id="tab-energy">
+              <!-- A. Stored Energy Central Card (Section 6.1) -->
+              <article class="tes-stored-energy-card">
+                <div class="tes-card-top-row">
+                  <div class="tes-card-category-label">
+                    <img src="${tesIconPath("stored-energy")}" alt="" class="tes-card-icon-mini" aria-hidden="true" />
+                    <span>Stored Energy</span>
                   </div>
-                `;
-              })
-              .join("")}
-          </div>
-        </article>
-      `
-          : ""
-      }
-    </div>
-  `;
+                  <button class="btn-icon-only" data-action="show-info" data-topic="energy-summary" aria-label="Energy Telemetry details" title="Energy Dynamics: Learn about Stable Capacity, Overflow Decay, and Net Production">
+                    <img src="${tesIconPath("icon-info")}" alt="" />
+                  </button>
+                </div>
 
-  const diagnosticsAndSaves = `
-    <div class="diagnostics-stack">
-      ${state.devices.t2SoftDataDisplay ? renderMeasureTab(state, config, developmentMode) : ""}
-      <article class="panel">
-        <p class="panel__label">RUN DATA</p>
-        <div class="metric-row">
-          <span>Total play time</span>
-          <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Current run time</span>
-          <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Total condensed</span>
-          <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
-        </div>
-        <div class="metric-row">
-          <span>Peak stored</span>
-          <strong>${formatEnergy(state.peakEnergy)}</strong>
-        </div>
-      </article>
-      ${renderLog(state)}
-      ${renderSaveManagement(saveSlots, developmentMode)}
-    </div>
-  `;
+                <div class="tes-big-energy-val tabular" data-field="stored-energy-main">0.00 pJ</div>
 
-  return `
-    ${renderTabTools(state)}
-    <div class="tab-grid">
-      <section class="tab-main-column">
-        ${fleetSummary}
-        <section class="device-group" aria-label="Computational Devices">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">COMPUTATIONAL HARDWARE</p>
-              <h2>Processing & Automation</h2>
-            </div>
-            <p>Calculators and processors accelerate study throughput and automate routine operations.</p>
-          </div>
-          <div class="section-stack">${computationalDevices}</div>
-        </section>
+                <!-- Telemetry Row: Net, Capacity, Overflow Decay -->
+                <div class="tes-energy-telemetry-row">
+                  <div class="telemetry-item" id="energy-net-item" data-action="show-info" data-topic="energy-summary" style="cursor: pointer;" title="Net Production = Gross Production (CRC) - Overflow Decay. Click or hover for details.">
+                    <span class="telemetry-label">Net:</span>
+                    <span class="telemetry-val--net tabular" data-field="energy-net">+0.00 pJ/s</span>
+                  </div>
+                  <div class="telemetry-item" id="energy-capacity-item" data-action="show-info" data-topic="device-powercell" style="cursor: pointer;" title="Stable Capacity provided by Power Cells. Energy below this threshold never decays. Click for details.">
+                    <span class="telemetry-label">Capacity:</span>
+                    <span class="telemetry-val--cap tabular" data-field="energy-capacity">0.00 pJ</span>
+                  </div>
+                  <div class="telemetry-item" id="energy-decay-item" style="display: none; cursor: pointer;" data-action="show-info" data-topic="energy-summary" title="Overflow Decay: Energy dissipating per second due to exceeding Stable Capacity. Click for details.">
+                    <span class="telemetry-label">Decay:</span>
+                    <span class="telemetry-val--decay tabular" data-field="energy-decay">-0.00 pJ/s</span>
+                  </div>
+                </div>
 
-        <section class="device-group" aria-label="Instrumentation & Displays">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">INSTRUMENTATION & DISPLAYS</p>
-              <h2>Telemetry & Data Feeds</h2>
-            </div>
-            <p>Diagnostic modules that unlock purchase controls and detailed energy telemetry.</p>
-          </div>
-          <div class="section-stack">${instrumentationDevices}</div>
-        </section>
+                <!-- Energy Era Progression Bar (Section 5) -->
+                <div class="tes-energy-era-section">
+                  <div class="tes-energy-era-header">
+                    <span class="tes-energy-era-label">Total Stored Energy Required</span>
+                    <span class="tes-energy-era-percent tabular" data-field="energy-era-percent">0.0%</span>
+                  </div>
+                  <div class="tes-energy-era-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Total Stored Energy Required">
+                    <div class="tes-energy-era-fill" data-field="energy-era-fill" style="width: 0%;"></div>
+                  </div>
+                </div>
+              </article>
 
-        <section class="device-group" aria-label="Automations">
-          <div class="device-group__heading">
-            <div>
-              <p class="panel__label">AUTOMATIONS</p>
-              <h2>Automated Routing</h2>
-            </div>
-            <p>Background routines unlocked through study and scientific advancement.</p>
-          </div>
-          <div class="section-stack">${automationsContent}</div>
-        </section>
-      </section>
+              <!-- B. Cosmic Radiation Condenser (CRC) Row (Section 6.2) -->
+              <article class="tes-crc-row">
+                <div class="tes-crc-left">
+                  <img src="${tesIconPath("crc")}" alt="" class="tes-crc-icon" aria-hidden="true" />
+                  <div class="tes-crc-meta">
+                    <span class="eyebrow">ACTIVE DEVICE</span>
+                    <h3 class="tes-crc-title">Cosmic Radiation Condenser</h3>
+                    <span class="tes-crc-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Converts algorithmic performance into Energy.</span>
+                  </div>
+                </div>
 
-      <aside class="tab-side-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">DIAGNOSTICS & SYSTEM</p>
-            <h2>Facility Telemetry & Storage</h2>
-          </div>
-          <p>Real-time telemetry breakdown and local persistence slots.</p>
-        </div>
-        <div class="section-stack">${diagnosticsAndSaves}</div>
-      </aside>
-    </div>
-  `;
-}
+                <div class="tes-crc-right">
+                  <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                  <span class="badge-status badge-status--active" data-field="crc-level-mult">Level 1</span>
+                  <button class="btn-icon-only" data-action="show-info" data-topic="crc" aria-label="CRC Breakdown details">
+                    <img src="${tesIconPath("icon-info")}" alt="" />
+                  </button>
+                </div>
+              </article>
 
-function renderDevicesTab(state, config, developmentMode) {
-  return renderEnergyTab(state, config, developmentMode);
-}
-
-function renderStudiesTab(state, config, developmentMode) {
-  return renderEnergyTab(state, config, developmentMode);
-}
-
-function renderScienceSubtabs(state) {
-  const active = state.ui?.activeScienceSubtab ?? "tree";
-  return `
-    <nav class="tabbar tabbar--nested" aria-label="Science sections">
-      <button class="tabbar__button ${active === "tree" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="tree" type="button">Science Tree</button>
-      <button class="tabbar__button ${active === "devices" ? "tabbar__button--active" : ""}" data-action="set-science-subtab" data-science-subtab="devices" type="button">Science Devices</button>
-    </nav>
-  `;
-}
-
-function renderScienceTab(state, config) {
-  const labReadable = canAccessParticleLab(state, config);
-  const activeSubtab = state.ui?.activeScienceSubtab ?? "tree";
-  const treeContent = `
-    <div class="device-group__heading">
-      <div>
-        <p class="panel__label">SCIENCE</p>
-        <h2>Science Tree</h2>
-      </div>
-      <p>Preserved principles survive particle synthesis and change how the next Energy Layer behaves.</p>
-    </div>
-    <div class="science-tree-layout-v2">
-      <div class="science-tree-layout-v2__main">
-        ${renderScienceStatus(state, config)}
-        ${renderScienceTree(state, config)}
-      </div>
-      <div class="science-tree-layout-v2__drawer">
-        ${renderSciencePerkDrawer(state, config)}
-      </div>
-    </div>
-  `;
-  const devicesContent = `
-    <div class="device-group__heading">
-      <div>
-        <p class="panel__label">SCIENCE DEVICES</p>
-        <h2>Laboratory Hardware</h2>
-      </div>
-      <p>Hardware for particle synthesis and safe quark containment.</p>
-    </div>
-    <div class="section-stack">
-      ${renderScienceStatus(state, config)}
-      ${renderParticleSynthesizerDevice(state, config)}
-      ${renderComponent("quarkCage", state, config, () => renderQuarkCage(state, config)) || '<p class="empty-note">No science device is readable yet.</p>'}
-    </div>
-  `;
-
-  return `
-    ${renderTabTools(state)}
-    ${renderScienceSubtabs(state)}
-    ${
-      activeSubtab === "tree"
-        ? `
-      <div class="tab-grid tab-grid--single science-tree-layout">
-        <section class="tab-main-column">${treeContent}</section>
-      </div>
-    `
-        : `
-    <div class="tab-grid">
-      <section class="tab-main-column">${devicesContent}</section>
-      <aside class="tab-side-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">LAB</p>
-            <h2>Particle Laboratory</h2>
-          </div>
-          <p>The central panel remains the bridge into the next reset.</p>
-        </div>
-        <div class="section-stack">
-          ${
-            !labReadable
-              ? '<p class="empty-note">Particle Laboratory signal is not readable in this run yet.</p>'
-              : (state.science?.syntheses ?? 0) > 0
-                ? '<p class="empty-note">The laboratory remains open. Particle Sintetizer controls have moved to Science Devices.</p>'
-                : renderComponent("particleSynthesizer", state, config, () =>
-                    renderParticleLabDetails(state, config),
-                  )
-          }
-        </div>
-      </aside>
-    </div>
-    `
-    }
-  `;
-}
-
-function renderHistoryTab(state) {
-  const activeFilter = state.ui?.historyFilter ?? "all";
-  const history = state.history || [];
-
-  const filteredHistory = history.filter((entry) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "narrative") return entry.kind === "Narrative";
-    if (activeFilter === "discoveries") return entry.kind === "Discoveries";
-    if (activeFilter === "milestones") return entry.kind === "Milestones";
-    return true;
-  });
-
-  const sortedHistory = [...filteredHistory].reverse();
-
-  return `
-    ${renderTabTools(state)}
-    <div class="history-view">
-      <div class="device-group__heading">
-        <div>
-          <p class="panel__label">ARCHIVE</p>
-          <h2>Facility History & Narrative Log</h2>
-        </div>
-        <p>A persistent chronicle of facility breakthroughs, anomalies, and milestone discoveries.</p>
-      </div>
-
-      <div class="history-filter-bar" role="group" aria-label="History categories">
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "all" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="all"
-        >
-          All (${history.length})
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "narrative" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="narrative"
-        >
-          Narrative (${history.filter((h) => h.kind === "Narrative").length})
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "discoveries" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="discoveries"
-        >
-          Discoveries (${history.filter((h) => h.kind === "Discoveries").length})
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost btn--small ${activeFilter === "milestones" ? "btn--active" : ""}"
-          data-action="set-history-filter"
-          data-filter="milestones"
-        >
-          Milestones (${history.filter((h) => h.kind === "Milestones").length})
-        </button>
-      </div>
-
-      <div class="history-list" role="feed" aria-label="History entries">
-        ${
-          sortedHistory.length === 0
-            ? '<p class="empty-note">No historical records in this archive category yet.</p>'
-            : sortedHistory
-                .map((entry) => `
-                  <article class="panel history-entry-card" tabindex="0">
-                    <div class="panel__heading">
-                      <div>
-                        <span class="card-tag card-tag--${entry.kind.toLowerCase()}">${entry.kind}</span>
-                        <h3>${entry.title}</h3>
+              <!-- C. Algorithm Features Compact Stack (Section 6.3) -->
+              <div class="tes-studies-stack">
+                <!-- 1. Algorithm Improvement (AImp) -->
+                <div class="tes-study-unit" id="study-unit-aimp">
+                  <article class="tes-study-row" id="study-row-aimp">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-improvement")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">BASE STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="aimp-title">Algorithm Improvement (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="AImp" data-field="aimp-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Improvement study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="aimp-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="aimp-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Generates Energy through computational improvements.</span>
                       </div>
-                      <time class="muted">${formatDuration(entry.at)}</time>
                     </div>
-                    <p class="history-snippet">${entry.summary || (entry.body ? entry.body.slice(0, 140) + "..." : "")}</p>
-                    <div class="panel__action">
-                      <button
-                        type="button"
-                        class="button button--ghost button--compact"
-                        data-action="open-history-entry"
-                        data-history-id="${entry.id}"
-                      >
-                        Read Full Record
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="aimp-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-cyan)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="aimp-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="AImp" data-count="1" data-field="aimp-study-btn" title="Study Algorithm Improvement (Hotkey: A)">
+                        Study <kbd class="tes-hotkey-hint">A</kbd>
+                      </button>
+                      <!-- Auto Toggle -->
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="AImp" data-field="aimp-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="aimp" aria-label="A.Imp info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
                       </button>
                     </div>
                   </article>
-                `)
-                .join("")
-        }
-      </div>
-    </div>
-  `;
-}
 
-function renderStatisticsTab(state) {
-  return `
-    <div class="tab-grid">
-      <section class="tab-main-column">
-        ${renderRecord()}
-        ${renderLog(state)}
-      </section>
-      <aside class="tab-side-column">
-        <article class="panel">
-          <p class="panel__label">RUN DATA</p>
-          <div class="metric-row">
-            <span>Total play time</span>
-            <strong data-field="total-play-time">${formatDuration(state.stats.totalPlayTime)}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Current run time</span>
-            <strong data-field="run-play-time">${formatDuration(state.stats.runPlayTime)}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Total condensed</span>
-            <strong data-field="total-condensed">${formatEnergy(state.stats.totalEnergyCollected)}</strong>
-          </div>
-          <div class="metric-row">
-            <span>Peak stored</span>
-            <strong>${formatEnergy(state.peakEnergy)}</strong>
-          </div>
-        </article>
-      </aside>
-    </div>
-  `;
-}
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="AImp" data-field="aimp-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Improvement" title="Install Transistor into Algorithm Improvement (Hotkey: T)">
+                    <span class="tes-install-transistor-label">Install Transistor <kbd class="tes-hotkey-hint">T</kbd></span>
+                    <span class="tes-install-transistor-cost tabular" data-field="aimp-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
 
-function renderAutomationsTab(state) {
-  const rows = listUnlockedAutomations(state);
-
-  return `
-    <div class="tab-grid tab-grid--single">
-      <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">AUTOMATIONS</p>
-            <h2>Active Routing Controls</h2>
-          </div>
-          <p>Pause or resume every automation this run has enabled. Unlocks stay listed after prestige resets.</p>
-        </div>
-        <article class="panel automations-panel">
-          ${helpNote("These switches only stop automatic actions. Owned devices and purchased Science perks keep their other bonuses.")}
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">CONTROL LOOP</p>
-              <h2>Automation Toggles</h2>
-            </div>
-            ${statusPill(`${rows.length} UNLOCKED`, "online")}
-          </div>
-          <div class="automation-list">
-            ${rows
-              .map((automation) => {
-                const enabled = isAutomationEnabled(state, automation.id);
-                const acquired = automation.isAcquired(state);
-                return `
-                  <div class="automation-row ${enabled ? "automation-row--on" : ""}">
-                    <div>
-                      <strong>${automation.name}</strong>
-                      <p class="muted">${automation.description}</p>
-                      <small>${
-                        acquired
-                          ? enabled
-                            ? "ONLINE"
-                            : "PAUSED"
-                          : "UNLOCKED // CURRENTLY OFFLINE"
-                      }</small>
+                <!-- 2. Algorithm Upgrade (AUpg) -->
+                <div class="tes-study-unit" id="study-unit-aupg">
+                  <article class="tes-study-row" id="study-row-aupg">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-upgrade")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">UPGRADE STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="aupg-title">Algorithm Upgrade (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="AUpg" data-field="aupg-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Upgrade study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="aupg-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="aupg-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Converts lower-order algorithms into more efficient computations.</span>
+                        <span class="tes-study-cost-hint">Req 12 A.Imp</span>
+                      </div>
                     </div>
-                    <button
-                      class="toggle-control ${enabled ? "toggle-control--on" : ""}"
-                      data-action="toggle-automation"
-                      data-automation-id="${automation.id}"
-                      type="button"
-                      role="switch"
-                      aria-checked="${enabled}"
-                    >
-                      <span aria-hidden="true"></span>
-                      <strong>${enabled ? "Enabled" : "Disabled"}</strong>
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="aupg-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-purple-light)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="aupg-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="AUpg" data-count="1" data-field="aupg-study-btn" title="Study Algorithm Upgrade (Hotkey: U)">
+                        Study <kbd class="tes-hotkey-hint">U</kbd>
+                      </button>
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="AUpg" data-field="aupg-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="aupg" aria-label="A.Upg info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="AUpg" data-field="aupg-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Upgrade">
+                    <span class="tes-install-transistor-label">Install Transistor</span>
+                    <span class="tes-install-transistor-cost tabular" data-field="aupg-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
+
+                <!-- 3. Algorithm Recalculation (ARec) - Revealed only if unlocks.ARec -->
+                <div class="tes-study-unit" id="study-unit-arec" style="display: none;">
+                  <article class="tes-study-row" id="study-row-arec">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-recalculation")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">RECALCULATION STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="arec-title">Algorithm Recalculation (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="ARec" data-field="arec-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Recalculation study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="arec-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="arec-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Converts upgrades into higher-order computational structures.</span>
+                        <span class="tes-study-cost-hint">Req 12 A.Upg</span>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="arec-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-teal)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="arec-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="ARec" data-count="1" data-field="arec-study-btn" title="Study Algorithm Recalculation (Hotkey: R)">
+                        Study <kbd class="tes-hotkey-hint">R</kbd>
+                      </button>
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="ARec" data-field="arec-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="arec" aria-label="A.Rec info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="ARec" data-field="arec-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Recalculation">
+                    <span class="tes-install-transistor-label">Install Transistor</span>
+                    <span class="tes-install-transistor-cost tabular" data-field="arec-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Prestige Actions Row (Side-by-Side: Machine Learning & Setup Optimization) -->
+              <div class="tes-prestige-row">
+                <!-- D. Machine Learning (Computer Learning) Card (Section 6.4) -->
+                <article class="tes-ml-card">
+                  <div class="tes-ml-header">
+                    <div class="tes-ml-title-group">
+                      <img src="${tesIconPath("run-machine-learning")}" alt="" class="tes-ml-icon" aria-hidden="true" />
+                      <div>
+                        <span class="eyebrow">COMPUTER LEARNING</span>
+                        <h4 class="tes-ml-title">Machine Learning (Soft Reset)</h4>
+                      </div>
+                    </div>
+                    <button class="btn-icon-only" data-action="show-info" data-topic="ml" aria-label="Machine Learning info">
+                      <img src="${tesIconPath("icon-info")}" alt="" />
                     </button>
                   </div>
-                `;
-              })
-              .join("")}
-          </div>
-        </article>
-      </section>
-    </div>
-  `;
-}
 
-function renderMeasureTab(state, config, developmentMode) {
-  const production = calculateProduction(state, config, developmentMode);
-  const breakdown = calculateProductionBreakdown(
-    state,
-    config,
-    developmentMode,
-  );
-
-  return `
-    <div class="tab-grid tab-grid--single">
-      <section class="tab-main-column">
-        <div class="device-group__heading">
-          <div>
-            <p class="panel__label">MEASURE</p>
-            <h2>Energy Production Composition</h2>
-          </div>
-          <p>T2 Soft Display reads the live condenser route and separates the current output into source layers.</p>
-        </div>
-        <article class="panel measure-panel">
-          ${helpNote("This panel shows raw energy production before overflow decay. Percentages represent each component's share of current production.")}
-          <div class="panel__heading">
-            <div>
-              <p class="panel__label">T2 SOFT DISPLAY // ONLINE</p>
-              <h2>Current Output</h2>
-            </div>
-            ${statusPill(formatRate(production), "online")}
-          </div>
-          <div class="measure-table" role="table" aria-label="Energy production composition">
-            <div class="measure-table__row measure-table__row--head" role="row">
-              <span>Factor</span>
-              <span>Multiplier</span>
-              <span>Added output</span>
-              <span>Running output</span>
-              <span>Share</span>
-            </div>
-            ${breakdown
-              .map((row) => {
-                const share = production.gt(0)
-                  ? row.value.div(production).toNumber()
-                  : 0;
-                return `
-                  <div class="measure-table__row" role="row">
-                    <span><strong>${row.label}</strong><small>${row.detail}</small></span>
-                    <strong>${row.multiplierLabel}</strong>
-                    <strong>${formatRate(row.value)}</strong>
-                    <strong>${formatRate(row.output)}</strong>
-                    <strong>${formatPercent(share)}</strong>
+                  <div class="tes-rail-progress-section">
+                    <div class="tes-rail-progress-label">
+                      <span>Available Data (XP)</span>
+                      <span data-field="ml-progress-text">0 / 693 Data</span>
+                    </div>
+                    <div class="tes-rail-progress-bar">
+                      <div class="tes-rail-progress-fill" data-field="ml-progress-bar" style="width: 0%;"></div>
+                    </div>
                   </div>
-                `;
-              })
-              .join("")}
-          </div>
-          <div class="metric-row measure-total">
-            <span>Total raw production</span>
-            <strong>${formatRate(production)}</strong>
-          </div>
-        </article>
-      </section>
-    </div>
-  `;
-}
 
-function renderSaveTab(saveSlots, developmentMode) {
-  return `
-    <div class="tab-grid tab-grid--single">
-      ${renderSaveManagement(saveSlots, developmentMode)}
-    </div>
-  `;
-}
+                  <button class="btn-primary" data-action="run-machine-learning" data-field="ml-action-btn" title="Run Machine Learning (Hotkey: M)">
+                    Run Machine Learning (Adv to Level 2) <kbd class="tes-hotkey-hint">M</kbd>
+                  </button>
+                </article>
 
-function renderTabContent(
-  activeTab,
-  state,
-  config,
-  developmentMode,
-  saveSlots,
-) {
-  if (
-    activeTab === "automation" ||
-    activeTab === "automations" ||
-    activeTab === "measure" ||
-    activeTab === "statistics" ||
-    activeTab === "save"
-  ) {
-    return renderAutomationTab(state, config, developmentMode, saveSlots);
+                <!-- E. Setup Optimization / Facility Optimization Card -->
+                <article class="tes-fo-card" id="fo-card" style="display: none;">
+                  <div class="tes-fo-header">
+                    <div class="tes-fo-title-group">
+                      <img src="${tesIconPath("facility-optimization")}" alt="" class="tes-fo-icon" aria-hidden="true" />
+                      <div>
+                        <span class="eyebrow eyebrow--purple">FACILITY PRESTIGE</span>
+                        <h4 class="tes-fo-title" data-field="fo-title">Setup Optimization (Hard Reset)</h4>
+                      </div>
+                    </div>
+                    <button class="btn-icon-only" data-action="show-info" data-topic="fo" aria-label="Setup Optimization info">
+                      <img src="${tesIconPath("icon-info")}" alt="" />
+                    </button>
+                  </div>
+
+                  <div class="tes-rail-progress-section">
+                    <div class="tes-rail-progress-label">
+                      <span>Facility Level</span>
+                      <span data-field="fo-progress-text">Level 1 / 6</span>
+                    </div>
+                    <div class="tes-rail-progress-bar">
+                      <div class="tes-rail-progress-fill tes-rail-progress-fill--purple" data-field="fo-progress-bar" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <button class="btn-primary btn-primary--purple" data-action="open-modal" data-modal="fo-confirm" data-field="fo-action-btn" title="Perform Setup Optimization">
+                    Perform Setup Optimization (Lv. 6)
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <!-- TAB 2: DEVICES (Section 7) -->
+            <section class="tes-devices-tab" id="tab-devices" style="display: none;">
+              <!-- Filter Bar (Section 7.3) -->
+              <div class="tes-filter-bar">
+                <div class="tes-category-pills">
+                  <button class="tes-filter-pill tes-filter-pill--active" data-action="set-device-filter" data-filter="all" data-field="filter-all-btn">
+                    All (11)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="automation" data-field="filter-automation-btn">
+                    Automation (3)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="computation" data-field="filter-computation-btn">
+                    Computation (4)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="energy" data-field="filter-energy-btn">
+                    Energy (3)
+                  </button>
+                  <button class="tes-filter-pill" data-action="set-device-filter" data-filter="learning" data-field="filter-learning-btn">
+                    Learning (1)
+                  </button>
+                </div>
+
+                <div class="tes-filter-toggles">
+                  <label class="tes-checkbox-label">
+                    <input type="checkbox" data-action="toggle-filter-added" checked id="toggle-show-added" />
+                    <span>Show Added</span>
+                  </label>
+                  <label class="tes-checkbox-label">
+                    <input type="checkbox" data-action="toggle-filter-unavailable" checked id="toggle-show-unavailable" />
+                    <span>Show Unavailable</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Two Independent Columns (Section 7.1 & 7.2) -->
+              <div class="tes-devices-two-column">
+                <!-- COLUMN 1: Efficiency & Automation -->
+                <div class="tes-device-column" id="col-efficiency">
+                  <!-- Section 1: AUTOMATION -->
+                  <div class="tes-device-group" id="group-automation">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">AUTOMATION</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- AutoCalculator AImp -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_AImp">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-imp")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Improvements</span>
+                            <span class="badge-status badge-status--off" data-field="chip-aimp-badge">30.00 pJ</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_AImp" data-field="chip-aimp-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-aimp" aria-label="AutoCalculator AImp info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- AutoCalculator AUpg -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_AUpg">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-upg")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Upgrades</span>
+                            <span class="badge-status badge-status--off" data-field="chip-aupg-badge">120.00 pJ</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_AUpg" data-field="chip-aupg-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-aupg" aria-label="AutoCalculator AUpg info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- AutoCalculator ARec (Revealed only if unlocks.ARec) -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_ARec" id="device-row-chip-arec" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-rec")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Recalculations</span>
+                            <span class="badge-status badge-status--off" data-field="chip-arec-badge">480.00 pJ</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_ARec" data-field="chip-arec-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-arec" aria-label="AutoCalculator ARec info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+
+                  <!-- Section 2: COMPUTATION & EFFICIENCY -->
+                  <div class="tes-device-group" id="group-computation">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">COMPUTATION & EFFICIENCY</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- Transistor Board -->
+                    <article class="tes-device-row" data-device-id="transistorBoard">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("transistor-board")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Transistor Board</span>
+                            <span class="badge-status badge-status--off" data-field="board-badge">${formatEnergy(2e-10)}</span>
+                          </div>
+                          <span class="tes-device-desc">Distributes computational resources between studies.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="transistorBoard" data-field="board-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-board" aria-label="Transistor Board info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Microprocessor -->
+                    <article class="tes-device-row" data-device-id="microprocessor">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("microprocessor")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Microprocessor</span>
+                            <span class="tes-device-data-pill" data-field="micro-data-pill">Target: AImp</span>
+                          </div>
+                          <span class="tes-device-desc">Amplifies the speed of the selected study.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="microprocessor" data-count="1" data-field="micro-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-secondary" data-action="open-drawer" data-drawer="microprocessor" data-field="micro-configure-btn" title="Configure target & preview bonuses">
+                          Configure
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-micro" aria-label="Microprocessor info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Processor (Revealed only if unlocks.processor) -->
+                    <article class="tes-device-row" data-device-id="processor" id="device-row-processor" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("processor")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Processor</span>
+                            <span class="tes-device-data-pill" data-field="processor-data-pill">+5.0% Study Speed/ea</span>
+                          </div>
+                          <span class="tes-device-desc">Improves the effectiveness of connected devices.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="processor" data-count="1" data-field="processor-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-processor" aria-label="Processor info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Overclocker -->
+                    <article class="tes-device-row" data-device-id="overclocker" id="device-row-overclocker">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("overclocker")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Overclocker</span>
+                            <span class="badge-status badge-status--off" data-field="overclock-badge">Ready</span>
+                          </div>
+                          <span class="tes-device-desc">Temporarily accelerates the selected computation.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="overclocker" data-field="overclock-buy-btn">
+                          Add
+                        </button>
+                        <button class="btn-danger" data-action="open-modal" data-modal="overclock" data-field="overclock-activate-btn" style="display: none;">
+                          Activate
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-overclocker" aria-label="Overclocker info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+
+                <!-- COLUMN 2: Resource Devices -->
+                <div class="tes-device-column" id="col-resources">
+                  <!-- Section 1: ENERGY DEVICES -->
+                  <div class="tes-device-group" id="group-energy">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">ENERGY DEVICES</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- CRC Gadget -->
+                    <article class="tes-device-row" data-device-id="crcGadget">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("crc-gadget")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">CRC Gadget</span>
+                            <span class="badge-status badge-status--off" data-field="crc-gadget-badge">${formatEnergy(1e-8)}</span>
+                          </div>
+                          <span class="tes-device-desc">Amplifies Cosmic Radiation Condenser energy output.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="crcGadget" data-field="crc-gadget-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-crc-gadget" aria-label="CRC Gadget info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Capacitor -->
+                    <article class="tes-device-row" data-device-id="capacitor" id="device-row-capacitor">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("capacitor")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Capacitor</span>
+                            <span class="tes-device-data-pill" data-field="capacitor-data-pill">+50%/ea (0 owned)</span>
+                          </div>
+                          <span class="tes-device-desc">Amplifies the energy contribution of the entire Algorithm Feature chain.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="capacitor" data-count="1" data-field="capacitor-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-capacitor" aria-label="Capacitor info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Power Cell -->
+                    <article class="tes-device-row" data-device-id="powerCell">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("power-cell")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Power Cell</span>
+                            <span class="tes-device-data-pill" data-field="powercell-data-pill">0.00 pJ Cap</span>
+                          </div>
+                          <span class="tes-device-desc">Expands the facility's operational energy capacity.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="powerCell" data-count="1" data-field="powercell-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-powercell" aria-label="Power Cell info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+
+                  <!-- Section 2: LEARNING INFRASTRUCTURE -->
+                  <div class="tes-device-group" id="group-learning">
+                    <div class="tes-section-header">
+                      <span class="tes-section-title">LEARNING INFRASTRUCTURE</span>
+                      <div class="tes-section-line"></div>
+                    </div>
+
+                    <!-- Hard Disk (Revealed only if unlocks.hardDisk) -->
+                    <article class="tes-device-row" data-device-id="hardDisk" id="device-row-harddisk" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("hard-disk")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Hard Disk</span>
+                            <span class="badge-status badge-status--off" data-field="harddisk-status-badge">Off</span>
+                          </div>
+                          <span class="tes-device-desc">Consumes Energy to generate temporary Data.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="hardDisk" data-count="1" data-field="harddisk-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-secondary" data-action="open-drawer" data-drawer="harddisk" data-field="harddisk-manage-btn">
+                          Manage
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-harddisk" aria-label="Hard Disk info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <!-- DRAWERS & MODALS CONTAINER -->
+        <div id="tes-drawers-container"></div>
+        <div id="tes-popover-container"></div>
+      </div>
+    `;
+
+    // Bind local listeners for News hover pause
+    const newsBox = container.querySelector("#news-ticker");
+    if (newsBox) {
+      newsBox.addEventListener("mouseenter", () => {
+        isNewsPaused = true;
+      });
+      newsBox.addEventListener("mouseleave", () => {
+        isNewsPaused = false;
+      });
+      newsBox.addEventListener("focusin", () => {
+        isNewsPaused = true;
+      });
+      newsBox.addEventListener("focusout", () => {
+        isNewsPaused = false;
+      });
+    }
+
+    // Bind hover listeners for Energy Dynamics tooltip / popover
+    const netItem = container.querySelector("#energy-net-item");
+    const energyInfoBtn = container.querySelector(
+      '[data-action="show-info"][data-topic="energy-summary"]',
+    );
+    let energyHoverTimer = null;
+
+    const handleEnergyHoverEnter = (e) => {
+      clearTimeout(energyHoverTimer);
+      showInfoPopover("energy-summary", e.currentTarget, true);
+    };
+
+    const handleEnergyHoverLeave = () => {
+      energyHoverTimer = setTimeout(() => {
+        closeHoverPopover();
+      }, 200);
+    };
+
+    if (netItem) {
+      netItem.addEventListener("mouseenter", handleEnergyHoverEnter);
+      netItem.addEventListener("mouseleave", handleEnergyHoverLeave);
+    }
+    if (energyInfoBtn) {
+      energyInfoBtn.addEventListener("mouseenter", handleEnergyHoverEnter);
+      energyInfoBtn.addEventListener("mouseleave", handleEnergyHoverLeave);
+    }
+
+    cacheDomElements();
+    isMounted = true;
   }
-  if (activeTab === "science") return renderScienceTab(state, config);
-  if (activeTab === "history") return renderHistoryTab(state);
-  return renderEnergyTab(state, config, developmentMode);
-}
 
-function renderResetConfirmationModal(state, config) {
-  const modalType = state.ui?.resetModal;
-  if (!modalType) return "";
+  let dom = null;
+  let lastActiveDrawer = null;
 
-  const preview = getResetPreviewData(state, config, modalType);
-  if (!preview) return "";
+  function setElText(el, val) {
+    if (el && el.textContent !== String(val)) {
+      el.textContent = String(val);
+    }
+  }
 
-  const isHard = modalType === "setup" || modalType === "synthesis";
+  function cacheDomElements() {
+    dom = {
+      navTabs: Array.from(container.querySelectorAll(".tes-nav-tab")),
+      tabEnergy: container.querySelector("#tab-energy"),
+      tabDevices: container.querySelector("#tab-devices"),
 
-  return `
-    <div class="modal-backdrop">
-      <section
-        class="reset-modal ${isHard ? "reset-modal--hard" : ""}"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reset-modal-title"
-      >
-        <p class="panel__label">${isHard ? "IRREVERSIBLE LAYER RESET" : "CALCULATION RESTRUCTURING"}</p>
-        <h2 id="reset-modal-title">${preview.title}</h2>
+      railFacilityLevel: container.querySelector(
+        '[data-field="rail-facility-level"]',
+      ),
+      railDataFraction: container.querySelector(
+        '[data-field="rail-data-fraction"]',
+      ),
+      railDataBar: container.querySelector('[data-field="rail-data-bar"]'),
+      railEnergy: container.querySelector('[data-field="rail-energy"]'),
+      railSpRow: container.querySelector("#rail-row-sp"),
+      railSp: container.querySelector('[data-field="rail-sp"]'),
 
-        <div class="reset-modal__section reset-modal__section--gain">
-          <strong class="reset-modal__label">Gained:</strong>
-          <p>${preview.gain}</p>
-        </div>
+      devBtn: container.querySelector('[data-field="dev-mode-btn"]'),
+      devBtnLabel: container.querySelector('[data-field="dev-btn-label"]'),
+      newsTicker: container.querySelector("#news-ticker"),
+      newsContent: container.querySelector('[data-field="news-content"]'),
 
-        <div class="reset-modal__section reset-modal__section--lost">
-          <strong class="reset-modal__label">Reset / Discarded:</strong>
-          <p>${preview.lost}</p>
-        </div>
+      storedEnergyMain: container.querySelector(
+        '[data-field="stored-energy-main"]',
+      ),
+      energyNetItem: container.querySelector("#energy-net-item"),
+      energyNet: container.querySelector('[data-field="energy-net"]'),
+      energyCapacityItem: container.querySelector("#energy-capacity-item"),
+      energyCapacity: container.querySelector('[data-field="energy-capacity"]'),
+      energyDecayItem: container.querySelector("#energy-decay-item"),
+      energyDecay: container.querySelector('[data-field="energy-decay"]'),
+      crcRate: container.querySelector('[data-field="crc-rate"]'),
+      crcLevelMult: container.querySelector('[data-field="crc-level-mult"]'),
 
-        <div class="reset-modal__section reset-modal__section--preserved">
-          <strong class="reset-modal__label">Preserved:</strong>
-          <p>${preview.preserved}</p>
-        </div>
+      energyEraPercent: container.querySelector('[data-field="energy-era-percent"]'),
+      energyEraFill: container.querySelector('[data-field="energy-era-fill"]'),
+      energyEraTrack: container.querySelector('.tes-energy-era-track'),
 
-        ${
-          preview.warnings
-            ? `
-          <div class="reset-modal__section reset-modal__section--warning">
-            <strong class="reset-modal__label">Warning:</strong>
-            <p>${preview.warnings}</p>
-          </div>
-        `
-            : ""
+      aimpTitle: container.querySelector('[data-field="aimp-title"]'),
+      aimpDur: container.querySelector('[data-field="aimp-dur"]'),
+      aimpRing: container.querySelector('[data-field="aimp-progress-ring"]'),
+      aimpAutoBadge: container.querySelector('[data-field="aimp-auto-badge"]'),
+      aimpImproveBtn: container.querySelector('[data-field="aimp-improve-btn"]'),
+      aimpImproveBadge: container.querySelector('[data-field="aimp-improve-badge"]'),
+      aimpImproveMilestone: container.querySelector('[data-field="aimp-improve-milestone"]'),
+      aimpInstallTransistor: container.querySelector('[data-field="aimp-install-transistor"]'),
+      aimpTransistorCost: container.querySelector('[data-field="aimp-transistor-cost"]'),
+
+      aupgTitle: container.querySelector('[data-field="aupg-title"]'),
+      aupgDur: container.querySelector('[data-field="aupg-dur"]'),
+      aupgRing: container.querySelector('[data-field="aupg-progress-ring"]'),
+      aupgAutoBadge: container.querySelector('[data-field="aupg-auto-badge"]'),
+      aupgBtn: container.querySelector('[data-field="aupg-study-btn"]'),
+      aupgImproveBtn: container.querySelector('[data-field="aupg-improve-btn"]'),
+      aupgImproveBadge: container.querySelector('[data-field="aupg-improve-badge"]'),
+      aupgImproveMilestone: container.querySelector('[data-field="aupg-improve-milestone"]'),
+      aupgInstallTransistor: container.querySelector('[data-field="aupg-install-transistor"]'),
+      aupgTransistorCost: container.querySelector('[data-field="aupg-transistor-cost"]'),
+
+      arecUnit: container.querySelector('#study-unit-arec'),
+      arecRow: container.querySelector("#study-row-arec"),
+      arecTitle: container.querySelector('[data-field="arec-title"]'),
+      arecDur: container.querySelector('[data-field="arec-dur"]'),
+      arecRing: container.querySelector('[data-field="arec-progress-ring"]'),
+      arecAutoBadge: container.querySelector('[data-field="arec-auto-badge"]'),
+      arecBtn: container.querySelector('[data-field="arec-study-btn"]'),
+      arecImproveBtn: container.querySelector('[data-field="arec-improve-btn"]'),
+      arecImproveBadge: container.querySelector('[data-field="arec-improve-badge"]'),
+      arecImproveMilestone: container.querySelector('[data-field="arec-improve-milestone"]'),
+      arecInstallTransistor: container.querySelector('[data-field="arec-install-transistor"]'),
+      arecTransistorCost: container.querySelector('[data-field="arec-transistor-cost"]'),
+
+      mlProgressText: container.querySelector(
+        '[data-field="ml-progress-text"]',
+      ),
+      mlProgressBar: container.querySelector('[data-field="ml-progress-bar"]'),
+      mlBtn: container.querySelector('[data-field="ml-action-btn"]'),
+
+      foCard: container.querySelector("#fo-card"),
+      foTitle: container.querySelector('[data-field="fo-title"]'),
+      foProgressText: container.querySelector('[data-field="fo-progress-text"]'),
+      foProgressBar: container.querySelector('[data-field="fo-progress-bar"]'),
+      foReqLevel: container.querySelector('[data-field="fo-req-level"]'),
+      foCurBonus: container.querySelector('[data-field="fo-cur-bonus"]'),
+      foNextBonus: container.querySelector('[data-field="fo-next-bonus"]'),
+      foBtn: container.querySelector('[data-field="fo-action-btn"]'),
+
+      filterPills: Array.from(container.querySelectorAll(".tes-filter-pill")),
+      toggleShowAdded: container.querySelector("#toggle-show-added"),
+      toggleShowUnavailable: container.querySelector(
+        "#toggle-show-unavailable",
+      ),
+      filterCounts: {
+        all: container.querySelector('[data-field="filter-all-btn"]'),
+        automation: container.querySelector(
+          '[data-field="filter-automation-btn"]',
+        ),
+        computation: container.querySelector(
+          '[data-field="filter-computation-btn"]',
+        ),
+        energy: container.querySelector('[data-field="filter-energy-btn"]'),
+        learning: container.querySelector('[data-field="filter-learning-btn"]'),
+      },
+
+      groups: {
+        automation: container.querySelector("#group-automation"),
+        computation: container.querySelector("#group-computation"),
+        energy: container.querySelector("#group-energy"),
+        learning: container.querySelector("#group-learning"),
+      },
+
+      deviceRows: {},
+      deviceControls: {},
+
+      drawersContainer: container.querySelector("#tes-drawers-container"),
+      popoverContainer: container.querySelector("#tes-popover-container"),
+    };
+
+    const deviceIds = [
+      "autoCalculator_AImp",
+      "autoCalculator_AUpg",
+      "autoCalculator_ARec",
+      "transistorBoard",
+      "microprocessor",
+      "processor",
+      "overclocker",
+      "crcGadget",
+      "capacitor",
+      "powerCell",
+      "hardDisk",
+    ];
+
+    deviceIds.forEach((id) => {
+      const row = container.querySelector(`[data-device-id="${id}"]`);
+      if (row) {
+        dom.deviceRows[id] = row;
+        switch (id) {
+          case "autoCalculator_AImp":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-aimp-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-aimp-action-btn"]',
+              ),
+            };
+            break;
+          case "autoCalculator_AUpg":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-aupg-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-aupg-action-btn"]',
+              ),
+            };
+            break;
+          case "autoCalculator_ARec":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-arec-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-arec-action-btn"]',
+              ),
+            };
+            break;
+          case "transistorBoard":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="board-badge"]'),
+              actionBtn: row.querySelector('[data-field="board-action-btn"]'),
+            };
+            break;
+          case "microprocessor":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="micro-data-pill"]'),
+              actionBtn: row.querySelector('[data-field="micro-action-btn"]'),
+            };
+            break;
+          case "processor":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="processor-data-pill"]'),
+              actionBtn: row.querySelector(
+                '[data-field="processor-action-btn"]',
+              ),
+            };
+            break;
+          case "overclocker":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="overclock-badge"]'),
+              buyBtn: row.querySelector('[data-field="overclock-buy-btn"]'),
+              actBtn: row.querySelector(
+                '[data-field="overclock-activate-btn"]',
+              ),
+            };
+            break;
+          case "crcGadget":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="crc-gadget-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="crc-gadget-action-btn"]',
+              ),
+            };
+            break;
+          case "capacitor":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="capacitor-data-pill"]'),
+              actionBtn: row.querySelector(
+                '[data-field="capacitor-action-btn"]',
+              ),
+            };
+            break;
+          case "powerCell":
+            dom.deviceControls[id] = {
+              pill: row.querySelector('[data-field="powercell-data-pill"]'),
+              actionBtn: row.querySelector(
+                '[data-field="powercell-action-btn"]',
+              ),
+            };
+            break;
+          case "hardDisk":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="harddisk-status-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="harddisk-action-btn"]',
+              ),
+            };
+            break;
         }
-
-        <div class="reset-modal__actions">
-          <button
-            type="button"
-            class="button button--ghost"
-            data-action="cancel-reset-modal"
-            autofocus
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="button ${isHard ? "button--danger" : "button--primary"}"
-            data-action="confirm-reset-modal"
-            ${preview.isEligible ? "" : "disabled"}
-          >
-            Confirm ${preview.type === "cmu" ? "Upgrade" : preview.type === "setup" ? "Optimization" : "Synthesis"}
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderHistoryReadingModal(state) {
-  const entry = state.ui?.historyModalEntry;
-  if (!entry) return "";
-
-  return `
-    <div class="modal-backdrop">
-      <section
-        class="history-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="history-modal-title"
-      >
-        <div class="panel__heading">
-          <div>
-            <p class="panel__label">ARCHIVE RECORD // ${entry.kind.toUpperCase()}</p>
-            <h2 id="history-modal-title">${entry.title}</h2>
-          </div>
-          <time class="muted">${formatDuration(entry.at)}</time>
-        </div>
-
-        <div class="history-modal__body">
-          <p>${entry.body.replace(/\n\n/g, "</p><p>")}</p>
-        </div>
-
-        <div class="history-modal__actions">
-          <button
-            type="button"
-            class="button button--ghost"
-            data-action="close-history-modal"
-            autofocus
-          >
-            Close Archive Record
-          </button>
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function setField(app, key, value) {
-  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
-    if (element.textContent !== value) {
-      element.textContent = value;
-      if (key === "news-text") {
-        const ticker = element.closest(".news-section__ticker");
-        if (ticker) {
-          ticker.classList.remove("news-fade-in");
-          void ticker.offsetWidth;
-          ticker.classList.add("news-fade-in");
-        }
       }
-    }
-  }
-}
-
-function setHtmlField(app, key, value) {
-  for (const element of app.querySelectorAll(`[data-field="${key}"]`)) {
-    if (element.innerHTML !== value) element.innerHTML = value;
-  }
-}
-
-function setProgress(app, key, value) {
-  const percentage = clamp(value, 0, 1) * 100;
-  const progress = app.querySelector(`[data-progress="${key}"]`);
-  const fill = progress?.querySelector(".progress__fill");
-
-  if (!progress || !fill) return;
-
-  progress.setAttribute("aria-valuenow", percentage.toFixed(1));
-  fill.style.width = `${percentage}%`;
-}
-
-function updateLogList(app, state) {
-  const logLists = app.querySelectorAll(".log-list");
-  if (!logLists.length) return;
-  const currentLatestId = state.log[0]?.id ?? "";
-  for (const logList of logLists) {
-    if (logList.dataset.latestId === currentLatestId) continue;
-    logList.dataset.latestId = currentLatestId;
-    const entries = state.log.length
-      ? state.log
-          .slice(0, 12)
-          .map(
-            (entry) => `
-              <li class="log-entry log-entry--${entry.tone}">
-                <time>${formatDuration(entry.at)}</time>
-                <span>${entry.message}</span>
-              </li>
-            `,
-          )
-          .join("")
-      : '<li class="log-entry"><time>0.0s</time><span>No system events recorded.</span></li>';
-    logList.innerHTML = entries;
-  }
-}
-
-function updateInteractiveElements(app, state, config) {
-  for (const [componentId, spec] of Object.entries(COMPONENT_REGISTRY)) {
-    if (!spec.action) continue;
-    const button = app.querySelector(`[data-action="${spec.action}"]`);
-    if (!button) continue;
-    const evalResult = evaluateComponent(componentId, state, config);
-    const shouldBeDisabled = !evalResult.enabled;
-    if (button.disabled !== shouldBeDisabled) {
-      button.disabled = shouldBeDisabled;
-      if (shouldBeDisabled) {
-        button.classList.remove("button--primary", "button--danger");
-        button.classList.add("button--ghost");
-      } else {
-        button.classList.remove("button--ghost");
-        if (spec.action === "claim-setup") {
-          button.classList.add("button--danger");
-        } else {
-          button.classList.add("button--primary");
-        }
-      }
-    }
-  }
-
-  // Study button
-  const studyBtn = app.querySelector('[data-action="start-study"]');
-  if (studyBtn) {
-    const isAutoActive = isAutoCalculatorAutomationActive(state);
-    const shouldBeDisabled = Boolean(state.study.active || isAutoActive);
-    if (studyBtn.disabled !== shouldBeDisabled) {
-      studyBtn.disabled = shouldBeDisabled;
-      if (shouldBeDisabled) {
-        studyBtn.classList.remove("button--primary");
-        studyBtn.classList.add("button--ghost");
-      } else {
-        studyBtn.classList.remove("button--ghost");
-        studyBtn.classList.add("button--primary");
-      }
-    }
-    const span = studyBtn.querySelector("span");
-    const label = state.study.active ? "Running" : "Start Study";
-    const fullText = `${label} (${state.improvements})`;
-    if (span && span.textContent !== fullText) span.textContent = fullText;
-  }
-
-  // Algorithm Upgrade Panel & Button
-  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
-  const upgradeReady = state.improvements >= reqUpgrade;
-  const upgradePanel = app.querySelector(".panel--upgrade");
-  if (upgradePanel) {
-    upgradePanel.classList.toggle("panel--upgrade-ready", upgradeReady);
-  }
-  const upgradeBtn = app.querySelector('[data-action="start-algorithm-upgrade"]');
-  if (upgradeBtn) {
-    const shouldBeDisabled = !upgradeReady || state.algorithmUpgradeStudy.active;
-    if (upgradeBtn.disabled !== shouldBeDisabled) {
-      upgradeBtn.disabled = shouldBeDisabled;
-      if (shouldBeDisabled) {
-        upgradeBtn.classList.remove("button--primary");
-        upgradeBtn.classList.add("button--ghost");
-      } else {
-        upgradeBtn.classList.remove("button--ghost");
-        upgradeBtn.classList.add("button--primary");
-      }
-    }
-  }
-
-  // Overclocker Toggle Button
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  const overclockActive = state.overclocker?.active ?? false;
-  const canToggleOverclock =
-    overclockActive ||
-    (state.devices.overclockers > 0 &&
-      state.devices.autoCalculators > 0 &&
-      big(state.energy).gt(stableCapacity));
-  const overclockerToggleBtn = app.querySelector('[data-action="toggle-overclocker"]');
-  if (overclockerToggleBtn) {
-    overclockerToggleBtn.disabled = !canToggleOverclock;
-  }
-
-  // Method & Setup Cards ready class
-  const reqMethod = calculateCalculationMethodRequirement(state, config);
-  const methodReady = state.upgrades >= reqMethod;
-  const methodCard = app.querySelector(".method-card:not(.panel--hard-reset)");
-  if (methodCard) {
-    methodCard.classList.toggle("method-card--ready", methodReady);
-  }
-
-  const reqSetup = calculateSetupOptimizationRequirement(state, config);
-  const setupReady = state.calculationMethods >= reqSetup;
-  const setupCard = app.querySelector(".panel--hard-reset");
-  if (setupCard) {
-    setupCard.classList.toggle("method-card--ready", setupReady);
-  }
-}
-
-function createRenderSignature(state, config, developmentMode, saveSlots = []) {
-  if (state.introState !== "active") {
-    return JSON.stringify({
-      introState: state.introState,
-      developmentMode,
-      saveSlots,
     });
   }
 
-  const componentVisibility = Object.fromEntries(
-    Object.keys(COMPONENT_REGISTRY).map((componentId) => [
-      componentId,
-      evaluateComponent(componentId, state, config).visible,
-    ]),
-  );
+  function updateDynamicValues(state) {
+    if (!dom) cacheDomElements();
+    const config = engine.config;
 
-  return JSON.stringify({
-    introState: state.introState,
-    developmentMode,
-    activeTab: getActiveTab(state, config),
-    hideCompletedPurchases: state.ui?.hideCompletedPurchases ?? false,
-    seenComponents: state.ui?.seenComponents ?? {},
-    buyMode: state.ui?.buyMode ?? "1",
-    resetModal: state.ui?.resetModal ?? null,
-    historyModalEntry: state.ui?.historyModalEntry?.id ?? null,
-    historyFilter: state.ui?.historyFilter ?? "all",
-    historyLength: state.history?.length ?? 0,
-    treeZoom: state.ui?.treeZoom ?? 1.0,
-    selectedSciencePerkId: state.ui?.selectedSciencePerkId ?? null,
-    upgrades: state.upgrades,
-    crcCount: state.crcCount,
-    powerCells: state.powerCells,
-    powerModules: state.powerModules,
-    sciencePoints: state.sciencePoints,
-    totalScienceEarned: state.science?.totalScienceEarned ?? 0,
-    availableQuarks: state.quarks?.available ?? 0,
-    totalQuarksEarned: state.quarks?.totalEarned ?? 0,
-    lastQuarks: state.quarks?.lastSynthesis ?? 0,
-    quarkCages: state.scienceDevices?.quarkCages ?? 0,
-    scienceSubtab: state.ui?.activeScienceSubtab ?? "tree",
-    particleSynthesisModal: state.ui?.particleSynthesisModal ?? null,
-    redundancyElimination: state.science?.perks ?? {},
-    revealedPerks: state.science?.revealedPerks ?? {},
-    preservedImprovementLog: state.preservedImprovementLog ?? 0,
-    fiftyGCalculator: state.science?.fiftyGCalculator ?? false,
-    automations: state.automations ?? {},
-    syntheses: state.science?.syntheses ?? 0,
-    particleSynthesizerActivated: state.particleSynthesizer.activated,
-    calculationMethods: state.calculationMethods,
-    setupOptimizations: state.setupOptimizations,
-    softDataDisplay: state.devices.softDataDisplay,
-    t2SoftDataDisplay: state.devices.t2SoftDataDisplay,
-    overclockers: state.devices.overclockers,
-    overclockerActive: state.overclocker.active,
-    componentVisibility,
-    autoCalculators: state.devices.autoCalculators,
-    processors: state.devices.processors,
-    crcBlueprint: state.discoveries.crcBlueprint,
-    overclockerBlueprint: state.discoveries.overclockerBlueprint,
-    blueprintResearchAvailable: canResearchBlueprint(state, config),
-    algorithmUpgradeActive: state.algorithmUpgradeStudy.active,
-    blueprintStudyActive: state.blueprintStudy.active,
-    overclockerBlueprintStudyActive: state.overclockerBlueprintStudy?.active ?? false,
-    constructionActive: state.construction.active,
-    prototypeComplete: state.prototypeComplete,
-    newsDismissed: state.ui?.newsDismissed ?? false,
-    devShowNews: state.ui?.devShowNews ?? false,
-    devProductionMultiplier: state.devSettings.productionMultiplier,
-    devDurationMultiplier: state.devSettings.durationMultiplier,
-    saveSlots,
-  });
-}
-
-function updateDynamicFields(
-  app,
-  state,
-  config,
-  developmentMode,
-  newsList = DEFAULT_NEWS,
-) {
-  if (state.introState !== "active") return;
-
-  const stableCapacity = calculateStableEnergyCapacity(state, config);
-  setField(app, "energy", formatEnergy(state.energy));
-  setProgress(app, "energy", big(state.energy).div(stableCapacity).toNumber());
-
-  const milestone = calculateNextMilestone(state, config);
-  setField(app, "milestone-title", milestone.title);
-  setField(app, "milestone-req", milestone.requirement);
-  setProgress(app, "milestone", milestone.progress);
-
-  if (canAccessParticleLab(state, config)) {
-    setProgress(
-      app,
-      "particle-synthesizer",
-      calculateParticleSynthesizerProgress(state, config),
-    );
-    setProgress(
-      app,
-      "particle-synthesizer-device",
-      calculateParticleSynthesizerProgress(state, config),
-    );
-    const nextSciencePointCost = calculateSciencePointCost(
-      state.science?.totalScienceEarned ?? 0,
+    // 1. Facility Rail Values (Always visible on all screens)
+    const compLevel = state.computerLevel ?? 1;
+    setElText(dom.railFacilityLevel, `Level ${compLevel}`);
+    const currentData = calculateEffectiveAvailableData(state, config);
+    const reqData = calculateRequiredDataForNextComputerLevel(
+      compLevel,
       config,
     );
-    setProgress(
-      app,
-      "science-point",
-      big(state.energy).div(nextSciencePointCost).toNumber(),
+    setElText(
+      dom.railDataFraction,
+      `${formatInteger(currentData)} / ${formatInteger(reqData)}`,
     );
-    setField(
-      app,
-      "science-sp-on-synthesis",
-      calculateSciencePointReward(
-        state.energy,
-        state.science?.totalScienceEarned ?? 0,
+    const dataRatio = Math.min(100, Math.max(0, (currentData / reqData) * 100));
+    if (dom.railDataBar) {
+      const ratioStr = `${dataRatio.toFixed(1)}%`;
+      if (dom.railDataBar.style.width !== ratioStr)
+        dom.railDataBar.style.width = ratioStr;
+    }
+    setElText(dom.railEnergy, formatEnergy(state.energy));
+
+    // Science Points rail row if unlocked
+    if (dom.railSpRow) {
+      if ((state.sciencePoints ?? 0) > 0 || state.unlocks?.science) {
+        if (dom.railSpRow.style.display !== "flex")
+          dom.railSpRow.style.display = "flex";
+        setElText(dom.railSp, `${formatInteger(state.sciencePoints ?? 0)} SP`);
+      } else if (dom.railSpRow.style.display !== "none") {
+        dom.railSpRow.style.display = "none";
+      }
+    }
+
+    // Dev Mode Button & Cheats Indicator
+    if (dom.devBtn && dom.devBtnLabel) {
+      const targetTxt = state.devMode ? "DEV: ON (FORCE)" : "DEV MODE";
+      setElText(dom.devBtnLabel, targetTxt);
+      dom.devBtn.classList.toggle(
+        "btn-utility--active",
+        Boolean(state.devMode),
+      );
+    }
+
+    // Tab Switching Display
+    const activeTab = state.ui?.activeTab || "energy";
+    if (dom.tabEnergy) {
+      const showEnergy = activeTab === "energy";
+      const curDisplay = dom.tabEnergy.style.display;
+      if (showEnergy && curDisplay !== "flex")
+        dom.tabEnergy.style.display = "flex";
+      else if (!showEnergy && curDisplay !== "none")
+        dom.tabEnergy.style.display = "none";
+    }
+    if (dom.tabDevices) {
+      const showDevices = activeTab === "devices";
+      const curDisplay = dom.tabDevices.style.display;
+      if (showDevices && curDisplay !== "flex")
+        dom.tabDevices.style.display = "flex";
+      else if (!showDevices && curDisplay !== "none")
+        dom.tabDevices.style.display = "none";
+    }
+    dom.navTabs.forEach((tabBtn) => {
+      tabBtn.classList.toggle(
+        "tes-nav-tab--active",
+        tabBtn.dataset.tab === activeTab,
+      );
+    });
+
+    // 2. Tab-Conditional Execution: Only update active tab to prevent lag!
+    if (activeTab === "energy") {
+      updateEnergyTab(
+        state,
         config,
-      ).toString(),
-    );
-    setField(app, "science-point-cost", formatEnergy(nextSciencePointCost));
-    const projectedQuarks = calculateQuarksGenerated(
-      state.energy,
-      config,
-    ).toString();
-    setField(app, "science-quarks-on-synthesis", projectedQuarks);
-    setField(app, "device-quarks-on-synthesis", projectedQuarks);
-  } else {
-    setProgress(app, "door", calculateDoorProgress(state, config));
+        compLevel,
+        currentData,
+        reqData,
+        dataRatio,
+      );
+    } else if (activeTab === "devices") {
+      updateDevicesFilterAndRows(state, config);
+    }
+
+    // 3. Render Active Drawers / Modals (only if open or closed)
+    renderDrawersAndModals(state, config);
   }
 
-  if (state.devices.softDataDisplay) {
-    const production = calculateProduction(state, config, developmentMode);
-    const netProduction = calculateEffectiveProduction(
+  function updateEnergyTab(
+    state,
+    config,
+    compLevel,
+    currentData,
+    reqData,
+    dataRatio,
+  ) {
+    // Central Energy Summary Card
+    setElText(dom.storedEnergyMain, formatEnergy(state.energy));
+    const prodRate = calculateEnergyProduction(
       state,
       config,
-      developmentMode,
+      engine.statResolver,
     );
-    const overflowDecay = calculateEnergyOverflowDecay(state, config);
-    const remainingCapacity = bigMax(
-      0,
-      stableCapacity.sub(state.energy),
+    const stableCap = calculatePowerCellCapacity(
+      state.powerCells ?? 0,
+      state,
+      config,
+      engine.statResolver,
     );
-    const fillTime =
-      production.gt(0) && remainingCapacity.gt(0)
-        ? formatDuration(remainingCapacity.div(production))
-        : big(state.energy).gt(stableCapacity)
-          ? "EQUILIBRATING"
-          : "FULL";
+    setElText(dom.energyCapacity, formatEnergy(stableCap));
+    const overflowDecay = calculateEnergyOverflowDecay(
+      state.energy,
+      stableCap,
+      config,
+    );
+    if (dom.energyDecayItem) {
+      if (overflowDecay.gt(0)) {
+        if (dom.energyDecayItem.style.display !== "flex")
+          dom.energyDecayItem.style.display = "flex";
+        setElText(dom.energyDecay, `-${formatEnergy(overflowDecay)}/s`);
+      } else if (dom.energyDecayItem.style.display !== "none") {
+        dom.energyDecayItem.style.display = "none";
+      }
+    }
 
-    setField(app, "energy-rate", formatRate(production));
-    setField(app, "retained-rate-main", formatRate(netProduction));
-    setField(app, "retained-rate", formatRate(netProduction));
-    setField(app, "energy-retention-main", formatRate(overflowDecay));
-    setField(app, "fill-time", fillTime);
-    setField(app, "energy-retention", formatRate(overflowDecay));
-    setField(
-      app,
-      "total-energy",
-      formatEnergy(state.stats.totalEnergyCollected),
-    );
-  }
+    // Cosmic Radiation Condenser (CRC) displays GROSS Production
+    setElText(dom.crcRate, formatRate(prodRate));
+    setElText(dom.crcLevelMult, `Level ${compLevel}`);
 
-  if (state.devices.overclockers > 0) {
-    const activePreview = {
-      ...state,
-      overclocker: {
-        ...state.overclocker,
-        active: true,
-      },
-    };
-    const speed = calculateOverclockerSpeedMultiplier(activePreview, config);
-    const drain = calculateOverclockerDrainPerSecond(activePreview, config);
-    const status = state.overclocker.active
-      ? `x${speed.toFixed(2)} active // ${formatRate(drain)}`
-      : `x${speed.toFixed(2)} ${state.overclocker.activeSeconds > 0 ? "cooling" : "ready"} // ${formatRate(drain)}`;
-    setField(app, "overclock-inline", status);
-    setField(
-      app,
-      "study-overclock-button-detail",
-      `x${speed.toFixed(2)} // ${formatRate(drain)}`,
-    );
-    setField(
-      app,
-      "overclock-current",
-      `x${speed.toFixed(2)} / ${formatRate(drain)}`,
-    );
-    setField(
-      app,
-      "study-overclock-status",
-      state.overclocker.active
-        ? "The calculator route is running hot."
-        : state.overclocker.activeSeconds > 0
-          ? "Cooling. Re-engaging now resumes from the current thermal load."
-          : "Available while Auto Calculator is online and excess Stored Energy exists.",
-    );
-    setField(
-      app,
-      "overclock-effect",
-      state.overclocker.active
-        ? "OVERCLOCK ACTIVE"
-        : state.overclocker.activeSeconds > 0
-          ? "COOLING"
-          : "OVERCLOCK ROUTE EXPANDED",
-    );
-    setField(
-      app,
-      "overclock-runtime",
-      state.overclocker.active
-        ? `HOT ${formatDuration(state.overclocker.activeSeconds)}`
-        : state.overclocker.activeSeconds > 0
-          ? `COOLING ${formatDuration(state.overclocker.activeSeconds)}`
-          : "STANDBY",
-    );
-  }
+    // Stored Energy displays NET Production: Gross - Decay (and any active device drain)
+    let totalDrain = overflowDecay;
+    const hardDisks = state.devices?.hardDisks;
+    if (hardDisks && hardDisks.owned > 0 && hardDisks.state === "active" && !hardDisks.dataPaused) {
+      const hdDrain = calculateHardDiskEnergyDrain(
+        hardDisks.owned,
+        hardDisks.activeSeconds,
+        config,
+      );
+      totalDrain = totalDrain.add(hdDrain);
+    }
+    const netRate = prodRate.sub(totalDrain);
+    setElText(dom.energyNet, formatRate(netRate));
 
-  if (state.study.active) {
-    setProgress(app, "study", state.study.elapsed / state.study.duration);
-    setField(
-      app,
-      "study-remaining",
-      formatDuration(Math.max(0, state.study.duration - state.study.elapsed)),
-    );
-  }
+    if (dom.energyNet) {
+      if (netRate.lt(0)) {
+        dom.energyNet.style.color = "var(--tes-danger)";
+      } else if (netRate.eq(0)) {
+        dom.energyNet.style.color = "var(--tes-text-tertiary)";
+      } else {
+        dom.energyNet.style.color = "var(--tes-teal)";
+      }
+    }
 
-  if (state.algorithmUpgradeStudy.active) {
-    setProgress(
-      app,
-      "algorithm-upgrade",
-      state.algorithmUpgradeStudy.elapsed /
-        state.algorithmUpgradeStudy.duration,
-    );
-    setField(
-      app,
-      "algorithm-upgrade-remaining",
-      formatDuration(
-        Math.max(
-          0,
-          state.algorithmUpgradeStudy.duration -
-            state.algorithmUpgradeStudy.elapsed,
-        ),
-      ),
-    );
-  }
+    // Energy Era Progression Bar (Section 5)
+    if (dom.energyEraPercent) {
+      const eraProgress = calculateEnergyEraProgress(state.energy, config);
+      const eraPercent = calculateEnergyEraPercent(state.energy, config);
+      setElText(dom.energyEraPercent, `${eraPercent.toFixed(1)}%`);
+      if (dom.energyEraFill) {
+        const fillWidth = `${(eraProgress * 100).toFixed(1)}%`;
+        if (dom.energyEraFill.style.width !== fillWidth) {
+          dom.energyEraFill.style.width = fillWidth;
+        }
+      }
+      if (dom.energyEraTrack) {
+        dom.energyEraTrack.setAttribute("aria-valuenow", eraPercent.toFixed(1));
+      }
+    }
 
-  if (state.blueprintStudy.active) {
-    setProgress(
-      app,
-      "blueprint",
-      state.blueprintStudy.elapsed / state.blueprintStudy.duration,
-    );
-    setField(
-      app,
-      "blueprint-remaining",
-      formatDuration(
-        Math.max(
-          0,
-          state.blueprintStudy.duration - state.blueprintStudy.elapsed,
-        ),
-      ),
-    );
-  }
+    const updateStudyExtraControls = (target, btnImprove, badgeImprove, milestoneImprove, cardInstall, costInstall) => {
+      // 1. Study Improve (Section 1)
+      const curImprove = state.studyImproves?.[target] ?? { completions: 0, claimed: 0 };
+      const nextMilestone = calculateStudyImproveMilestone(curImprove.claimed, config);
+      const currentStudies = state.algorithms?.[target]?.owned ?? 0;
+      const canImprove = currentStudies >= nextMilestone;
+      if (btnImprove) {
+        btnImprove.disabled = !canImprove;
+        btnImprove.setAttribute("aria-disabled", String(!canImprove));
+        btnImprove.classList.toggle("btn-study-improve--available", canImprove);
+        btnImprove.classList.toggle("btn-study-improve--disabled", !canImprove);
+        btnImprove.title = canImprove
+          ? `Click to claim Level ${curImprove.claimed + 1} Improve (${calculateStudyImproveMultiplier(curImprove.claimed + 1, config).toFixed(3)}x study speed)`
+          : `Study Improve: ${curImprove.claimed > 0 ? `Level ${curImprove.claimed} | ` : ""}${formatInteger(currentStudies)} / ${formatInteger(nextMilestone)} current studies`;
+      }
+      if (milestoneImprove) {
+        setElText(milestoneImprove, `${formatInteger(currentStudies)}/${formatInteger(nextMilestone)}`);
+      }
+      if (badgeImprove) {
+        if (curImprove.claimed > 0) {
+          if (badgeImprove.style.display !== "inline") badgeImprove.style.display = "inline";
+          setElText(badgeImprove, `L${curImprove.claimed}`);
+        } else if (badgeImprove.style.display !== "none") {
+          badgeImprove.style.display = "none";
+        }
+      }
 
-  if (state.construction.active) {
-    setProgress(
-      app,
-      "construction",
-      state.construction.elapsed / state.construction.duration,
-    );
-    setField(
-      app,
-      "construction-remaining",
-      formatDuration(
-        Math.max(0, state.construction.duration - state.construction.elapsed),
-      ),
-    );
-  }
+      // 2. Install Transistor (Section 3)
+      const totalT = state.devices?.transistorsPurchased ?? 0;
+      const tCost = calculateBulkDeviceCost("transistor", totalT, 1, config);
+      const boardOwned = Boolean(state.devices?.transistorBoard?.owned || state.devMode);
+      const studyUnlocked = target === "AImp" || Boolean(state.unlocks?.[target]);
+      const canAfford = big(state.energy).gte(tCost);
+      const isEligible = studyUnlocked && boardOwned && canAfford;
 
-  if (state.ui?.currentNewsId) {
-    const newsItem = getNewsItem(newsList, state.ui.currentNewsId);
-    if (newsItem) {
-      setField(app, "news-text", newsItem.text);
-      setField(app, "news-category", newsItem.category || "TELEMETRY");
-      const rarityNum = Number(newsItem.rarity) || 1;
-      const rarityEl = app.querySelector('[data-field="news-rarity"]');
-      if (rarityEl) {
-        if (rarityNum >= 2) {
-          rarityEl.textContent = getRarityLabel(rarityNum);
-          rarityEl.className = `news-section__rarity ${getRarityClass(rarityNum)}`;
-          rarityEl.style.display = "";
+      if (costInstall) {
+        setElText(costInstall, formatEnergy(tCost));
+      }
+      if (cardInstall) {
+        // Install transistor card must NOT be visible until Transistor Board is owned
+        const shouldShow = boardOwned && studyUnlocked;
+        const desiredDisplay = shouldShow ? "flex" : "none";
+        if (cardInstall.style.display !== desiredDisplay) {
+          cardInstall.style.display = desiredDisplay;
+        }
+
+        cardInstall.disabled = !isEligible;
+        cardInstall.classList.toggle("tes-install-transistor-card--available", isEligible);
+        cardInstall.classList.toggle("tes-install-transistor-card--disabled", !isEligible);
+        if (!boardOwned) {
+          cardInstall.title = "Requires Transistor Board";
+        } else if (!studyUnlocked) {
+          cardInstall.title = "Study locked";
+        } else if (!canAfford) {
+          cardInstall.title = `Insufficient Energy (${formatEnergy(tCost)} required)`;
         } else {
-          rarityEl.textContent = "";
-          rarityEl.style.display = "none";
+          const alloc = state.devices?.transistorAllocations?.[target] ?? 0;
+          cardInstall.title = `Install 1 Transistor into ${target} (currently ${alloc} installed)`;
+        }
+      }
+    };
+
+    updateStudyExtraControls("AImp", dom.aimpImproveBtn, dom.aimpImproveBadge, dom.aimpImproveMilestone, dom.aimpInstallTransistor, dom.aimpTransistorCost);
+    updateStudyExtraControls("AUpg", dom.aupgImproveBtn, dom.aupgImproveBadge, dom.aupgImproveMilestone, dom.aupgInstallTransistor, dom.aupgTransistorCost);
+    updateStudyExtraControls("ARec", dom.arecImproveBtn, dom.arecImproveBadge, dom.arecImproveMilestone, dom.arecInstallTransistor, dom.arecTransistorCost);
+
+    // Algorithm Improvement
+    const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+    setElText(
+      dom.aimpTitle,
+      `Algorithm Improvement (${formatInteger(aImpOwned)})`,
+    );
+    const aImpDur = calculateEffectiveStudyDuration(
+      "AImp",
+      state,
+      config,
+      engine.statResolver,
+    );
+    setElText(dom.aimpDur, formatStudyDuration(aImpDur));
+    if (dom.aimpRing) {
+      const aImpStudy = state.manualStudies?.AImp ?? (state.manualStudy?.target === "AImp" ? state.manualStudy : null);
+      const isAImpActive = Boolean(aImpStudy?.active);
+      if (isAImpActive && aImpDur > 0) {
+        if (aImpDur < 0.05) {
+          // At sub-0.05s continuous rate, illuminate ring completely
+          dom.aimpRing.setAttribute("stroke-dashoffset", "0");
+        } else {
+          const progress = Math.min(
+            1,
+            (aImpStudy?.elapsed ?? 0) / aImpDur,
+          );
+          const offset = (56.5 * (1 - progress)).toFixed(1);
+          if (dom.aimpRing.getAttribute("stroke-dashoffset") !== offset) {
+            dom.aimpRing.setAttribute("stroke-dashoffset", offset);
+          }
+        }
+      } else if (dom.aimpRing.getAttribute("stroke-dashoffset") !== "56.5") {
+        dom.aimpRing.setAttribute("stroke-dashoffset", "56.5");
+      }
+    }
+    if (dom.aimpAutoBadge) {
+      const hasChip = (state.devices?.chips?.allocations?.AImp ?? 0) > 0;
+      if (!hasChip) {
+        if (dom.aimpAutoBadge.className !== "badge-auto badge-auto--locked") {
+          dom.aimpAutoBadge.className = "badge-auto badge-auto--locked";
+          dom.aimpAutoBadge.textContent = "Auto: Locked";
+          dom.aimpAutoBadge.title = "Requires AutoCalculator — Improvements";
+        }
+      } else {
+        const isEnabled = state.devices?.chips?.enabled?.AImp !== false;
+        const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+        const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+        if (dom.aimpAutoBadge.className !== targetClass) {
+          dom.aimpAutoBadge.className = targetClass;
+          dom.aimpAutoBadge.textContent = targetText;
+          dom.aimpAutoBadge.title = "Click to toggle automated studying";
+        }
+      }
+    }
+
+    // Algorithm Upgrade
+    const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+    setElText(dom.aupgTitle, `Algorithm Upgrade (${formatInteger(aUpgOwned)})`);
+    const aUpgDur = calculateEffectiveStudyDuration(
+      "AUpg",
+      state,
+      config,
+      engine.statResolver,
+    );
+    setElText(dom.aupgDur, formatStudyDuration(aUpgDur));
+    const aUpgCanAfford = (state.algorithms?.AImp?.owned ?? 0) >= 12;
+    if (dom.aupgBtn) {
+      const disabled = !aUpgCanAfford && !state.devMode;
+      if (dom.aupgBtn.disabled !== disabled) dom.aupgBtn.disabled = disabled;
+    }
+    if (dom.aupgRing) {
+      const aUpgStudy = state.manualStudies?.AUpg ?? (state.manualStudy?.target === "AUpg" ? state.manualStudy : null);
+      const isAUpgActive = Boolean(aUpgStudy?.active);
+      if (isAUpgActive && aUpgDur > 0) {
+        if (aUpgDur < 0.05) {
+          dom.aupgRing.setAttribute("stroke-dashoffset", "0");
+        } else {
+          const progress = Math.min(
+            1,
+            (aUpgStudy?.elapsed ?? 0) / aUpgDur,
+          );
+          const offset = (56.5 * (1 - progress)).toFixed(1);
+          if (dom.aupgRing.getAttribute("stroke-dashoffset") !== offset) {
+            dom.aupgRing.setAttribute("stroke-dashoffset", offset);
+          }
+        }
+      } else if (dom.aupgRing.getAttribute("stroke-dashoffset") !== "56.5") {
+        dom.aupgRing.setAttribute("stroke-dashoffset", "56.5");
+      }
+    }
+    if (dom.aupgAutoBadge) {
+      const hasChip = (state.devices?.chips?.allocations?.AUpg ?? 0) > 0;
+      if (!hasChip) {
+        if (dom.aupgAutoBadge.className !== "badge-auto badge-auto--locked") {
+          dom.aupgAutoBadge.className = "badge-auto badge-auto--locked";
+          dom.aupgAutoBadge.textContent = "Auto: Locked";
+        }
+      } else {
+        const isEnabled = state.devices?.chips?.enabled?.AUpg !== false;
+        const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+        const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+        if (dom.aupgAutoBadge.className !== targetClass) {
+          dom.aupgAutoBadge.className = targetClass;
+          dom.aupgAutoBadge.textContent = targetText;
+        }
+      }
+    }
+
+    // Algorithm Recalculation
+    if (dom.arecRow) {
+      if (state.unlocks?.ARec) {
+        if (dom.arecUnit && dom.arecUnit.style.display !== "flex")
+          dom.arecUnit.style.display = "flex";
+        if (dom.arecRow.style.display !== "flex")
+          dom.arecRow.style.display = "flex";
+        const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+        setElText(
+          dom.arecTitle,
+          `Algorithm Recalculation (${formatInteger(aRecOwned)})`,
+        );
+        const aRecDur = calculateEffectiveStudyDuration(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        setElText(dom.arecDur, formatStudyDuration(aRecDur));
+        const aRecCanAfford = (state.algorithms?.AUpg?.owned ?? 0) >= 12;
+        if (dom.arecBtn) {
+          const disabled = !aRecCanAfford && !state.devMode;
+          if (dom.arecBtn.disabled !== disabled)
+            dom.arecBtn.disabled = disabled;
+        }
+        if (dom.arecRing) {
+          const aRecStudy = state.manualStudies?.ARec ?? (state.manualStudy?.target === "ARec" ? state.manualStudy : null);
+          const isARecActive = Boolean(aRecStudy?.active);
+          if (isARecActive && aRecDur > 0) {
+            if (aRecDur < 0.05) {
+              dom.arecRing.setAttribute("stroke-dashoffset", "0");
+            } else {
+              const progress = Math.min(
+                1,
+                (aRecStudy?.elapsed ?? 0) / aRecDur,
+              );
+              const offset = (56.5 * (1 - progress)).toFixed(1);
+              if (dom.arecRing.getAttribute("stroke-dashoffset") !== offset) {
+                dom.arecRing.setAttribute("stroke-dashoffset", offset);
+              }
+            }
+          } else if (dom.arecRing.getAttribute("stroke-dashoffset") !== "56.5") {
+            dom.arecRing.setAttribute("stroke-dashoffset", "56.5");
+          }
+        }
+        if (dom.arecAutoBadge) {
+          const hasChip = (state.devices?.chips?.allocations?.ARec ?? 0) > 0;
+          if (!hasChip) {
+            if (
+              dom.arecAutoBadge.className !== "badge-auto badge-auto--locked"
+            ) {
+              dom.arecAutoBadge.className = "badge-auto badge-auto--locked";
+              dom.arecAutoBadge.textContent = "Auto: Locked";
+            }
+          } else {
+            const isEnabled = state.devices?.chips?.enabled?.ARec !== false;
+            const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+            const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+            if (dom.arecAutoBadge.className !== targetClass) {
+              dom.arecAutoBadge.className = targetClass;
+              dom.arecAutoBadge.textContent = targetText;
+            }
+          }
+        }
+      } else {
+        if (dom.arecUnit && dom.arecUnit.style.display !== "none") {
+          dom.arecUnit.style.display = "none";
+        }
+        if (dom.arecRow.style.display !== "none") {
+          dom.arecRow.style.display = "none";
+        }
+      }
+    }
+
+    // Machine Learning Card
+    setElText(
+      dom.mlProgressText,
+      `${formatInteger(currentData)} / ${formatInteger(reqData)} Data`,
+    );
+    if (dom.mlProgressBar) {
+      const ratioStr = `${dataRatio.toFixed(1)}%`;
+      if (dom.mlProgressBar.style.width !== ratioStr)
+        dom.mlProgressBar.style.width = ratioStr;
+    }
+    if (dom.mlBtn) {
+      const canML = currentData >= reqData;
+      if (canML) {
+        if (dom.mlBtn.disabled) dom.mlBtn.disabled = false;
+        if (dom.mlBtn.className !== "btn-primary")
+          dom.mlBtn.className = "btn-primary";
+        dom.mlBtn.innerHTML = `Run Machine Learning (Adv to Level ${compLevel + 1}) <kbd class="tes-hotkey-hint">M</kbd>`;
+      } else if (state.devMode) {
+        if (dom.mlBtn.disabled) dom.mlBtn.disabled = false;
+        if (dom.mlBtn.className !== "btn-primary btn-utility--active")
+          dom.mlBtn.className = "btn-primary btn-utility--active";
+        dom.mlBtn.innerHTML = `[DEV BYPASS] Advance to Level ${compLevel + 1} <kbd class="tes-hotkey-hint">M</kbd>`;
+      } else {
+        if (!dom.mlBtn.disabled) dom.mlBtn.disabled = true;
+        if (dom.mlBtn.className !== "btn-primary")
+          dom.mlBtn.className = "btn-primary";
+        dom.mlBtn.innerHTML = `Need ${formatInteger(reqData)} Data <kbd class="tes-hotkey-hint">M</kbd>`;
+      }
+    }
+
+    // Facility Optimization / Setup Optimization Prestige Card
+    if (dom.foCard) {
+      const foCount = state.facilityOptimizations ?? 0;
+      const reqFoLevel = calculateFacilityOptimizationRequirement(foCount, config);
+      const curLevel = state.computerLevel ?? 1;
+      const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
+      const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
+
+      // Trigger condition: show when at or above required level, or 1 level prior, or already completed, or devMode
+      const isFoVisible = curLevel >= reqFoLevel - 1 || foCount > 0 || Boolean(state.devMode);
+      const foDisplay = isFoVisible ? "flex" : "none";
+      if (dom.foCard && dom.foCard.style.display !== foDisplay) {
+        dom.foCard.style.display = foDisplay;
+      }
+
+      if (isFoVisible && dom.foCard) {
+        const isEligible = curLevel >= reqFoLevel || Boolean(state.devMode);
+        dom.foCard.classList.toggle("tes-fo-card--eligible", isEligible);
+
+        const levelPct = Math.min(100, Math.max(0, (curLevel / reqFoLevel) * 100));
+        setElText(dom.foProgressText, `Level ${curLevel} / ${reqFoLevel}`);
+        if (dom.foProgressBar) {
+          dom.foProgressBar.style.width = `${levelPct.toFixed(1)}%`;
+        }
+
+        if (dom.foReqLevel) setElText(dom.foReqLevel, `Level ${reqFoLevel}`);
+        if (dom.foCurBonus) setElText(dom.foCurBonus, `${curBonus.toFixed(2)}×`);
+        if (dom.foNextBonus) setElText(dom.foNextBonus, `${nextBonus.toFixed(2)}×`);
+
+        if (dom.foBtn) {
+          if (isEligible) {
+            dom.foBtn.disabled = false;
+            dom.foBtn.innerHTML = `Perform Setup Optimization (Lv. ${curLevel})`;
+          } else {
+            dom.foBtn.disabled = true;
+            dom.foBtn.innerHTML = `Requires Computer Level ${reqFoLevel} (Current: Lv. ${curLevel})`;
+          }
         }
       }
     }
   }
 
-  const timerFill = app.querySelector('[data-progress="news-timer"]');
-  if (timerFill) {
-    const timerFraction = clamp((state.ui?.newsTimer || 0) / 6, 0, 1);
-    const circumference = 37.7;
-    const offset = (circumference * (1 - timerFraction)).toFixed(2);
-    timerFill.style.strokeDashoffset = `${offset}`;
+  function updateDevicesFilterAndRows(state, config) {
+    const filter = state.ui?.deviceCategoryFilter || "all";
+    const showAdded = state.ui?.showAdded !== false;
+    const showUnavailable = state.ui?.showUnavailable !== false;
+
+    // Checkbox synchronization
+    if (dom.toggleShowAdded && dom.toggleShowAdded.checked !== showAdded) {
+      dom.toggleShowAdded.checked = showAdded;
+    }
+    if (
+      dom.toggleShowUnavailable &&
+      dom.toggleShowUnavailable.checked !== showUnavailable
+    ) {
+      dom.toggleShowUnavailable.checked = showUnavailable;
+    }
+
+    // Category button active states
+    dom.filterPills.forEach((pill) => {
+      pill.classList.toggle(
+        "tes-filter-pill--active",
+        pill.dataset.filter === filter,
+      );
+    });
+
+    const devicesList = [
+      "autoCalculator_AImp",
+      "autoCalculator_AUpg",
+      "autoCalculator_ARec",
+      "transistorBoard",
+      "microprocessor",
+      "processor",
+      "overclocker",
+      "crcGadget",
+      "capacitor",
+      "powerCell",
+      "hardDisk",
+    ];
+
+    let counts = {
+      all: 0,
+      automation: 0,
+      computation: 0,
+      energy: 0,
+      learning: 0,
+    };
+    let visibleInGroup = {
+      automation: 0,
+      computation: 0,
+      energy: 0,
+      learning: 0,
+    };
+
+    devicesList.forEach((id) => {
+      const element = getElement(id);
+      if (!element) return;
+      const row = dom.deviceRows[id];
+      if (!row) return;
+
+      const evalResult = evaluateElement(element, state, config, 1);
+      const isRevealed = evalResult.isRevealed;
+      const isOwned = evalResult.owned > 0;
+      const isUnlocked = evalResult.strictUnlocked;
+
+      // Count only revealed devices
+      if (isRevealed) {
+        counts.all++;
+        if (counts[element.category] !== undefined) counts[element.category]++;
+      }
+
+      // Check visibility rules
+      let visible = isRevealed;
+      if (filter !== "all" && element.category !== filter) visible = false;
+      if (!showAdded && evalResult.unique && isOwned) visible = false;
+      if (!showUnavailable && !isUnlocked) visible = false;
+
+      const displayVal = visible ? "flex" : "none";
+      if (row.style.display !== displayVal) {
+        row.style.display = displayVal;
+      }
+
+      if (visible) {
+        if (visibleInGroup[element.category] !== undefined)
+          visibleInGroup[element.category]++;
+        updateDeviceRowUI(
+          id,
+          evalResult,
+          state,
+          config,
+          row,
+          dom.deviceControls[id],
+        );
+      }
+    });
+
+    // Update filter pill counts
+    setElText(dom.filterCounts.all, `All (${counts.all})`);
+    setElText(dom.filterCounts.automation, `Automation (${counts.automation})`);
+    setElText(
+      dom.filterCounts.computation,
+      `Computation (${counts.computation})`,
+    );
+    setElText(dom.filterCounts.energy, `Energy (${counts.energy})`);
+    setElText(dom.filterCounts.learning, `Learning (${counts.learning})`);
+
+    // Hide section headers if all rows in that group are hidden
+    for (const cat of ["automation", "computation", "energy", "learning"]) {
+      const group = dom.groups[cat];
+      if (group) {
+        const showGrp = (visibleInGroup[cat] ?? 0) > 0;
+        const grpVal = showGrp ? "flex" : "none";
+        if (group.style.display !== grpVal) {
+          group.style.display = grpVal;
+        }
+      }
+    }
   }
 
-  const algorithmFactor = 1 + (state.improvements ?? 0);
-  setHtmlField(
-    app,
-    "crc-algorithm-multiplier",
-    `x${algorithmFactor} <small style="font-size: 0.72rem; color: var(--muted); font-weight: normal; margin-left: 4px;">(+1 base / imp)</small>`,
-  );
-
-  const isSoftUnlocked = Boolean(state.devices?.softDataDisplay);
-  const production = calculateProduction(state, config, developmentMode);
-  setField(
-    app,
-    "crc-total-output",
-    isSoftUnlocked ? formatRate(production) : "UNREADABLE",
-  );
-
-  const impRate =
-    state.devices.autoCalculators > 0
-      ? calculateImprovementRatePerSecond(state, config, developmentMode)
-      : 0;
-  const currentDuration = calculateStudyDuration(state, config, false);
-  const previewDuration = calculateStudyDuration(
+  function updateDeviceRowUI(
+    id,
+    evalResult,
     state,
     config,
-    developmentMode,
-  );
-  const rate =
-    state.devices.autoCalculators > 0 ? impRate : 1 / currentDuration;
-  const rateDisplay =
-    rate >= 10
-      ? `${rate.toFixed(1)} Improvements/s`
-      : formatDuration(previewDuration);
+    row,
+    controls = {},
+  ) {
+    const { owned, cost, unique, strictUnlocked, visualStatus, canClick } =
+      evalResult;
 
-  setField(
-    app,
-    "study-algorithm-factor",
-    `x${algorithmFactor} (+1.0 / cycle)`,
-  );
-  setField(app, "study-rate-display", rateDisplay);
-  setField(
-    app,
-    "study-status",
-    state.study.active
-      ? state.study.automated
-        ? "AUTO CALCULATION"
-        : "CALCULATION IN PROGRESS"
-      : "READY",
-  );
+    switch (id) {
+      case "autoCalculator_AImp": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-aimp-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-aimp-action-btn"]');
+        const hasAImp = (state.devices?.chips?.allocations?.AImp ?? 0) > 0;
+        if (hasAImp) {
+          const isEnabled = state.devices?.chips?.enabled?.AImp !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "AImp") btn.dataset.target = "AImp";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_AImp")
+              btn.dataset.elementId = "autoCalculator_AImp";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
 
-  setField(
-    app,
-    "cascade-algorithm-sub",
-    `Algorithm Improvements add +1 base output per CRC each cycle (Active factor: x${algorithmFactor})`,
-  );
+      case "autoCalculator_AUpg": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-aupg-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-aupg-action-btn"]');
+        const hasAUpg = (state.devices?.chips?.allocations?.AUpg ?? 0) > 0;
+        if (hasAUpg) {
+          const isEnabled = state.devices?.chips?.enabled?.AUpg !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "AUpg") btn.dataset.target = "AUpg";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_AUpg")
+              btn.dataset.elementId = "autoCalculator_AUpg";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
 
-  const reqUpgrade = calculateAlgorithmUpgradeRequirement(state, config);
-  const upgradeReady = state.improvements >= reqUpgrade;
-  if (!state.algorithmUpgradeStudy.active) {
-    setProgress(app, "algorithm-upgrade", state.improvements / reqUpgrade);
-    setField(
-      app,
-      "algorithm-upgrade-status",
-      upgradeReady
-        ? "READY // MANUAL EXECUTION IS INSTANT (RESETS IMPROVEMENTS)"
-        : `${state.improvements} / ${reqUpgrade} Improvements`,
-    );
-    setField(app, "algorithm-upgrade-remaining", "INSTANT");
+      case "autoCalculator_ARec": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-arec-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-arec-action-btn"]');
+        const hasARec = (state.devices?.chips?.allocations?.ARec ?? 0) > 0;
+        if (hasARec) {
+          const isEnabled = state.devices?.chips?.enabled?.ARec !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "ARec") btn.dataset.target = "ARec";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_ARec")
+              btn.dataset.elementId = "autoCalculator_ARec";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "transistorBoard": {
+        const badge =
+          controls?.badge || row.querySelector('[data-field="board-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="board-action-btn"]');
+        const hasBoard = Boolean(state.devices?.transistorBoard?.owned);
+        if (hasBoard) {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--active")
+              badge.className = "badge-status badge-status--active";
+            const totalT = state.devices?.transistorsPurchased ?? 0;
+            const studySpeedMult = engine?.statResolver
+              ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+              : calculateStudySpeedDeviceMultiplier(state, config);
+            const effBonus = (config.devices?.transistor?.speedBonusPerUnit ?? 0.05) * 100 * studySpeedMult;
+            const txt = studySpeedMult > 1.0001
+              ? `${formatInteger(totalT)} Transistors (+${effBonus.toFixed(1)}%/ea)`
+              : `${formatInteger(totalT)} Transistors`;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            if (btn.textContent !== "Allocate") btn.textContent = "Allocate";
+            if (btn.dataset.action !== "open-drawer")
+              btn.dataset.action = "open-drawer";
+            if (btn.dataset.drawer !== "transistor")
+              btn.dataset.drawer = "transistor";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : formatEnergy(config.devices?.transistorBoard?.initialCost ?? 2e-10);
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "transistorBoard")
+              btn.dataset.elementId = "transistorBoard";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "microprocessor": {
+        const pill =
+          controls?.pill || row.querySelector('[data-field="micro-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="micro-action-btn"]');
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const mOwned = state.devices?.microprocessor?.owned ?? 0;
+        const studySpeedMult = engine?.statResolver
+          ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+          : calculateStudySpeedDeviceMultiplier(state, config);
+        const allocatedT = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const microMult = calculateMicroprocessorStudyMultiplier(
+          allocatedT,
+          config,
+          studySpeedMult,
+          mOwned,
+        );
+        if (pill) {
+          const txt = mOwned >= 1
+            ? `Target: ${mTarget} (${microMult.toFixed(2)}x)`
+            : `Target: ${mTarget}`;
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          if (mOwned >= 1) {
+            const txt = "Installed";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.disabled !== true) btn.disabled = true;
+            btn.removeAttribute("title");
+          } else if (!strictUnlocked) {
+            const txt = "Locked";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.disabled !== true) btn.disabled = true;
+            btn.title = evalResult.reasons.join(". ");
+          } else {
+            const txt = cost ? `Install (${formatEnergy(cost)})` : "Install";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+            if (disabled && evalResult.reasons.length > 0) {
+              btn.title = evalResult.reasons.join(". ");
+            } else {
+              btn.title = `Install Microprocessor for ${formatEnergy(cost)}`;
+            }
+          }
+        }
+        break;
+      }
+
+      case "processor": {
+        const pill =
+          controls?.pill ||
+          row.querySelector('[data-field="processor-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="processor-action-btn"]');
+        const pOwned = state.devices?.processors ?? 0;
+        const pBonusUnit = (config.devices?.processor?.bonusPerUnit ?? 0.05) * 100;
+        if (pill) {
+          const txt = pOwned > 0
+            ? `+${(pOwned * pBonusUnit).toFixed(1)}% Study Speed (${formatInteger(pOwned)} owned)`
+            : `+${pBonusUnit.toFixed(1)}% Study Speed/ea (0 owned)`;
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+
+      case "overclocker": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="overclock-badge"]');
+        const buyBtn =
+          controls?.buyBtn ||
+          row.querySelector('[data-field="overclock-buy-btn"]');
+        const actBtn =
+          controls?.actBtn ||
+          row.querySelector('[data-field="overclock-activate-btn"]');
+        const oc = state.devices?.overclocker;
+        const ocOwned = (oc?.owned ?? 0) > 0;
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const tOnTarget = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+
+        if (!ocOwned) {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const ocCost = cost ? formatEnergy(cost) : formatEnergy(config.devices?.overclocker?.initialCost ?? 9e-8);
+            if (badge.textContent !== ocCost)
+              badge.textContent = ocCost;
+          }
+          if (buyBtn) {
+            if (buyBtn.style.display !== "inline-flex")
+              buyBtn.style.display = "inline-flex";
+            const disabled = !canClick;
+            if (buyBtn.disabled !== disabled) buyBtn.disabled = disabled;
+          }
+          if (actBtn && actBtn.style.display !== "none")
+            actBtn.style.display = "none";
+        } else {
+          if (buyBtn && buyBtn.style.display !== "none")
+            buyBtn.style.display = "none";
+          if (actBtn && actBtn.style.display !== "inline-flex")
+            actBtn.style.display = "inline-flex";
+
+          if (oc?.active) {
+            if (badge) {
+              if (badge.className !== "badge-status badge-status--standby")
+                badge.className = "badge-status badge-status--standby";
+              const txt = `Active (${Math.max(0, oc.remainingDuration).toFixed(1)}s)`;
+              if (badge.textContent !== txt) badge.textContent = txt;
+            }
+            if (actBtn) {
+              if (!actBtn.disabled) actBtn.disabled = true;
+              if (actBtn.textContent !== "Active")
+                actBtn.textContent = "Active";
+            }
+          } else if (tOnTarget >= 2) {
+            if (badge) {
+              if (badge.className !== "badge-status badge-status--active")
+                badge.className = "badge-status badge-status--active";
+              if (badge.textContent !== "Ready") badge.textContent = "Ready";
+            }
+            if (actBtn) {
+              if (actBtn.disabled) actBtn.disabled = false;
+              const txt = `Activate (${formatInteger(tOnTarget)} T)`;
+              if (actBtn.textContent !== txt) actBtn.textContent = txt;
+            }
+          } else {
+            if (badge) {
+              if (badge.className !== "badge-status badge-status--off")
+                badge.className = "badge-status badge-status--off";
+              const txt = `Need 2+ T on ${mTarget}`;
+              if (badge.textContent !== txt) badge.textContent = txt;
+            }
+            if (actBtn) {
+              const disabled = !state.devMode;
+              if (actBtn.disabled !== disabled) actBtn.disabled = disabled;
+              const txt = state.devMode ? "[Bypass] Activate" : "Needs 2+ T";
+              if (actBtn.textContent !== txt) actBtn.textContent = txt;
+            }
+          }
+        }
+        break;
+      }
+
+      case "crcGadget": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="crc-gadget-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="crc-gadget-action-btn"]');
+        const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+        const deviceMultiplier = engine?.statResolver
+          ? engine.statResolver.resolve("devices.globalMultiplier", { state, config })
+          : calculateTotalDeviceMultiplier(state, config);
+        const crcMult = calculateCrcMultiplier(state, config, deviceMultiplier);
+        if (hasGadget) {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--active")
+              badge.className = "badge-status badge-status--active";
+            const txt = `Active (${crcMult.toFixed(2)}x)`;
+            if (badge.textContent !== txt)
+              badge.textContent = txt;
+          }
+          if (btn) {
+            if (!btn.disabled) btn.disabled = true;
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            if (btn.textContent !== "Owned") btn.textContent = "Owned";
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : formatEnergy(config.devices?.crcGadget?.initialCost ?? 1e-8);
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+          }
+        }
+        break;
+      }
+
+      case "capacitor": {
+        const pill =
+          controls?.pill ||
+          row.querySelector('[data-field="capacitor-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="capacitor-action-btn"]');
+        const cOwned = state.devices?.capacitors ?? 0;
+        const baseBonusPerUnit = (config.devices?.capacitor?.bonusPerUnit ?? 0.5) * 100;
+        const deviceMultiplier = engine?.statResolver
+          ? engine.statResolver.resolve("devices.globalMultiplier", { state, config })
+          : calculateTotalDeviceMultiplier(state, config);
+        const capMult = calculateCapacitorMultiplier(cOwned, config, deviceMultiplier);
+        const hasPrestigeBonus = deviceMultiplier > 1.0001;
+        const effBonusPerUnit = baseBonusPerUnit * deviceMultiplier;
+        if (pill) {
+          let txt = "";
+          if (cOwned > 0) {
+            txt = `+${((capMult - 1) * 100).toFixed(hasPrestigeBonus ? 1 : 0)}% Cascade (${formatInteger(cOwned)} owned)`;
+          } else {
+            txt = `+${(hasPrestigeBonus ? effBonusPerUnit : baseBonusPerUnit).toFixed(hasPrestigeBonus ? 1 : 0)}%/ea (0 owned)`;
+          }
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+
+      case "powerCell": {
+        const pill =
+          controls?.pill ||
+          row.querySelector('[data-field="powercell-data-pill"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="powercell-action-btn"]');
+        const pCells = state.powerCells ?? 0;
+        const cap = calculatePowerCellCapacity(
+          pCells,
+          state,
+          config,
+          engine.statResolver,
+        );
+        if (pill) {
+          const txt = `${formatEnergy(cap)} Cap (${formatInteger(pCells)} owned)`;
+          if (pill.textContent !== txt) pill.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+
+      case "hardDisk": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="harddisk-status-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="harddisk-action-btn"]');
+        const hds = state.devices?.hardDisks?.owned ?? 0;
+        const hdState = state.devices?.hardDisks?.state ?? "off";
+        const isDataPaused = Boolean(state.devices?.hardDisks?.dataPaused);
+        const totalXpRate = calculateHardDiskXpRate(
+          hds,
+          state,
+          config,
+          engine.statResolver,
+        );
+        if (badge) {
+          const cls = `badge-status badge-status--${hdState === "active" ? (isDataPaused ? "standby" : "active") : hdState === "standby" ? "standby" : "off"}`;
+          if (badge.className !== cls) badge.className = cls;
+          let txt = `${hdState.toUpperCase()} (${formatInteger(hds)} owned)`;
+          if (isDataPaused && hdState === "active") {
+            txt = `PAUSED (DATA LIMIT) (${formatInteger(hds)} owned)`;
+          } else if (hdState === "active" && hds > 0) {
+            txt = `ACTIVE (${formatInteger(hds)} owned · +${formatNumber(totalXpRate, 1)} Data/s)`;
+          }
+          if (badge.textContent !== txt) badge.textContent = txt;
+        }
+        if (btn) {
+          const txt = cost ? `Add (${formatEnergy(cost)})` : "Add";
+          if (btn.textContent !== txt) btn.textContent = txt;
+          const disabled = !canClick;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+        }
+        break;
+      }
+    }
   }
 
-  if (state.overclockerBlueprintStudy?.active) {
-    setProgress(
-      app,
-      "overclocker-blueprint",
-      state.overclockerBlueprintStudy.elapsed /
-        state.overclockerBlueprintStudy.duration,
-    );
-    setField(
-      app,
-      "overclocker-blueprint-remaining",
-      formatDuration(
-        Math.max(
-          0,
-          state.overclockerBlueprintStudy.duration -
-            state.overclockerBlueprintStudy.elapsed,
-        ),
-      ),
-    );
+  function updateActiveDrawerValues(drawerId, state, config, containerEl) {
+    switch (drawerId) {
+      case "transistor": {
+        const hasARecInDom = Boolean(
+          containerEl.querySelector('[data-field="drawer-t-arec"]'),
+        );
+        const isARecUnlocked = Boolean(state.unlocks?.ARec);
+        if (hasARecInDom !== isARecUnlocked) {
+          lastActiveDrawer = null;
+          renderDrawersAndModals(state, config);
+          return;
+        }
+
+        const tTotal = state.devices?.transistorsPurchased ?? 0;
+        const nextCost = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          1,
+          config,
+        );
+        const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
+        const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
+        const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const speedAImp = calculateEffectiveStudySpeed(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedAUpg = calculateEffectiveStudySpeed(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedARec = calculateEffectiveStudySpeed(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAImp = calculateEffectiveStudyDuration(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAUpg = calculateEffectiveStudyDuration(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARec = calculateEffectiveStudyDuration(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-total"]'),
+          `${formatInteger(tTotal)} Transistors`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-cost"]'),
+          formatEnergy(nextCost),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-aimp"]'),
+          formatInteger(tAImp),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-dur-aimp"]'),
+          formatStudyDuration(durAImp),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-speed-aimp"]'),
+          `${speedAImp.toFixed(2)}x`,
+        );
+
+        const cost1 = calculateBulkDeviceCost("transistor", tTotal, 1, config);
+        const cost10 = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          10,
+          config,
+        );
+        const cost100 = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          100,
+          config,
+        );
+        const cost1000 = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          1000,
+          config,
+        );
+
+        const btnBuy1 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-1"]',
+        );
+        const btnBuy10 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-10"]',
+        );
+        const btnBuy100 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-100"]',
+        );
+        const btnBuy1000 = containerEl.querySelector(
+          '[data-field="drawer-buy-t-1000"]',
+        );
+        if (btnBuy1)
+          btnBuy1.disabled = !state.energy.gte(cost1) && !state.devMode;
+        if (btnBuy10)
+          btnBuy10.disabled = !state.energy.gte(cost10) && !state.devMode;
+        if (btnBuy100)
+          btnBuy100.disabled = !state.energy.gte(cost100) && !state.devMode;
+        if (btnBuy1000)
+          btnBuy1000.disabled = !state.energy.gte(cost1000) && !state.devMode;
+
+        const btnRebalance = containerEl.querySelector(
+          '[data-field="drawer-rebalance-btn"]',
+        );
+        if (btnRebalance) btnRebalance.disabled = tTotal <= 0;
+
+        const btnUpgToImp = containerEl.querySelector(
+          '[data-field="drawer-reassign-aupg-aimp"]',
+        );
+        if (btnUpgToImp) btnUpgToImp.disabled = tAUpg <= 0;
+        const btnRecToImp = containerEl.querySelector(
+          '[data-field="drawer-reassign-arec-aimp"]',
+        );
+        if (btnRecToImp) btnRecToImp.disabled = tARec <= 0;
+
+        setElText(
+          containerEl.querySelector('[data-field="drawer-t-aupg"]'),
+          formatInteger(tAUpg),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-dur-aupg"]'),
+          formatStudyDuration(durAUpg),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-speed-aupg"]'),
+          `${speedAUpg.toFixed(2)}x`,
+        );
+        const btnImpToUpg = containerEl.querySelector(
+          '[data-field="drawer-reassign-aimp-aupg"]',
+        );
+        if (btnImpToUpg) btnImpToUpg.disabled = tAImp <= 0;
+        const btnRecToUpg = containerEl.querySelector(
+          '[data-field="drawer-reassign-arec-aupg"]',
+        );
+        if (btnRecToUpg) btnRecToUpg.disabled = tARec <= 0;
+
+        const rowARec = containerEl.querySelector(
+          '[data-field="drawer-row-arec"]',
+        );
+        if (rowARec) {
+          setElText(
+            containerEl.querySelector('[data-field="drawer-t-arec"]'),
+            formatInteger(tARec),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-dur-arec"]'),
+            formatStudyDuration(durARec),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-speed-arec"]'),
+            `${speedARec.toFixed(2)}x`,
+          );
+          const btnImpToRec = containerEl.querySelector(
+            '[data-field="drawer-reassign-aimp-arec"]',
+          );
+          if (btnImpToRec) btnImpToRec.disabled = tAImp <= 0;
+          const btnUpgToRec = containerEl.querySelector(
+            '[data-field="drawer-reassign-aupg-arec"]',
+          );
+          if (btnUpgToRec) btnUpgToRec.disabled = tAUpg <= 0;
+        }
+        break;
+      }
+
+      case "microprocessor": {
+        const hasARecBtn = Boolean(
+          containerEl.querySelector('[data-micro-target-btn="ARec"]'),
+        );
+        const isARecUnlocked = Boolean(state.unlocks?.ARec);
+        if (hasARecBtn !== isARecUnlocked) {
+          lastActiveDrawer = null;
+          renderDrawersAndModals(state, config);
+          return;
+        }
+
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const mOwned = state.devices?.microprocessor?.owned ?? 0;
+        const nextCost = calculateBulkDeviceCost(
+          "microprocessor",
+          mOwned,
+          1,
+          config,
+        );
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const studySpeedMult = engine?.statResolver
+          ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+          : calculateStudySpeedDeviceMultiplier(state, config);
+        const microMult = calculateMicroprocessorStudyMultiplier(
+          tCount,
+          config,
+          studySpeedMult,
+          mOwned,
+        );
+        const currentSpeedMult = calculateEffectiveStudySpeed(
+          mTarget,
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        const evalResult = engine.evaluateElement("microprocessor", 1);
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-owned"]'),
+          mOwned >= 1 ? "1 (Installed)" : "Not Installed",
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-cost"]'),
+          formatEnergy(nextCost),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-t"]'),
+          `${tCount} T`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-target"]'),
+          mTarget,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-direct-mult"]'),
+          `${microMult.toFixed(2)}x`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-micro-mult"]'),
+          `${currentSpeedMult.toFixed(2)}x`,
+        );
+
+        const installBtn = containerEl.querySelector(
+          '[data-field="drawer-micro-install-btn"]',
+        );
+        const reasonsEl = containerEl.querySelector(
+          '[data-field="drawer-micro-reasons"]',
+        );
+        const installContainer = containerEl.querySelector(
+          '[data-field="drawer-micro-install-container"]',
+        );
+
+        if (mOwned >= 1) {
+          if (installContainer && !installContainer.querySelector(".badge-status--active")) {
+            installContainer.innerHTML = `<span class="badge-status badge-status--active" style="display: inline-block; padding: 6px 14px; font-weight: 600;">Installed (Unique Device)</span>`;
+          }
+        } else {
+          if (installBtn) {
+            installBtn.disabled = !evalResult.canClick;
+          }
+          if (reasonsEl) {
+            if (!evalResult.canClick && evalResult.reasons.length > 0) {
+              reasonsEl.style.display = "flex";
+              reasonsEl.innerHTML = `<span aria-hidden="true">⚠️</span><span>${evalResult.reasons.join(". ")}</span>`;
+            } else {
+              reasonsEl.style.display = "none";
+            }
+          }
+        }
+
+        containerEl
+          .querySelectorAll("[data-micro-target-btn]")
+          .forEach((btn) => {
+            const isTarget = btn.dataset.microTargetBtn === mTarget;
+            btn.className = isTarget ? "btn-primary" : "btn-secondary";
+          });
+        break;
+      }
+
+      case "overclock": {
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const dur = calculateOverclockDuration(tCount, config);
+        const bonus = calculateOverclockBonusMultiplier(tCount, config);
+
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-target"]'),
+          mTarget,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-burn"]'),
+          `${tCount} T`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-dur"]'),
+          `${dur.toFixed(1)}s`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="modal-overclock-bonus"]'),
+          `${bonus.toFixed(2)}x`,
+        );
+        break;
+      }
+
+      case "harddisk": {
+        const hds = state.devices?.hardDisks?.owned ?? 0;
+        const hdState = state.devices?.hardDisks?.state ?? "off";
+        const buf = state.devices?.hardDisks?.buffer ?? 0;
+        const isDataPaused = Boolean(state.devices?.hardDisks?.dataPaused);
+        const rate =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskXpRate(hds, state, config, engine.statResolver)
+            : 0;
+        const drain =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskEnergyDrain(
+                hds,
+                state.devices?.hardDisks?.activeSeconds ?? 0,
+                config,
+              )
+            : big(0);
+
+        setElText(
+          containerEl.querySelector('[data-field="drawer-hd-buf"]'),
+          `${formatInteger(buf)} Data`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-hd-rate"]'),
+          `${formatNumber(rate, 1)} Data/s`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="drawer-hd-drain"]'),
+          drain.gt(0) ? `-${formatEnergy(drain)}/s` : "0.00 J/s",
+        );
+
+        const btnActive = containerEl.querySelector('[data-hd-btn="active"]');
+        const btnStandby = containerEl.querySelector('[data-hd-btn="standby"]');
+        const btnOff = containerEl.querySelector('[data-hd-btn="off"]');
+        if (btnActive)
+          btnActive.className =
+            hdState === "active" ? "btn-primary" : "btn-secondary";
+        if (btnStandby)
+          btnStandby.className =
+            hdState === "standby" ? "btn-primary" : "btn-secondary";
+        if (btnOff)
+          btnOff.className = hdState === "off" ? "btn-danger" : "btn-secondary";
+        break;
+      }
+
+      case "dev": {
+        const btnDev = containerEl.querySelector(
+          '[data-action="toggle-dev-mode"]',
+        );
+        if (btnDev) {
+          const cls = `btn-secondary ${state.devMode ? "btn-utility--active" : ""}`;
+          if (btnDev.className !== cls) btnDev.className = cls;
+          setElText(btnDev, state.devMode ? "DEV MODE: ON" : "DEV MODE: OFF");
+        }
+        const btnRestore = containerEl.querySelector(
+          '[data-action="restore-quicksave"]',
+        );
+        if (btnRestore) {
+          btnRestore.disabled = engine.hasQuicksave && !engine.hasQuicksave();
+        }
+        setElText(
+          containerEl.querySelector('[data-field="dev-audit-count"]'),
+          `AUDIT LOG (${state.auditLogs?.length ?? 0})`,
+        );
+        const tbody = containerEl.querySelector(
+          '[data-field="dev-audit-tbody"]',
+        );
+        if (tbody) {
+          const curLen = parseInt(tbody.dataset.logCount || "0", 10);
+          const newLen = state.auditLogs?.length ?? 0;
+          if (curLen !== newLen) {
+            tbody.dataset.logCount = String(newLen);
+            tbody.innerHTML =
+              (state.auditLogs ?? [])
+                .slice(-10)
+                .reverse()
+                .map(
+                  (l) => `
+              <tr>
+                <td>${l.timestamp?.split("T")[1]?.split(".")[0] ?? ""}</td>
+                <td><strong>${l.itemName}</strong></td>
+                <td>${l.purchasedQuantity}</td>
+                <td>${l.nominalCostFormatted}</td>
+                <td><span class="badge-status ${l.ruleStatus === "RULE_ELIGIBLE" ? "badge-status--active" : "badge-status--standby"}">${l.ruleStatus}</span></td>
+              </tr>
+            `,
+                )
+                .join("") ||
+              '<tr><td colspan="5" style="text-align:center;">No logs recorded</td></tr>';
+          }
+        }
+        break;
+      }
+
+      case "stats": {
+        setElText(
+          containerEl.querySelector('[data-field="stat-comp-level"]'),
+          state.computerLevel ?? 1,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-mls"]'),
+          formatInteger(state.stats?.totalMachineLearnings ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-fos"]'),
+          formatInteger(state.facilityOptimizations ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-purchases"]'),
+          formatInteger(state.stats?.totalPurchases ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-energy"]'),
+          formatEnergy(state.energy),
+        );
+        break;
+      }
+
+      case "measure": {
+        const compLevel = state.computerLevel ?? 1;
+        const ap = calculateAlgorithmPerformance(
+          state,
+          config,
+          engine.statResolver,
+        );
+        const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+        const totalProd = calculateEnergyProduction(
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        setElText(
+          containerEl.querySelector('[data-field="measure-ap"]'),
+          `${formatEnergy(ap)}/s`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="measure-level-mult"]'),
+          `Level ${compLevel}`,
+        );
+        setElText(
+          containerEl.querySelector('[data-field="measure-gadget-mult"]'),
+          hasGadget ? "2.00x" : "1.00x",
+        );
+        setElText(
+          containerEl.querySelector('[data-field="measure-total-prod"]'),
+          formatRate(totalProd),
+        );
+        break;
+      }
+    }
   }
 
-  setField(app, "total-play-time", formatDuration(state.stats.totalPlayTime));
-  setField(app, "run-play-time", formatDuration(state.stats.runPlayTime));
-  setField(
-    app,
-    "total-condensed",
-    formatEnergy(state.stats.totalEnergyCollected),
-  );
+  function renderDrawersAndModals(state, config) {
+    const containerEl =
+      dom?.drawersContainer ||
+      container.querySelector("#tes-drawers-container");
+    if (!containerEl) return;
 
-  updateLogList(app, state);
-  updateInteractiveElements(app, state, config);
-}
+    if (!activeDrawer) {
+      if (lastActiveDrawer !== null) {
+        containerEl.innerHTML = "";
+        lastActiveDrawer = null;
+      }
+      return;
+    }
 
-function renderGame(
-  state,
-  config,
-  developmentMode,
-  saveSlots,
-  newsList = DEFAULT_NEWS,
-) {
-  const activeTab = getActiveTab(state, config);
-  const showNews =
-    (state.prototypeComplete || (developmentMode && state.ui?.devShowNews)) &&
-    !state.ui?.newsDismissed;
+    if (activeDrawer === lastActiveDrawer) {
+      updateActiveDrawerValues(activeDrawer, state, config, containerEl);
+      return;
+    }
+    lastActiveDrawer = activeDrawer;
 
-  return `
-    ${renderHeader(state, developmentMode)}
-    ${showNews ? renderNewsSection(state, newsList) : ""}
-    ${renderTabBar(state, config)}
-    <section class="operation-focus" aria-label="Power and production focus">
-      ${renderGlobalHUD(state, config, developmentMode)}
-    </section>
-    <section class="tab-content tab-content--${activeTab}" aria-label="${activeTab}">
-      ${renderTabContent(activeTab, state, config, developmentMode, saveSlots)}
-      ${developmentMode ? renderDevelopmentPanel(state) : ""}
-    </section>
-    ${renderResetConfirmationModal(state, config)}
-    ${renderHistoryReadingModal(state)}
-    ${renderParticleSynthesisModal(state, config)}
-  `;
-}
+    switch (activeDrawer) {
+      // 1. Transistor Allocation Drawer (Section 7.6)
+      case "transistor": {
+        const tTotal = state.devices?.transistorsPurchased ?? 0;
+        const nextCost = calculateBulkDeviceCost(
+          "transistor",
+          tTotal,
+          1,
+          config,
+        );
+        const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
+        const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
+        const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const speedAImp = calculateEffectiveStudySpeed(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedAUpg = calculateEffectiveStudySpeed(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const speedARec = calculateEffectiveStudySpeed(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAImp = calculateEffectiveStudyDuration(
+          "AImp",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durAUpg = calculateEffectiveStudyDuration(
+          "AUpg",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARec = calculateEffectiveStudyDuration(
+          "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
 
-const renderEnergy = renderGlobalHUD;
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("transistor-board")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Transistor Fleet Management</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
 
-export function createRenderer(
-  app,
-  config,
-  developmentMode,
-  getSaveSlots = () => [],
-  newsList = DEFAULT_NEWS,
-) {
-  let lastRenderSignature = "";
-  let pointerIsDown = false;
-  let deferredRender = false;
+              <div>
+                <p class="muted" style="margin-bottom: 12px;">
+                  Each allocated Transistor provides <strong>+2.5% Study Speed</strong> to its target algorithm.
+                  Purchasing increments a shared global geometric price.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <div>
+                    <span class="eyebrow">TOTAL PURCHASED</span>
+                    <div data-field="drawer-t-total" style="font-size: 18px; font-weight: 700; color: var(--tes-cyan);">${formatInteger(tTotal)} Transistors</div>
+                  </div>
+                  <div>
+                    <span class="eyebrow">NEXT COST</span>
+                    <div data-field="drawer-t-cost" style="font-size: 15px; font-weight: 700; color: var(--tes-text);">${formatEnergy(nextCost)}</div>
+                  </div>
+                </div>
 
-  app.addEventListener(
-    "pointerdown",
-    () => {
-      pointerIsDown = true;
-    },
-    true,
-  );
+                <!-- Purchase Buttons -->
+                <div style="display: flex; gap: 6px; margin-bottom: 18px;">
+                  <button class="btn-primary" data-field="drawer-buy-t-1" data-action="buy-element" data-element-id="transistor" data-count="1">+1 Transistor</button>
+                  <button class="btn-secondary" data-field="drawer-buy-t-10" data-action="buy-element" data-element-id="transistor" data-count="10">+10</button>
+                  <button class="btn-secondary" data-field="drawer-buy-t-100" data-action="buy-element" data-element-id="transistor" data-count="100">+100</button>
+                  <button class="btn-secondary" data-field="drawer-buy-t-1000" data-action="buy-element" data-element-id="transistor" data-count="1000">+1000</button>
+                </div>
 
-  const finishPointerInteraction = () => {
-    pointerIsDown = false;
-    if (!deferredRender) return;
+                <div class="tes-section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="tes-section-title">ALLOCATION DISTRIBUTION</span>
+                  <button class="btn-secondary" style="font-size: 11px; padding: 4px 10px;" data-action="rebalance-transistors" data-field="drawer-rebalance-btn">Distribute Evenly</button>
+                </div>
 
-    window.setTimeout(() => {
-      if (!pointerIsDown && deferredRender) render(deferredRender.state);
-    }, 120);
-  };
+                <table class="tes-table">
+                  <thead>
+                    <tr>
+                      <th>Algorithm</th>
+                      <th>Allocated</th>
+                      <th>Duration</th>
+                      <th>Speed</th>
+                      <th>Reassign</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>A.Improvement</strong></td>
+                      <td data-field="drawer-t-aimp" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tAImp)}</td>
+                      <td data-field="drawer-dur-aimp">${formatStudyDuration(durAImp)}</td>
+                      <td data-field="drawer-speed-aimp">${speedAImp.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aupg-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="AImp" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                          ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AImp" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>A.Upgrade</strong></td>
+                      <td data-field="drawer-t-aupg" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tAUpg)}</td>
+                      <td data-field="drawer-dur-aupg">${formatStudyDuration(durAUpg)}</td>
+                      <td data-field="drawer-speed-aupg">${speedAUpg.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aimp-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="AUpg" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
+                          ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AUpg" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                        </div>
+                      </td>
+                    </tr>
+                    ${
+                      state.unlocks?.ARec
+                        ? `
+                    <tr data-field="drawer-row-arec">
+                      <td><strong>A.Recalculation</strong></td>
+                      <td data-field="drawer-t-arec" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tARec)}</td>
+                      <td data-field="drawer-dur-arec">${formatStudyDuration(durARec)}</td>
+                      <td data-field="drawer-speed-arec">${speedARec.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aimp-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="ARec" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
+                          <button data-field="drawer-reassign-aupg-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="ARec" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                        </div>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
 
-  app.addEventListener("pointerup", finishPointerInteraction, true);
-  app.addEventListener("pointercancel", finishPointerInteraction, true);
+      // 2. Microprocessor Configuration Drawer (Section 7.7)
+      case "microprocessor": {
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const mOwned = state.devices?.microprocessor?.owned ?? 0;
+        const evalResult = engine.evaluateElement("microprocessor", 1);
+        const nextCost = evalResult.cost ?? calculateBulkDeviceCost(
+          "microprocessor",
+          mOwned,
+          1,
+          config,
+        );
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const currentSpeedMult = calculateEffectiveStudySpeed(
+          mTarget,
+          state,
+          config,
+          engine.statResolver,
+        );
+        const studySpeedMult = engine?.statResolver
+          ? engine.statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+          : calculateStudySpeedDeviceMultiplier(state, config);
+        const microMult = calculateMicroprocessorStudyMultiplier(
+          tCount,
+          config,
+          studySpeedMult,
+          mOwned,
+        );
 
-  return function render(state) {
-    const saveSlots = getSaveSlots();
-    const signature = createRenderSignature(
-      state,
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("microprocessor")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Microprocessor Configuration</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <p class="muted" style="margin-bottom: 14px;">
+                  Amplifies study speed on the selected algorithm based on allocated Transistors.
+                </p>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <div>
+                    <span class="eyebrow">INSTALLATION</span>
+                    <div data-field="drawer-micro-owned" style="font-size: 16px; font-weight: 700; color: var(--tes-cyan);">${mOwned >= 1 ? "1 (Installed)" : "Not Installed"}</div>
+                  </div>
+                  <div>
+                    <span class="eyebrow">UNIT COST</span>
+                    <div data-field="drawer-micro-cost" style="font-size: 15px; font-weight: 700; color: var(--tes-text);">${formatEnergy(nextCost)}</div>
+                  </div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">TARGET ALGORITHM</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                  <button data-micro-target-btn="AImp" class="${mTarget === "AImp" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AImp">Target A.Imp</button>
+                  <button data-micro-target-btn="AUpg" class="${mTarget === "AUpg" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AUpg">Target A.Upg</button>
+                  ${state.unlocks?.ARec ? `<button data-micro-target-btn="ARec" class="${mTarget === "ARec" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="ARec">Target A.Rec</button>` : ""}
+                </div>
+
+                <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px; margin-bottom: 16px;">
+                  <span class="eyebrow">ACTIVE EFFECT PREVIEW</span>
+                  <div style="font-size: 13.5px; margin-top: 6px; line-height: 1.5;">
+                    Allocated Transistors: <strong data-field="drawer-micro-t">${tCount} T</strong> on <span data-field="drawer-micro-target">${mTarget}</span><br />
+                    Microprocessor Boost: <strong data-field="drawer-micro-direct-mult" style="color: var(--tes-teal);">${microMult.toFixed(2)}x</strong>${studySpeedMult > 1.0001 ? ` <span style="font-size: 11px; color: var(--tes-text-tertiary);">(${studySpeedMult.toFixed(2)}x prestige bonus)</span>` : ""}<br />
+                    Effective Target Speed: <strong data-field="drawer-micro-mult" style="color: var(--tes-cyan);">${currentSpeedMult.toFixed(2)}x</strong>
+                  </div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">INSTALLATION STATUS</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div data-field="drawer-micro-install-container">
+                  ${mOwned >= 1
+                    ? `<span class="badge-status badge-status--active" style="display: inline-block; padding: 6px 14px; font-weight: 600;">Installed (Unique Device)</span>`
+                    : `
+                      <button class="btn-primary" data-field="drawer-micro-install-btn" data-action="buy-element" data-element-id="microprocessor" data-count="1" ${!evalResult.canClick ? "disabled" : ""}>
+                        Install Microprocessor (${formatEnergy(nextCost)})
+                      </button>
+                      ${!evalResult.canClick && evalResult.reasons.length > 0 ? `
+                        <div data-field="drawer-micro-reasons" class="tes-warning-banner" style="margin-top: 8px; font-size: 13px; color: var(--tes-amber); display: flex; align-items: center; gap: 6px;">
+                          <span aria-hidden="true">⚠️</span>
+                          <span>${evalResult.reasons.join(". ")}</span>
+                        </div>
+                      ` : `<div data-field="drawer-micro-reasons" style="display:none;"></div>`}
+                    `
+                  }
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 3. Overclock Modal (Section 7.9)
+      case "overclock": {
+        const mTarget = state.devices?.microprocessor?.target ?? "AImp";
+        const tCount = state.devices?.transistorAllocations?.[mTarget] ?? 0;
+        const dur = calculateOverclockDuration(tCount, config);
+        const bonus = calculateOverclockBonusMultiplier(tCount, config);
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("overclocker")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title" style="color: var(--tes-danger);">Activate Overclocker</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+
+              <div>
+                <p style="margin-bottom: 14px;">
+                  <strong style="color: var(--tes-danger);">Warning:</strong> This operation will permanently <strong>burn all ${formatInteger(tCount)} Transistors</strong> allocated to <strong>${mTarget}</strong> to supercharge Microprocessor performance temporarily!
+                </p>
+
+                <div style="background: rgba(255,105,139,0.1); border: 1px solid rgba(255,105,139,0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                  <div>Target Algorithm: <strong data-field="modal-overclock-target">${mTarget}</strong></div>
+                  <div>Transistors to Burn: <strong data-field="modal-overclock-burn" style="color: var(--tes-danger);">${formatInteger(tCount)} T</strong></div>
+                  <div>Active Boost Duration: <strong data-field="modal-overclock-dur">${dur.toFixed(1)}s</strong></div>
+                  <div>Microprocessor Bonus: <strong data-field="modal-overclock-bonus" style="color: var(--tes-teal);">${bonus.toFixed(2)}x</strong></div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                  <button class="btn-secondary" data-action="close-drawer">Cancel</button>
+                  <button class="btn-danger" data-action="activate-overclock">Burn Transistors & Overclock</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 4. Hard Disk Drawer (Section 7.13)
+      case "harddisk": {
+        const hds = state.devices?.hardDisks?.owned ?? 0;
+        const hdState = state.devices?.hardDisks?.state ?? "off";
+        const buf = state.devices?.hardDisks?.buffer ?? 0;
+        const isDataPaused = Boolean(state.devices?.hardDisks?.dataPaused);
+        const rate =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskXpRate(hds, state, config, engine.statResolver)
+            : 0;
+        const drain =
+          hdState === "active" && !isDataPaused
+            ? calculateHardDiskEnergyDrain(
+                hds,
+                state.devices?.hardDisks?.activeSeconds ?? 0,
+                config,
+              )
+            : big(0);
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("hard-disk")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Hard Disk Buffer Management</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <p class="muted" style="margin-bottom: 14px;">
+                  Hard Disks continuously generate Available Data (XP) by consuming Stored Energy. Energy drain grows with uptime.
+                </p>
+
+                <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px; margin-bottom: 16px;">
+                  <div>Accumulated Buffer: <strong data-field="drawer-hd-buf" style="color: var(--tes-purple-light); font-size: 16px;">${formatInteger(buf)} Data</strong></div>
+                  <div>Data Generation Rate: <strong data-field="drawer-hd-rate" style="color: var(--tes-teal);">${formatNumber(rate, 1)} Data/s</strong></div>
+                  <div>Energy Drain: <strong data-field="drawer-hd-drain" style="color: var(--tes-danger);">${drain.gt(0) ? `-${formatEnergy(drain)}/s` : "0.00 J/s"}</strong></div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">OPERATIONAL STATE</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                  <button data-hd-btn="active" class="${hdState === "active" ? "btn-primary" : "btn-secondary"}" data-action="set-harddisk-state" data-state="active">Active (On)</button>
+                  <button data-hd-btn="standby" class="${hdState === "standby" ? "btn-primary" : "btn-secondary"}" data-action="set-harddisk-state" data-state="standby">Standby</button>
+                  <button data-hd-btn="off" class="${hdState === "off" ? "btn-danger" : "btn-secondary"}" data-action="set-harddisk-state" data-state="off">Turn Off (Wipes Buffer)</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 5. Developer Tools Drawer (Section 8.5)
+      case "dev": {
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <aside class="tes-drawer" style="width: min(600px, 95vw);">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("icon-settings")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Developer Mode & Cheats</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close drawer">&times;</button>
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <span>Dev Mode (Force Active):</span>
+                  <button class="btn-secondary ${state.devMode ? "btn-utility--active" : ""}" data-action="toggle-dev-mode">
+                    ${state.devMode ? "DEV MODE: ON" : "DEV MODE: OFF"}
+                  </button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">ENERGY INJECTION</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 14px;">
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1e-9">+1 nJ</button>
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1e-6">+1 µJ</button>
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1e-3">+1 mJ</button>
+                  <button class="btn-secondary" data-action="add-energy" data-amount="1">+1 J</button>
+                  <button class="btn-danger" data-action="zero-energy">Zero J</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">ALGORITHMS & LEVEL</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 14px;">
+                  <button class="btn-secondary" data-action="add-afeature" data-target="AImp" data-count="12">+12 AImp</button>
+                  <button class="btn-secondary" data-action="add-afeature" data-target="AUpg" data-count="12">+12 AUpg</button>
+                  <button class="btn-secondary" data-action="add-afeature" data-target="ARec" data-count="12">+12 ARec</button>
+                  <button class="btn-secondary" data-action="add-comp-level">+1 Level</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">SIMULATION SPEED</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                  <button class="btn-secondary" data-action="set-speed" data-speed="1">1x</button>
+                  <button class="btn-secondary" data-action="set-speed" data-speed="5">5x</button>
+                  <button class="btn-secondary" data-action="set-speed" data-speed="20">20x</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">STATE MILESTONES</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+                  <button class="btn-primary" data-action="quicksave">Quicksave</button>
+                  <button class="btn-secondary" data-action="restore-quicksave" ${engine.hasQuicksave && !engine.hasQuicksave() ? "disabled" : ""}>Restore Quicksave</button>
+                  <button class="btn-danger" data-action="reset-all">Reset All</button>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title" data-field="dev-audit-count">AUDIT LOG (${state.auditLogs?.length ?? 0})</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                  <button class="btn-secondary" data-action="export-csv">Export CSV</button>
+                  <button class="btn-secondary" data-action="export-json">Export JSON</button>
+                  <button class="btn-secondary" data-action="clear-audit">Clear</button>
+                </div>
+
+                <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--tes-border); border-radius: 6px;">
+                  <table class="tes-table" style="font-size: 11px;">
+                    <thead>
+                      <tr><th>Time</th><th>Item</th><th>Qty</th><th>Cost</th><th>Status</th></tr>
+                    </thead>
+                    <tbody data-field="dev-audit-tbody" data-log-count="${state.auditLogs?.length ?? 0}">
+                      ${
+                        (state.auditLogs ?? [])
+                          .slice(-10)
+                          .reverse()
+                          .map(
+                            (l) => `
+                        <tr>
+                          <td>${l.timestamp?.split("T")[1]?.split(".")[0] ?? ""}</td>
+                          <td><strong>${l.itemName}</strong></td>
+                          <td>${l.purchasedQuantity}</td>
+                          <td>${l.nominalCostFormatted}</td>
+                          <td><span class="badge-status ${l.ruleStatus === "RULE_ELIGIBLE" ? "badge-status--active" : "badge-status--standby"}">${l.ruleStatus}</span></td>
+                        </tr>
+                      `,
+                          )
+                          .join("") ||
+                        '<tr><td colspan="5" style="text-align:center;">No logs recorded</td></tr>'
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+        break;
+      }
+
+      // 6. Settings Modal
+      case "settings": {
+        const curNotation = state.settings?.notation || "engineering";
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal" style="max-width: 520px; width: 100%;">
+              <div class="tes-modal-header">
+                <h3 class="tes-modal-title">System Settings</h3>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <p class="muted" style="margin: 0; font-size: 13px;">Configure simulation visual formatting, notation, and data storage.</p>
+
+                <!-- Number Notation Setting -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <span style="font-size: 13px; font-weight: 600; color: var(--tes-text); text-transform: uppercase; letter-spacing: 0.5px;">Notação de Engenharia</span>
+                  <div style="display: flex; flex-direction: column; gap: 8px;" role="radiogroup" aria-label="Notação de Engenharia">
+                    
+                    <label class="tes-setting-option" style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; background: ${curNotation === 'engineering' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${curNotation === 'engineering' ? 'var(--tes-cyan)' : 'var(--tes-border)'};">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="tes-notation" value="engineering" data-action="set-notation" ${curNotation === 'engineering' ? 'checked' : ''} style="cursor: pointer; accent-color: var(--tes-cyan);" />
+                        <span style="font-size: 14px; font-weight: 600; color: ${curNotation === 'engineering' ? 'var(--tes-cyan)' : 'var(--tes-text)'};">Engenharia (m, u, n, p, K, M, G, T)</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--tes-text-dim); padding-left: 24px;">Exemplo: 30.00 pJ · 4.00 nJ · 1.50 J · 2.50 KJ · 10.00 MJ</div>
+                    </label>
+
+                    <label class="tes-setting-option" style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; background: ${curNotation === 'engineering_num' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${curNotation === 'engineering_num' ? 'var(--tes-cyan)' : 'var(--tes-border)'};">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="tes-notation" value="engineering_num" data-action="set-notation" ${curNotation === 'engineering_num' ? 'checked' : ''} style="cursor: pointer; accent-color: var(--tes-cyan);" />
+                        <span style="font-size: 14px; font-weight: 600; color: ${curNotation === 'engineering_num' ? 'var(--tes-cyan)' : 'var(--tes-text)'};">Engenharia Num (-3, -6, -9, ...)</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--tes-text-dim); padding-left: 24px;">Exemplo: 30.00e-12 J · 4.00e-9 J · 1.50 J · 2.50e3 J · 10.00e6 J</div>
+                    </label>
+
+                    <label class="tes-setting-option" style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; background: ${curNotation === 'alpha' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${curNotation === 'alpha' ? 'var(--tes-cyan)' : 'var(--tes-border)'};">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" name="tes-notation" value="alpha" data-action="set-notation" ${curNotation === 'alpha' ? 'checked' : ''} style="cursor: pointer; accent-color: var(--tes-cyan);" />
+                        <span style="font-size: 14px; font-weight: 600; color: ${curNotation === 'alpha' ? 'var(--tes-cyan)' : 'var(--tes-text)'};">Alpha (c, b, a, A, B, C)</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--tes-text-dim); padding-left: 24px;">Exemplo: 30.00 dJ · 4.00 cJ · 1.50 J · 2.50 AJ · 10.00 BJ</div>
+                    </label>
+
+                  </div>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                  <span class="muted">Autosave Frequency:</span>
+                  <span style="font-weight: 600; color: var(--tes-cyan);">5.0 seconds</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                  <span class="muted">Theme:</span>
+                  <span style="font-weight: 600; color: var(--tes-purple-light);">Dark Minimal Sci-Fi</span>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <button class="btn-danger" data-action="reset-all" style="font-size: 12px; padding: 6px 12px;">Wipe Simulation Progress</button>
+                  <button class="btn-primary" data-action="close-drawer">Done</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 7. Statistics Modal
+      case "stats": {
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal">
+              <div class="tes-modal-header">
+                <h3 class="tes-modal-title">Simulation Statistics</h3>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Facility Level:</span>
+                  <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.computerLevel ?? 1}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Machine Learnings:</span>
+                  <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Facility Optimizations:</span>
+                  <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Total Hardware Purchases:</span>
+                  <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Stored Energy:</span>
+                  <strong data-field="stat-energy">${formatEnergy(state.energy)}</strong>
+                </div>
+                <div class="tes-rail-divider"></div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn-primary" data-action="close-drawer">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 8. Measurement / Telemetry Modal
+      case "measure": {
+        const compLevel = state.computerLevel ?? 1;
+        const ap = calculateAlgorithmPerformance(
+          state,
+          config,
+          engine.statResolver,
+        );
+        const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+        const totalProd = calculateEnergyProduction(
+          state,
+          config,
+          engine.statResolver,
+        );
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal">
+              <div class="tes-modal-header">
+                <h3 class="tes-modal-title">Energy Telemetry & Metrics</h3>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Algorithm Performance (AP):</span>
+                  <strong data-field="measure-ap">${formatEnergy(ap)}/s</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Computer Level:</span>
+                  <strong data-field="measure-level-mult" style="color: var(--tes-cyan);">Level ${compLevel}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">CRC Gadget Multiplier:</span>
+                  <strong data-field="measure-gadget-mult" style="color: var(--tes-teal);">${hasGadget ? "2.00x" : "1.00x"}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="muted">Gross Production Rate:</span>
+                  <strong data-field="measure-total-prod" style="color: var(--tes-cyan); font-size: 15px;">${formatRate(totalProd)}</strong>
+                </div>
+                <div class="tes-rail-divider"></div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn-primary" data-action="close-drawer">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 9. Offline Recovery Modal
+      case "offline": {
+        const summary = state.lastOfflineSummary ?? {
+          offlineSeconds: 0,
+          simulatedSeconds: 0,
+          capped: false,
+          netEnergy: big(0),
+          totalEnergyProduced: big(0),
+          studiesCompleted: { AImp: 0, AUpg: 0, ARec: 0 },
+        };
+        const awayStr = formatDuration(summary.offlineSeconds ?? 0);
+        const simStr = formatDuration(summary.simulatedSeconds ?? 0);
+        const netEn = big(summary.netEnergy ?? 0);
+        const netEnStr = formatEnergy(netEn);
+        const isNetPositive = netEn.gte(0);
+        const aImpDiff = summary.studiesCompleted?.AImp ?? summary.algorithmImprovementsCompleted ?? 0;
+        const aUpgDiff = summary.studiesCompleted?.AUpg ?? summary.algorithmUpgradesCompleted ?? 0;
+        const aRecDiff = summary.studiesCompleted?.ARec ?? summary.algorithmRefactoringsCompleted ?? 0;
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal" style="max-width: 520px; width: 100%;">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("auto-calculator")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title">Facility Offline Recovery</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <p class="muted" style="margin: 0; font-size: 13px;">
+                  Autonomous facility systems simulated operations across your absence.
+                </p>
+
+                <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span class="muted">Time Away:</span>
+                    <strong style="color: var(--tes-text);">${awayStr}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span class="muted">Simulated Duration:</span>
+                    <strong style="color: var(--tes-cyan);">${simStr}${summary.capped ? " (Capped)" : ""}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span class="muted">Net Energy Stored:</span>
+                    <strong style="color: ${isNetPositive ? "var(--tes-green)" : "var(--tes-danger)"}; font-size: 15px;">${isNetPositive ? "+" : ""}${netEnStr}</strong>
+                  </div>
+                </div>
+
+                <div class="tes-section-header">
+                  <span class="tes-section-title">AUTONOMOUS COMPUTATION</span>
+                  <div class="tes-section-line"></div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                  <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; border: 1px solid var(--tes-border);">
+                    <span style="color: var(--tes-text);">Algorithm Improvements (A.Imp):</span>
+                    <strong style="color: var(--tes-cyan);">+${formatInteger(aImpDiff)}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; border: 1px solid var(--tes-border);">
+                    <span style="color: var(--tes-text);">Algorithm Upgrades (A.Upg):</span>
+                    <strong style="color: var(--tes-purple-light);">+${formatInteger(aUpgDiff)}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: rgba(255, 255, 255, 0.02); border-radius: 4px; border: 1px solid var(--tes-border);">
+                    <span style="color: var(--tes-text);">Algorithm Refactorings (A.Rec):</span>
+                    <strong style="color: var(--tes-yellow);">+${formatInteger(aRecDiff)}</strong>
+                  </div>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn-primary" data-action="close-drawer" style="padding: 8px 24px;">Resume Simulation</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+
+      // 10. Setup Optimization / Facility Restructure Disclaimer Modal
+      case "fo-confirm": {
+        const foCount = state.facilityOptimizations ?? 0;
+        const curLevel = state.computerLevel ?? 1;
+        const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
+        const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
+        const isFirstTime = foCount === 0;
+
+        containerEl.innerHTML = `
+          <div class="tes-modal-overlay" data-action="close-drawer">
+            <div class="tes-modal" style="max-width: 540px; width: 100%;">
+              <div class="tes-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("facility-optimization")}" alt="" style="width: 24px; height: 24px;" />
+                  <h3 class="tes-modal-title" style="color: #c084fc;">Setup Optimization Disclaimer</h3>
+                </div>
+                <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                ${
+                  isFirstTime
+                    ? `
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px;">
+                    <img src="${tesIconPath("algorithm-recalculation")}" alt="" style="width: 28px; height: 28px;" />
+                    <div style="font-size: 13px; line-height: 1.4;">
+                      <strong style="color: #e9d5ff; display: block; margin-bottom: 2px;">Nova Descoberta Científica!</strong>
+                      <span style="color: #f3e8ff;">Uma nova forma de melhoria de algoritmo foi descoberta: <strong>Algorithm Recalculation (ARec)</strong>!</span>
+                    </div>
+                  </div>
+                `
+                    : ""
+                }
+
+                <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--tes-text-secondary);">
+                  Executar o <strong>Setup Optimization</strong> realiza uma reestruturação profunda da infraestrutura computacional (<strong>HARD RESET na camada de Energy</strong>).
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+                  <div style="padding: 10px 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px;">
+                    <strong style="color: #fca5a5; display: block; margin-bottom: 4px;">⚠ O que será reiniciado (HARD RESET):</strong>
+                    <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
+                      <li><strong>Stored Energy:</strong> Zerada completamente.</li>
+                      <li><strong>Study Improvements:</strong> Todas as melhorias e milestones de estudos são zerados.</li>
+                      <li><strong>Algoritmos & Inventários:</strong> AImp, AUpg e ARec zerados.</li>
+                      <li><strong>Hardware Convencional:</strong> Chips, Transistores, Microprocessor, Capacitores, Processors e Hard Disks removidos.</li>
+                    </ul>
+                  </div>
+
+                  <div style="padding: 10px 12px; background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 6px;">
+                    <strong style="color: #6ee7b7; display: block; margin-bottom: 4px;">✓ O que é PRESERVADO:</strong>
+                    <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
+                      <li><strong>Computer Level & MLs:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservados</span> (não são reiniciados).</li>
+                      <li><strong>Power Cells:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservadas intactas</span> (única exceção de hardware!).</li>
+                      <li><strong>Multiplicador Permanente:</strong> Bônus de <strong>+9% composto</strong> (de ${(curBonus).toFixed(2)}× para <strong style="color: #c084fc;">${(nextBonus).toFixed(2)}×</strong>) em hardware operacional.</li>
+                      <li><strong>Algorithm Recalculation (ARec):</strong> Desbloqueado permanentemente.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="tes-rail-divider"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                  <button class="btn-secondary" data-action="close-drawer">Cancelar</button>
+                  <button class="btn-primary btn-primary--purple" data-action="perform-facility-optimization">
+                    Confirmar Restruturação (Lv. ${curLevel})
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+      }
+    }
+  }
+
+  function closeHoverPopover() {
+    const popoverContainer = container.querySelector("#tes-popover-container");
+    if (popoverContainer && activePopover?.isHover) {
+      activePopover = null;
+      popoverContainer.innerHTML = "";
+    }
+  }
+
+  // Popover info handler
+  function showInfoPopover(topic, triggerEl, isHover = false) {
+    const popoverContainer = container.querySelector("#tes-popover-container");
+    if (!popoverContainer) return;
+
+    if (!isHover && activePopover?.topic === topic && !activePopover.isHover) {
+      activePopover = null;
+      popoverContainer.innerHTML = "";
+      return;
+    }
+
+    if (isHover && activePopover && !activePopover.isHover) {
+      // Don't override a locked popover opened by click
+      return;
+    }
+
+    const config = engine?.config || globalThis.__TES_GAME_CONFIG__ || {};
+    const rect = triggerEl ? triggerEl.getBoundingClientRect() : { bottom: 100, left: 100 };
+    const data = getTooltipContent(topic, {
+      state: engine.state,
       config,
-      developmentMode,
-      saveSlots,
+      engine,
+      statResolver: engine.statResolver,
+    });
+    activePopover = { topic, isHover, ...data };
+
+    const popoverWidth = 380;
+    const top = Math.min(
+      window.innerHeight - 280,
+      Math.max(10, rect.bottom + 6),
+    );
+    const left = Math.min(
+      Math.max(10, window.innerWidth - popoverWidth - 20),
+      Math.max(10, rect.left - 100),
     );
 
-    if (signature === lastRenderSignature) {
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
+    popoverContainer.innerHTML = `
+      <div class="tes-popover" style="top: ${top}px; left: ${left}px;">
+        <div style="font-weight: 700; color: var(--tes-text); margin-bottom: 4px;">${data.title}</div>
+        <div class="tes-popover-body">${data.body}</div>
+      </div>
+    `;
+
+    const popoverEl = popoverContainer.querySelector(".tes-popover");
+    if (popoverEl && isHover) {
+      popoverEl.addEventListener("mouseleave", () => {
+        closeHoverPopover();
+      });
     }
 
-    if (pointerIsDown) {
-      deferredRender = { state };
-      updateDynamicFields(app, state, config, developmentMode, newsList);
-      return;
+    const closeHandler = (e) => {
+      if (
+        !e.target.closest(".tes-popover") &&
+        !e.target.closest('[data-action="show-info"]') &&
+        !e.target.closest("#energy-net-item")
+      ) {
+        activePopover = null;
+        popoverContainer.innerHTML = "";
+        window.removeEventListener("click", closeHandler);
+      }
+    };
+    setTimeout(() => window.addEventListener("click", closeHandler), 10);
+  }
+
+  // Public methods on renderer
+  render.render = render;
+  render.getActiveDrawer = () => activeDrawer;
+  render.openDrawer = (drawerName) => {
+    if (activeDrawer !== drawerName) {
+      activeDrawer = drawerName;
+      lastActiveDrawer = null;
+      render();
     }
-
-    lastRenderSignature = signature;
-    deferredRender = false;
-
-    if (state.introState === "choice") {
-      app.innerHTML = renderIntro();
-      return;
-    }
-
-    if (state.introState === "left") {
-      app.innerHTML = renderEnding();
-      return;
-    }
-
-    if (state.introState === "crc-briefing") {
-      app.innerHTML = renderCrcBriefing();
-      return;
-    }
-
-    app.innerHTML = renderGame(
-      state,
-      config,
-      developmentMode,
-      saveSlots,
-      newsList,
-    );
-    updateDynamicFields(app, state, config, developmentMode, newsList);
   };
+  render.closeDrawer = () => {
+    if (activeDrawer !== null) {
+      activeDrawer = null;
+      render();
+    }
+  };
+  render.refreshDrawer = () => {
+    lastActiveDrawer = null;
+    render();
+  };
+  render.showInfo = showInfoPopover;
+  render.nextNews = () => {
+    const list = getNewsList();
+    newsIndex = (newsIndex + 1) % list.length;
+    updateNewsDisplay();
+  };
+  render.prevNews = () => {
+    const list = getNewsList();
+    newsIndex = (newsIndex - 1 + list.length) % list.length;
+    updateNewsDisplay();
+  };
+
+  return render;
 }

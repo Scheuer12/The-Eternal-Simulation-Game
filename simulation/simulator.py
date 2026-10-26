@@ -63,14 +63,17 @@ class RunState:
 
 
 def device_performance_setup(run: RunState) -> float:
-    return 1.0 + 2.0 * math.log(1.0 + run.setup_optimizations)
+    s = run.setup_optimizations
+    return 1.0 + 5.0 * s + 2.0 * (s ** 2)
 
 
 def stable_energy_capacity(run: RunState, config: dict) -> float:
     base_cap = config["energy"]["powerCellCapacity"]
-    setup_mult = 1.0 + 0.5 * math.log(1.0 + run.setup_optimizations)
-    module_mult = 1.0 + 0.5 * run.power_modules
-    cell_cap = base_cap * run.power_cells * setup_mult
+    d_s = device_performance_setup(run)
+    setup_exp = config.get("economyV2", {}).get("powerModules", {}).get("setupExponent", 0.7)
+    unit_mult = 1.0 + 0.35 * (d_s ** setup_exp)
+    module_mult = unit_mult ** run.power_modules
+    cell_cap = base_cap * run.power_cells
     if run.perks.get("powerCellResonance"):
         cell_cap *= 1.0 + 0.02 * math.log10(1.0 + max(1, run.power_cells))
     return cell_cap * module_mult
@@ -78,12 +81,26 @@ def stable_energy_capacity(run: RunState, config: dict) -> float:
 
 def power_cell_cost(run: RunState, config: dict) -> float:
     settings = config["powerCell"]
-    cap = stable_energy_capacity(run, config)
     owned = max(1, run.power_cells)
-    multiplier = settings["baseCapacityCostMultiplier"] * (
-        1.0 + (owned - 1.0) / settings["costGrowthScale"]
-    ) ** settings["costGrowthPower"]
-    return cap * multiplier
+    current_capacity = config["energy"]["powerCellCapacity"] * owned
+    completed_arrays = owned // config["powerModule"]["cellsPerModule"]
+    array_pressure = (config["powerCell"].get("arrayCostGrowthMultiplier", 1.06)) ** completed_arrays
+    multiplier = (
+        settings["baseCapacityCostMultiplier"]
+        * (1.0 + (owned - 1.0) / settings["costGrowthScale"]) ** settings["costGrowthPower"]
+        * array_pressure
+    )
+    return current_capacity * multiplier
+
+
+def power_module_cost(owned: int, config: dict) -> float:
+    settings = config["powerModule"]
+    return escalating_cost(
+        settings["baseCost"],
+        settings["costGrowth"],
+        settings["costGrowthExponent"],
+        owned,
+    )
 
 
 def auto_calculator_cost(owned: int, config: dict) -> float:
@@ -139,17 +156,24 @@ def processor_effectiveness(run: RunState, config: dict) -> float:
         * d_s
         * oc_mult
     )
-    return (1.0 + unit_bonus) ** run.processors
+    return 1.0 + unit_bonus * run.processors
 
 
 def auto_calculator_speed_multiplier(run: RunState, config: dict) -> float:
     if run.auto_calculators <= 0:
         return 1.0
-    base_bonus = config["economyV2"]["autoCalculators"]["perUnitSpeedBonus"]
+    base_speed = config.get("economyV2", {}).get("autoCalculators", {}).get("baseSpeedPerThread", 2.0)
     d_s = device_performance_setup(run)
+    setup_exp = config.get("economyV2", {}).get("autoCalculators", {}).get("setupOptimizationExponent", 0.72)
+    setup_multiplier = d_s ** setup_exp
+    thread_bonus = (
+        config.get("economyV2", {}).get("scienceRebalance", {}).get("calculatorEnhancedBonus", 1.4)
+        if run.perks.get("calculatorBonusX2ToX22")
+        else config.get("economyV2", {}).get("autoCalculators", {}).get("threadBonus", 1.0)
+    )
+    effective_threads = run.auto_calculators * base_speed * setup_multiplier * thread_bonus
     e_p = processor_effectiveness(run, config)
-    unit_bonus = base_bonus * d_s * e_p
-    return (1.0 + unit_bonus) ** run.auto_calculators
+    return float(effective_threads * e_p)
 
 
 def algorithm_improvement_speed(run: RunState, config: dict) -> float:
@@ -193,8 +217,7 @@ def production(run: RunState, config: dict) -> float:
 
     i_mult = 1.0 + run.improvements
     u_mult = 2.0 ** run.upgrades
-    d_s = device_performance_setup(run)
-    prod = base * crc_mult * i_mult * u_mult * d_s
+    prod = base * crc_mult * i_mult * u_mult
 
     if run.perks.get("sciencePoweredEnergyProduction") and run.science_points > 0:
         prod *= 1.0 + run.science_points
@@ -236,9 +259,11 @@ def cmu_requirement(run: RunState, config: dict) -> int:
 
 
 def setup_requirement(run: RunState, config: dict) -> int:
+    s = run.setup_optimizations
     initial = config["setupOptimization"]["initialMethodUpgradesRequired"]
-    growth = config["setupOptimization"]["methodUpgradesRequiredGrowth"]
-    return initial + run.setup_optimizations * growth
+    linear = config["setupOptimization"]["methodUpgradesRequiredGrowth"]
+    quad = config["setupOptimization"].get("methodUpgradesRequiredQuadratic", 0.2)
+    return int(initial + linear * s + quad * (s ** 2))
 
 
 def simulate_run(
@@ -295,9 +320,9 @@ def simulate_run(
             run.improvements = 0
             run.study_remaining = None
 
-        # CMU Trigger: reset studies when required Algorithm Upgrades reached
+        # SI Trigger: reset studies when required Algorithm Upgrades reached (sprint to 100 GJ at S>=3)
         req_cmu = cmu_requirement(run, config)
-        if run.method_upgrades < 2 and run.upgrades >= req_cmu:
+        if run.setup_optimizations < 3 and run.upgrades >= req_cmu:
             run.method_upgrades += 1
             if "first_cmu" not in run.milestones:
                 run.milestones["first_cmu"] = run.elapsed
@@ -307,10 +332,23 @@ def simulate_run(
             run.improvements = 0
             run.study_remaining = None
 
-        # Setup Optimization Trigger: used for deep runs when power cells are well-established
+        # Setup Upgrade Trigger: 3 Setup Upgrades before Synthesis
         req_setup = setup_requirement(run, config)
-        if run.method_upgrades >= req_setup and run.power_cells >= 50 and run.peak_energy >= 1e12:
+        can_setup = run.method_upgrades >= req_setup
+        should_setup = False
+        if run.setup_optimizations == 0 and can_setup and run.energy >= 0.005:
+            should_setup = True
+        elif run.setup_optimizations == 1 and can_setup and run.energy >= 10.0:
+            should_setup = True
+        elif run.setup_optimizations == 2 and can_setup and run.energy >= 1e4:
+            should_setup = True
+        elif run.setup_optimizations >= 3 and can_setup and run.energy >= 1e11:
+            should_setup = True
+
+        if should_setup:
             run.setup_optimizations += 1
+            if f"setup_{run.setup_optimizations}" not in run.milestones:
+                run.milestones[f"setup_{run.setup_optimizations}"] = run.elapsed
             run.energy = 0.0
             run.improvements = 0
             run.upgrades = 0
@@ -353,6 +391,14 @@ def simulate_run(
         ):
             run.energy -= cost_cell
             run.power_cells += 1
+
+        # 3b. Power Modules (expand Power Cell arrays)
+        req_cells = (run.power_modules + 1) * config["powerModule"]["cellsPerModule"]
+        if run.power_cells >= req_cells:
+            cost_mod = power_module_cost(run.power_modules, config)
+            if run.energy >= cost_mod and run.power_modules < 50:
+                run.energy -= cost_mod
+                run.power_modules += 1
 
         # 4. Auto Calculator
         cost_calc = auto_calculator_cost(run.auto_calculators, config)
@@ -422,7 +468,8 @@ def run_benchmark() -> None:
     print(f"  * Auto Calculators   : {run1.auto_calculators}")
     print(f"  * Processors         : {run1.processors}")
     print(f"  * Overclockers       : {run1.overclockers}")
-    print(f"  * Power Cells        : {run1.power_cells}\n")
+    print(f"  * Power Cells        : {run1.power_cells}")
+    print(f"  * Power Modules      : {run1.power_modules}\n")
 
     print("[RUN 2: Post-Synthesis with Redundancy Elimination Active]")
     run2 = simulate_run(config, has_redundancy=True, max_seconds=7200.0)
@@ -445,7 +492,8 @@ def run_benchmark() -> None:
     print(f"  * Auto Calculators   : {run2.auto_calculators}")
     print(f"  * Processors         : {run2.processors}")
     print(f"  * Overclockers       : {run2.overclockers}")
-    print(f"  * Power Cells        : {run2.power_cells}\n")
+    print(f"  * Power Cells        : {run2.power_cells}")
+    print(f"  * Power Modules      : {run2.power_modules}\n")
 
     speedup = time1 / max(1.0, time2)
     print(f"Synthesis Acceleration Factor: {speedup:.2f}x faster with Redundancy Elimination")

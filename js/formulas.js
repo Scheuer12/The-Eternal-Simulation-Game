@@ -1,1057 +1,572 @@
-import {
-  big,
-  bigClamp,
-  bigFloorDiv,
-  bigMax,
-  bigMin,
-  formatEngineering,
-  toFiniteNumber,
-} from "./numeric.js";
+/**
+ * formulas.js
+ * Pure mathematical formulas for The Eternal Simulation (Rebuild specification).
+ * Strictly decoupled from state mutation and UI.
+ * Registers formulas in FormulaRegistry.
+ */
 
-export function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value));
+import { big, bigMax, bigMin, BigNum } from "./numeric.js";
+import { defaultFormulaRegistry } from "./formula-registry.js";
+
+// ============================================================================
+// 1. ALGORITHM STRENGTHS & PERFORMANCE
+// ============================================================================
+
+export function calculateAlgorithmStrengths(computerLevel = 1, config = {}, capacitorMultiplier = 1.0) {
+  const L = Math.max(1, Math.floor(computerLevel ?? 1));
+  const B = config.economy?.algorithmBaseStrength ?? 1e-15;
+  const F = config.economy?.algorithmConversionFactor ?? 12;
+  const C = Number.isFinite(Number(capacitorMultiplier)) && Number(capacitorMultiplier) >= 0
+    ? Number(capacitorMultiplier)
+    : 1.0;
+
+  // Step 1: Base AImp strength amplified by Computer Level and Capacitor multiplier
+  const aImp = B * L * C;
+  // Step 2: AUpg inherits Capacitor-amplified AImp strength
+  const aUpg = aImp * F * (L + 1);
+  // Step 3: ARec inherits Capacitor-amplified AUpg strength
+  const aRec = aUpg * F * (L + 1);
+
+  return {
+    AImp: aImp,
+    AUpg: aUpg,
+    ARec: aRec,
+  };
 }
 
-/**
- * In Economy V2, each completed Improvement gives a linear +1 nominal factor
- * to CRC base production.
- */
-export function calculateImprovementBonus(
-  completedImprovements,
-  config,
-  calculationMethodUpgrades = 0,
-) {
-  return config?.economyV2?.crc?.improvementLinearBonus ?? 1;
+export function calculateAlgorithmBaseStrengths(config = {}) {
+  return calculateAlgorithmStrengths(1, config, 1.0);
 }
 
-/**
- * Direct unmultiplied base production rate added by a single Algorithm Improvement cycle.
- * This represents the raw unamplified rate (nominally 1e-12 J/s) added directly before CRC-level
- * multipliers (such as CRC count C, Upgrades 2^U, Setup D(S)).
- * If an active perk/modifier affects Improvement strength directly, it scales here.
- */
-export function calculateImprovementBaseOutput(config, state = null) {
-  const baseRate =
-    config?.economyV2?.crc?.baseProductionPerSecond ??
-    config?.energy?.baseProductionPerSecond ??
-    1e-12;
-  const linearBonus = config?.economyV2?.crc?.improvementLinearBonus ?? 1;
+export function calculateComputerPerformanceMultiplier(computerLevel = 1, config = {}) {
+  // Obsolete global multiplier: Computer Level is now integrated directly into
+  // individual algorithm feature strengths (AImp: B*L, AUpg: B*F*L*(L+1), ARec: B*F^2*L*(L+1)^2).
+  // Returns 1.0 to prevent any double-application of Computer Level.
+  return 1.0;
+}
 
-  let directMultiplier = 1;
-  if (state && hasSciencePerk(state, "improvementStrengthMultiplier")) {
-    directMultiplier *= state.improvementStrengthMultiplier ?? 1;
+export function calculateCapacitorMultiplier(capacitorsOwned = 0, config = {}, deviceMultiplier = 1) {
+  const c = Math.max(0, Math.floor(capacitorsOwned ?? 0));
+  const bonusPerUnit = config.devices?.capacitor?.bonusPerUnit ?? 0.5;
+  return 1 + bonusPerUnit * c * deviceMultiplier;
+}
+
+export function calculateAlgorithmPerformance(state = {}, config = {}, statResolver = null) {
+  const compLevel = state.computerLevel ?? 1;
+  const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+  const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+  const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+
+  const capacitorMult = statResolver
+    ? statResolver.resolve("algorithms.AImp.capacitorMultiplier", { state, config })
+    : calculateCapacitorMultiplier(state.devices?.capacitors ?? 0, config, deviceMultiplier);
+
+  // Capacitors cascade into the entire Algorithm Feature chain through AImp
+  const strengths = calculateAlgorithmStrengths(compLevel, config, capacitorMult);
+
+  const aImpContrib = big(strengths.AImp).mul(aImpOwned);
+  const aUpgContrib = big(strengths.AUpg).mul(aUpgOwned);
+  const aRecContrib = big(strengths.ARec).mul(aRecOwned);
+
+  return aImpContrib.add(aUpgContrib).add(aRecContrib);
+}
+
+export function calculateCrcMultiplier(state = {}, config = {}, deviceMultiplier = 1) {
+  const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
+  if (!hasGadget) return 1.0;
+  const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
+  return 1.0 + (baseMult - 1.0) * deviceMultiplier;
+}
+
+export function calculateEnergyProduction(state = {}, config = {}, statResolver = null) {
+  const ap = calculateAlgorithmPerformance(state, config, statResolver);
+  if (ap.lte(0)) return big(0);
+
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+
+  const crcMult = statResolver
+    ? statResolver.resolve("devices.crc.multiplier", { state, config })
+    : calculateCrcMultiplier(state, config, deviceMultiplier);
+
+  return ap.mul(crcMult);
+}
+
+export function calculateEnergyOverflowDecay(storedEnergy = 0, stableCapacity = 0, config = {}) {
+  const energy = big(storedEnergy);
+  const cap = big(stableCapacity);
+  const overflow = bigMax(0, energy.sub(cap));
+  if (overflow.lte(0)) return big(0);
+
+  const rate = config.decay?.overflowDecayRate ?? 0.009;
+  const power = config.decay?.overflowDecayPower ?? 1.35;
+  return big(rate).mul(overflow.pow(power));
+}
+
+export function calculateEnergyEraProgress(storedEnergy = 0, config = {}) {
+  const eVal = big(storedEnergy);
+  const targetVal = big(config.energyEraProgress?.targetStoredEnergy ?? 100000000000);
+  const scaleVal = big(config.energyEraProgress?.logScale ?? 1e-12);
+
+  if (eVal.lte(0) || targetVal.lte(0) || scaleVal.lte(0)) {
+    return 0;
+  }
+  if (eVal.gte(targetVal)) {
+    return 1.0;
   }
 
-  return big(baseRate).mul(linearBonus).mul(directMultiplier);
-}
-
-/**
- * Total direct base output generated by all completed improvements combined.
- */
-export function calculateTotalImprovementDirectOutput(state, config) {
-  const basePerImp = calculateImprovementBaseOutput(config, state);
-  const count = Math.max(0, state?.improvements ?? 0);
-  return basePerImp.mul(count);
-}
-
-function calculateEscalatingCost(baseCost, growth, exponent, ownedCount) {
-  if (ownedCount <= 0) return big(baseCost);
-  return big(baseCost).mul(big(growth).pow(ownedCount ** exponent));
-}
-
-export function calculateAutoCalculatorCost(ownedCalculators, config) {
-  return calculateEscalatingCost(
-    config.autoCalculator.baseCost,
-    config.autoCalculator.costGrowth,
-    config.autoCalculator.costGrowthExponent,
-    ownedCalculators,
-  );
-}
-
-export function calculateProcessorCost(ownedProcessors, config) {
-  return calculateEscalatingCost(
-    config.processor.baseCost,
-    config.processor.costGrowth,
-    config.processor.costGrowthExponent,
-    ownedProcessors,
-  );
-}
-
-export function calculateOverclockerCost(ownedOverclockers, config) {
-  return calculateEscalatingCost(
-    config.overclocker.baseCost,
-    config.overclocker.costGrowth,
-    config.overclocker.costGrowthExponent,
-    ownedOverclockers,
-  );
-}
-
-export function calculateCrcCost(state, config) {
-  const purchasedCrcs = Math.max(
-    0,
-    state.crcCount - config.energy.initialCrcCount,
-  );
-
-  return calculateEscalatingCost(
-    config.crcConstruction.baseCost,
-    config.crcConstruction.costGrowth,
-    config.crcConstruction.costGrowthExponent,
-    purchasedCrcs,
-  );
-}
-
-export function calculatePowerCellCost(ownedPowerCells, config) {
-  const owned = Math.max(1, ownedPowerCells);
-  const currentCapacity = config.energy.powerCellCapacity * owned;
-  const completedArrays = Math.floor(owned / config.powerModule.cellsPerModule);
-  const arrayPressure =
-    (config.powerCell.arrayCostGrowthMultiplier ?? 1) ** completedArrays;
-  const multiplier =
-    config.powerCell.baseCapacityCostMultiplier *
-    (1 + (owned - 1) / config.powerCell.costGrowthScale) **
-      config.powerCell.costGrowthPower *
-    arrayPressure;
-
-  return big(currentCapacity).mul(multiplier);
-}
-
-export function calculatePowerModuleRequirement(ownedPowerModules, config) {
-  return (ownedPowerModules + 1) * config.powerModule.cellsPerModule;
-}
-
-export function calculatePowerModuleCost(ownedPowerModules, config) {
-  return calculateEscalatingCost(
-    config.powerModule.baseCost,
-    config.powerModule.costGrowth,
-    config.powerModule.costGrowthExponent,
-    ownedPowerModules,
-  );
-}
-
-/**
- * Setup Optimization device performance multiplier:
- * D(S) = 1 + 2 * ln(1 + S)
- */
-export function calculateSetupDevicePerformance(setupOptimizations = 0, config = {}) {
-  const s = Math.max(0, setupOptimizations ?? 0);
-  const coeff =
-    config?.economyV2?.setupOptimizations?.devicePerformanceLogCoefficient ?? 2;
-  return 1 + coeff * Math.log(1 + s);
-}
-
-/**
- * Science perk: Power Cell Resonance (replaces legacy Stored Energy Preservation)
- * Capacity multiplier: 1 + 0.02 * log10(1 + powerCellsOwned)
- */
-export function calculatePowerCellResonanceMultiplier(powerCellsOwned, config = {}) {
-  const coeff =
-    config?.economyV2?.scienceRebalance?.powerCellResonanceLogCoefficient ?? 0.02;
-  const count = Math.max(0, powerCellsOwned ?? 0);
-  return 1 + coeff * Math.log10(1 + count);
-}
-
-/**
- * Power Module capacity multiplier:
- * M_cap = [1 + 0.35 * D(S)]^N_eff
- */
-export function calculatePowerModuleCapacityMultiplier(state, config) {
-  const modules = Math.max(0, state.powerModules ?? 0);
-  if (modules <= 0) return big(1);
-
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  let effectiveModules = modules;
-  if (hasSciencePerk(state, "powerModulesScaling")) {
-    const scaling =
-      config.science?.energyPerks?.powerModuleScalingPerOwnedModule ?? 0.0085;
-    effectiveModules = modules * (1 + modules * scaling);
-  }
-
-  const baseGrowth = (config.powerModule?.capacityMultiplier ?? 1.35) - 1; // 0.35
-  const unitMultiplier = 1 + baseGrowth * setupPerformance;
-
-  return big(unitMultiplier).pow(effectiveModules);
-}
-
-/**
- * Stable Energy Capacity:
- * Capacity_cells = powerCellsOwned * baseCapacity * D(S) * resonanceEffect
- * Total = Capacity_cells * M_cap
- */
-export function calculateStableEnergyCapacity(state, config) {
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  let resonance = 1;
-  if (hasSciencePerk(state, "powerCellResonance")) {
-    resonance = calculatePowerCellResonanceMultiplier(state.powerCells, config);
-  }
-
-  const baseCapacity = config.energy.powerCellCapacity;
-  const cellCapacity = big(Math.max(1, state.powerCells))
-    .mul(baseCapacity)
-    .mul(setupPerformance)
-    .mul(resonance);
-
-  return cellCapacity.mul(calculatePowerModuleCapacityMultiplier(state, config));
-}
-
-export function calculateEnergyOverflowDecay(state, config) {
-  const capacity = calculateStableEnergyCapacity(state, config);
-  const energy = big(state.energy);
-  if (capacity.lte(0) || energy.lte(capacity)) return big(0);
-
-  const overflowRatio = energy.sub(capacity).div(capacity);
-  return capacity
-    .mul(config.energy.overflowDecayRate)
-    .mul(overflowRatio.pow(config.energy.overflowDecayPower));
-}
-
-export function calculateEnergyRetention(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const production = calculateProduction(state, config, developmentMode);
-  if (production.lte(0))
-    return big(state.energy).gt(calculateStableEnergyCapacity(state, config))
-      ? 0
-      : 1;
-
-  return clamp(
-    production
-      .sub(calculateEnergyOverflowDecay(state, config))
-      .div(production)
-      .toNumber(),
-    0,
-    1,
-  );
-}
-
-/**
- * Overclocker amplification on Processor bonus:
- * O_0(K) = 5 * 1.5^(K-1) when active, else 1
- * O_eff(K,S) = 1 + (O_0(K) - 1) * D(S)
- */
-export function calculateOverclockerSpeedMultiplier(state, config) {
-  const overclockers = state.devices?.overclockers ?? 0;
-  if (overclockers <= 0 || !state.overclocker?.active) return 1;
-
-  const first =
-    config.economyV2?.overclockers?.firstProcessorBonusMultiplier ??
-    config.overclocker?.baseCalculatorSpeedMultiplier ??
-    5;
-  const additional =
-    config.economyV2?.overclockers?.additionalProcessorBonusMultiplier ??
-    config.overclocker?.additionalCalculatorSpeedMultiplier ??
-    1.5;
-  const o0 = first * additional ** (overclockers - 1);
-
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  return 1 + (o0 - 1) * setupPerformance;
-}
-
-export function calculateOverclockerDrainPerSecond(state, config) {
-  const overclockers = state.devices?.overclockers ?? 0;
-  if (overclockers <= 0 || !state.overclocker?.active) return big(0);
-  const activeSeconds = Math.max(0, state.overclocker.activeSeconds ?? 0);
-  const runtimeMultiplier = config.overclocker.runtimeDrainGrowthBase
-    ? big(config.overclocker.runtimeDrainGrowthBase).pow(activeSeconds)
-    : big(1).add(
-        big(config.overclocker.runtimeDrainGrowthCoefficient).mul(
-          activeSeconds ** config.overclocker.runtimeDrainGrowthPower,
-        ),
-      );
-
-  return big(config.overclocker.baseEnergyDrainPerSecond)
-    .mul(big(config.overclocker.energyDrainGrowth).pow(overclockers - 1))
-    .mul(runtimeMultiplier);
-}
-
-/**
- * Processor unit bonus:
- * 0.15 * G_M(M) * D(S) * O_eff(K,S)
- * where G_M(M) = 1.2^M
- */
-export function calculateProcessorBonusUnit(state, config) {
-  const cmu = state.calculationMethods ?? 0;
-  const cmuMultiplier =
-    (config.economyV2?.calculationMethods?.processorBonusMultiplierPerCMU ?? 1.2) **
-    cmu;
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  const overclockMultiplier = calculateOverclockerSpeedMultiplier(state, config);
-  const baseBonus =
-    config.economyV2?.processors?.perUnitBonus ??
-    (config.processor?.deviceEfficiencyMultiplier
-      ? config.processor.deviceEfficiencyMultiplier - 1
-      : 0.15);
-  return baseBonus * cmuMultiplier * setupPerformance * overclockMultiplier;
-}
-
-/**
- * Aggregated Processor effectiveness:
- * E_P = (1 + unitBonus)^P
- */
-export function calculateProcessorEfficiencyMultiplier(state, config) {
-  const processors = state.devices?.processors ?? 0;
-  if (processors <= 0) return 1;
-  const unitBonus = calculateProcessorBonusUnit(state, config);
-  return (1 + unitBonus) ** processors;
-}
-
-/**
- * Backwards compatibility alias for calculateProcessorEfficiencyMultiplier.
- */
-export function calculateDeviceEfficiencyMultiplier(state, config) {
-  return big(calculateProcessorEfficiencyMultiplier(state, config));
-}
-
-export function hasSciencePerk(state, perkId) {
-  return Boolean(state.science?.perks?.[perkId]);
-}
-
-/**
- * Direct Processor -> CRC production perk:
- * E_P^0.15
- */
-export function calculateCrcProcessorBonusMultiplier(state, config) {
-  if (!hasSciencePerk(state, "processorBonusAppliesCRC")) return big(1);
-  const exponent =
-    config.science?.energyPerks?.processorBonusExponentForCrc ?? 0.15;
-  const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  return big(ep).pow(exponent);
-}
-
-/**
- * Science-Powered Energy Production perk:
- * 1 + totalScienceEarned
- */
-export function calculateScienceProductionMultiplier(state) {
-  if (!hasSciencePerk(state, "sciencePoweredEnergyProduction")) return big(1);
-  const earned = Math.max(0, state.science?.totalScienceEarned ?? 0);
-  return big(1).add(earned);
-}
-
-export function calculateCrcExponentialMultiplier(state, config) {
-  if (!hasSciencePerk(state, "crcExponentialScaling")) return big(1);
-  const perCrc =
-    config.science?.energyPerks?.crcExponentialProductionPerCrc ?? 1.005;
-  return big(perCrc).pow(Math.max(0, state.crcCount));
-}
-
-/**
- * Auto Calculator fleet speed multiplier:
- * V_A = (1 + B_A * D(S) * E_P)^A
- * where B_A is 0.5 (or 0.7 with calculatorBonusX2ToX22 perk)
- */
-export function calculateAutoCalculatorSpeedMultiplier(state, config) {
-  const calculators = state.devices?.autoCalculators ?? 0;
-  if (calculators <= 0) return 1;
-
-  const baseUnitBonus = hasSciencePerk(state, "calculatorBonusX2ToX22")
-    ? (config.economyV2?.scienceRebalance?.calculatorEnhancedBonus ?? 0.7)
-    : (config.economyV2?.autoCalculators?.perUnitSpeedBonus ?? 0.5);
-
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-  const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  const unitBonus = baseUnitBonus * setupPerformance * ep;
-
-  return (1 + unitBonus) ** calculators;
-}
-
-export function calculateRedundancyEffectiveCycles(improvements, config) {
-  const settings = config.science?.redundancyElimination ?? {};
-  const softcapStart = settings.softcapStartsAtImprovements ?? 50;
-  const hardcapStart = settings.hardcapStartsAtImprovements ?? 100;
-  const postSoftcapRate = settings.postSoftcapCycleRate ?? 0.08;
-  const maxExtra = settings.postSoftcapMaximumExtraCycles ?? 4;
-
-  const count = Math.max(0, improvements ?? 0);
-  if (count <= softcapStart) {
-    return count;
-  }
-
-  const clampedCount = Math.min(count, hardcapStart);
-  const postSoftcap = clampedCount - softcapStart;
-  const extraCycles = Math.min(maxExtra, postSoftcap * postSoftcapRate);
-  return softcapStart + extraCycles;
-}
-
-export function calculateRedundancyEliminationSpeedMultiplier(state, config) {
-  if (!hasSciencePerk(state, "redundancyElimination")) return 1;
-  const effectiveCycles = calculateRedundancyEffectiveCycles(
-    state.improvements,
-    config,
-  );
-  const bonusPerUpgradeCycle =
-    config.science?.redundancyElimination
-      ?.researchSpeedBonusPerUpgradePerCycle ?? 0.005;
-  return (1 + bonusPerUpgradeCycle) ** ((state.upgrades ?? 0) * effectiveCycles);
-}
-
-/**
- * Direct Processor -> Improvement speed perk:
- * V_direct = E_P^1.07
- */
-export function calculateProcessorImprovementSpeedMultiplier(state, config) {
-  if (!hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) return 1;
-  const ep = calculateProcessorEfficiencyMultiplier(state, config);
-  const exp =
-    config.science?.studyPerks?.processorBonusImprovementSpeedExponent ?? 1.07;
-  return ep ** exp;
-}
-
-export function calculateQuantumCalculationBonus(totalQuarks, config) {
-  const settings = config.science?.quantumPerks ?? {};
-  const raw = bigMax(0, totalQuarks)
-    .add(1)
-    .log10()
-    .mul(settings.calculationSpeedLogCoefficient ?? 0.015);
-  const softcap = settings.calculationSpeedSoftcapRaw ?? 0.15;
-  const slope = settings.calculationSpeedPostSoftcapSlope ?? 0.25;
-  const maximum = settings.calculationSpeedMaximumBonus ?? 0.3;
-  const effective = raw.lte(softcap)
-    ? raw
-    : big(softcap).add(raw.sub(softcap).mul(slope));
-  return 1 + bigMin(maximum, effective).toNumber();
-}
-
-/**
- * Legacy compatibility: Quantum Superposition retention is removed in V2.
- */
-export function calculateQuantumSuperpositionRetention(totalQuarks, config) {
-  return 0;
-}
-
-/**
- * Quantum Superposition in V2:
- * V_quantum = 1 + 0.02 * log10(1 + totalQuarksEarned)
- */
-export function calculateQuantumSuperpositionSpeedMultiplier(totalQuarks, config) {
-  const coeff =
-    config?.economyV2?.scienceRebalance?.quantumSuperpositionLogCoefficient ??
-    0.02;
-  const quarks = bigMax(0, totalQuarks);
-  const logQuarks = quarks.add(1).log10().toNumber();
-  return 1 + coeff * logQuarks;
-}
-
-export function calculateDeviceDurationMultiplier(state, config) {
-  return toFiniteNumber(
-    big(1).div(calculateProcessorEfficiencyMultiplier(state, config)),
-    0,
-  );
-}
-
-/**
- * Algorithm Upgrade requirement:
- * R(U) = ceil(10 + 5U + (0.25/2)*U*(U-1))
- */
-export function calculateAlgorithmUpgradeRequirement(state, config) {
-  const u = Math.max(0, state.upgrades ?? 0);
-  const initial =
-    config.economyV2?.algorithmUpgrades?.initialRequiredImprovements ??
-    config.algorithmUpgrade?.initialImprovementsRequired ??
-    10;
-  const linear =
-    config.economyV2?.algorithmUpgrades?.linearRequirementGrowth ??
-    config.algorithmUpgrade?.improvementsRequiredGrowth ??
-    5;
-  const quadCoeff =
-    config.economyV2?.algorithmUpgrades?.quadraticRequirementCoefficient ?? 0.25;
-  return Math.ceil(initial + linear * u + (quadCoeff / 2) * u * (u - 1));
-}
-
-export function calculateAlgorithmUpgradeDuration(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const u = Math.max(0, state.upgrades ?? 0);
-  const baseSec =
-    config.economyV2?.algorithmUpgrades?.automatedBaseDurationSeconds ??
-    config.algorithmUpgrade?.baseDurationSeconds ??
-    10;
-  const coeff =
-    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthCoefficient ??
-    config.algorithmUpgrade?.durationGrowthCoefficient ??
-    0.16;
-  const power =
-    config.economyV2?.algorithmUpgrades?.automatedDurationGrowthPower ??
-    config.algorithmUpgrade?.durationGrowthPower ??
-    1.1;
-
-  let duration = baseSec * (1 + coeff * (u ** power));
-
-  if (hasSciencePerk(state, "calculatorBonusAppliesAUpgrades")) {
-    const va = calculateAutoCalculatorSpeedMultiplier(state, config);
-    const logCoeff =
-      config.economyV2?.scienceRebalance
-        ?.calculatorUpgradeResearchLogCoefficient ?? 0.2;
-    const vu = 1 + logCoeff * Math.log10(1 + va);
-    if (vu > 0) duration /= vu;
-  }
-
-  if (hasSciencePerk(state, "quantumCalculationPrinciples")) {
-    duration /= calculateQuantumCalculationBonus(
-      state.quarks?.totalEarned ?? 0,
-      config,
-    );
-  }
-
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
-  }
-
-  return duration;
-}
-
-export function calculateCalculationMethodRequirement(state, config) {
-  return (
-    config.calculationMethodUpgrade.initialAlgorithmUpgradesRequired +
-    config.calculationMethodUpgrade.algorithmUpgradesRequiredGrowth *
-      state.calculationMethods
-  );
-}
-
-export function calculateSetupOptimizationRequirement(state, config) {
-  return (
-    config.setupOptimization.initialMethodUpgradesRequired +
-    config.setupOptimization.methodUpgradesRequiredGrowth *
-      state.setupOptimizations
-  );
-}
-
-export function calculateBlueprintResearchDuration(
-  state,
-  config,
-  developmentMode = false,
-) {
-  let duration = config.blueprint.researchDurationSeconds;
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
-  }
-
-  return duration;
-}
-
-export function calculateOverclockerBlueprintDuration(state, config) {
-  return (
-    config.economyV2?.overclockers?.blueprintResearchBaseDurationSeconds ?? 45
-  );
-}
-
-export function canResearchBlueprint(state, config) {
-  return (
-    !state.discoveries.crcBlueprint &&
-    big(state.peakEnergy).gte(config.blueprint.revealAtPeakEnergy)
-  );
-}
-
-export function canPurchasePowerCell(state, config) {
-  const requiredAlgorithmUpgrades =
-    config?.powerCell?.algorithmUpgradesRequired ?? 3;
-  return (
-    state.devices.softDataDisplay && state.upgrades >= requiredAlgorithmUpgrades
-  );
-}
-
-export function canAccessParticleLab(state, config) {
-  return (
-    big(state.peakEnergy).gte(config.particleLab.doorEnergyRequired) ||
-    (state.science?.syntheses ?? 0) > 0
-  );
-}
-
-export function calculateSciencePointCost(totalScienceEarned, config) {
-  const settings = config.science?.sciencePointCost ?? {};
-  const earned = Math.max(0, totalScienceEarned ?? 0);
-  const exponent =
-    (settings.baseExponent ?? 11) +
-    (settings.linearExponentGrowth ?? 0.9) * earned +
-    (settings.quadraticExponentGrowth ?? 0.055) * earned ** 2;
-
-  return big(10).pow(exponent);
-}
-
-export function calculateParticleSynthesizerCost(state, config) {
-  return big(config.particleLab.synthesizerEnergyRequired);
-}
-
-export function calculateParticleSynthesizerProgress(state, config) {
-  return big(state.energy)
-    .div(calculateParticleSynthesizerCost(state, config))
-    .toNumber();
-}
-
-/**
- * Closed-form threshold inversion for Science Point rewards:
- * C(s) = 10^(a + b*s + c*s^2), a=11, b=0.9, c=0.055
- * s* = 2*(log10(E) - a) / (b + sqrt(b^2 + 4c(log10(E) - a)))
- * SP_gained = max(0, floor(s*) - H + 1)
- */
-export function calculateSciencePointReward(
-  energy,
-  totalScienceEarned,
-  config,
-) {
-  const settings = config.science?.sciencePointCost ?? {};
-  const a = settings.baseExponent ?? 11;
-  const b = settings.linearExponentGrowth ?? 0.9;
-  const c = settings.quadraticExponentGrowth ?? 0.055;
-
-  if (![a, b, c].every(Number.isFinite) || c < 0 || b < 0) {
-    throw new RangeError("Science Point cost must be non-decreasing");
-  }
-  if (c === 0 && b === 0) {
-    throw new RangeError("Science Point cost must increase");
-  }
-
-  const available = big(energy);
-  if (!available.gt(0)) return 0;
-
-  const logEnergy = available.log10().toNumber();
-  if (!Number.isFinite(logEnergy) || logEnergy < a) return 0;
-
-  let maximumThreshold;
-  if (c === 0) {
-    maximumThreshold = Math.floor((logEnergy - a) / b);
+  const clampedE = bigMin(eVal, targetVal);
+  const ratioE = clampedE.div(scaleVal);
+  const ratioT = targetVal.div(scaleVal);
+
+  let num;
+  if (ratioE.lt(1e-4)) {
+    num = Math.log1p(ratioE.toNumber());
   } else {
-    const discriminant = b ** 2 + 4 * c * (logEnergy - a);
-    if (discriminant < 0) return 0;
-
-    const root = (2 * (logEnergy - a)) / (b + Math.sqrt(discriminant));
-    maximumThreshold = Math.floor(root);
+    num = ratioE.add(1).ln().toNumber();
   }
 
-  if (maximumThreshold < 0) return 0;
+  const den = ratioT.add(1).ln().toNumber();
+  if (den <= 0 || !Number.isFinite(den)) return 0;
 
-  const thresholdIsAvailable = (threshold) =>
-    big(available).gte(calculateSciencePointCost(threshold, config));
-
-  while (maximumThreshold >= 0 && !thresholdIsAvailable(maximumThreshold)) {
-    maximumThreshold -= 1;
-  }
-  while (thresholdIsAvailable(maximumThreshold + 1)) {
-    maximumThreshold += 1;
-  }
-
-  const earned = Math.max(0, Math.floor(totalScienceEarned ?? 0));
-  return Math.max(0, maximumThreshold - earned + 1);
+  const progress = num / den;
+  return Math.min(1.0, Math.max(0, Number.isFinite(progress) ? progress : 0));
 }
 
-export function calculateQuarksGenerated(energy, config) {
-  const unit = config.science?.quarks?.energyPerQuark ?? 100000000000;
-  return bigFloorDiv(energy, unit);
+export function calculateEnergyEraPercent(storedEnergy = 0, config = {}) {
+  const progress = calculateEnergyEraProgress(storedEnergy, config);
+  if (progress >= 1.0) return 100.0;
+  return Math.floor(progress * 1000) / 10;
 }
 
-export function calculateQuarkCageCapacity(ownedCages, config) {
-  const capacityPerCage = config.science?.quarkCage?.capacityPerCage ?? 10;
-  const owned = Math.max(0, ownedCages ?? 0);
-  return owned > 0 ? capacityPerCage * owned : 1;
+// ============================================================================
+// 2. DATA (XP) & COMPUTER LEVEL PROGRESSION
+// ============================================================================
+
+export function calculateDataFromAlgorithms(state = {}, config = {}) {
+  const aImpVal = config.dataXP?.aImpData ?? 1;
+  const aUpgVal = config.dataXP?.aUpgData ?? 9;
+  const aRecVal = config.dataXP?.aRecData ?? 81;
+
+  const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
+  const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
+  const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+
+  return aImpOwned * aImpVal + aUpgOwned * aUpgVal + aRecOwned * aRecVal;
 }
 
-export function calculateQuarkCapacity(state, config) {
-  return big(
-    calculateQuarkCageCapacity(
-      state.scienceDevices?.quarkCages ?? 0,
-      config,
-    ),
-  );
+export function calculateAvailableData(state = {}, config = {}) {
+  const fromAlgorithms = calculateDataFromAlgorithms(state, config);
+  const fromHardDisk = state.devices?.hardDisks?.buffer ?? state.hardDiskBuffer ?? 0;
+  return fromAlgorithms + fromHardDisk;
 }
 
-export function calculateQuarkCageCost(ownedCages, config) {
-  const settings = config.science?.quarkCage ?? {};
-  const baseExponent = settings.baseCostExponent ?? 11;
-  const exponentGrowth = settings.costExponentGrowth ?? 1;
-  return big(10).pow(
-    baseExponent + exponentGrowth * Math.max(0, ownedCages ?? 0),
-  );
+export function calculateEffectiveAvailableData(state = {}, config = {}) {
+  const raw = calculateAvailableData(state, config);
+  const required = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+  return Math.min(Math.max(0, raw), required);
 }
 
-export function calculateQuarkDecay(state, config) {
-  const available = big(state.quarks?.available ?? 0);
-  const capacity = calculateQuarkCapacity(state, config);
-  if (capacity.lte(0) || available.lte(capacity)) return big(0);
-
-  const settings = config.science?.quarks ?? {};
-  const overflowRatio = available.sub(capacity).div(capacity);
-  return capacity
-    .mul(settings.decayRate ?? 0.12)
-    .mul(overflowRatio.pow(settings.decayPower ?? 1.7));
+export function calculateUsefulHardDiskCapacity(state = {}, config = {}) {
+  const required = calculateRequiredDataForNextComputerLevel(state.computerLevel ?? 1, config);
+  const fromAlgorithms = calculateDataFromAlgorithms(state, config);
+  const fromHardDisk = state.devices?.hardDisks?.buffer ?? state.hardDiskBuffer ?? 0;
+  return Math.max(0, required - fromAlgorithms - fromHardDisk);
 }
 
-export function getDevelopmentDurationMultiplier(state, config) {
-  return (
-    state.devSettings?.durationMultiplier ??
-    config.development.durationMultiplier
-  );
+export function calculatePolynomialDataRequirement(level = 1, config = {}) {
+  const k = Math.max(1, Math.floor(level ?? 1));
+  const base = config.dataXP?.machineLearning?.baseRequirement ?? 693;
+  const scale = config.dataXP?.machineLearning?.scaleMultiplier ?? 2304;
+  const exp = config.dataXP?.machineLearning?.powerExponent ?? 1.6643485138;
+  return Math.ceil(base + scale * ((k - 1) ** exp));
 }
 
-export function getDevelopmentProductionMultiplier(state, config) {
-  return (
-    state.devSettings?.productionMultiplier ??
-    config.development.productionMultiplier
-  );
-}
+export function calculateRequiredDataForNextComputerLevel(currentLevel = 1, config = {}) {
+  const L = Math.max(1, Math.floor(currentLevel ?? 1));
 
-/**
- * Quadratic Algorithm Improvement duration:
- * T_I(I) = 0.5 * (1 + 0.015 * I^2) / (V_A * V_R * V_direct * V_quantum)
- */
-export function calculateStudyDuration(state, config, developmentMode = false) {
-  const i = Math.max(0, state.improvements ?? 0);
-  const baseSec = config.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const coeff =
-    config.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
-  const power = config.economyV2?.improvements?.durationGrowthPower ?? 2;
+  const rawAnchor = config.dataXP?.machineLearning?.xpExponentialStartLevel
+    ?? config.dataXP?.xpExponentialStartLevel
+    ?? config.xpExponentialStartLevel
+    ?? 5;
+  const A = Number.isFinite(rawAnchor) && rawAnchor >= 1 ? Math.floor(rawAnchor) : 5;
 
-  const baseCurve = baseSec * (1 + coeff * (i ** power));
+  const rawGrowth = config.dataXP?.machineLearning?.xpGrowthFactor
+    ?? config.dataXP?.xpGrowthFactor
+    ?? config.xpGrowthFactor
+    ?? 1.45;
+  const G = Number.isFinite(rawGrowth) && rawGrowth > 1 ? rawGrowth : 1.45;
 
-  const totalSpeed = calculateAlgorithmImprovementSpeedMultiplier(state, config);
-  let duration = totalSpeed > 0 ? baseCurve / totalSpeed : baseCurve;
-
-  if (developmentMode) {
-    duration *= getDevelopmentDurationMultiplier(state, config);
+  // For L <= A: retain exact existing early-game polynomial progression
+  if (L <= A) {
+    return calculatePolynomialDataRequirement(L, config);
   }
 
-  return duration;
-}
+  // For L > A: exponential progression anchored at Level A: ceil(XP_A * G^(L - A))
+  const xpA = calculatePolynomialDataRequirement(A, config);
+  const power = L - A;
+  const mult = G ** power;
 
-export function calculateImprovementRatePerSecond(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const duration = calculateStudyDuration(state, config, developmentMode);
-  return duration > 0 ? 1 / duration : 0;
-}
-
-export function calculateAlgorithmImprovementSpeedMultiplier(state, config) {
-  const va = calculateAutoCalculatorSpeedMultiplier(state, config);
-  const vr = calculateRedundancyEliminationSpeedMultiplier(state, config);
-
-  let vDirect = 1;
-  if (hasSciencePerk(state, "processorBonusAppliesAImprovementSpeed")) {
-    vDirect = calculateProcessorImprovementSpeedMultiplier(state, config);
+  if (!Number.isFinite(mult)) {
+    try {
+      return big(xpA).mul(big(G).pow(power)).ceil().toNumber();
+    } catch {
+      return Number.MAX_SAFE_INTEGER;
+    }
   }
 
-  let vQuantum = 1;
-  if (hasSciencePerk(state, "quantumSuperposition")) {
-    vQuantum = calculateQuantumSuperpositionSpeedMultiplier(
-      state.quarks?.totalEarned ?? 0,
-      config,
-    );
+  return Math.ceil(xpA * mult);
+}
+
+// ============================================================================
+// 3. FACILITY OPTIMIZATION & DEVICE AMPLIFIERS
+// ============================================================================
+
+export function calculateFacilityOptimizationRequirement(completedCount = 0, config = {}) {
+  const H = Math.max(0, Math.floor(completedCount ?? 0));
+  const fo = config.facilityOptimization || config.setupOptimization || {};
+  const initial = fo.initialLevelRequired ?? fo.requiredLevel ?? 6;
+  const step = fo.levelIncrement ?? fo.levelStep ?? 3;
+  return initial + step * H;
+}
+
+export const calculateSetupOptimizationRequirement = calculateFacilityOptimizationRequirement;
+
+export function calculateFacilityDeviceMultiplier(completedCount = 0, config = {}) {
+  const H = Math.max(0, Math.floor(completedCount ?? 0));
+  const fo = config.facilityOptimization || config.setupOptimization || {};
+  const base = fo.deviceMultiplierBase ?? fo.multiplierBase ?? 1.09;
+  return base ** H;
+}
+
+export const calculateSetupDeviceMultiplier = calculateFacilityDeviceMultiplier;
+
+export function calculateProcessorDeviceMultiplier(processorsOwned = 0, config = {}) {
+  const P = Math.max(0, Math.floor(processorsOwned ?? 0));
+  const bonusPerUnit = config.devices?.processor?.bonusPerUnit ?? 0.05;
+  return 1 + bonusPerUnit * P;
+}
+
+export function calculateStudySpeedDeviceMultiplier(state = {}, config = {}) {
+  const facilityMult = calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
+  const procMult = calculateProcessorDeviceMultiplier(state.devices?.processors ?? 0, config);
+  return facilityMult * procMult;
+}
+
+export function calculateTotalDeviceMultiplier(state = {}, config = {}) {
+  // Facility Optimization multiplier affects operational devices (except Power Cells)
+  return calculateFacilityDeviceMultiplier(state.facilityOptimizations ?? 0, config);
+}
+
+// ============================================================================
+// 4. STUDY SPEED, TRANSISTORS, MICROPROCESSOR & OVERCLOCK
+// ============================================================================
+
+export function calculateTransistorStudySpeedMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1) {
+  const T = Math.max(0, Math.floor(transistorsAllocated ?? 0));
+  const rate = config.devices?.transistor?.speedBonusPerUnit ?? 0.05;
+  return 1 + rate * T * deviceMultiplier;
+}
+
+export function calculateMicroprocessorStudyMultiplier(transistorsAllocated = 0, config = {}, deviceMultiplier = 1, microprocessorsOwned = 1) {
+  const T = Math.max(0, Math.floor(transistorsAllocated ?? 0));
+  const M = Math.max(0, Math.floor(microprocessorsOwned ?? 1));
+  const base = config.devices?.microprocessor?.multiplierBase ?? 1.12;
+  const rawBonus = (base ** T - 1) * M;
+  return 1 + rawBonus * deviceMultiplier;
+}
+
+export function calculateOverclockDuration(transistorsConsumed = 2, config = {}) {
+  const T = Math.max(2, Math.floor(transistorsConsumed ?? 2));
+  const base = config.devices?.overclocker?.durationBase ?? 1.5;
+  return Math.log(T) / Math.log(base);
+}
+
+export function calculateOverclockBonusMultiplier(transistorsConsumed = 2, config = {}) {
+  const T = Math.max(2, Math.floor(transistorsConsumed ?? 2));
+  const div = config.devices?.overclocker?.bonusDivisor ?? 3.0;
+  return 1 + T / div;
+}
+
+export function calculateStudyImproveMilestone(claimedCount = 0, config = {}) {
+  const k = Math.max(0, Math.floor(claimedCount ?? 0));
+  const initial = config.studyImprove?.initialMilestones ?? [33, 66, 188];
+  const growth = config.studyImprove?.milestoneGrowthFactor ?? 2;
+
+  const level = k + 1; // The next improve level aiming for
+  if (level <= initial.length) {
+    return initial[level - 1] ?? 33;
   }
 
-  return va * vr * vDirect * vQuantum;
+  // threshold(k) = ceil(threshold(3) * milestoneGrowthFactor^(k - 3)) for level >= 4
+  const anchor = initial[initial.length - 1] ?? 188;
+  const power = level - initial.length;
+  return Math.ceil(anchor * (growth ** power));
 }
 
-export function sumOfIntegers(x) {
-  if (x < 0) return big(0);
-  const bx = big(x);
-  return bx.mul(bx.add(1)).div(2);
+export function calculateStudyImproveMultiplier(claimedCount = 0, config = {}) {
+  const k = Math.max(0, Math.floor(claimedCount ?? 0));
+  const A = config.studyImprove?.speedCoefficient ?? 0.5;
+  return 1 + A * Math.log2(k + 1);
 }
 
-export function sumOfSquares(x) {
-  if (x < 0) return big(0);
-  const bx = big(x);
-  return bx.mul(bx.add(1)).mul(bx.mul(2).add(1)).div(6);
-}
+export function calculateEffectiveStudySpeed(featureId = "AImp", state = {}, config = {}, statResolver = null) {
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.studySpeedMultiplier", { state, config })
+    : calculateStudySpeedDeviceMultiplier(state, config);
 
-export function sumOfCubes(x) {
-  if (x < 0) return big(0);
-  const bx = big(x);
-  const f1 = bx.mul(bx.add(1)).div(2);
-  return f1.pow(2);
-}
+  const T = state.devices?.transistorAllocations?.[featureId] ?? 0;
+  const transistorSpeed = calculateTransistorStudySpeedMultiplier(T, config, deviceMultiplier);
 
-export function calculateBatchDuration(j, n, V, config) {
-  if (n <= 0) return big(0);
-  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
-  const bn = big(n);
-  const end = big(j).add(bn).sub(1);
-  const start = big(j).sub(1);
-  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
-  const inner = bn.add(sigma2.mul(b));
-  return inner.mul(baseSec).div(V);
-}
+  let microMult = 1.0;
+  const microTarget = state.devices?.microprocessor?.target ?? "AImp";
+  const microOwned = state.devices?.microprocessor?.owned ?? 0;
+  const hasMicro = microOwned > 0;
 
-export function calculateBatchEnergy(j, n, V, Q, config) {
-  if (n <= 0) return big(0);
-  const baseSec = config?.economyV2?.improvements?.baseDurationSeconds ?? 0.5;
-  const b = config?.economyV2?.improvements?.durationGrowthCoefficient ?? 0.015;
-  const bn = big(n);
-  const end = big(j).add(bn).sub(1);
-  const start = big(j).sub(1);
-
-  const sigma1 = sumOfIntegers(end).sub(sumOfIntegers(start));
-  const sigma2 = sumOfSquares(end).sub(sumOfSquares(start));
-  const sigma3 = sumOfCubes(end).sub(sumOfCubes(start));
-
-  const inner = bn.add(sigma1).add(sigma2.add(sigma3).mul(b));
-  return big(Q).mul(baseSec).div(V).mul(inner);
-}
-
-export function calculateMaxBatchImprovements(
-  j,
-  V,
-  dtAvailable,
-  nLimit = Infinity,
-  config,
-) {
-  if (dtAvailable <= 0 || nLimit <= 0) return 0;
-  if (calculateBatchDuration(j, 1, V, config).gt(dtAvailable)) return 0;
-  if (nLimit === 1) return 1;
-
-  let step = 1;
-  while (
-    step * 2 <= nLimit &&
-    calculateBatchDuration(j, step * 2, V, config).lte(dtAvailable)
-  ) {
-    step *= 2;
-  }
-
-  let low = step;
-  let high = Math.min(step * 2, nLimit);
-  let best = low;
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (calculateBatchDuration(j, mid, V, config).lte(dtAvailable)) {
-      best = mid;
-      low = mid + 1;
+  if (hasMicro && microTarget === featureId) {
+    const overclock = state.devices?.overclocker;
+    if (overclock?.active && overclock.target === featureId) {
+      const consumedT = overclock.consumedTransistors ?? 2;
+      const baseMicroBonus = ((config.devices?.microprocessor?.multiplierBase ?? 1.12) ** consumedT - 1) * microOwned;
+      const ocBonus = calculateOverclockBonusMultiplier(consumedT, config);
+      microMult = 1 + baseMicroBonus * ocBonus * deviceMultiplier;
     } else {
-      high = mid - 1;
-    }
-  }
-  return best;
-}
-
-export function calculateStudyDurationLoad(
-  completedImprovements,
-  setupOptimizations,
-  config,
-) {
-  return completedImprovements;
-}
-
-/**
- * CRC Production rate:
- * P_CRC = 10^-12 * C * (1 + I) * 2^U * D(S) * SciencePerks
- */
-export function calculateProduction(state, config, developmentMode = false) {
-  const baseRate =
-    config.economyV2?.crc?.baseProductionPerSecond ??
-    config.energy?.baseProductionPerSecond ??
-    1e-12;
-  const c = Math.max(0, state.crcCount ?? 0);
-  const i = Math.max(0, state.improvements ?? 0);
-  const u = Math.max(0, state.upgrades ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-
-  let production = big(baseRate)
-    .mul(c)
-    .mul(1 + i)
-    .mul(big(2).pow(u))
-    .mul(setupPerformance);
-
-  production = production.mul(calculateCrcExponentialMultiplier(state, config));
-  production = production.mul(calculateCrcProcessorBonusMultiplier(state, config));
-  production = production.mul(calculateScienceProductionMultiplier(state));
-
-  if (developmentMode) {
-    production = production.mul(
-      getDevelopmentProductionMultiplier(state, config),
-    );
-  }
-
-  return production.lt(0) || !production.isFinite() ? big(0) : production;
-}
-
-export function calculateProductionBreakdown(
-  state,
-  config,
-  developmentMode = false,
-) {
-  const rows = [];
-  const baseRate =
-    config.economyV2?.crc?.baseProductionPerSecond ??
-    config.energy?.baseProductionPerSecond ??
-    1e-12;
-  const c = Math.max(0, state.crcCount ?? 0);
-  const i = Math.max(0, state.improvements ?? 0);
-  const u = Math.max(0, state.upgrades ?? 0);
-  const setupPerformance = calculateSetupDevicePerformance(
-    state.setupOptimizations,
-    config,
-  );
-
-  const baseFromCrcs = big(baseRate).mul(c).mul(setupPerformance);
-  let running = baseFromCrcs;
-
-  rows.push({
-    id: "crc-base",
-    label: "Base from CRCs",
-    detail: `${c} active CRC${c === 1 ? "" : "s"} at ${formatRate(baseRate)} each (Setup: x${setupPerformance.toFixed(2)})`,
-    multiplierLabel: `x${c}`,
-    value: baseFromCrcs,
-    output: baseFromCrcs,
-  });
-
-  const improvementFactor = 1 + i;
-  if (improvementFactor > 1) {
-    const improved = running.mul(improvementFactor);
-    rows.push({
-      id: "algorithm-improvements",
-      label: "From Algorithm Improvements",
-      detail: `${i} Improvements (+1 base per CRC each · x${improvementFactor} factor)`,
-      multiplierLabel: `x${improvementFactor}`,
-      value: improved.sub(running),
-      output: improved,
-    });
-    running = improved;
-  }
-
-  const upgradeMultiplier = big(2).pow(u);
-  if (upgradeMultiplier.gt(1)) {
-    const upgraded = running.mul(upgradeMultiplier);
-    rows.push({
-      id: "algorithm-upgrades",
-      label: "From Algorithm Upgrades",
-      detail: `${u} completed Upgrade${u === 1 ? "" : "s"} (x2 each)`,
-      multiplierLabel: `x${formatEngineering(upgradeMultiplier)}`,
-      value: upgraded.sub(running),
-      output: upgraded,
-    });
-    running = upgraded;
-  }
-
-  const crcExponentialMultiplier = calculateCrcExponentialMultiplier(
-    state,
-    config,
-  );
-  if (crcExponentialMultiplier.gt(1)) {
-    const scaled = running.mul(crcExponentialMultiplier);
-    rows.push({
-      id: "crc-exponential-scaling",
-      label: "From CRC exponential scaling",
-      detail: "Permanent Science scaling applied per active CRC",
-      multiplierLabel: `x${formatEngineering(crcExponentialMultiplier)}`,
-      value: scaled.sub(running),
-      output: scaled,
-    });
-    running = scaled;
-  }
-
-  const processorBonusMultiplier = calculateCrcProcessorBonusMultiplier(
-    state,
-    config,
-  );
-  if (processorBonusMultiplier.gt(1)) {
-    const boosted = running.mul(processorBonusMultiplier);
-    rows.push({
-      id: "processor-crc-bonus",
-      label: "From Processor bonus",
-      detail: "Processor efficiency exponent (E_P^0.15) applied to CRC output",
-      multiplierLabel: `x${formatEngineering(processorBonusMultiplier)}`,
-      value: boosted.sub(running),
-      output: boosted,
-    });
-    running = boosted;
-  }
-
-  const scienceMultiplier = calculateScienceProductionMultiplier(state);
-  if (scienceMultiplier.gt(1)) {
-    const boosted = running.mul(scienceMultiplier);
-    rows.push({
-      id: "science-powered-production",
-      label: "From Science Points",
-      detail: "Total Science earned converted into an energy multiplier (1 + SP)",
-      multiplierLabel: `x${formatEngineering(scienceMultiplier)}`,
-      value: boosted.sub(running),
-      output: boosted,
-    });
-    running = boosted;
-  }
-
-  if (developmentMode) {
-    const developmentMultiplier = getDevelopmentProductionMultiplier(
-      state,
-      config,
-    );
-    if (developmentMultiplier !== 1) {
-      const developed = running.mul(developmentMultiplier);
-      rows.push({
-        id: "development-production",
-        label: "From Development mode",
-        detail: "Global development production override",
-        multiplierLabel: `x${formatEngineering(developmentMultiplier)}`,
-        value: developed.sub(running),
-        output: developed,
-      });
+      microMult = calculateMicroprocessorStudyMultiplier(T, config, deviceMultiplier, microOwned);
     }
   }
 
-  return rows;
+  // 1. Hardware-resolved study speed (Transistors, Microprocessor, Overclocker)
+  const baseHardwareSpeed = Math.max(0.01, transistorSpeed * microMult);
+
+  // 2. Study Improvement multiplier applies directly over the final production time/rate
+  const claimed = state.studyImproves?.[featureId]?.claimed ?? 0;
+  const improveMult = calculateStudyImproveMultiplier(claimed, config);
+
+  return baseHardwareSpeed * improveMult;
 }
 
-export function calculateEffectiveProduction(
-  state,
-  config,
-  developmentMode = false,
-) {
-  return calculateProduction(state, config, developmentMode).sub(
-    calculateEnergyOverflowDecay(state, config),
-  );
+export function calculateEffectiveStudyDuration(featureId = "AImp", state = {}, config = {}, statResolver = null) {
+  const baseDuration = config.economy?.baseStudyDurationSeconds ?? 0.5;
+  const speed = calculateEffectiveStudySpeed(featureId, state, config, statResolver);
+  return speed > 0 ? baseDuration / speed : baseDuration;
 }
 
-export function calculateEffectiveEnergyGain(state, rawGain, config) {
-  const gain = big(rawGain);
-  if (gain.lte(0)) return big(0);
-  return gain;
+// ============================================================================
+// 5. POWER CELLS & OPERATIONAL CAPACITY
+// ============================================================================
+
+export function calculatePowerCellCost(ownedCount = 0, config = {}) {
+  const N = Math.max(0, Math.floor(ownedCount ?? 0));
+  if (N === 0) return big(config.devices?.powerCell?.initialCost ?? 1.0);
+  const base = config.devices?.powerCell?.initialCost ?? 1.0;
+  const mult = config.devices?.powerCell?.costMultiplier ?? 2.25;
+  return big(base).mul(big(mult).pow(N));
 }
 
-export function calculateDoorProgress(state, config) {
-  return bigClamp(
-    big(state.peakEnergy).div(config.particleLab.doorEnergyRequired),
-    0,
-    1,
-  ).toNumber();
+export function calculatePowerCellCapacity(ownedCount = 0, state = {}, config = {}, statResolver = null) {
+  const count = Math.max(0, Math.floor(ownedCount ?? 0));
+  const baseCap = config.devices?.powerCell?.baseCapacity ?? 1e-3;
+  // Power Cells are exempt from both Facility Optimization multiplier and Processor bonus
+  return big(count).mul(baseCap);
 }
 
-export function formatEnergy(value) {
-  return formatEngineering(value, " J");
+// ============================================================================
+// 6. HARD DISK DRAIN & DATA GENERATION
+// ============================================================================
+
+export function calculateHardDiskXpRate(activeDisks = 0, state = {}, config = {}, statResolver = null) {
+  const disks = Math.max(0, Math.floor(activeDisks ?? 0));
+  const baseRate = config.devices?.hardDisk?.dataRatePerDisk ?? 3.0;
+  const deviceMultiplier = statResolver
+    ? statResolver.resolve("devices.globalMultiplier", { state, config })
+    : calculateTotalDeviceMultiplier(state, config);
+  return disks * baseRate * deviceMultiplier;
 }
 
-export function formatRate(value) {
-  return `${formatEnergy(value).replace(" J", "")} J/s`;
+export function calculateHardDiskEnergyDrain(activeDisks = 0, activeSeconds = 0, config = {}) {
+  const disks = Math.max(0, Math.floor(activeDisks ?? 0));
+  if (disks <= 0) return big(0);
+  const baseDrain = config.devices?.hardDisk?.baseEnergyDrainPerSecond ?? 1e-10;
+  const timeConstant = config.devices?.hardDisk?.drainTimeConstant ?? 60.0;
+  const growth = 1 + activeSeconds / timeConstant;
+  return big(baseDrain).mul(disks).mul(growth);
 }
 
-export function formatPercent(value, digits = 2) {
-  return `${(value * 100).toFixed(digits)}%`;
+// ============================================================================
+// 7. GENERIC DEVICE PRICING & BULK CALCULATIONS
+// ============================================================================
+
+export function calculateGeometricCost(initialCost, multiplier, currentOwned) {
+  const N = Math.max(0, Math.floor(currentOwned ?? 0));
+  return big(initialCost).mul(big(multiplier).pow(N));
 }
 
-export function formatDuration(seconds) {
-  seconds = toFiniteNumber(seconds, Number.MAX_VALUE);
-  if (seconds === Number.MAX_VALUE) return "ETERNAL";
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.round(seconds % 60);
-  return `${minutes}m ${remainder}s`;
+export function calculateBulkGeometricCost(initialCost, multiplier, currentOwned, count = 1) {
+  const k = Math.max(1, Math.floor(count ?? 1));
+  const N = Math.max(0, Math.floor(currentOwned ?? 0));
+
+  if (k === 1) {
+    return calculateGeometricCost(initialCost, multiplier, N);
+  }
+
+  // Exact summation with BigNum
+  const r = big(multiplier);
+  if (r.eq(1)) {
+    return big(initialCost).mul(k);
+  }
+
+  // Cost(N) = C0 * r^N * (r^k - 1) / (r - 1)
+  const c0 = big(initialCost);
+  const rPowN = r.pow(N);
+  const rPowK = r.pow(k);
+  const numerator = rPowK.sub(1);
+  const denominator = r.sub(1);
+
+  return c0.mul(rPowN).mul(numerator).div(denominator);
 }
+
+export function calculateDeviceCost(type, owned = 0, config = {}) {
+  switch (type) {
+    case "chip": {
+      const init = config.devices?.chip?.initialCost ?? 3e-11;
+      const mult = config.devices?.chip?.costMultiplier ?? 4.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "transistorBoard": {
+      return big(config.devices?.transistorBoard?.initialCost ?? 2e-10);
+    }
+    case "transistor": {
+      const init = config.devices?.transistor?.initialCost ?? 3e-11;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "microprocessor": {
+      return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
+    }
+    case "overclocker": {
+      return big(config.devices?.overclocker?.initialCost ?? 9e-8);
+    }
+    case "crcGadget": {
+      return big(config.devices?.crcGadget?.initialCost ?? 1e-8);
+    }
+    case "capacitor": {
+      const init = config.devices?.capacitor?.initialCost ?? 1e-8;
+      const mult = config.devices?.capacitor?.costMultiplier ?? 5.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "processor": {
+      const init = config.devices?.processor?.initialCost ?? 1e-4;
+      const mult = config.devices?.processor?.costMultiplier ?? 2.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "hardDisk": {
+      const init = config.devices?.hardDisk?.initialCost ?? 1e-5;
+      const mult = config.devices?.hardDisk?.costMultiplier ?? 9.0;
+      return calculateGeometricCost(init, mult, owned);
+    }
+    case "powerCell": {
+      return calculatePowerCellCost(owned, config);
+    }
+    default:
+      return big(0);
+  }
+}
+
+export function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {}) {
+  const kCount = Math.max(1, Math.floor(count ?? 1));
+
+  switch (type) {
+    case "chip": {
+      const init = config.devices?.chip?.initialCost ?? 3e-11;
+      const mult = config.devices?.chip?.costMultiplier ?? 4.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "microprocessor":
+    case "transistorBoard":
+    case "overclocker":
+    case "crcGadget": {
+      return calculateDeviceCost(type, currentOwned, config);
+    }
+    case "transistor": {
+      const init = config.devices?.transistor?.initialCost ?? 3e-11;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "capacitor": {
+      const init = config.devices?.capacitor?.initialCost ?? 1e-8;
+      const mult = config.devices?.capacitor?.costMultiplier ?? 5.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "processor": {
+      const init = config.devices?.processor?.initialCost ?? 1e-4;
+      const mult = config.devices?.processor?.costMultiplier ?? 2.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "hardDisk": {
+      const init = config.devices?.hardDisk?.initialCost ?? 1e-5;
+      const mult = config.devices?.hardDisk?.costMultiplier ?? 9.0;
+      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+    }
+    case "powerCell": {
+      let total = big(0);
+      for (let i = 0; i < kCount; i++) {
+        total = total.add(calculatePowerCellCost(currentOwned + i, config));
+      }
+      return total;
+    }
+    default:
+      return big(0);
+  }
+}
+
+// ============================================================================
+// REGISTER FORMULAS IN DEFAULT FORMULA REGISTRY
+// ============================================================================
+
+defaultFormulaRegistry.register("algorithmBaseStrengths", calculateAlgorithmBaseStrengths);
+defaultFormulaRegistry.register("algorithmStrengths", calculateAlgorithmStrengths);
+defaultFormulaRegistry.register("computerPerformanceMultiplier", calculateComputerPerformanceMultiplier);
+defaultFormulaRegistry.register("capacitorMultiplier", calculateCapacitorMultiplier);
+defaultFormulaRegistry.register("algorithmPerformance", calculateAlgorithmPerformance);
+defaultFormulaRegistry.register("crcMultiplier", calculateCrcMultiplier);
+defaultFormulaRegistry.register("energyProduction", calculateEnergyProduction);
+defaultFormulaRegistry.register("energyOverflowDecay", calculateEnergyOverflowDecay);
+defaultFormulaRegistry.register("energyEraProgress", calculateEnergyEraProgress);
+defaultFormulaRegistry.register("energyEraPercent", calculateEnergyEraPercent);
+defaultFormulaRegistry.register("dataFromAlgorithms", calculateDataFromAlgorithms);
+defaultFormulaRegistry.register("availableData", calculateAvailableData);
+defaultFormulaRegistry.register("effectiveAvailableData", calculateEffectiveAvailableData);
+defaultFormulaRegistry.register("usefulHardDiskCapacity", calculateUsefulHardDiskCapacity);
+defaultFormulaRegistry.register("polynomialDataRequirement", calculatePolynomialDataRequirement);
+defaultFormulaRegistry.register("requiredDataForNextComputerLevel", calculateRequiredDataForNextComputerLevel);
+defaultFormulaRegistry.register("facilityOptimizationRequirement", calculateFacilityOptimizationRequirement);
+defaultFormulaRegistry.register("setupOptimizationRequirement", calculateFacilityOptimizationRequirement);
+defaultFormulaRegistry.register("facilityDeviceMultiplier", calculateFacilityDeviceMultiplier);
+defaultFormulaRegistry.register("setupDeviceMultiplier", calculateFacilityDeviceMultiplier);
+defaultFormulaRegistry.register("processorDeviceMultiplier", calculateProcessorDeviceMultiplier);
+defaultFormulaRegistry.register("studySpeedDeviceMultiplier", calculateStudySpeedDeviceMultiplier);
+defaultFormulaRegistry.register("totalDeviceMultiplier", calculateTotalDeviceMultiplier);
+defaultFormulaRegistry.register("transistorStudySpeedMultiplier", calculateTransistorStudySpeedMultiplier);
+defaultFormulaRegistry.register("microprocessorStudyMultiplier", calculateMicroprocessorStudyMultiplier);
+defaultFormulaRegistry.register("overclockDuration", calculateOverclockDuration);
+defaultFormulaRegistry.register("overclockBonusMultiplier", calculateOverclockBonusMultiplier);
+defaultFormulaRegistry.register("studyImproveMilestone", calculateStudyImproveMilestone);
+defaultFormulaRegistry.register("studyImproveMultiplier", calculateStudyImproveMultiplier);
+defaultFormulaRegistry.register("effectiveStudySpeed", calculateEffectiveStudySpeed);
+defaultFormulaRegistry.register("effectiveStudyDuration", calculateEffectiveStudyDuration);
+defaultFormulaRegistry.register("powerCellCost", calculatePowerCellCost);
+defaultFormulaRegistry.register("powerCellCapacity", calculatePowerCellCapacity);
+defaultFormulaRegistry.register("hardDiskXpRate", calculateHardDiskXpRate);
+defaultFormulaRegistry.register("hardDiskEnergyDrain", calculateHardDiskEnergyDrain);
+defaultFormulaRegistry.register("deviceCost", calculateDeviceCost);
+defaultFormulaRegistry.register("bulkDeviceCost", calculateBulkDeviceCost);
+
+// Compatibility aliases
+export const calculateProduction = calculateEnergyProduction;
+
+

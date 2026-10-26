@@ -541,9 +541,12 @@ test("Calculation Method Upgrade requires Algorithm Upgrades and resets studies"
   assert.equal(engine.state.improvements, 0);
 });
 
-test("Setup Optimization replaces Compression and resets hardware except Power Cells", () => {
+test("Setup Optimization replaces Compression and resets hardware except Power Cells, Power Arrays and CRCs", () => {
   const engine = createEngine();
   engine.state.powerCells = 3;
+  engine.state.powerModules = 2;
+  engine.state.crcCount = 5;
+  engine.state.discoveries.crcBlueprint = true;
   engine.state.energy = 1;
   engine.state.calculationMethods = calculateSetupOptimizationRequirement(
     engine.state,
@@ -560,6 +563,9 @@ test("Setup Optimization replaces Compression and resets hardware except Power C
   assert.equal(engine.claimSetupOptimization(), true);
   assert.equal(engine.state.setupOptimizations, 1);
   assert.equal(engine.state.powerCells, 3);
+  assert.equal(engine.state.powerModules, 2);
+  assert.equal(engine.state.crcCount, 5);
+  assert.equal(engine.state.discoveries.crcBlueprint, true);
   assertBigEqual(engine.state.energy, 0);
   assert.equal(engine.state.calculationMethods, 0);
   assert.equal(engine.state.devices.softDataDisplay, false);
@@ -571,18 +577,26 @@ test("Setup Optimization replaces Compression and resets hardware except Power C
   assert.equal(engine.state.overclocker.activeSeconds, 0);
 });
 
-test("Setup Optimization hard resets energy to 0 and preserves Power Cells", () => {
+test("Setup Optimization hard resets energy to 0 and preserves Power Cells, Power Modules, and CRCs", () => {
   const engine = createEngine();
   engine.state.energy = 123;
   engine.state.powerCells = 5;
+  engine.state.powerModules = 1;
+  engine.state.crcCount = 4;
   engine.resetHardwareForSetupOptimization();
   assertBigEqual(engine.state.energy, 0);
   assert.equal(engine.state.powerCells, 5);
+  assert.equal(engine.state.powerModules, 1);
+  assert.equal(engine.state.crcCount, 4);
 
   engine.state.energy = 456;
   engine.state.powerCells = 8;
+  engine.state.powerModules = 3;
+  engine.state.crcCount = 10;
   engine.state.science.perks.powerCellResonance = true;
   engine.resetHardwareForSetupOptimization();
   assertBigEqual(engine.state.energy, 0);
   assert.equal(engine.state.powerCells, 8);
+  assert.equal(engine.state.powerModules, 3);
+  assert.equal(engine.state.crcCount, 10);
 });
