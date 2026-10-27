@@ -21,6 +21,7 @@ export const MANDATORY_STAT_IDS = Object.freeze({
   STUDY_SPEED_AIMP: "studies.AImp.speed",
   STUDY_SPEED_AUPG: "studies.AUpg.speed",
   STUDY_SPEED_AREC: "studies.ARec.speed",
+  STUDY_SPEED_ARED: "studies.ARed.speed",
   POWER_CELL_CAPACITY: "devices.powerCell.capacity",
 
   // Architecture contract compatibility keys

@@ -323,10 +323,15 @@ export function formatInteger(value, notation = currentNotation) {
 export function formatNumber(value, decimals = 1, notation = currentNotation) {
   const d = big(value);
   if (!d.isFinite()) return "SIGNAL ERROR";
+  const dec =
+    typeof decimals === "object" && decimals !== null
+      ? (decimals.maxDecimals ?? decimals.maximumFractionDigits ?? decimals.decimals ?? 1)
+      : (typeof decimals === "number" ? decimals : Number(decimals) || 0);
+  const clampedDec = Math.max(0, Math.min(20, Math.floor(dec)));
   if (d.abs().lte(99999)) {
     return d.toNumber().toLocaleString("en-US", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
+      minimumFractionDigits: clampedDec,
+      maximumFractionDigits: clampedDec,
     });
   }
   return formatEngineering(d, "", notation);

@@ -37,6 +37,8 @@ import {
   calculateStudyImproveMultiplier,
   calculateEnergyEraProgress,
   calculateEnergyEraPercent,
+  integrateEnergyStep,
+  calculateBackpropagatorMultiplier,
 } from "../../js/formulas.js";
 import { GameEngine } from "../../js/engine.js";
 import { createInitialState, normalizeState, deserializeState } from "../../js/state.js";
@@ -248,7 +250,7 @@ test("§26.1: Attempting Facility Optimization below Level 9 fails", () => {
   assert.equal(engine.state.facilityOptimizations, 0);
 });
 
-test("§26.2: Facility Optimization at Level >= 9 increments H and grants +9% compounding multiplier", () => {
+test("§26.2: Facility Optimization at Level >= 9 increments H and grants logarithmic multiplier D(S) = 1 + alpha * ln(1 + S)", () => {
   const engine = new GameEngine({ config, developmentMode: false });
   engine.state.computerLevel = 9;
 
@@ -256,11 +258,31 @@ test("§26.2: Facility Optimization at Level >= 9 increments H and grants +9% co
   assert.equal(res, true);
   assert.equal(engine.state.facilityOptimizations, 1);
 
-  const mult = calculateFacilityDeviceMultiplier(1, config);
-  assert.equal(mult, 1.09);
+  // Logarithmic curve verification (alpha = 1.35)
+  // S=0 -> 1.000, S=1 -> 1.936, S=2 -> 2.483, S=3 -> 2.871
+  const mult0 = calculateFacilityDeviceMultiplier(0, config);
+  assertClose(mult0, 1.000, 1e-4);
+
+  const mult1 = calculateFacilityDeviceMultiplier(1, config);
+  assertClose(mult1, 1.9358, 1e-3);
 
   const mult2 = calculateFacilityDeviceMultiplier(2, config);
-  assertClose(mult2, 1.09 ** 2);
+  assertClose(mult2, 2.4831, 1e-3);
+
+  const mult3 = calculateFacilityDeviceMultiplier(3, config);
+  assertClose(mult3, 2.8715, 1e-3);
+
+  // Backward compatibility: exponential mode
+  const expConfig = {
+    ...config,
+    facilityOptimization: {
+      ...config.facilityOptimization,
+      curveMode: "exponential",
+      deviceMultiplierBase: 1.09,
+    },
+  };
+  assertClose(calculateFacilityDeviceMultiplier(1, expConfig), 1.09, 1e-4);
+  assertClose(calculateFacilityDeviceMultiplier(2, expConfig), 1.09 ** 2, 1e-4);
 });
 
 test("§26.3: Facility Optimization preserves Computer Level & MLs, resets energy & study improves, preserves Power Cells, unlocks ARec", () => {
@@ -428,8 +450,8 @@ test("§27.6: Power Cell capacity N * 1 mJ (exempt from SO multiplier) and cost 
   state.facilityOptimizations = 1; // 1.09x device multiplier
 
   const cap = calculatePowerCellCapacity(3, state, config);
-  // 3 * 0.001 = 0.003 J (Power Cells exempt from SO multiplier)
-  assertBigClose(cap, big("3.00e-3"), 1e-6);
+  const baseCap = config.devices?.powerCell?.baseCapacity ?? 0.001;
+  assertBigClose(cap, big(3 * baseCap), 1e-6);
 
   const cost3 = calculateBulkGeometricCost(1.0, 2.25, 3, 1);
   const expectedCost = big(1.0).mul(big(2.25).pow(3));
@@ -778,22 +800,23 @@ test("§31.1: Overflow Decay is 0 below stable capacity, and scales superlinearl
   const decay10 = calculateEnergyOverflowDecay(10, 0, config);
   assertBigClose(decay10, big(decayRate).mul(big(10).pow(decayExponent)), 1e-6);
 
-  // 2. With 2 Power Cells, capacity = 2 * 1 mJ = 2 mJ (0.002 J)
+  // 2. With 2 Power Cells, capacity = 2 * baseCapacity
+  const baseCap = config.devices?.powerCell?.baseCapacity ?? 0.001;
   const stableCap2 = calculatePowerCellCapacity(2, {}, config);
-  assertBigClose(stableCap2, big(0.002), 1e-9);
+  assertBigClose(stableCap2, big(2 * baseCap), 1e-9);
 
-  // Stored energy = 1.5 mJ <= 2 mJ capacity => Decay MUST BE 0!
-  const decayUnderCap = calculateEnergyOverflowDecay(0.0015, stableCap2, config);
+  // Stored energy <= capacity => Decay MUST BE 0!
+  const decayUnderCap = calculateEnergyOverflowDecay(1.5 * baseCap, stableCap2, config);
   assertBigEqual(decayUnderCap, big(0));
 
-  // Stored energy = 3 mJ > 2 mJ capacity => Overflow = 1 mJ (1e-3 J)
-  // Decay = rate * (1e-3)^power
-  const decayAboveCap = calculateEnergyOverflowDecay(0.003, stableCap2, config);
-  const expectedDecay = big(decayRate).mul(big(1e-3).pow(decayExponent));
+  // Stored energy > capacity => Overflow = 1 * baseCap
+  // Decay = rate * (baseCap)^power
+  const decayAboveCap = calculateEnergyOverflowDecay(3 * baseCap, stableCap2, config);
+  const expectedDecay = big(decayRate).mul(big(baseCap).pow(decayExponent));
   assertBigClose(decayAboveCap, expectedDecay, 1e-12);
 });
 
-test("§31.2: Engine tick updates energy by Net Rate (Gross Production - Decay)", () => {
+test("§31.2: Engine tick updates energy by Net Rate via implicit integration step", () => {
   const engine = new GameEngine({ config });
   engine.state.algorithms.AImp.owned = 1000; // Produces energy: 1000 * 1e-15 = 1e-12 J/s (1 pJ/s)
   const prod = calculateEnergyProduction(engine.state, config);
@@ -812,9 +835,10 @@ test("§31.2: Engine tick updates energy by Net Rate (Gross Production - Decay)"
   assert.ok(netRate.lt(0)); // Net is negative!
 
   engine.tick(0.1); // Tick 0.1s
-  // Energy must decrease by netRate * delta
-  const expectedEnergy = big(1.0).add(netRate.mul(0.1));
+  // Energy must match stable implicit solver integration
+  const expectedEnergy = integrateEnergyStep(1.0, prod, 0, 0.1, config);
   assertBigClose(engine.state.energy, expectedEnergy, 1e-9);
+  assert.ok(engine.state.energy.lt(1.0), "Energy must decrease due to overflow decay");
 });
 
 // -------------------------------------------------------------
@@ -951,6 +975,7 @@ test("§35.1: Centralized tooltip content module returns rich content for all ex
     "aimp_study",
     "aupg_study",
     "arec_study",
+    "ared_study",
     "microprocessor",
     "transistor_board",
     "transistor",
@@ -960,7 +985,12 @@ test("§35.1: Centralized tooltip content module returns rich content for all ex
     "overclocker",
     "processor",
     "crc_gadget",
+    "backpropagator",
     "chip",
+    "autoCalculator_AImp",
+    "autoCalculator_AUpg",
+    "autoCalculator_ARec",
+    "autoCalculator_ARed",
   ];
 
   for (const topic of topics) {
@@ -969,6 +999,7 @@ test("§35.1: Centralized tooltip content module returns rich content for all ex
     assert.ok(content.title, `Tooltip '${topic}' must have a title`);
     assert.ok(content.body, `Tooltip '${topic}' must have a body`);
     assert.ok(content.body.length > 20, `Tooltip '${topic}' body should be informative`);
+    assert.ok(content.body.includes("Read more on Info Section"), `Tooltip '${topic}' must end with 'Read more on Info Section'`);
   }
 });
 
@@ -986,14 +1017,25 @@ test("§36.1: Early-game XP requirements (L <= 5) and anchor value match baselin
 });
 
 test("§36.2: Exponential XP scaling applies for L > 5 with configured factor G = 1.45", () => {
+  const testBaseConfig = {
+    ...config,
+    dataXP: {
+      ...config.dataXP,
+      machineLearning: {
+        ...config.dataXP.machineLearning,
+        xpExponentialStartLevel: 5,
+        xpGrowthFactor: 1.45,
+      },
+    },
+  };
   // Configured factor G = 1.45, Anchor A = 5, XP_A = 23842
-  assert.equal(calculateRequiredDataForNextComputerLevel(6, config), 34571);
-  assert.equal(calculateRequiredDataForNextComputerLevel(7, config), 50128);
-  assert.equal(calculateRequiredDataForNextComputerLevel(8, config), 72686);
-  assert.equal(calculateRequiredDataForNextComputerLevel(9, config), 105394);
-  assert.equal(calculateRequiredDataForNextComputerLevel(10, config), 152821);
-  assert.equal(calculateRequiredDataForNextComputerLevel(11, config), 221591);
-  assert.equal(calculateRequiredDataForNextComputerLevel(12, config), 321306);
+  assert.equal(calculateRequiredDataForNextComputerLevel(6, testBaseConfig), 34571);
+  assert.equal(calculateRequiredDataForNextComputerLevel(7, testBaseConfig), 50128);
+  assert.equal(calculateRequiredDataForNextComputerLevel(8, testBaseConfig), 72686);
+  assert.equal(calculateRequiredDataForNextComputerLevel(9, testBaseConfig), 105394);
+  assert.equal(calculateRequiredDataForNextComputerLevel(10, testBaseConfig), 152821);
+  assert.equal(calculateRequiredDataForNextComputerLevel(11, testBaseConfig), 221591);
+  assert.equal(calculateRequiredDataForNextComputerLevel(12, testBaseConfig), 321306);
 });
 
 test("§36.3: Changing xpGrowthFactor dynamically scales requirements without modifying game logic", () => {
@@ -1003,6 +1045,7 @@ test("§36.3: Changing xpGrowthFactor dynamically scales requirements without mo
       ...config.dataXP,
       machineLearning: {
         ...config.dataXP.machineLearning,
+        xpExponentialStartLevel: 5,
         xpGrowthFactor: 1.30,
       },
     },
@@ -1016,6 +1059,7 @@ test("§36.3: Changing xpGrowthFactor dynamically scales requirements without mo
       ...config.dataXP,
       machineLearning: {
         ...config.dataXP.machineLearning,
+        xpExponentialStartLevel: 5,
         xpGrowthFactor: 1.60,
       },
     },
@@ -1029,6 +1073,7 @@ test("§36.3: Changing xpGrowthFactor dynamically scales requirements without mo
       ...config.dataXP,
       machineLearning: {
         ...config.dataXP.machineLearning,
+        xpExponentialStartLevel: 5,
         xpGrowthFactor: 2.00,
       },
     },
@@ -1037,18 +1082,40 @@ test("§36.3: Changing xpGrowthFactor dynamically scales requirements without mo
   assert.equal(calculateRequiredDataForNextComputerLevel(6, customConfigDoubling), 47684);
 
   // Verification: higher growth factor produces strictly higher requirements
+  const testBaseConfig = {
+    ...config,
+    dataXP: {
+      ...config.dataXP,
+      machineLearning: {
+        ...config.dataXP.machineLearning,
+        xpExponentialStartLevel: 5,
+        xpGrowthFactor: 1.45,
+      },
+    },
+  };
   const reqL9_30 = calculateRequiredDataForNextComputerLevel(9, customConfig30);
-  const reqL9_45 = calculateRequiredDataForNextComputerLevel(9, config);
+  const reqL9_45 = calculateRequiredDataForNextComputerLevel(9, testBaseConfig);
   const reqL9_60 = calculateRequiredDataForNextComputerLevel(9, customConfig60);
   assert.ok(reqL9_30 < reqL9_45, "1.30 growth should be less than 1.45");
   assert.ok(reqL9_45 < reqL9_60, "1.45 growth should be less than 1.60");
 });
 
 test("§36.4: Machine Learning eligibility & execution uses new exponential requirements", () => {
-  const engine = new GameEngine({ config, developmentMode: false });
+  const testBaseConfig = {
+    ...config,
+    dataXP: {
+      ...config.dataXP,
+      machineLearning: {
+        ...config.dataXP.machineLearning,
+        xpExponentialStartLevel: 5,
+        xpGrowthFactor: 1.45,
+      },
+    },
+  };
+  const engine = new GameEngine({ config: testBaseConfig, developmentMode: false });
   engine.state.computerLevel = 6;
   // Level 6 requires 34571 Data to advance to Level 7
-  const reqForL7 = calculateRequiredDataForNextComputerLevel(6, config);
+  const reqForL7 = calculateRequiredDataForNextComputerLevel(6, testBaseConfig);
   assert.equal(reqForL7, 34571);
 
   // 1. Below threshold: strictly blocked
@@ -2296,8 +2363,8 @@ test("§45.2: Processor applies +5% bonus per unit strictly to study speed-effic
   // 4. Power Cells are exempt from processor and SO bonus
   state.powerCells = 5;
   const powerCellCap = calculatePowerCellCapacity(5, state, config);
-  // 5 * 0.001 = 0.005 J (exact base)
-  assertBigEqual(powerCellCap, big("5e-3"));
+  const baseCap = config.devices?.powerCell?.baseCapacity ?? 0.001;
+  assertBigEqual(powerCellCap, big(5 * baseCap));
 
   // 5. Capacitors are exempt from processor bonus (only receive facilityMult)
   const capMult = calculateCapacitorMultiplier(2, config, 1.0);
@@ -2306,10 +2373,10 @@ test("§45.2: Processor applies +5% bonus per unit strictly to study speed-effic
 
 test("§45.3: Exhaustive verification of Setup Optimization and Processor multipliers across all devices", () => {
   const engine = new GameEngine({ config, developmentMode: false });
-  // Set 2 Setup Optimizations: H = 2 -> 1.09^2 = 1.1881
+  // Set 2 Setup Optimizations: H = 2 -> D(2) = 1 + 1.35 * ln(3) = 2.4831
   engine.state.facilityOptimizations = 2;
-  const expectedFoMult = 1.09 ** 2; // 1.1881
-  assertClose(calculateFacilityDeviceMultiplier(2, config), expectedFoMult);
+  const expectedFoMult = calculateFacilityDeviceMultiplier(2, config);
+  assertClose(expectedFoMult, 2.4831, 1e-3);
 
   // Set 4 Processors: P = 4 -> 1 + 0.05 * 4 = 1.20
   engine.state.devices.processors = 4;
@@ -2317,7 +2384,6 @@ test("§45.3: Exhaustive verification of Setup Optimization and Processor multip
   assert.equal(calculateProcessorDeviceMultiplier(4, config), expectedProcMult);
 
   // 1. Devices that get BOTH SO and Processor multipliers (Study Speed-Efficiency):
-  // Combined study speed multiplier: 1.1881 * 1.20 = 1.42572
   const combinedStudyMult = calculateStudySpeedDeviceMultiplier(engine.state, config);
   assertClose(combinedStudyMult, expectedFoMult * expectedProcMult);
 
@@ -2345,23 +2411,24 @@ test("§45.3: Exhaustive verification of Setup Optimization and Processor multip
   // Capacitors
   engine.state.devices.capacitors = 4;
   const capMult = calculateCapacitorMultiplier(4, config, expectedFoMult);
-  assertClose(capMult, 1 + 0.5 * 4 * expectedFoMult); // exactly 1 + 2 * 1.1881
+  assertClose(capMult, 1 + 0.5 * 4 * expectedFoMult);
 
   // CRC Gadget
   engine.state.devices.crcGadget.owned = 1;
   const crcMult = calculateCrcMultiplier(engine.state, config, expectedFoMult);
-  assertClose(crcMult, 1 + (2.0 - 1.0) * expectedFoMult); // 1 + 1 * 1.1881
+  assertClose(crcMult, 1 + (2.0 - 1.0) * expectedFoMult);
 
   // Hard Disk Data/XP generation rate
   engine.state.devices.hardDisks.owned = 3;
   const hdRate = calculateHardDiskXpRate(3, engine.state, config, engine.statResolver);
-  assertClose(hdRate, 3 * 3.0 * expectedFoMult); // 9 * 1.1881
+  assertClose(hdRate, 3 * 3.0 * expectedFoMult);
 
   // 3. Devices EXEMPT from BOTH SO and Processor multipliers:
   // Power Cells
   engine.state.powerCells = 8;
   const pcCap = calculatePowerCellCapacity(8, engine.state, config, engine.statResolver);
-  assertBigEqual(pcCap, big("8e-3")); // exactly 8 mJ, no 1.1881x and no 1.20x!
+  const pcBaseCap = config.devices?.powerCell?.baseCapacity ?? 0.001;
+  assertBigEqual(pcCap, big(8 * pcBaseCap)); // exactly 8 * baseCap, no SO and no Processor mult!
 });
 
 test("§45.4: Devices and tooltips dynamically display post-bonus metrics when SO and Processor bonuses exist", async () => {
@@ -2410,37 +2477,326 @@ test("§45.4: Devices and tooltips dynamically display post-bonus metrics when S
   const pcTooltip = getTooltipContent("powerCell", { state: engine.state, config, engine });
   assert.ok(pcTooltip.body.includes("Prestige Multiplier:</strong> 1.00x (Exempt from Setup Optimization and Processor bonuses)"));
 
-  // 2. POST-BONUS STATE (H=1 => 1.09x SO bonus, P=1 => 1.05x Processor bonus):
-  engine.state.facilityOptimizations = 1; // 1.09x SO
+  // 2. POST-BONUS STATE (H=1 => 1.94x SO bonus, P=1 => 1.05x Processor bonus):
+  engine.state.facilityOptimizations = 1;
   engine.state.devices.processors = 1;   // 1.05x Processor
   engine.state.devices.capacitors = 1;   // 1 capacitor owned
   engine.statResolver.invalidateCache();
 
+  const foMult = calculateFacilityDeviceMultiplier(1, config);
+  const foStr = foMult.toFixed(2);
+  const procMult = calculateProcessorDeviceMultiplier(1, config);
+  const combinedMult = (foMult * procMult).toFixed(2);
+
   // Capacitor tooltip with SO bonus
   const capBoostedTooltip = getTooltipContent("capacitor", { state: engine.state, config, engine });
-  assert.ok(capBoostedTooltip.body.includes("+54.5% per unit (+50% base × 1.09x SO bonus)"));
-  assert.ok(capBoostedTooltip.body.includes("Effective Multiplier:</strong> 1.54x (+54.5% total cascade bonus across all tiers)"));
+  assert.ok(capBoostedTooltip.body.includes(`${foStr}x SO bonus`));
 
   // Microprocessor tooltip with SO and Processor bonuses
   const microBoostedTooltip = getTooltipContent("microprocessor", { state: engine.state, config, engine });
   assert.ok(microBoostedTooltip.body.includes("Base Multiplier:</strong> 1.25x (1.12<sup>2</sup>)"));
-  assert.ok(microBoostedTooltip.body.includes("Prestige Multiplier:</strong> 1.14x (1.09x SO × 1.05x Processor)"));
-  assert.ok(microBoostedTooltip.body.includes("Effective Microprocessor Multiplier:</strong> <span style=\"color: var(--tes-teal); font-weight: 600;\">1.29x</span>"));
-  assert.ok(microBoostedTooltip.body.includes("Multiplier = 1 + (1.12<sup>T</sup> - 1) × 1.14"));
+  assert.ok(microBoostedTooltip.body.includes(`Prestige Multiplier:</strong> ${combinedMult}x (${foStr}x SO × ${procMult.toFixed(2)}x Processor)`));
 
   // Transistor Board tooltip with combined prestige bonus
   const boardBoostedTooltip = getTooltipContent("transistorBoard", { state: engine.state, config, engine });
-  assert.ok(boardBoostedTooltip.body.includes("Effective Speed Bonus:</strong> +7.90% per Transistor (+6.9% base × 1.14x prestige bonus)"));
+  assert.ok(boardBoostedTooltip.body.includes(`${combinedMult}x prestige bonus`));
 
   // CRC Gadget tooltip with SO bonus
   const crcBoostedTooltip = getTooltipContent("crcGadget", { state: engine.state, config, engine });
-  assert.ok(crcBoostedTooltip.body.includes("Production Multiplier:</strong> 2.09x (2.00x base × 1.09x SO bonus)"));
+  assert.ok(crcBoostedTooltip.body.includes(`${foStr}x SO bonus`));
 
   // Hard Disk tooltip with SO bonus
   const hdBoostedTooltip = getTooltipContent("hardDisk", { state: engine.state, config, engine });
-  assert.ok(hdBoostedTooltip.body.includes("Generation Rate:</strong> +6.5 Data/s (+3.27/s per active disk · 3.0/s base × 1.09x SO bonus)"));
+  assert.ok(hdBoostedTooltip.body.includes(`${foStr}x SO bonus`));
 
   // AImp tooltip with capacitor and SO cascade
   const aImpBoostedTooltip = getTooltipContent("aimp", { state: engine.state, config, engine });
-  assert.ok(aImpBoostedTooltip.body.includes("Capacitor Bonus:</strong> +54.5% (1.54x · 1.09x SO bonus)"));
+  assert.ok(aImpBoostedTooltip.body.includes(`${foStr}x SO bonus`));
+});
+
+// -------------------------------------------------------------
+// §46: ALGORITHM REDESIGN (ARED) FEATURE SPECIFICATION
+// -------------------------------------------------------------
+test("§46.1: Algorithm Redesign is unlocked when facilityOptimizations >= 2 (SO2)", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  assert.equal(Boolean(engine.state.unlocks?.ARed), false);
+
+  engine.state.facilityOptimizations = 1;
+  engine.state.computerLevel = 12;
+  // Completing SO2 (going from 1 to 2) unlocks ARed
+  const res = engine.performFacilityOptimization();
+  assert.equal(res, true);
+  assert.equal(engine.state.facilityOptimizations, 2);
+  assert.equal(engine.state.unlocks.ARed, true);
+});
+
+test("§46.2: 12 ARec units convert to 1 ARed study", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  engine.state.unlocks.ARed = true;
+  engine.state.algorithms.ARec.owned = 25;
+  engine.state.algorithms.ARed.owned = 0;
+
+  engine.startManualStudy("ARed", 1);
+  const dur = calculateEffectiveStudyDuration("ARed", engine.state, config, engine.statResolver);
+  engine.tick(dur + 0.01);
+
+  assert.equal(engine.state.algorithms.ARed.owned, 1);
+  assert.equal(engine.state.algorithms.ARec.owned, 13); // 25 - 12 = 13
+});
+
+test("§46.3: ARed study holds progress at 100% when ARec < 12 without negative inventory", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  engine.state.unlocks.ARed = true;
+  engine.state.algorithms.ARec.owned = 5; // < 12
+  engine.state.algorithms.ARed.owned = 0;
+
+  engine.startManualStudy("ARed", 1);
+  const dur = calculateEffectiveStudyDuration("ARed", engine.state, config, engine.statResolver);
+  engine.tick(dur + 0.05);
+
+  assert.equal(engine.state.algorithms.ARed.owned, 0);
+  assert.equal(engine.state.algorithms.ARec.owned, 5); // NOT consumed
+  assert.equal(engine.state.manualStudies.ARed.active, true);
+  assert.ok(engine.state.manualStudies.ARed.elapsed >= dur); // Held at complete!
+
+  // Add remaining required ARec to complete
+  engine.state.algorithms.ARec.owned += 7; // now 12
+  engine.tick(0.01);
+  assert.equal(engine.state.algorithms.ARed.owned, 1);
+  assert.equal(engine.state.algorithms.ARec.owned, 0);
+});
+
+test("§46.4: Strength cascade: ARedStrength = ARecStrength * F * (L + 1)", () => {
+  const F = config.economy?.algorithmConversionFactor ?? 12;
+  for (const L of [1, 2, 5, 9, 12, 15]) {
+    const s = calculateAlgorithmStrengths(L, config);
+    const expectedARed = big(s.ARec).mul(F).mul(L + 1);
+    assertBigEqual(s.ARed, expectedARed);
+  }
+});
+
+test("§46.5: ARed contributes 729 Available Data, preserving 25% data loss per conversion", () => {
+  const state = createInitialState(config);
+  state.algorithms.AImp.owned = 12; // 12 Data
+  assert.equal(calculateAvailableData(state, config), 12);
+
+  // 12 AImp convert to 1 AUpg (9 Data -> 25% loss)
+  state.algorithms.AImp.owned = 0;
+  state.algorithms.AUpg.owned = 1;
+  assert.equal(calculateAvailableData(state, config), 9);
+
+  // 12 AUpg convert to 1 ARec (12 * 9 = 108 -> 81 Data -> 25% loss)
+  state.algorithms.AUpg.owned = 0;
+  state.algorithms.ARec.owned = 1;
+  assert.equal(calculateAvailableData(state, config), 81);
+
+  // 12 ARec convert to 1 ARed (12 * 81 = 972 -> 729 Data -> 25% loss)
+  state.algorithms.ARec.owned = 0;
+  state.algorithms.ARed.owned = 1;
+  assert.equal(calculateAvailableData(state, config), 729);
+});
+
+test("§46.6: Backpropagator discovery at SO3 with energytoUnlock threshold", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  const bpElement = getElement("backpropagator");
+  assert.ok(bpElement);
+
+  // At SO0, SO1, SO2: never revealed regardless of energy
+  for (const so of [0, 1, 2]) {
+    engine.state.facilityOptimizations = so;
+    engine.state.energy = big(1e12);
+    engine.state.peakEnergy = big(1e12);
+    assert.equal(bpElement.isRevealed(engine.state, config), false);
+    assert.equal(bpElement.isUnlocked(engine.state, config), false);
+  }
+
+  // At SO3: hidden until energy threshold is reached
+  engine.state.facilityOptimizations = 3;
+  const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+  engine.state.energy = big(threshold).mul(0.5);
+  engine.state.peakEnergy = big(threshold).mul(0.5);
+  assert.equal(bpElement.isRevealed(engine.state, config), false);
+
+  // Meets threshold -> revealed and unlocked
+  engine.state.energy = big(threshold);
+  engine.state.peakEnergy = big(threshold);
+  assert.equal(bpElement.isRevealed(engine.state, config), true);
+  assert.equal(bpElement.isUnlocked(engine.state, config), true);
+
+  // Spends energy below threshold -> remains revealed because peakEnergy preserves discovery!
+  engine.state.energy = big(0.1);
+  assert.equal(bpElement.isRevealed(engine.state, config), true);
+
+  // Purchase Backpropagator
+  engine.state.energy = big(10);
+  const buyRes = engine.purchaseElement("backpropagator", 1);
+  assert.equal(buyRes, true);
+  assert.equal(bpElement.getOwned(engine.state), 1);
+
+  // Enforces unique device: cannot buy a second time
+  const buySecond = engine.purchaseElement("backpropagator", 1);
+  assert.equal(buySecond, false);
+});
+
+test("§46.7: Backpropagator Resonance Multiplier softcap and hardcap, unowned = 1, R=0 = 1", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  engine.state.facilityOptimizations = 3;
+  const devConfig = config.devices?.backpropagator ?? {};
+  const q = Number(devConfig.resonanceBase ?? 8.5);
+  const Rsoft = Number(devConfig.softcapStart ?? 100);
+  const Rhard = Number(devConfig.hardcapStart ?? 1000);
+
+  // 1. Unowned device gives no bonus
+  engine.state.devices.backpropagator = { owned: 0 };
+  engine.state.algorithms.ARed.owned = 50;
+  assert.equal(Number(calculateBackpropagatorMultiplier(engine.state, config)), 1.0);
+
+  // 2. Owned device with 0 ARed gives no bonus
+  engine.state.devices.backpropagator = { owned: 1 };
+  engine.state.algorithms.ARed.owned = 0;
+  assert.equal(Number(calculateBackpropagatorMultiplier(engine.state, config)), 1.0);
+
+  // 3. Normal curve up to softcap R = Rsoft
+  engine.state.algorithms.ARed.owned = 1;
+  assertClose(Number(calculateBackpropagatorMultiplier(engine.state, config)), q ** 1, 1e-4);
+
+  engine.state.algorithms.ARed.owned = Rsoft;
+  const expectedSoft = q ** Math.sqrt(Rsoft);
+  assertClose(Number(calculateBackpropagatorMultiplier(engine.state, config)), expectedSoft, 1e2);
+
+  // 4. Softcap above Rsoft with diminishing returns
+  engine.state.algorithms.ARed.owned = Rsoft + 200;
+  const multAbove = calculateBackpropagatorMultiplier(engine.state, config);
+  assert.ok(multAbove.gt(expectedSoft));
+
+  // 5. Hardcap at Rhard: mult(Rhard + 1) === mult(Rhard)
+  engine.state.algorithms.ARed.owned = Rhard;
+  const multHard = calculateBackpropagatorMultiplier(engine.state, config);
+
+  engine.state.algorithms.ARed.owned = Rhard + 1;
+  const multHardPlus1 = calculateBackpropagatorMultiplier(engine.state, config);
+  assertBigEqual(multHardPlus1, multHard);
+
+  engine.state.algorithms.ARed.owned = Rhard + 4000;
+  const multFarAbove = calculateBackpropagatorMultiplier(engine.state, config);
+  assertBigEqual(multFarAbove, multHard);
+
+  // 6. Ordinary ARed AP continues increasing beyond Rhard
+  const s = calculateAlgorithmStrengths(engine.state.computerLevel, config);
+  engine.state.algorithms.ARed.owned = Rhard;
+  const apHard = calculateAlgorithmPerformance(engine.state, config);
+  engine.state.algorithms.ARed.owned = Rhard + 1;
+  const apHardPlus1 = calculateAlgorithmPerformance(engine.state, config);
+  assertBigClose(apHardPlus1.sub(apHard), s.ARed, 1e-18);
+});
+
+test("§46.8: Hotkey 'G' triggers ARed study when unlocked, blocked when locked", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  engine.state.unlocks.ARed = false;
+  engine.setHotkeyState("G", true);
+  assert.equal(engine.continuousStudyTargets.has("ARed"), false);
+
+  engine.state.unlocks.ARed = true;
+  engine.setHotkeyState("G", true);
+  assert.equal(engine.continuousStudyTargets.has("ARed"), true);
+  engine.setHotkeyState("G", false);
+  assert.equal(engine.continuousStudyTargets.has("ARed"), false);
+});
+
+// -------------------------------------------------------------
+// §47: NUMERICAL STABILITY OF ENERGY DECAY
+// -------------------------------------------------------------
+test("§47.1: Implicit ODE step is unconditionally stable with zero oscillation at 1e13 J/s", () => {
+  const E0 = big("1e15");
+  const P = big("1e13");
+  const delta = 1.0;
+  const cap = big(0);
+
+  const E1 = integrateEnergyStep(E0, P, cap, delta, config);
+  assert.ok(big(E1).gte(0), "Energy must never become negative");
+  assert.ok(big(E1).lt(E0), "At 1e15 J, decay overwhelmingly exceeds production");
+
+  // Run 10 successive large steps and ensure strict monotonic convergence without oscillation
+  let prev = E0;
+  for (let step = 0; step < 10; step++) {
+    const next = integrateEnergyStep(prev, P, cap, delta, config);
+    assert.ok(big(next).lte(prev), `Step ${step}: must decrease monotonically`);
+    assert.ok(big(next).gte(0), `Step ${step}: must remain non-negative`);
+    prev = next;
+  }
+});
+
+// -------------------------------------------------------------
+// §48: LATE-GAME PROGRESSION PROTECTION
+// -------------------------------------------------------------
+test("§48.1: Transistor late pricing applies for N > 24 with kappa = 0.18", () => {
+  const baseCost = config.devices.transistor.baseCost ?? 2.5e-10;
+  const mult = config.devices.transistor.costMultiplier ?? 1.6;
+
+  // At N = 24: purely geometric
+  const cost24 = calculateDeviceCost("transistor", 24, config);
+  const expected24 = big(baseCost).mul(big(mult).pow(24));
+  assertBigClose(cost24, expected24, 1e-12);
+
+  // At N = 25: geometric * exp(0.18 * 1^1.5) = geometric * exp(0.18) ~ 1.1972x
+  const cost25 = calculateDeviceCost("transistor", 25, config);
+  const expected25 = big(baseCost).mul(big(mult).pow(25)).mul(Math.exp(0.18 * (1 ** 1.5)));
+  assertBigClose(cost25, expected25, 1e-12);
+
+  // At N = 28: geometric * exp(0.18 * 4^1.5) = geometric * exp(0.18 * 8) = geometric * exp(1.44) ~ 4.22x
+  const cost28 = calculateDeviceCost("transistor", 28, config);
+  const expected28 = big(baseCost).mul(big(mult).pow(28)).mul(Math.exp(0.18 * (4 ** 1.5)));
+  assertBigClose(cost28, expected28, 1e-12);
+});
+
+test("§48.2: Bulk transistor purchasing computes exact sum with late pricing", () => {
+  const bulkCost = calculateBulkDeviceCost("transistor", 23, 3, config);
+  const c23 = calculateDeviceCost("transistor", 23, config);
+  const c24 = calculateDeviceCost("transistor", 24, config);
+  const c25 = calculateDeviceCost("transistor", 25, config);
+  const expectedSum = big(c23).add(c24).add(c25);
+  assertBigClose(bulkCost, expectedSum, 1e-12);
+});
+
+test("§48.3: Machine Learning late-XP pressure multiplies by 400^(L - 12) for L > 12", () => {
+  const xp12 = calculateRequiredDataForNextComputerLevel(12, config);
+  const xp13 = calculateRequiredDataForNextComputerLevel(13, config);
+  const xp14 = calculateRequiredDataForNextComputerLevel(14, config);
+  const xp15 = calculateRequiredDataForNextComputerLevel(15, config);
+
+  assert.ok(xp13 > 1e9, "Level 13 requires billions of Data");
+  assert.ok(xp14 > 1e11, "Level 14 requires hundreds of billions of Data");
+  assert.ok(xp15 > 1e14, "Level 15 requires hundreds of trillions of Data");
+});
+
+// -------------------------------------------------------------
+// §49: SETUP OPTIMIZATION LOGARITHMIC CURVE
+// -------------------------------------------------------------
+test("§49.1: SO multiplier matches reference logarithmic curve D(S) = 1 + 1.35 * ln(1 + S)", () => {
+  const expected = [
+    { S: 0, mult: 1.000 },
+    { S: 1, mult: 1.936 },
+    { S: 2, mult: 2.483 },
+    { S: 3, mult: 2.871 },
+    { S: 4, mult: 3.173 },
+    { S: 5, mult: 3.419 },
+  ];
+
+  for (const item of expected) {
+    const actual = calculateFacilityDeviceMultiplier(item.S, config);
+    assertClose(actual, item.mult, 1e-3);
+  }
+});
+
+test("§49.2: SO logarithmic curve is strictly increasing and strictly concave", () => {
+  let prevVal = 1.0;
+  let prevDiff = Infinity;
+  for (let S = 1; S <= 20; S++) {
+    const val = calculateFacilityDeviceMultiplier(S, config);
+    const diff = val - prevVal;
+    assert.ok(val > prevVal, `SO ${S} must be strictly greater than SO ${S - 1}`);
+    assert.ok(diff < prevDiff, `SO ${S} marginal gain must be strictly less than SO ${S - 1} marginal gain`);
+    prevVal = val;
+    prevDiff = diff;
+  }
 });

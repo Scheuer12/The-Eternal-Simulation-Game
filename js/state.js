@@ -22,16 +22,17 @@ export function createInitialState(config = {}) {
     computerLevel: config.economy?.initialComputerLevel ?? 1,
     facilityOptimizations: 0,
 
-    // Exactly Three Algorithm Features
+    // Four Algorithm Features (AImp, AUpg, ARec, ARed)
     algorithms: {
       AImp: { owned: 0, produced: 0 },
       AUpg: { owned: 0, produced: 0 },
       ARec: { owned: 0, produced: 0 },
+      ARed: { owned: 0, produced: 0 },
     },
 
     // Study Execution State
     manualStudy: {
-      target: null, // 'AImp' | 'AUpg' | 'ARec' | null
+      target: null, // 'AImp' | 'AUpg' | 'ARec' | 'ARed' | null
       elapsed: 0,
       active: false,
     },
@@ -39,15 +40,18 @@ export function createInitialState(config = {}) {
       AImp: { active: false, elapsed: 0 },
       AUpg: { active: false, elapsed: 0 },
       ARec: { active: false, elapsed: 0 },
+      ARed: { active: false, elapsed: 0 },
     },
     studyQueues: {
       AImp: 0,
       AUpg: 0,
       ARec: 0,
+      ARed: 0,
     },
     reservedInputs: {
       AImp: 0,
       AUpg: 0,
+      ARec: 0,
     },
 
     // Study Improve (Section 1)
@@ -55,6 +59,7 @@ export function createInitialState(config = {}) {
       AImp: { completions: 0, claimed: 0 },
       AUpg: { completions: 0, claimed: 0 },
       ARec: { completions: 0, claimed: 0 },
+      ARed: { completions: 0, claimed: 0 },
     },
 
     // Devices & Infrastructure
@@ -65,16 +70,19 @@ export function createInitialState(config = {}) {
           AImp: 0,
           AUpg: 0,
           ARec: 0,
+          ARed: 0,
         },
         enabled: {
           AImp: true,
           AUpg: true,
           ARec: true,
+          ARed: true,
         },
         timers: {
           AImp: 0,
           AUpg: 0,
           ARec: 0,
+          ARed: 0,
         },
       },
       transistorBoard: {
@@ -85,6 +93,7 @@ export function createInitialState(config = {}) {
         AImp: 0,
         AUpg: 0,
         ARec: 0,
+        ARed: 0,
       },
       microprocessor: {
         owned: 0,
@@ -109,6 +118,9 @@ export function createInitialState(config = {}) {
         activeSeconds: 0,
         buffer: 0,
       },
+      backpropagator: {
+        owned: 0,
+      },
     },
 
     // Technological Unlock Milestones
@@ -116,6 +128,7 @@ export function createInitialState(config = {}) {
       AImp: true,
       AUpg: true,
       ARec: false,
+      ARed: false,
       chips: false,
       transistorBoard: false,
       microprocessor: false,
@@ -123,6 +136,7 @@ export function createInitialState(config = {}) {
       crcGadget: true,
       capacitor: false,
       processor: false,
+      backpropagator: false,
       hardDisk: false,
       powerCell: false,
     },
@@ -189,6 +203,10 @@ export function normalizeState(raw = {}, config = {}) {
         owned: Math.max(0, Number(raw.algorithms?.ARec?.owned ?? 0)),
         produced: Math.max(0, Number(raw.algorithms?.ARec?.produced ?? 0)),
       },
+      ARed: {
+        owned: Math.max(0, Number(raw.algorithms?.ARed?.owned ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.ARed?.produced ?? 0)),
+      },
     },
 
     manualStudy: {
@@ -209,15 +227,21 @@ export function normalizeState(raw = {}, config = {}) {
         active: Boolean(raw.manualStudies?.ARec?.active ?? (raw.manualStudy?.target === "ARec" && raw.manualStudy?.active)),
         elapsed: Number(raw.manualStudies?.ARec?.elapsed ?? (raw.manualStudy?.target === "ARec" ? raw.manualStudy?.elapsed : 0)),
       },
+      ARed: {
+        active: Boolean(raw.manualStudies?.ARed?.active ?? (raw.manualStudy?.target === "ARed" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.ARed?.elapsed ?? (raw.manualStudy?.target === "ARed" ? raw.manualStudy?.elapsed : 0)),
+      },
     },
     studyQueues: {
       AImp: Math.max(0, Number(raw.studyQueues?.AImp ?? 0)),
       AUpg: Math.max(0, Number(raw.studyQueues?.AUpg ?? 0)),
       ARec: Math.max(0, Number(raw.studyQueues?.ARec ?? 0)),
+      ARed: Math.max(0, Number(raw.studyQueues?.ARed ?? 0)),
     },
     reservedInputs: {
       AImp: Math.max(0, Number(raw.reservedInputs?.AImp ?? 0)),
       AUpg: Math.max(0, Number(raw.reservedInputs?.AUpg ?? 0)),
+      ARec: Math.max(0, Number(raw.reservedInputs?.ARec ?? 0)),
     },
 
     studyImproves: {
@@ -233,6 +257,10 @@ export function normalizeState(raw = {}, config = {}) {
         completions: Math.max(0, Number(raw.studyImproves?.ARec?.completions ?? 0)),
         claimed: Math.max(0, Number(raw.studyImproves?.ARec?.claimed ?? 0)),
       },
+      ARed: {
+        completions: Math.max(0, Number(raw.studyImproves?.ARed?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.ARed?.claimed ?? 0)),
+      },
     },
 
     devices: {
@@ -242,16 +270,19 @@ export function normalizeState(raw = {}, config = {}) {
           AImp: Math.max(0, Number(raw.devices?.chips?.allocations?.AImp ?? raw.devices?.autoCalculators ?? 0)),
           AUpg: Math.max(0, Number(raw.devices?.chips?.allocations?.AUpg ?? 0)),
           ARec: Math.max(0, Number(raw.devices?.chips?.allocations?.ARec ?? 0)),
+          ARed: Math.max(0, Number(raw.devices?.chips?.allocations?.ARed ?? 0)),
         },
         enabled: {
           AImp: raw.devices?.chips?.enabled?.AImp !== false,
           AUpg: raw.devices?.chips?.enabled?.AUpg !== false,
           ARec: raw.devices?.chips?.enabled?.ARec !== false,
+          ARed: raw.devices?.chips?.enabled?.ARed !== false,
         },
         timers: {
           AImp: Math.max(0, Number(raw.devices?.chips?.timers?.AImp ?? 0)),
           AUpg: Math.max(0, Number(raw.devices?.chips?.timers?.AUpg ?? 0)),
           ARec: Math.max(0, Number(raw.devices?.chips?.timers?.ARec ?? 0)),
+          ARed: Math.max(0, Number(raw.devices?.chips?.timers?.ARed ?? 0)),
         },
       },
       transistorBoard: {
@@ -262,6 +293,7 @@ export function normalizeState(raw = {}, config = {}) {
         AImp: Math.max(0, Number(raw.devices?.transistorAllocations?.AImp ?? 0)),
         AUpg: Math.max(0, Number(raw.devices?.transistorAllocations?.AUpg ?? 0)),
         ARec: Math.max(0, Number(raw.devices?.transistorAllocations?.ARec ?? 0)),
+        ARed: Math.max(0, Number(raw.devices?.transistorAllocations?.ARed ?? 0)),
       },
       microprocessor: {
         owned: Math.min(1, Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0))),
@@ -288,11 +320,16 @@ export function normalizeState(raw = {}, config = {}) {
         activeSeconds: Number(raw.devices?.hardDisks?.activeSeconds ?? 0),
         buffer: Math.max(0, Number(raw.devices?.hardDisks?.buffer ?? 0)),
       },
+      backpropagator: {
+        owned: Math.max(0, Number(raw.devices?.backpropagator?.owned ?? raw.devices?.backpropagator ?? 0)),
+      },
     },
 
     unlocks: {
       ...initial.unlocks,
       ...(raw.unlocks ?? {}),
+      ARed: Boolean(raw.unlocks?.ARed || (raw.facilityOptimizations ?? 0) >= 2),
+      backpropagator: Boolean(raw.unlocks?.backpropagator || (raw.devices?.backpropagator?.owned > 0) || (raw.devices?.backpropagator > 0)),
     },
 
     stats: {

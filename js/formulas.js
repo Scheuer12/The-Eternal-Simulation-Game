@@ -26,11 +26,14 @@ export function calculateAlgorithmStrengths(computerLevel = 1, config = {}, capa
   const aUpg = aImp * F * (L + 1);
   // Step 3: ARec inherits Capacitor-amplified AUpg strength
   const aRec = aUpg * F * (L + 1);
+  // Step 4: ARed inherits Capacitor-amplified ARec strength
+  const aRed = aRec * F * (L + 1);
 
   return {
     AImp: aImp,
     AUpg: aUpg,
     ARec: aRec,
+    ARed: aRed,
   };
 }
 
@@ -56,6 +59,7 @@ export function calculateAlgorithmPerformance(state = {}, config = {}, statResol
   const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
   const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
   const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+  const aRedOwned = state.algorithms?.ARed?.owned ?? 0;
 
   const deviceMultiplier = statResolver
     ? statResolver.resolve("devices.globalMultiplier", { state, config })
@@ -71,8 +75,9 @@ export function calculateAlgorithmPerformance(state = {}, config = {}, statResol
   const aImpContrib = big(strengths.AImp).mul(aImpOwned);
   const aUpgContrib = big(strengths.AUpg).mul(aUpgOwned);
   const aRecContrib = big(strengths.ARec).mul(aRecOwned);
+  const aRedContrib = big(strengths.ARed ?? 0).mul(aRedOwned);
 
-  return aImpContrib.add(aUpgContrib).add(aRecContrib);
+  return aImpContrib.add(aUpgContrib).add(aRecContrib).add(aRedContrib);
 }
 
 export function calculateCrcMultiplier(state = {}, config = {}, deviceMultiplier = 1) {
@@ -80,6 +85,42 @@ export function calculateCrcMultiplier(state = {}, config = {}, deviceMultiplier
   if (!hasGadget) return 1.0;
   const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
   return 1.0 + (baseMult - 1.0) * deviceMultiplier;
+}
+
+export function calculateBackpropagatorMultiplier(stateOrCount = 0, config = {}, isOwnedOrResolver = null) {
+  let owned = false;
+  let R = 0;
+
+  if (typeof stateOrCount === "object" && stateOrCount !== null) {
+    const state = stateOrCount;
+    owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    R = Math.max(0, Math.floor(state.algorithms?.ARed?.owned ?? 0));
+  } else {
+    // Direct numerical call: calculateBackpropagatorMultiplier(ownedARed, config, isOwned)
+    R = Math.max(0, Math.floor(Number(stateOrCount) || 0));
+    owned = isOwnedOrResolver === false ? false : true;
+  }
+
+  if (!owned || R <= 0) {
+    return big(1.0);
+  }
+
+  const devConfig = config.devices?.backpropagator ?? {};
+
+  const q = Number(devConfig.resonanceBase ?? 8.5);
+  const Rsoft = Number(devConfig.softcapStart ?? 100);
+  const Rhard = Number(devConfig.hardcapStart ?? 1000);
+  const s = Number(devConfig.softcapScale ?? 100);
+
+  const Rbounded = Math.min(R, Rhard);
+
+  let effectiveR = Rbounded;
+  if (Rbounded > Rsoft) {
+    effectiveR = Rsoft + s * Math.log1p((Rbounded - Rsoft) / s);
+  }
+
+  const exponent = Math.sqrt(effectiveR);
+  return big(q).pow(exponent);
 }
 
 export function calculateEnergyProduction(state = {}, config = {}, statResolver = null) {
@@ -94,7 +135,9 @@ export function calculateEnergyProduction(state = {}, config = {}, statResolver 
     ? statResolver.resolve("devices.crc.multiplier", { state, config })
     : calculateCrcMultiplier(state, config, deviceMultiplier);
 
-  return ap.mul(crcMult);
+  const backpropagatorMult = calculateBackpropagatorMultiplier(state, config, statResolver);
+
+  return ap.mul(crcMult).mul(backpropagatorMult);
 }
 
 export function calculateEnergyOverflowDecay(storedEnergy = 0, stableCapacity = 0, config = {}) {
@@ -152,12 +195,14 @@ export function calculateDataFromAlgorithms(state = {}, config = {}) {
   const aImpVal = config.dataXP?.aImpData ?? 1;
   const aUpgVal = config.dataXP?.aUpgData ?? 9;
   const aRecVal = config.dataXP?.aRecData ?? 81;
+  const aRedVal = config.dataXP?.aRedData ?? 0;
 
   const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
   const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
   const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+  const aRedOwned = state.algorithms?.ARed?.owned ?? 0;
 
-  return aImpOwned * aImpVal + aUpgOwned * aUpgVal + aRecOwned * aRecVal;
+  return aImpOwned * aImpVal + aUpgOwned * aUpgVal + aRecOwned * aRecVal + aRedOwned * aRedVal;
 }
 
 export function calculateAvailableData(state = {}, config = {}) {
@@ -202,25 +247,45 @@ export function calculateRequiredDataForNextComputerLevel(currentLevel = 1, conf
     ?? 1.45;
   const G = Number.isFinite(rawGrowth) && rawGrowth > 1 ? rawGrowth : 1.45;
 
+  let baseXp = 0;
   // For L <= A: retain exact existing early-game polynomial progression
   if (L <= A) {
-    return calculatePolynomialDataRequirement(L, config);
-  }
+    baseXp = calculatePolynomialDataRequirement(L, config);
+  } else {
+    // For L > A: exponential progression anchored at Level A: ceil(XP_A * G^(L - A))
+    const xpA = calculatePolynomialDataRequirement(A, config);
+    const power = L - A;
+    const mult = G ** power;
 
-  // For L > A: exponential progression anchored at Level A: ceil(XP_A * G^(L - A))
-  const xpA = calculatePolynomialDataRequirement(A, config);
-  const power = L - A;
-  const mult = G ** power;
-
-  if (!Number.isFinite(mult)) {
-    try {
-      return big(xpA).mul(big(G).pow(power)).ceil().toNumber();
-    } catch {
-      return Number.MAX_SAFE_INTEGER;
+    if (!Number.isFinite(mult)) {
+      try {
+        baseXp = big(xpA).mul(big(G).pow(power)).ceil();
+      } catch {
+        baseXp = big(Number.MAX_SAFE_INTEGER);
+      }
+    } else {
+      baseXp = Math.ceil(xpA * mult);
     }
   }
 
-  return Math.ceil(xpA * mult);
+  // Phase 6.2: Machine Learning late-XP pressure for Computer Levels > latePressureStartLevel (12)
+  const lateStart = config.dataXP?.machineLearning?.latePressureStartLevel ?? 12;
+  const lateFactor = config.dataXP?.machineLearning?.latePressureFactor ?? 1;
+
+  if (L > lateStart && lateFactor > 1) {
+    const latePower = L - lateStart;
+    try {
+      const finalVal = big(baseXp).mul(big(lateFactor).pow(latePower)).ceil();
+      if (finalVal.gt(1e300)) {
+        return 1e300 * (1 + L * 1e-14);
+      }
+      return finalVal.toNumber();
+    } catch {
+      return 1e300 * (1 + L * 1e-14);
+    }
+  }
+
+  return typeof baseXp === "number" ? baseXp : (baseXp.toNumber ? baseXp.toNumber() : Number(baseXp));
 }
 
 // ============================================================================
@@ -238,10 +303,18 @@ export function calculateFacilityOptimizationRequirement(completedCount = 0, con
 export const calculateSetupOptimizationRequirement = calculateFacilityOptimizationRequirement;
 
 export function calculateFacilityDeviceMultiplier(completedCount = 0, config = {}) {
-  const H = Math.max(0, Math.floor(completedCount ?? 0));
+  const S = Math.max(0, Math.floor(completedCount ?? 0));
   const fo = config.facilityOptimization || config.setupOptimization || {};
-  const base = fo.deviceMultiplierBase ?? fo.multiplierBase ?? 1.09;
-  return base ** H;
+  const mode = fo.curveMode ?? (fo.deviceEffectCoefficient !== undefined ? "logarithmic" : "exponential");
+
+  if (mode === "exponential") {
+    const base = fo.deviceMultiplierBase ?? fo.multiplierBase ?? 1.09;
+    return base ** S;
+  }
+
+  // Authoritative logarithmic curve: D(S) = 1 + alpha * Math.log1p(S)
+  const alpha = fo.deviceEffectCoefficient ?? 1.35;
+  return 1 + alpha * Math.log1p(S);
 }
 
 export const calculateSetupDeviceMultiplier = calculateFacilityDeviceMultiplier;
@@ -441,9 +514,21 @@ export function calculateDeviceCost(type, owned = 0, config = {}) {
       return big(config.devices?.transistorBoard?.initialCost ?? 2e-10);
     }
     case "transistor": {
-      const init = config.devices?.transistor?.initialCost ?? 3e-11;
-      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
-      return calculateGeometricCost(init, mult, owned);
+      const init = config.devices?.transistor?.initialCost ?? 250e-12;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.6;
+      const N = Math.max(0, Math.floor(owned ?? 0));
+      const baseCost = calculateGeometricCost(init, mult, N);
+
+      // Phase 6.1: Transistor late-price pressure for purchases beyond N0 (24)
+      const N0 = config.devices?.transistor?.latePressureStart ?? 24;
+      const kappa = config.devices?.transistor?.latePressureKappa ?? 0.18;
+
+      if (N > N0 && kappa > 0) {
+        const excess = N - N0;
+        const pressure = Math.exp(kappa * Math.pow(excess, 1.5));
+        return baseCost.mul(pressure);
+      }
+      return baseCost;
     }
     case "microprocessor": {
       return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
@@ -493,9 +578,26 @@ export function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, confi
       return calculateDeviceCost(type, currentOwned, config);
     }
     case "transistor": {
-      const init = config.devices?.transistor?.initialCost ?? 3e-11;
-      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
-      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+      const init = config.devices?.transistor?.initialCost ?? 250e-12;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.6;
+      const N0 = config.devices?.transistor?.latePressureStart ?? 24;
+      const kappa = config.devices?.transistor?.latePressureKappa ?? 0.18;
+
+      if (kappa <= 0 || (currentOwned + kCount) <= N0) {
+        return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+      }
+
+      let total = big(0);
+      let i = 0;
+      if (currentOwned < N0) {
+        const geomCount = N0 - currentOwned;
+        total = total.add(calculateBulkGeometricCost(init, mult, currentOwned, geomCount));
+        i = geomCount;
+      }
+      for (; i < kCount; i++) {
+        total = total.add(calculateDeviceCost("transistor", currentOwned + i, config));
+      }
+      return total;
     }
     case "capacitor": {
       const init = config.devices?.capacitor?.initialCost ?? 1e-8;
@@ -524,6 +626,43 @@ export function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, confi
   }
 }
 
+export function integrateEnergyStep(currentEnergy, production, stableCap, delta, config = {}) {
+  const e0 = big(currentEnergy);
+  const p = big(production);
+  const cap = big(stableCap);
+  const dt = big(delta);
+
+  // If production is zero or negative, decay only drains towards capacity
+  if (p.lte(0)) {
+    const decay = calculateEnergyOverflowDecay(e0, cap, config);
+    return bigMax(0, e0.sub(decay.mul(dt)));
+  }
+
+  // Fast path: if tentative energy without decay is <= capacity, decay is strictly 0
+  const rhs = e0.add(p.mul(dt));
+  if (rhs.lte(cap)) {
+    return bigMax(0, rhs);
+  }
+
+  // Bounded monotonic implicit solver: E1 + dt * D(E1) = E0 + dt * P
+  // D(E) is strictly monotonic non-decreasing, so E1 in [cap, rhs]
+  let low = cap;
+  let high = rhs;
+
+  for (let iter = 0; iter < 35; iter++) {
+    const mid = low.add(high).div(2);
+    const d = calculateEnergyOverflowDecay(mid, cap, config);
+    const g = mid.add(d.mul(dt));
+    if (g.lt(rhs)) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low.add(high).div(2);
+}
+
 // ============================================================================
 // REGISTER FORMULAS IN DEFAULT FORMULA REGISTRY
 // ============================================================================
@@ -534,8 +673,10 @@ defaultFormulaRegistry.register("computerPerformanceMultiplier", calculateComput
 defaultFormulaRegistry.register("capacitorMultiplier", calculateCapacitorMultiplier);
 defaultFormulaRegistry.register("algorithmPerformance", calculateAlgorithmPerformance);
 defaultFormulaRegistry.register("crcMultiplier", calculateCrcMultiplier);
+defaultFormulaRegistry.register("backpropagatorMultiplier", calculateBackpropagatorMultiplier);
 defaultFormulaRegistry.register("energyProduction", calculateEnergyProduction);
 defaultFormulaRegistry.register("energyOverflowDecay", calculateEnergyOverflowDecay);
+defaultFormulaRegistry.register("integrateEnergyStep", integrateEnergyStep);
 defaultFormulaRegistry.register("energyEraProgress", calculateEnergyEraProgress);
 defaultFormulaRegistry.register("energyEraPercent", calculateEnergyEraPercent);
 defaultFormulaRegistry.register("dataFromAlgorithms", calculateDataFromAlgorithms);

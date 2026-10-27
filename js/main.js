@@ -41,7 +41,7 @@ function bindHotkeys(engine, renderer) {
     }
 
     const key = event.key.toUpperCase();
-    if (["A", "U", "R", "T", "M"].includes(key)) {
+    if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       event.preventDefault();
       engine.setHotkeyState(key, true);
       if (renderer?.render) renderer.render();
@@ -50,7 +50,7 @@ function bindHotkeys(engine, renderer) {
 
   window.addEventListener("keyup", (event) => {
     const key = event.key.toUpperCase();
-    if (["A", "U", "R", "T", "M"].includes(key)) {
+    if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       engine.setHotkeyState(key, false);
       if (renderer?.render) renderer.render();
     }
@@ -76,7 +76,11 @@ function bindActions(app, engine, saveActions, config, renderer) {
         const tab = target.dataset.tab || "energy";
         if (engine.state.ui.activeTab !== tab) {
           engine.state.ui.activeTab = tab;
-          renderer.render();
+          try {
+            renderer.render();
+          } catch (err) {
+            console.error("[Main] Error during tab switch render:", err);
+          }
         }
         break;
       }
@@ -434,8 +438,18 @@ async function start() {
 
     bindHotkeys(engine, renderer);
 
-    engine.subscribe(() => renderer.render());
-    renderer.render();
+    engine.subscribe(() => {
+      try {
+        renderer.render();
+      } catch (err) {
+        console.error("[Main] Error in engine subscription render:", err);
+      }
+    });
+    try {
+      renderer.render();
+    } catch (err) {
+      console.error("[Main] Error during initial render:", err);
+    }
 
     if (initialDrawer && renderer?.openDrawer) {
       renderer.openDrawer(initialDrawer);
@@ -456,7 +470,11 @@ async function start() {
         if (bgSummary && bgSummary.simulatedSeconds >= 5 && !renderer.getActiveDrawer?.()) {
           renderer.openDrawer("offline");
         }
-        renderer.render();
+        try {
+          renderer.render();
+        } catch (err) {
+          console.error("[Main] Error during offline progress render:", err);
+        }
         if (!saveSuppressed) saveState(engine.state, developmentMode);
       } else {
         const deltaSeconds = Math.min(rawDelta, config.timing?.maximumTickSeconds ?? 1.0);
@@ -464,7 +482,11 @@ async function start() {
       }
 
       if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
-        renderer.render();
+        try {
+          renderer.render();
+        } catch (err) {
+          console.error("[Main] Error during tick render:", err);
+        }
         previousRender = now;
       }
 

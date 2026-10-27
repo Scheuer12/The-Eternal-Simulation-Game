@@ -33,6 +33,7 @@ import {
   calculateAlgorithmPerformance,
   calculateComputerPerformanceMultiplier,
   calculateEnergyProduction,
+  calculateBackpropagatorMultiplier,
   calculateEnergyOverflowDecay,
   calculateEffectiveStudyDuration,
   calculateEffectiveStudySpeed,
@@ -453,6 +454,57 @@ export function createRenderer(container, engine) {
                     <span class="tes-install-transistor-cost tabular" data-field="arec-transistor-cost">250 pJ</span>
                   </button>
                 </div>
+
+                <!-- 4. Algorithm Redesign (ARed) - Revealed only if unlocks.ARed -->
+                <div class="tes-study-unit" id="study-unit-ared" style="display: none;">
+                  <article class="tes-study-row" id="study-row-ared">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-redesign")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">REDESIGN STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="ared-title">Algorithm Redesign (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="ARed" data-field="ared-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Redesign study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="ared-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="ared-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Synthesizes recalculations into architectural redesigns.</span>
+                        <span class="tes-study-cost-hint">Req 12 A.Rec</span>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="ared-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-teal)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="ared-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="ARed" data-count="1" data-field="ared-study-btn" title="Study Algorithm Redesign (Hotkey: G)">
+                        Study <kbd class="tes-hotkey-hint">G</kbd>
+                      </button>
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="ARed" data-field="ared-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="ared" aria-label="A.Red info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="ARed" data-field="ared-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Redesign">
+                    <span class="tes-install-transistor-label">Install Transistor</span>
+                    <span class="tes-install-transistor-cost tabular" data-field="ared-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Prestige Actions Row (Side-by-Side: Machine Learning & Setup Optimization) -->
@@ -629,6 +681,28 @@ export function createRenderer(container, engine) {
                         </button>
                       </div>
                     </article>
+
+                    <!-- AutoCalculator ARed (Revealed only if unlocks.ARed) -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_ARed" id="device-row-chip-ared" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-red")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Redesigns</span>
+                            <span class="badge-status badge-status--off" data-field="chip-ared-badge">${formatEnergy(1.92e-9)}</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_ARed" data-field="chip-ared-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-ared" aria-label="AutoCalculator ARed info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
 
                   <!-- Section 2: COMPUTATION & EFFICIENCY -->
@@ -760,6 +834,28 @@ export function createRenderer(container, engine) {
                           Add
                         </button>
                         <button class="btn-icon-only" data-action="show-info" data-topic="device-crc-gadget" aria-label="CRC Gadget info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- Backpropagator (Unique Device, revealed at SO3 when currentRunPeakEnergy >= energytoUnlock) -->
+                    <article class="tes-device-row" data-device-id="backpropagator" id="device-row-backpropagator" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("backpropagator")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Backpropagator</span>
+                            <span class="badge-status badge-status--off" data-field="backpropagator-badge">${formatEnergy(1)}</span>
+                          </div>
+                          <span class="tes-device-desc">Improves global Energy production based on the amount of Algorithm Redesigns owned.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="backpropagator" data-field="backpropagator-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-backpropagator" aria-label="Backpropagator info">
                           <img src="${tesIconPath("icon-info")}" alt="" />
                         </button>
                       </div>
@@ -983,6 +1079,19 @@ export function createRenderer(container, engine) {
       arecInstallTransistor: container.querySelector('[data-field="arec-install-transistor"]'),
       arecTransistorCost: container.querySelector('[data-field="arec-transistor-cost"]'),
 
+      aredUnit: container.querySelector('#study-unit-ared'),
+      aredRow: container.querySelector("#study-row-ared"),
+      aredTitle: container.querySelector('[data-field="ared-title"]'),
+      aredDur: container.querySelector('[data-field="ared-dur"]'),
+      aredRing: container.querySelector('[data-field="ared-progress-ring"]'),
+      aredAutoBadge: container.querySelector('[data-field="ared-auto-badge"]'),
+      aredBtn: container.querySelector('[data-field="ared-study-btn"]'),
+      aredImproveBtn: container.querySelector('[data-field="ared-improve-btn"]'),
+      aredImproveBadge: container.querySelector('[data-field="ared-improve-badge"]'),
+      aredImproveMilestone: container.querySelector('[data-field="ared-improve-milestone"]'),
+      aredInstallTransistor: container.querySelector('[data-field="ared-install-transistor"]'),
+      aredTransistorCost: container.querySelector('[data-field="ared-transistor-cost"]'),
+
       mlProgressText: container.querySelector(
         '[data-field="ml-progress-text"]',
       ),
@@ -1033,6 +1142,7 @@ export function createRenderer(container, engine) {
       "autoCalculator_AImp",
       "autoCalculator_AUpg",
       "autoCalculator_ARec",
+      "autoCalculator_ARed",
       "transistorBoard",
       "microprocessor",
       "processor",
@@ -1041,6 +1151,7 @@ export function createRenderer(container, engine) {
       "capacitor",
       "powerCell",
       "hardDisk",
+      "backpropagator",
     ];
 
     deviceIds.forEach((id) => {
@@ -1069,6 +1180,14 @@ export function createRenderer(container, engine) {
               badge: row.querySelector('[data-field="chip-arec-badge"]'),
               actionBtn: row.querySelector(
                 '[data-field="chip-arec-action-btn"]',
+              ),
+            };
+            break;
+          case "autoCalculator_ARed":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-ared-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-ared-action-btn"]',
               ),
             };
             break;
@@ -1130,6 +1249,14 @@ export function createRenderer(container, engine) {
               badge: row.querySelector('[data-field="harddisk-status-badge"]'),
               actionBtn: row.querySelector(
                 '[data-field="harddisk-action-btn"]',
+              ),
+            };
+            break;
+          case "backpropagator":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="backpropagator-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="backpropagator-action-btn"]',
               ),
             };
             break;
@@ -1372,6 +1499,7 @@ export function createRenderer(container, engine) {
     updateStudyExtraControls("AImp", dom.aimpImproveBtn, dom.aimpImproveBadge, dom.aimpImproveMilestone, dom.aimpInstallTransistor, dom.aimpTransistorCost);
     updateStudyExtraControls("AUpg", dom.aupgImproveBtn, dom.aupgImproveBadge, dom.aupgImproveMilestone, dom.aupgInstallTransistor, dom.aupgTransistorCost);
     updateStudyExtraControls("ARec", dom.arecImproveBtn, dom.arecImproveBadge, dom.arecImproveMilestone, dom.arecInstallTransistor, dom.arecTransistorCost);
+    updateStudyExtraControls("ARed", dom.aredImproveBtn, dom.aredImproveBadge, dom.aredImproveMilestone, dom.aredInstallTransistor, dom.aredTransistorCost);
 
     // Algorithm Improvement
     const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
@@ -1554,6 +1682,80 @@ export function createRenderer(container, engine) {
       }
     }
 
+    // Algorithm Redesign
+    if (dom.aredRow) {
+      if (state.unlocks?.ARed) {
+        if (dom.aredUnit && dom.aredUnit.style.display !== "flex")
+          dom.aredUnit.style.display = "flex";
+        if (dom.aredRow.style.display !== "flex")
+          dom.aredRow.style.display = "flex";
+        const aRedOwned = state.algorithms?.ARed?.owned ?? 0;
+        setElText(
+          dom.aredTitle,
+          `Algorithm Redesign (${formatInteger(aRedOwned)})`,
+        );
+        const aRedDur = calculateEffectiveStudyDuration(
+          "ARed",
+          state,
+          config,
+          engine.statResolver,
+        );
+        setElText(dom.aredDur, formatStudyDuration(aRedDur));
+        const aRedCanAfford = (state.algorithms?.ARec?.owned ?? 0) >= 12;
+        if (dom.aredBtn) {
+          const disabled = !aRedCanAfford && !state.devMode;
+          if (dom.aredBtn.disabled !== disabled)
+            dom.aredBtn.disabled = disabled;
+        }
+        if (dom.aredRing) {
+          const aRedStudy = state.manualStudies?.ARed ?? (state.manualStudy?.target === "ARed" ? state.manualStudy : null);
+          const isARedActive = Boolean(aRedStudy?.active);
+          if (isARedActive && aRedDur > 0) {
+            if (aRedDur < 0.05) {
+              dom.aredRing.setAttribute("stroke-dashoffset", "0");
+            } else {
+              const progress = Math.min(
+                1,
+                (aRedStudy?.elapsed ?? 0) / aRedDur,
+              );
+              const offset = (56.5 * (1 - progress)).toFixed(1);
+              if (dom.aredRing.getAttribute("stroke-dashoffset") !== offset) {
+                dom.aredRing.setAttribute("stroke-dashoffset", offset);
+              }
+            }
+          } else if (dom.aredRing.getAttribute("stroke-dashoffset") !== "56.5") {
+            dom.aredRing.setAttribute("stroke-dashoffset", "56.5");
+          }
+        }
+        if (dom.aredAutoBadge) {
+          const hasChip = (state.devices?.chips?.allocations?.ARed ?? 0) > 0;
+          if (!hasChip) {
+            if (
+              dom.aredAutoBadge.className !== "badge-auto badge-auto--locked"
+            ) {
+              dom.aredAutoBadge.className = "badge-auto badge-auto--locked";
+              dom.aredAutoBadge.textContent = "Auto: Locked";
+            }
+          } else {
+            const isEnabled = state.devices?.chips?.enabled?.ARed !== false;
+            const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+            const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+            if (dom.aredAutoBadge.className !== targetClass) {
+              dom.aredAutoBadge.className = targetClass;
+              dom.aredAutoBadge.textContent = targetText;
+            }
+          }
+        }
+      } else {
+        if (dom.aredUnit && dom.aredUnit.style.display !== "none") {
+          dom.aredUnit.style.display = "none";
+        }
+        if (dom.aredRow.style.display !== "none") {
+          dom.aredRow.style.display = "none";
+        }
+      }
+    }
+
     // Machine Learning Card
     setElText(
       dom.mlProgressText,
@@ -1654,6 +1856,7 @@ export function createRenderer(container, engine) {
       "autoCalculator_AImp",
       "autoCalculator_AUpg",
       "autoCalculator_ARec",
+      "autoCalculator_ARed",
       "transistorBoard",
       "microprocessor",
       "processor",
@@ -1662,6 +1865,7 @@ export function createRenderer(container, engine) {
       "capacitor",
       "powerCell",
       "hardDisk",
+      "backpropagator",
     ];
 
     let counts = {
@@ -1892,6 +2096,54 @@ export function createRenderer(container, engine) {
               btn.dataset.action = "buy-element";
             if (btn.dataset.elementId !== "autoCalculator_ARec")
               btn.dataset.elementId = "autoCalculator_ARec";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "autoCalculator_ARed": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-ared-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-ared-action-btn"]');
+        const hasARed = (state.devices?.chips?.allocations?.ARed ?? 0) > 0;
+        if (hasARed) {
+          const isEnabled = state.devices?.chips?.enabled?.ARed !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "ARed") btn.dataset.target = "ARed";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_ARed")
+              btn.dataset.elementId = "autoCalculator_ARed";
             const disabled = !canClick;
             if (btn.disabled !== disabled) btn.disabled = disabled;
           }
@@ -2242,6 +2494,46 @@ export function createRenderer(container, engine) {
         }
         break;
       }
+
+      case "backpropagator": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="backpropagator-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="backpropagator-action-btn"]');
+        const hasDevice = (owned ?? 0) > 0;
+
+        if (hasDevice) {
+          if (badge) {
+            const cls = "badge-status badge-status--active";
+            if (badge.className !== cls) badge.className = cls;
+            const mult = calculateBackpropagatorMultiplier(state, config, engine.statResolver);
+            const txt = mult.gt(1) ? `${formatNumber(mult, 1)}x` : "Active";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.disabled !== true) btn.disabled = true;
+            if (btn.textContent !== "Owned") btn.textContent = "Owned";
+            if (btn.className !== "btn-secondary") btn.className = "btn-secondary";
+          }
+        } else {
+          if (badge) {
+            const cls = "badge-status badge-status--off";
+            if (badge.className !== cls) badge.className = cls;
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            const btnCls = canClick ? "btn-primary" : "btn-secondary";
+            if (btn.className !== btnCls) btn.className = btnCls;
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -2252,7 +2544,11 @@ export function createRenderer(container, engine) {
           containerEl.querySelector('[data-field="drawer-t-arec"]'),
         );
         const isARecUnlocked = Boolean(state.unlocks?.ARec);
-        if (hasARecInDom !== isARecUnlocked) {
+        const hasARedInDom = Boolean(
+          containerEl.querySelector('[data-field="drawer-t-ared"]'),
+        );
+        const isARedUnlocked = Boolean(state.unlocks?.ARed);
+        if (hasARecInDom !== isARecUnlocked || hasARedInDom !== isARedUnlocked) {
           lastActiveDrawer = null;
           renderDrawersAndModals(state, config);
           return;
@@ -2268,6 +2564,7 @@ export function createRenderer(container, engine) {
         const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
         const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
         const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const tARed = state.devices?.transistorAllocations?.ARed ?? 0;
         const speedAImp = calculateEffectiveStudySpeed(
           "AImp",
           state,
@@ -2286,6 +2583,12 @@ export function createRenderer(container, engine) {
           config,
           engine.statResolver,
         );
+        const speedARed = calculateEffectiveStudySpeed(
+          "ARed",
+          state,
+          config,
+          engine.statResolver,
+        );
         const durAImp = calculateEffectiveStudyDuration(
           "AImp",
           state,
@@ -2300,6 +2603,12 @@ export function createRenderer(container, engine) {
         );
         const durARec = calculateEffectiveStudyDuration(
           "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARed = calculateEffectiveStudyDuration(
+          "ARed",
           state,
           config,
           engine.statResolver,
@@ -2427,6 +2736,49 @@ export function createRenderer(container, engine) {
           );
           if (btnUpgToRec) btnUpgToRec.disabled = tAUpg <= 0;
         }
+
+        const btnRedToImp = containerEl.querySelector(
+          '[data-field="drawer-reassign-ared-aimp"]',
+        );
+        if (btnRedToImp) btnRedToImp.disabled = tARed <= 0;
+        const btnRedToUpg = containerEl.querySelector(
+          '[data-field="drawer-reassign-ared-aupg"]',
+        );
+        if (btnRedToUpg) btnRedToUpg.disabled = tARed <= 0;
+        const btnRedToRec = containerEl.querySelector(
+          '[data-field="drawer-reassign-ared-arec"]',
+        );
+        if (btnRedToRec) btnRedToRec.disabled = tARed <= 0;
+
+        const rowARed = containerEl.querySelector(
+          '[data-field="drawer-row-ared"]',
+        );
+        if (rowARed) {
+          setElText(
+            containerEl.querySelector('[data-field="drawer-t-ared"]'),
+            formatInteger(tARed),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-dur-ared"]'),
+            formatStudyDuration(durARed),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-speed-ared"]'),
+            `${speedARed.toFixed(2)}x`,
+          );
+          const btnImpToRed = containerEl.querySelector(
+            '[data-field="drawer-reassign-aimp-ared"]',
+          );
+          if (btnImpToRed) btnImpToRed.disabled = tAImp <= 0;
+          const btnUpgToRed = containerEl.querySelector(
+            '[data-field="drawer-reassign-aupg-ared"]',
+          );
+          if (btnUpgToRed) btnUpgToRed.disabled = tAUpg <= 0;
+          const btnRecToRed = containerEl.querySelector(
+            '[data-field="drawer-reassign-arec-ared"]',
+          );
+          if (btnRecToRed) btnRecToRed.disabled = tARec <= 0;
+        }
         break;
       }
 
@@ -2435,7 +2787,11 @@ export function createRenderer(container, engine) {
           containerEl.querySelector('[data-micro-target-btn="ARec"]'),
         );
         const isARecUnlocked = Boolean(state.unlocks?.ARec);
-        if (hasARecBtn !== isARecUnlocked) {
+        const hasARedBtn = Boolean(
+          containerEl.querySelector('[data-micro-target-btn="ARed"]'),
+        );
+        const isARedUnlocked = Boolean(state.unlocks?.ARed);
+        if (hasARecBtn !== isARecUnlocked || hasARedBtn !== isARedUnlocked) {
           lastActiveDrawer = null;
           renderDrawersAndModals(state, config);
           return;
@@ -2740,6 +3096,7 @@ export function createRenderer(container, engine) {
         const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
         const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
         const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const tARed = state.devices?.transistorAllocations?.ARed ?? 0;
         const speedAImp = calculateEffectiveStudySpeed(
           "AImp",
           state,
@@ -2758,6 +3115,12 @@ export function createRenderer(container, engine) {
           config,
           engine.statResolver,
         );
+        const speedARed = calculateEffectiveStudySpeed(
+          "ARed",
+          state,
+          config,
+          engine.statResolver,
+        );
         const durAImp = calculateEffectiveStudyDuration(
           "AImp",
           state,
@@ -2772,6 +3135,12 @@ export function createRenderer(container, engine) {
         );
         const durARec = calculateEffectiveStudyDuration(
           "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARed = calculateEffectiveStudyDuration(
+          "ARed",
           state,
           config,
           engine.statResolver,
@@ -2837,6 +3206,7 @@ export function createRenderer(container, engine) {
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                           <button data-field="drawer-reassign-aupg-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="AImp" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
                           ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AImp" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                          ${state.unlocks?.ARed ? `<button data-field="drawer-reassign-ared-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="ARed" data-to="AImp" data-count="1" ${tARed <= 0 ? "disabled" : ""}>+1 from ARed</button>` : ""}
                         </div>
                       </td>
                     </tr>
@@ -2849,6 +3219,7 @@ export function createRenderer(container, engine) {
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                           <button data-field="drawer-reassign-aimp-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="AUpg" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
                           ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AUpg" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                          ${state.unlocks?.ARed ? `<button data-field="drawer-reassign-ared-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="ARed" data-to="AUpg" data-count="1" ${tARed <= 0 ? "disabled" : ""}>+1 from ARed</button>` : ""}
                         </div>
                       </td>
                     </tr>
@@ -2864,6 +3235,26 @@ export function createRenderer(container, engine) {
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                           <button data-field="drawer-reassign-aimp-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="ARec" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
                           <button data-field="drawer-reassign-aupg-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="ARec" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                          ${state.unlocks?.ARed ? `<button data-field="drawer-reassign-ared-arec" class="btn-secondary" data-action="reassign-transistor" data-from="ARed" data-to="ARec" data-count="1" ${tARed <= 0 ? "disabled" : ""}>+1 from ARed</button>` : ""}
+                        </div>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
+                    ${
+                      state.unlocks?.ARed
+                        ? `
+                    <tr data-field="drawer-row-ared">
+                      <td><strong>A.Redesign</strong></td>
+                      <td data-field="drawer-t-ared" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tARed)}</td>
+                      <td data-field="drawer-dur-ared">${formatStudyDuration(durARed)}</td>
+                      <td data-field="drawer-speed-ared">${speedARed.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aimp-ared" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="ARed" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
+                          <button data-field="drawer-reassign-aupg-ared" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="ARed" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                          <button data-field="drawer-reassign-arec-ared" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="ARed" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>
                         </div>
                       </td>
                     </tr>
@@ -2943,6 +3334,7 @@ export function createRenderer(container, engine) {
                   <button data-micro-target-btn="AImp" class="${mTarget === "AImp" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AImp">Target A.Imp</button>
                   <button data-micro-target-btn="AUpg" class="${mTarget === "AUpg" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AUpg">Target A.Upg</button>
                   ${state.unlocks?.ARec ? `<button data-micro-target-btn="ARec" class="${mTarget === "ARec" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="ARec">Target A.Rec</button>` : ""}
+                  ${state.unlocks?.ARed ? `<button data-micro-target-btn="ARed" class="${mTarget === "ARed" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="ARed">Target A.Red</button>` : ""}
                 </div>
 
                 <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px; margin-bottom: 16px;">
@@ -3437,6 +3829,8 @@ export function createRenderer(container, engine) {
         const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
         const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
         const isFirstTime = foCount === 0;
+        const isSecondTime = foCount === 1;
+        const isThirdTime = foCount === 2;
 
         containerEl.innerHTML = `
           <div class="tes-modal-overlay" data-action="close-drawer">
@@ -3456,8 +3850,28 @@ export function createRenderer(container, engine) {
                   <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px;">
                     <img src="${tesIconPath("algorithm-recalculation")}" alt="" style="width: 28px; height: 28px;" />
                     <div style="font-size: 13px; line-height: 1.4;">
-                      <strong style="color: #e9d5ff; display: block; margin-bottom: 2px;">Nova Descoberta Científica!</strong>
+                      <strong style="color: #e9d5ff; display: block; margin-bottom: 2px;">Nova Descoberta Científica (SO1)!</strong>
                       <span style="color: #f3e8ff;">Uma nova forma de melhoria de algoritmo foi descoberta: <strong>Algorithm Recalculation (ARec)</strong>!</span>
+                    </div>
+                  </div>
+                `
+                    : isSecondTime
+                    ? `
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px;">
+                    <img src="${tesIconPath("algorithm-redesign")}" alt="" style="width: 28px; height: 28px;" />
+                    <div style="font-size: 13px; line-height: 1.4;">
+                      <strong style="color: #bae6fd; display: block; margin-bottom: 2px;">Nova Descoberta Científica (SO2)!</strong>
+                      <span style="color: #f0f9ff;">O quarto nível de computação será desbloqueado: <strong>Algorithm Redesign (ARed)</strong>!</span>
+                    </div>
+                  </div>
+                `
+                    : isThirdTime
+                    ? `
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 8px;">
+                    <img src="${tesIconPath("backpropagator")}" alt="" style="width: 28px; height: 28px;" />
+                    <div style="font-size: 13px; line-height: 1.4;">
+                      <strong style="color: #fde047; display: block; margin-bottom: 2px;">Marco Computacional Superior (SO3)!</strong>
+                      <span style="color: #fef08a;">Novo dispositivo quântico disponível após atingir energia suficiente: <strong>Backpropagator</strong>!</span>
                     </div>
                   </div>
                 `
@@ -3474,8 +3888,8 @@ export function createRenderer(container, engine) {
                     <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
                       <li><strong>Stored Energy:</strong> Zerada completamente.</li>
                       <li><strong>Study Improvements:</strong> Todas as melhorias e milestones de estudos são zerados.</li>
-                      <li><strong>Algoritmos & Inventários:</strong> AImp, AUpg e ARec zerados.</li>
-                      <li><strong>Hardware Convencional:</strong> Chips, Transistores, Microprocessor, Capacitores, Processors e Hard Disks removidos.</li>
+                      <li><strong>Algoritmos & Inventários:</strong> AImp, AUpg, ARec e ARed zerados.</li>
+                      <li><strong>Hardware Convencional:</strong> Chips, Transistores, Microprocessor, Capacitores, Processors, Hard Disks e Backpropagator removidos.</li>
                     </ul>
                   </div>
 
@@ -3484,8 +3898,10 @@ export function createRenderer(container, engine) {
                     <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
                       <li><strong>Computer Level & MLs:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservados</span> (não são reiniciados).</li>
                       <li><strong>Power Cells:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservadas intactas</span> (única exceção de hardware!).</li>
-                      <li><strong>Multiplicador Permanente:</strong> Bônus de <strong>+9% composto</strong> (de ${(curBonus).toFixed(2)}× para <strong style="color: #c084fc;">${(nextBonus).toFixed(2)}×</strong>) em hardware operacional.</li>
+                      <li><strong>Multiplicador Permanente:</strong> Bônus logarítmico (de ${(curBonus).toFixed(2)}× para <strong style="color: #c084fc;">${(nextBonus).toFixed(2)}×</strong>) em hardware operacional.</li>
                       <li><strong>Algorithm Recalculation (ARec):</strong> Desbloqueado permanentemente.</li>
+                      ${foCount >= 1 ? `<li><strong>Algorithm Redesign (ARed):</strong> Desbloqueado permanentemente.</li>` : ""}
+                      ${foCount >= 2 ? `<li><strong>Backpropagator:</strong> Apto para descoberta no SO3.</li>` : ""}
                     </ul>
                   </div>
                 </div>

@@ -109,6 +109,14 @@ export function createStandardEffects(config = {}) {
       operation: "base",
       value: (context) => calculateEffectiveStudySpeed("ARec", context.state, context.config ?? config),
     },
+    {
+      id: "study-speed-ared",
+      label: "A.Redesign Study Speed",
+      source: "studyFleet",
+      targetStatId: "studies.ARed.speed",
+      operation: "base",
+      value: (context) => calculateEffectiveStudySpeed("ARed", context.state, context.config ?? config),
+    },
   ];
 }
 

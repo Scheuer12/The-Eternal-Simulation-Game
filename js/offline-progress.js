@@ -26,6 +26,7 @@ export function simulateOfflineProgress(
   const startAImp = state.algorithms?.AImp?.owned ?? 0;
   const startAUpg = state.algorithms?.AUpg?.owned ?? 0;
   const startARec = state.algorithms?.ARec?.owned ?? 0;
+  const startARed = state.algorithms?.ARed?.owned ?? 0;
   const startTotalEnergy = big(state.stats?.totalEnergyProduced ?? 0);
 
   if (simulatedSeconds < 1 || stepSeconds <= 0 || maxSteps <= 0) {
@@ -42,10 +43,12 @@ export function simulateOfflineProgress(
         AImp: 0,
         AUpg: 0,
         ARec: 0,
+        ARed: 0,
       },
       algorithmImprovementsCompleted: 0,
       algorithmUpgradesCompleted: 0,
       algorithmRefactoringsCompleted: 0,
+      algorithmRedesignsCompleted: 0,
       energyProduced: big(0),
     };
   }
@@ -73,6 +76,7 @@ export function simulateOfflineProgress(
   const diffAImp = Math.max(0, (engine.state.algorithms?.AImp?.owned ?? 0) - startAImp);
   const diffAUpg = Math.max(0, (engine.state.algorithms?.AUpg?.owned ?? 0) - startAUpg);
   const diffARec = Math.max(0, (engine.state.algorithms?.ARec?.owned ?? 0) - startARec);
+  const diffARed = Math.max(0, (engine.state.algorithms?.ARed?.owned ?? 0) - startARed);
 
   // Sync chip timers back into state
   if (engine.state.devices?.chips) {
@@ -80,6 +84,7 @@ export function simulateOfflineProgress(
     engine.state.devices.chips.timers.AImp = engine.chipTimers.AImp;
     engine.state.devices.chips.timers.AUpg = engine.chipTimers.AUpg;
     engine.state.devices.chips.timers.ARec = engine.chipTimers.ARec;
+    engine.state.devices.chips.timers.ARed = engine.chipTimers.ARed;
   }
 
   // Synchronize the simulated engine state into the persistent state object
@@ -98,10 +103,12 @@ export function simulateOfflineProgress(
       AImp: diffAImp,
       AUpg: diffAUpg,
       ARec: diffARec,
+      ARed: diffARed,
     },
     algorithmImprovementsCompleted: diffAImp,
     algorithmUpgradesCompleted: diffAUpg,
     algorithmRefactoringsCompleted: diffARec,
+    algorithmRedesignsCompleted: diffARed,
     energyProduced: totalEnergyProduced,
   };
   state.lastOfflineSummary = summary;
@@ -111,6 +118,7 @@ export function simulateOfflineProgress(
     if (diffAImp > 0) parts.push(`+${diffAImp} AImp`);
     if (diffAUpg > 0) parts.push(`+${diffAUpg} AUpg`);
     if (diffARec > 0) parts.push(`+${diffARec} ARec`);
+    if (diffARed > 0) parts.push(`+${diffARed} ARed`);
     const studiesStr = parts.length > 0 ? ` (${parts.join(", ")})` : "";
     state.log.unshift({
       id: `${now}-offline`,
