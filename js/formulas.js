@@ -557,6 +557,12 @@ export function calculateDeviceCost(type, owned = 0, config = {}) {
     case "powerCell": {
       return calculatePowerCellCost(owned, config);
     }
+    case "backpropagator": {
+      return big(config.devices?.backpropagator?.initialCost ?? 1);
+    }
+    case "statisticsDisplay": {
+      return big(config.devices?.statisticsDisplay?.initialCost ?? 1e-7);
+    }
     default:
       return big(0);
   }
@@ -574,7 +580,9 @@ export function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, confi
     case "microprocessor":
     case "transistorBoard":
     case "overclocker":
-    case "crcGadget": {
+    case "crcGadget":
+    case "backpropagator":
+    case "statisticsDisplay": {
       return calculateDeviceCost(type, currentOwned, config);
     }
     case "transistor": {

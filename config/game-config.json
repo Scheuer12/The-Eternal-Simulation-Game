@@ -125,6 +125,10 @@
       "hardcapStart": 999,
       "softcapScale": 100,
       "unique": true
+    },
+    "statisticsDisplay": {
+      "initialCost": 1e-7,
+      "unique": true
     }
   },
   "algorithmRedesign": {

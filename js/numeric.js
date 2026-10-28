@@ -132,6 +132,7 @@ if (typeof globalThis !== "undefined") {
     formatDuration,
     formatStudyDuration,
     formatEngineering,
+    getEnergyEquivalenceText,
     setGlobalNotation,
     getGlobalNotation,
   };
@@ -364,5 +365,73 @@ export function formatStudyDuration(seconds, notation = currentNotation) {
     return `${rate.toFixed(1)}/s`;
   }
   return `${s.toFixed(2)}s`;
+}
+
+export function getEnergyEquivalenceText(value, notation = currentNotation) {
+  const e = big(value ?? 0);
+  if (!e.isFinite() || e.lt(2.25e-7)) {
+    return "Even a flea is still waiting for launch.";
+  }
+
+  // 1. Flea jumps: 2.25e-7 J to 1 J
+  if (e.lt(1)) {
+    const n = e.div(2.25e-7).floor();
+    if (n.lte(1)) {
+      return "Enough to make a flea jump 1 time.";
+    }
+    return `Enough to make a flea jump ${formatInteger(n, notation)} times.`;
+  }
+
+  // 2. Apples lifted: 1 J to 1000 J
+  if (e.lt(1000)) {
+    const n = e.div(1);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to lift 1 small apple one meter.";
+    }
+    return `Enough to lift ${formatNumber(n, 1, notation)} small apples one meter.`;
+  }
+
+  // 3. Cups of water: 1000 J to 3.6e6 J
+  if (e.lt(3.6e6)) {
+    const n = e.div(1000);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to warm 1 cup of water by 1°C.";
+    }
+    return `Enough to warm ${formatNumber(n, 1, notation)} cups of water by 1°C.`;
+  }
+
+  // 4. 1-kW heater: 3.6e6 J to 4.184e9 J
+  if (e.lt(4.184e9)) {
+    const n = e.div(3.6e6);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to run a 1-kW heater for 1 hour.";
+    }
+    return `Enough to run a 1-kW heater for ${formatNumber(n, 1, notation)} hours.`;
+  }
+
+  // 5. Tonnes of TNT: 4.184e9 J to 1.74e17 J
+  if (e.lt(1.74e17)) {
+    const n = e.div(4.184e9);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Equivalent to the energy of approximately 1 tonne of TNT.";
+    }
+    return `Equivalent to the energy of approximately ${formatNumber(n, 1, notation)} tonnes of TNT.`;
+  }
+
+  // 6. Sunlight on Earth: 1.74e17 J to 3.8e26 J
+  if (e.lt(3.8e26)) {
+    const n = e.div(1.74e17);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Comparable to 1 second of sunlight intercepted by Earth.";
+    }
+    return `Comparable to ${formatNumber(n, 1, notation)} seconds of sunlight intercepted by Earth.`;
+  }
+
+  // 7. Total Sun output: >= 3.8e26 J
+  const n = e.div(3.8e26);
+  if (n.gte(0.995) && n.lt(1.005)) {
+    return "Comparable to 1 second of the Sun's total energy output.";
+  }
+  return `Comparable to ${formatNumber(n, 1, notation)} seconds of the Sun's total energy output.`;
 }
 

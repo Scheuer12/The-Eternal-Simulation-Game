@@ -221,3 +221,151 @@ test("§UI.8: formatNumber handles options objects, integer bounds, and prevents
   assert.ok(tooltipOwned.title.includes("Backpropagator"));
   assert.ok(tooltipOwned.body.includes("Installed (1 of 1)"));
 });
+
+test("§UI.9: Statistics Display device registration, purchasing, and SO persistence", () => {
+  const engine = new GameEngine({ config, developmentMode: false });
+  const el = getElement("statisticsDisplay");
+
+  assert.ok(el, "statisticsDisplay must be registered in ELEMENT_REGISTRY");
+  assert.equal(el.category, "learning");
+  assert.equal(el.lane, "resources");
+  assert.equal(el.unique, true);
+  assert.ok(big(el.getCost(engine.state, config)).eq(1e-7), "Cost must be 1e-7 (100 nJ)");
+
+  // Cannot buy without energy
+  engine.state.energy = big("0");
+  const failedBuy = engine.purchaseElement("statisticsDisplay", 1);
+  assert.equal(failedBuy, false, "Should fail to buy without energy");
+  assert.equal(engine.state.devices?.statisticsDisplay?.owned ?? 0, 0);
+
+  // Buy with sufficient energy
+  engine.state.energy = big("1e-6");
+  const successBuy = engine.purchaseElement("statisticsDisplay", 1);
+  assert.equal(successBuy, true, "Should successfully buy with energy");
+  assert.equal(engine.state.devices.statisticsDisplay.owned, 1);
+  assert.ok(big(engine.state.energy).lte(1e-6 - 1e-7 + 1e-12));
+
+  // Cannot buy twice (unique)
+  const duplicateBuy = engine.purchaseElement("statisticsDisplay", 1);
+  assert.equal(duplicateBuy, false, "Cannot purchase unique device twice");
+
+  // Persists across Machine Learning
+  engine.state.computerLevel = 1;
+  engine.state.algorithms.AImp.owned = 1000;
+  engine.runMachineLearning();
+  assert.equal(engine.state.devices.statisticsDisplay.owned, 1, "Must persist across Machine Learning");
+
+  // Persists across Setup Optimization
+  engine.state.computerLevel = 9;
+  engine.performFacilityOptimization();
+  assert.equal(engine.state.devices.statisticsDisplay.owned, 1, "Must persist across Facility Optimization");
+});
+
+test("§UI.10: Energy Equivalence text across scales with singular/plural and BigNum safety", async () => {
+  const { getEnergyEquivalenceText } = await import("../../js/numeric.js");
+
+  // Below flea jump
+  const subFlea = getEnergyEquivalenceText(1e-9);
+  assert.ok(subFlea.includes("flea"), "Sub-flea jump text should mention flea");
+
+  // Flea jumps (2.25e-7 J each)
+  const oneFlea = getEnergyEquivalenceText(2.25e-7);
+  assert.ok(oneFlea.includes("flea jump"), "Should format flea jump correctly");
+  const tenFleas = getEnergyEquivalenceText(2.25e-6);
+  assert.ok(tenFleas.includes("flea jump"), "Should format plural flea jumps correctly");
+
+  // Apples lifted (1 J each)
+  const oneApple = getEnergyEquivalenceText(1.0);
+  assert.ok(oneApple.includes("apple"), "Should format 1 apple correctly");
+  const fiveApples = getEnergyEquivalenceText(5.2);
+  assert.ok(fiveApples.includes("apple"), "Should format multiple apples correctly");
+
+  // Cups of water warmed (1,000 J each)
+  const waterCup = getEnergyEquivalenceText(2500);
+  assert.ok(waterCup.includes("cup"), "Should format cups of water");
+
+  // Space heater hours (3.6e6 J each)
+  const heater = getEnergyEquivalenceText(7.2e6);
+  assert.ok(heater.includes("1-kW") || heater.includes("heater"), "Should format heater hours");
+
+  // Tonnes of TNT (4.184e9 J each)
+  const tnt = getEnergyEquivalenceText(100e9);
+  assert.ok(tnt.includes("TNT"), "100e9 J should format as tonnes of TNT");
+
+  // Sunlight striking Earth (1.74e17 J each)
+  const sunlight = getEnergyEquivalenceText(3.48e17);
+  assert.ok(sunlight.includes("sunlight") || sunlight.includes("Earth"), "Should format sunlight on Earth");
+
+  // Sun's total output (3.8e26 J each)
+  const sunOutput = getEnergyEquivalenceText(3.8e26);
+  assert.ok(sunOutput.includes("Sun"), "Should format Sun's total output");
+});
+
+test("§UI.11: Header and Navigation BETA V0 polish markup", async () => {
+  const uiSource = await readFile(path.join(root, "js/ui.js"), "utf8");
+
+  // Beta badge
+  assert.ok(uiSource.includes('(BETA V0)'), "Header must display (BETA V0)");
+
+  // Relocated news ticker into dedicated #news-bar
+  assert.ok(uiSource.includes('id="news-bar"'), "Must have dedicated #news-bar");
+  assert.ok(uiSource.includes('class="tes-news-bar"'), "Must have tes-news-bar class");
+
+  // Prev / next news navigation buttons removed
+  assert.ok(!uiSource.includes('data-action="news-prev"'), "news-prev button must be removed from template");
+  assert.ok(!uiSource.includes('data-action="news-next"'), "news-next button must be removed from template");
+
+  // Science & Particles nav tabs masked as ??? with accessible label
+  assert.ok(uiSource.includes('aria-label="Unknown locked system"'), "Masked tabs must have accessible label");
+  assert.ok(uiSource.includes('???'), "Science & Particles tabs must display ???");
+
+  // Particle Synthesizer teaser card
+  assert.ok(uiSource.includes('id="synth-teaser-card"'), "Devices tab must include synth teaser card");
+  assert.ok(uiSource.includes('data-action="activate-synth-teaser"'), "Synth teaser card must have activate action");
+});
+
+test("§UI.12: Narrative Milestone System structure, trigger conditions, and Dev Mode preview", async () => {
+  const uiSource = await readFile(path.join(root, "js/ui.js"), "utf8");
+
+  // Narrative overlay and modal elements
+  assert.ok(uiSource.includes('id="narrative-overlay"'), "Must have #narrative-overlay");
+  assert.ok(uiSource.includes('id="narrative-modal"'), "Must have #narrative-modal");
+  assert.ok(uiSource.includes('id="narrative-title"'), "Must have #narrative-title");
+  assert.ok(uiSource.includes('id="narrative-body"'), "Must have #narrative-body");
+  assert.ok(uiSource.includes('id="narrative-actions"'), "Must have #narrative-actions");
+
+  // All 4 milestones present
+  assert.ok(uiSource.includes("FACILITY AWAKENING"), "Must include Intro narrative text");
+  assert.ok(uiSource.includes("333.33 billion years"), "Must include SO1 record narrative text");
+  assert.ok(uiSource.includes("PARTICLE SYNTHESIZER"), "Must include SO2 narrative text");
+  assert.ok(uiSource.includes("CAPACITY ACHIEVED"), "Must include 100e9 J milestone text");
+  assert.ok(uiSource.includes("COMING SOON..."), "Must include Coming Soon transition text");
+
+  // Dev Mode preview buttons
+  assert.ok(uiSource.includes('data-action="preview-narrative" data-milestone="intro"'), "Dev drawer has Intro preview");
+  assert.ok(uiSource.includes('data-action="preview-narrative" data-milestone="so1"'), "Dev drawer has SO1 preview");
+  assert.ok(uiSource.includes('data-action="preview-narrative" data-milestone="so2"'), "Dev drawer has SO2 preview");
+  assert.ok(uiSource.includes('data-action="preview-narrative" data-milestone="energy100e9"'), "Dev drawer has 100e9 preview");
+});
+
+test("§UI.13: Statistics drawer sections and metric persistence", async () => {
+  const uiSource = await readFile(path.join(root, "js/ui.js"), "utf8");
+
+  // Core telemetry sections
+  assert.ok(uiSource.includes("Facility Instrumentation & Records"), "Stats drawer title");
+  assert.ok(uiSource.includes("CORE ENERGY ERA METRICS"), "Core telemetry section header");
+  assert.ok(uiSource.includes("PROGRESSION RECORDS"), "Progression records section header");
+  assert.ok(uiSource.includes("COMPLETED ALGORITHM STUDIES"), "Algorithm studies breakdown header");
+
+  // Specific metrics tracked
+  assert.ok(uiSource.includes('data-field="stat-era-energy"'), "Tracks Energy Era total production");
+  assert.ok(uiSource.includes('data-field="stat-era-time"'), "Tracks time in current era");
+  assert.ok(uiSource.includes('data-field="stat-so-time"'), "Tracks time since last SO");
+  assert.ok(uiSource.includes('data-field="stat-equivalence"'), "Displays real-world equivalence");
+});
+
+test("§UI.14: CRC Growth Tracker dynamics, zero-division resilience, and reset handling", async () => {
+  const uiSource = await readFile(path.join(root, "js/ui.js"), "utf8");
+  assert.ok(uiSource.includes("class CrcGrowthTracker"), "CrcGrowthTracker class must exist in ui.js");
+  assert.ok(uiSource.includes('data-field="crc-growth"'), "CRC growth rate indicator element must exist");
+});

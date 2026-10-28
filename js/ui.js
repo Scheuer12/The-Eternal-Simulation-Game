@@ -9,7 +9,7 @@
  * - Slide-out drawers and contextual popovers
  */
 
-import { formatEnergy, formatRate, formatInteger, formatNumber, formatDuration, formatStudyDuration, big } from "./numeric.js";
+import { formatEnergy, formatRate, formatInteger, formatNumber, formatDuration, formatStudyDuration, getEnergyEquivalenceText, big } from "./numeric.js";
 import { getTooltipContent } from "./ui-tooltip-content.js";
 import {
   getElement,
@@ -52,6 +52,89 @@ import {
 export const TES_ICON_ROOT = "icons/";
 export const tesIconPath = (name) => `${TES_ICON_ROOT}${name}.png`;
 
+class CrcGrowthTracker {
+  constructor() {
+    this.history = [];
+    this.lastMlCount = null;
+    this.lastSoCount = null;
+  }
+
+  reset() {
+    this.history = [];
+  }
+
+  update(prodRate, nowMs, mlCount = 0, soCount = 0) {
+    if (this.lastMlCount !== null && (this.lastMlCount !== mlCount || this.lastSoCount !== soCount)) {
+      this.reset();
+    }
+    this.lastMlCount = mlCount;
+    this.lastSoCount = soCount;
+
+    const rate = big(prodRate || 0);
+    this.history.push({ time: nowMs, rate });
+
+    const cutoff = nowMs - 2500;
+    while (this.history.length > 2 && this.history[0].time < cutoff) {
+      this.history.shift();
+    }
+
+    const targetTime = nowMs - 1000;
+    let closest = null;
+    let minDiff = Infinity;
+
+    for (const entry of this.history) {
+      const diff = Math.abs(entry.time - targetTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = entry;
+      }
+    }
+
+    if (!closest) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const dt = (nowMs - closest.time) / 1000;
+    if (dt < 0.4) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const pastRate = closest.rate;
+    if (pastRate.eq(0)) {
+      if (rate.eq(0)) {
+        return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+      }
+      return { text: "(---/sec)", percentage: 0, isNegative: false };
+    }
+
+    if (rate.eq(pastRate)) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    let percentNum;
+    try {
+      const ratio = rate.div(pastRate);
+      const change = ratio.minus(1);
+      percentNum = change.div(dt).mul(100).toNumber();
+    } catch {
+      percentNum = 0;
+    }
+
+    if (!Number.isFinite(percentNum) || Number.isNaN(percentNum)) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    if (Math.abs(percentNum) < 0.005) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const isNegative = percentNum < 0;
+    const sign = isNegative ? "" : "+";
+    const formatted = `${sign}${percentNum.toFixed(2)}%/sec`;
+    return { text: `(${formatted})`, percentage: percentNum, isNegative };
+  }
+}
+
 export function createRenderer(container, engine) {
   let isMounted = false;
   let activeDrawer = null; // 'dev' | 'transistor' | 'microprocessor' | 'harddisk' | 'settings' | 'stats' | 'overclock'
@@ -60,6 +143,9 @@ export function createRenderer(container, engine) {
   let newsTimer = null;
   let isNewsPaused = false;
   let batchPopoverTarget = null; // target feature id or device id for batch menu
+  const crcGrowthTracker = new CrcGrowthTracker();
+  let activeNarrativeMilestone = null;
+  let isNarrativePreview = false;
 
   // Default news items if __TES_NEWS__ is missing or empty
   const defaultNews = [
@@ -107,6 +193,176 @@ export function createRenderer(container, engine) {
     }
   }
 
+  function isNarrativeModalOpen() {
+    return Boolean(activeNarrativeMilestone);
+  }
+
+  function showNarrativeModal(milestone, isPreview = false) {
+    if (activeNarrativeMilestone && !isPreview) return;
+    activeNarrativeMilestone = milestone;
+    isNarrativePreview = isPreview;
+
+    const overlay = dom?.narrativeOverlay || container.querySelector("#narrative-overlay");
+    const titleEl = dom?.narrativeTitle || container.querySelector("#narrative-title");
+    const bodyEl = dom?.narrativeBody || container.querySelector("#narrative-body");
+    const actionsEl = dom?.narrativeActions || container.querySelector("#narrative-actions");
+    if (!overlay || !titleEl || !bodyEl || !actionsEl) return;
+
+    switch (milestone) {
+      case "intro": {
+        titleEl.textContent = "FACILITY AWAKENING";
+        bodyEl.innerHTML = `
+          <p>You can't remember how you got here.</p>
+          <p>You're lying on a strange bed, in a room you don't recognize.</p>
+          <p>Across the room, a dim blue panel casts the only light, its glow catching the dust drifting through the air.</p>
+          <p>As you approach, a handful of unfamiliar devices blink with the same warning:</p>
+          <p><strong style="color: var(--tes-danger); letter-spacing: 1px;">LOW POWER</strong></p>
+          <p>At the center of the largest screen, a single button pulses quietly.</p>
+          <p>Almost as if it has been waiting for you.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary tes-pulse-btn" data-action="close-narrative" data-milestone="intro">Start Simulation</button>
+        `;
+        break;
+      }
+      case "so1": {
+        titleEl.textContent = "TRANSMISSION RECEIVED";
+        bodyEl.innerHTML = `
+          <p>Out of nowhere, a gentle, strangely captivating voice fills the silence.</p>
+          <p>"Congratulations.</p>
+          <p>It seems you're making progress.</p>
+          <p>You've already gone further than a few others. But there's still a very long way to go.</p>
+          <p>Current record:</p>
+          <p><strong style="color: var(--tes-cyan); letter-spacing: 1px;">333.33 billion years.</strong></p>
+          <p>Good luck."</p>
+          <p>The voice disappears as suddenly as it arrived.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="so1">Continue</button>
+        `;
+        break;
+      }
+      case "so2": {
+        titleEl.textContent = "FACILITY SECTOR UNLOCKED";
+        bodyEl.innerHTML = `
+          <p>A dry click sounds somewhere behind you.</p>
+          <p>You turn.</p>
+          <p>A heavy iron double door, previously hidden in the darkness, begins to glow faintly around its edges.</p>
+          <p>Above it, an old display flickers to life:</p>
+          <p><strong style="color: var(--tes-cyan); letter-spacing: 1px;">PARTICLE SYNTHESIZER</strong></p>
+          <p><strong style="color: var(--tes-danger); letter-spacing: 1px;">LOW POWER</strong></p>
+          <p>The doors remain shut.</p>
+          <p>For now.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="so2">Continue</button>
+        `;
+        break;
+      }
+      case "energy100e9": {
+        titleEl.textContent = "CAPACITY ACHIEVED";
+        bodyEl.innerHTML = `
+          <p>An oddly familiar startup chime fills the room as the Stored Energy indicator reaches 100%.</p>
+          <p>Behind you, the iron double doors begin to open.</p>
+          <p>The sound of ancient machinery echoes through the facility.</p>
+          <p>A new section illuminates on the control panel.</p>
+          <p>In the Devices interface, a new control pulses softly.</p>
+          <p>Its design looks promising.</p>
+          <p>And just a little dangerous.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary tes-pulse-btn" data-action="transition-narrative-coming-soon">Activate</button>
+        `;
+        break;
+      }
+      case "coming-soon": {
+        titleEl.textContent = "COMING SOON...";
+        bodyEl.innerHTML = `
+          <p>The Particle Synthesizer is responding.</p>
+          <p>But the next experiment is not ready.</p>
+          <p>The simulation will continue.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="coming-soon">Close</button>
+        `;
+        break;
+      }
+    }
+
+    overlay.classList.add("tes-narrative-overlay--active");
+    overlay.setAttribute("aria-hidden", "false");
+    const primaryBtn = actionsEl.querySelector("button");
+    if (primaryBtn) primaryBtn.focus();
+  }
+
+  function transitionNarrativeComingSoon() {
+    const titleEl = dom?.narrativeTitle || container.querySelector("#narrative-title");
+    const bodyEl = dom?.narrativeBody || container.querySelector("#narrative-body");
+    const actionsEl = dom?.narrativeActions || container.querySelector("#narrative-actions");
+    if (!titleEl || !bodyEl || !actionsEl) return;
+
+    if (!isNarrativePreview && engine.state.narrative) {
+      engine.state.narrative.energy100e9Completed = true;
+      engine.state.narrative.synthTeaserUnlocked = true;
+    }
+
+    titleEl.textContent = "COMING SOON...";
+    bodyEl.innerHTML = `
+      <p>The Particle Synthesizer is responding.</p>
+      <p>But the next experiment is not ready.</p>
+      <p>The simulation will continue.</p>
+    `;
+    actionsEl.innerHTML = `
+      <button class="btn-primary" data-action="close-narrative" data-milestone="energy100e9">Close</button>
+    `;
+    const btn = actionsEl.querySelector("button");
+    if (btn) btn.focus();
+  }
+
+  function closeNarrativeModal(milestone) {
+    const targetMilestone = milestone || activeNarrativeMilestone;
+    const overlay = dom?.narrativeOverlay || container.querySelector("#narrative-overlay");
+    if (overlay) {
+      overlay.classList.remove("tes-narrative-overlay--active");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
+    if (!isNarrativePreview && engine.state.narrative) {
+      if (targetMilestone === "intro") engine.state.narrative.introCompleted = true;
+      else if (targetMilestone === "so1") engine.state.narrative.so1Completed = true;
+      else if (targetMilestone === "so2") engine.state.narrative.so2Completed = true;
+      else if (targetMilestone === "energy100e9" || targetMilestone === "coming-soon") {
+        engine.state.narrative.energy100e9Completed = true;
+        engine.state.narrative.synthTeaserUnlocked = true;
+      }
+    }
+
+    activeNarrativeMilestone = null;
+    isNarrativePreview = false;
+  }
+
+  function checkNarrativeTriggers(state) {
+    if (activeNarrativeMilestone) return;
+    if (!state.narrative) return;
+
+    if (!state.narrative.introCompleted) {
+      showNarrativeModal("intro");
+      return;
+    }
+    if ((state.facilityOptimizations ?? 0) === 1 && !state.narrative.so1Completed) {
+      showNarrativeModal("so1");
+      return;
+    }
+    if ((state.facilityOptimizations ?? 0) >= 2 && !state.narrative.so2Completed) {
+      showNarrativeModal("so2");
+      return;
+    }
+    if (big(state.energy ?? 0).gte(100e9) && !state.narrative.energy100e9Completed) {
+      showNarrativeModal("energy100e9");
+      return;
+    }
+  }
+
   function render() {
     if (!isMounted) {
       mountStructure();
@@ -126,18 +382,7 @@ export function createRenderer(container, engine) {
             <div class="tes-brand">
               <img src="${tesIconPath("brand-orbit")}" alt="" class="tes-brand-icon" aria-hidden="true" onerror="this.style.display='none'" />
               <span class="tes-brand-title">The Eternal Simulation</span>
-            </div>
-
-            <!-- News Ticker -->
-            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
-              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
-              <span class="tes-news-content" data-field="news-content">
-                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
-              </span>
-              <div class="tes-news-controls">
-                <button class="tes-news-btn" data-action="news-prev" aria-label="Previous headline">&lt;</button>
-                <button class="tes-news-btn" data-action="news-next" aria-label="Next headline">&gt;</button>
-              </div>
+              <span class="tes-beta-tag">(BETA V0)</span>
             </div>
 
             <!-- Utility Controls -->
@@ -150,7 +395,7 @@ export function createRenderer(container, engine) {
                 <img src="${tesIconPath("icon-measure")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Measure</span>
               </button>
-              <button class="btn-utility" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
+              <button class="btn-utility" id="btn-stats" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
                 <img src="${tesIconPath("icon-statistics")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Stats</span>
               </button>
@@ -158,6 +403,16 @@ export function createRenderer(container, engine) {
                 <img src="${tesIconPath("icon-power")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Config</span>
               </button>
+            </div>
+          </div>
+
+          <!-- News Sub-Bar (Part 1.1) -->
+          <div class="tes-news-bar" id="news-bar">
+            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
+              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-news-content" data-field="news-content">
+                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
+              </span>
             </div>
           </div>
 
@@ -171,15 +426,13 @@ export function createRenderer(container, engine) {
               <img src="${tesIconPath("nav-devices")}" alt="" class="tes-nav-icon" aria-hidden="true" />
               <span>Devices</span>
             </button>
-            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Science Layer unlocks in later phases">
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled aria-label="Unknown locked system" title="Locked">
               <img src="${tesIconPath("nav-science")}" alt="" class="tes-nav-icon" aria-hidden="true" />
-              <span>Science</span>
-              <span class="badge-tab-locked">LOCKED</span>
+              <span>???</span>
             </button>
-            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Particle synthesis unlocks in later phases">
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled aria-label="Unknown locked system" title="Locked">
               <img src="${tesIconPath("nav-particles")}" alt="" class="tes-nav-icon" aria-hidden="true" />
-              <span>Particles</span>
-              <span class="badge-tab-locked">LOCKED</span>
+              <span>???</span>
             </button>
             <button class="tes-nav-tab" data-action="open-drawer" data-drawer="settings" title="More Options">
               <img src="${tesIconPath("nav-more")}" alt="" class="tes-nav-icon" aria-hidden="true" />
@@ -292,7 +545,10 @@ export function createRenderer(container, engine) {
                 </div>
 
                 <div class="tes-crc-right">
-                  <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                  <div class="tes-crc-rate-container" style="display: flex; align-items: baseline; gap: 8px;">
+                    <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                    <span class="tes-crc-growth" data-field="crc-growth" title="Measures the percentage change in gross Energy production per second.">(+0.00%/sec)</span>
+                  </div>
                   <span class="badge-status badge-status--active" data-field="crc-level-mult">Level 1</span>
                   <button class="btn-icon-only" data-action="show-info" data-topic="crc" aria-label="CRC Breakdown details">
                     <img src="${tesIconPath("icon-info")}" alt="" />
@@ -573,6 +829,20 @@ export function createRenderer(container, engine) {
 
             <!-- TAB 2: DEVICES (Section 7) -->
             <section class="tes-devices-tab" id="tab-devices" style="display: none;">
+              <!-- Particle Synthesizer Teaser (Revealed after reaching 100e9 J) -->
+              <div class="tes-synth-teaser-card" id="synth-teaser-card" style="display: none;">
+                <div class="tes-synth-teaser-left">
+                  <img src="${tesIconPath("nav-particles")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                  <div class="tes-synth-teaser-info">
+                    <div class="tes-synth-teaser-title">PARTICLE SYNTHESIZER</div>
+                    <div class="tes-synth-teaser-desc">The heavy iron doors have unlocked. High-voltage chambers hum with unknown potential.</div>
+                  </div>
+                </div>
+                <button class="btn-primary tes-pulse-btn" data-action="activate-synth-teaser" id="btn-activate-synth">
+                  Activate
+                </button>
+              </div>
+
               <!-- Filter Bar (Section 7.3) -->
               <div class="tes-filter-bar">
                 <div class="tes-category-pills">
@@ -937,6 +1207,28 @@ export function createRenderer(container, engine) {
                         </button>
                       </div>
                     </article>
+
+                    <!-- Statistics Display -->
+                    <article class="tes-device-row" data-device-id="statisticsDisplay" id="device-row-statistics-display">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("icon-statistics")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Statistics Display</span>
+                            <span class="badge-status badge-status--off" data-field="statistics-display-badge">${formatEnergy(1e-7)}</span>
+                          </div>
+                          <span class="tes-device-desc">Unlocks advanced facility statistics and energy production records.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="statisticsDisplay" data-field="statistics-display-action-btn">
+                          Add (${formatEnergy(1e-7)})
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-statistics-display" aria-label="Statistics Display info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
                 </div>
               </div>
@@ -947,6 +1239,15 @@ export function createRenderer(container, engine) {
         <!-- DRAWERS & MODALS CONTAINER -->
         <div id="tes-drawers-container"></div>
         <div id="tes-popover-container"></div>
+
+        <!-- NARRATIVE MILESTONE MODAL OVERLAY -->
+        <div class="tes-narrative-overlay" id="narrative-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+          <div class="tes-narrative-modal" id="narrative-modal">
+            <h3 class="tes-narrative-title" id="narrative-title"></h3>
+            <div class="tes-narrative-body" id="narrative-body"></div>
+            <div class="tes-narrative-actions" id="narrative-actions"></div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -1039,7 +1340,14 @@ export function createRenderer(container, engine) {
       energyDecayItem: container.querySelector("#energy-decay-item"),
       energyDecay: container.querySelector('[data-field="energy-decay"]'),
       crcRate: container.querySelector('[data-field="crc-rate"]'),
+      crcGrowth: container.querySelector('[data-field="crc-growth"]'),
       crcLevelMult: container.querySelector('[data-field="crc-level-mult"]'),
+      btnStats: container.querySelector("#btn-stats"),
+      synthTeaserCard: container.querySelector("#synth-teaser-card"),
+      narrativeOverlay: container.querySelector("#narrative-overlay"),
+      narrativeTitle: container.querySelector("#narrative-title"),
+      narrativeBody: container.querySelector("#narrative-body"),
+      narrativeActions: container.querySelector("#narrative-actions"),
 
       energyEraPercent: container.querySelector('[data-field="energy-era-percent"]'),
       energyEraFill: container.querySelector('[data-field="energy-era-fill"]'),
@@ -1152,6 +1460,7 @@ export function createRenderer(container, engine) {
       "powerCell",
       "hardDisk",
       "backpropagator",
+      "statisticsDisplay",
     ];
 
     deviceIds.forEach((id) => {
@@ -1260,6 +1569,14 @@ export function createRenderer(container, engine) {
               ),
             };
             break;
+          case "statisticsDisplay":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="statistics-display-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="statistics-display-action-btn"]',
+              ),
+            };
+            break;
         }
       }
     });
@@ -1309,6 +1626,23 @@ export function createRenderer(container, engine) {
         Boolean(state.devMode),
       );
     }
+
+    // Statistics Utility Button Availability (Part 3.1)
+    if (dom.btnStats) {
+      const statsUnlocked = Boolean(state.devices?.statisticsDisplay?.owned || state.devMode);
+      if (statsUnlocked) {
+        dom.btnStats.disabled = false;
+        dom.btnStats.title = "Simulation Statistics";
+        dom.btnStats.classList.remove("btn-utility--disabled");
+      } else {
+        dom.btnStats.disabled = true;
+        dom.btnStats.title = "Requires Statistics Display";
+        dom.btnStats.classList.add("btn-utility--disabled");
+      }
+    }
+
+    // Narrative Milestone Triggers Check (Part 2)
+    checkNarrativeTriggers(state);
 
     // Tab Switching Display
     const activeTab = state.ui?.activeTab || "energy";
@@ -1393,6 +1727,24 @@ export function createRenderer(container, engine) {
     // Cosmic Radiation Condenser (CRC) displays GROSS Production
     setElText(dom.crcRate, formatRate(prodRate));
     setElText(dom.crcLevelMult, `Level ${compLevel}`);
+
+    // CRC Growth Indicator (Part 4)
+    if (dom.crcGrowth) {
+      const growth = crcGrowthTracker.update(
+        prodRate,
+        performance.now(),
+        state.stats?.totalMachineLearnings ?? 0,
+        state.facilityOptimizations ?? 0,
+      );
+      if (dom.crcGrowth.textContent !== growth.text) {
+        dom.crcGrowth.textContent = growth.text;
+      }
+      if (growth.isNegative) {
+        dom.crcGrowth.classList.add("tes-crc-growth--negative");
+      } else {
+        dom.crcGrowth.classList.remove("tes-crc-growth--negative");
+      }
+    }
 
     // Stored Energy displays NET Production: Gross - Decay (and any active device drain)
     let totalDrain = overflowDecay;
@@ -1832,6 +2184,12 @@ export function createRenderer(container, engine) {
     const filter = state.ui?.deviceCategoryFilter || "all";
     const showAdded = state.ui?.showAdded !== false;
     const showUnavailable = state.ui?.showUnavailable !== false;
+
+    // Particle Synthesizer Teaser Visibility (Part 2.5)
+    if (dom.synthTeaserCard) {
+      const showTeaser = Boolean(state.narrative?.synthTeaserUnlocked);
+      dom.synthTeaserCard.style.display = showTeaser ? "flex" : "none";
+    }
 
     // Checkbox synchronization
     if (dom.toggleShowAdded && dom.toggleShowAdded.checked !== showAdded) {
@@ -2534,6 +2892,42 @@ export function createRenderer(container, engine) {
         }
         break;
       }
+
+      case "statisticsDisplay": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="statistics-display-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="statistics-display-action-btn"]');
+        const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+
+        if (isOwned) {
+          if (badge) {
+            const cls = "badge-status badge-status--active";
+            if (badge.className !== cls) badge.className = cls;
+            setElText(badge, "Installed");
+          }
+          if (btn) {
+            setElText(btn, "Installed");
+            btn.disabled = true;
+            if (btn.className !== "btn-secondary") btn.className = "btn-secondary";
+          }
+        } else {
+          if (badge) {
+            const cls = "badge-status badge-status--off";
+            if (badge.className !== cls) badge.className = cls;
+            setElText(badge, cost ? formatEnergy(cost) : formatEnergy(1e-7));
+          }
+          if (btn) {
+            setElText(btn, cost ? `Add (${formatEnergy(cost)})` : "Add");
+            btn.disabled = !canClick;
+            const btnCls = canClick ? "btn-primary" : "btn-secondary";
+            if (btn.className !== btnCls) btn.className = btnCls;
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -3005,9 +3399,30 @@ export function createRenderer(container, engine) {
       }
 
       case "stats": {
+        const totalEnergyProducedEra = state.stats?.totalEnergyProducedEra ?? state.stats?.totalEnergyProduced ?? 0;
+        setElText(
+          containerEl.querySelector('[data-field="stat-era-energy"]'),
+          formatEnergy(totalEnergyProducedEra),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-equivalence"]'),
+          getEnergyEquivalenceText(totalEnergyProducedEra),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-total-playtime"]'),
+          formatDuration(state.stats?.gameTime ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-era-time"]'),
+          formatDuration(state.stats?.timeInCurrentEra ?? state.stats?.gameTime ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-so-time"]'),
+          formatDuration(state.stats?.timeSinceLastSO ?? state.stats?.gameTime ?? 0),
+        );
         setElText(
           containerEl.querySelector('[data-field="stat-comp-level"]'),
-          state.computerLevel ?? 1,
+          state.stats?.highestComputerLevel ?? state.computerLevel ?? 1,
         );
         setElText(
           containerEl.querySelector('[data-field="stat-mls"]'),
@@ -3023,7 +3438,23 @@ export function createRenderer(container, engine) {
         );
         setElText(
           containerEl.querySelector('[data-field="stat-energy"]'),
-          formatEnergy(state.energy),
+          formatEnergy(state.stats?.highestStoredEnergy ?? state.energy ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-aimp"]'),
+          formatInteger(state.stats?.studiesCompleted?.AImp ?? state.algorithms?.AImp?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-aupg"]'),
+          formatInteger(state.stats?.studiesCompleted?.AUpg ?? state.algorithms?.AUpg?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-arec"]'),
+          formatInteger(state.stats?.studiesCompleted?.ARec ?? state.algorithms?.ARec?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-ared"]'),
+          formatInteger(state.stats?.studiesCompleted?.ARed ?? state.algorithms?.ARed?.produced ?? 0),
         );
         break;
       }
@@ -3538,6 +3969,17 @@ export function createRenderer(container, engine) {
                 </div>
 
                 <div class="tes-section-header">
+                  <span class="tes-section-title">NARRATIVE MILESTONE PREVIEWS</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 18px;">
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="intro">Preview Intro</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="so1">Preview SO1</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="so2">Preview SO2</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="energy100e9">Preview 100e9 J</button>
+                </div>
+
+                <div class="tes-section-header">
                   <span class="tes-section-title" data-field="dev-audit-count">AUDIT LOG (${state.auditLogs?.length ?? 0})</span>
                   <div class="tes-section-line"></div>
                 </div>
@@ -3650,40 +4092,120 @@ export function createRenderer(container, engine) {
         break;
       }
 
-      // 7. Statistics Modal
+      // 7. Statistics Modal (Revamped Instrumentation)
       case "stats": {
+        const totalEnergyProducedEra = state.stats?.totalEnergyProducedEra ?? state.stats?.totalEnergyProduced ?? 0;
         containerEl.innerHTML = `
           <div class="tes-modal-overlay" data-action="close-drawer">
-            <div class="tes-modal">
+            <div class="tes-modal" style="width: min(640px, 95vw); max-height: 85vh; overflow-y: auto;">
               <div class="tes-modal-header">
-                <h3 class="tes-modal-title">Simulation Statistics</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("icon-statistics")}" alt="" style="width: 22px; height: 22px;" />
+                  <h3 class="tes-modal-title">Facility Instrumentation & Records</h3>
+                </div>
                 <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Facility Level:</span>
-                  <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.computerLevel ?? 1}</strong>
+
+              <!-- SECTION: CORE STATISTICS -->
+              <div class="tes-stats-section" style="margin-bottom: 16px;">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">CORE ENERGY ERA METRICS</span>
+                  <div class="tes-section-line"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Machine Learnings:</span>
-                  <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                  <span class="eyebrow" style="color: var(--tes-cyan);">TOTAL ENERGY PRODUCED — CURRENT ENERGY ERA</span>
+                  <div style="font-size: 20px; font-weight: 700; color: #fff; margin: 4px 0 8px 0;" data-field="stat-era-energy">
+                    ${formatEnergy(totalEnergyProducedEra)}
+                  </div>
+                  <div style="font-size: 13px; font-style: italic; color: #94a3b8; line-height: 1.45;" data-field="stat-equivalence">
+                    ${getEnergyEquivalenceText(totalEnergyProducedEra)}
+                  </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Facility Optimizations:</span>
-                  <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Playtime:</span>
+                    <strong data-field="stat-total-playtime">${formatDuration(state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Time in Current Era:</span>
+                    <strong data-field="stat-era-time">${formatDuration(state.stats?.timeInCurrentEra ?? state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Time Since Last Setup Optimization:</span>
+                    <strong data-field="stat-so-time">${formatDuration(state.stats?.timeSinceLastSO ?? state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Fastest 100e9 J Run:</span>
+                    <strong data-field="stat-fastest-100e9">${state.stats?.fastest100e9Time != null ? formatDuration(state.stats.fastest100e9Time) : "Not recorded"}</strong>
+                  </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Total Hardware Purchases:</span>
-                  <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+              </div>
+
+              <!-- SECTION: PROGRESSION RECORDS -->
+              <div class="tes-stats-section" style="margin-bottom: 16px;">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">PROGRESSION RECORDS</span>
+                  <div class="tes-section-line"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Stored Energy:</span>
-                  <strong data-field="stat-energy">${formatEnergy(state.energy)}</strong>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Highest Computer Level:</span>
+                    <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.stats?.highestComputerLevel ?? state.computerLevel ?? 1}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Highest Stored Energy:</span>
+                    <strong data-field="stat-energy" style="color: #60a5fa;">${formatEnergy(state.stats?.highestStoredEnergy ?? state.energy ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Peak Gross Production Rate:</span>
+                    <strong style="color: var(--tes-teal);">${formatRate(state.stats?.highestGrossEnergyRate ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Hardware Purchases:</span>
+                    <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Machine Learnings:</span>
+                    <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Setup Optimizations:</span>
+                    <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+                  </div>
                 </div>
-                <div class="tes-rail-divider"></div>
-                <div style="display: flex; justify-content: flex-end;">
-                  <button class="btn-primary" data-action="close-drawer">Close</button>
+              </div>
+
+              <!-- SECTION: COMPLETED ALGORITHM STUDIES -->
+              <div class="tes-stats-section">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">COMPLETED ALGORITHM STUDIES</span>
+                  <div class="tes-section-line"></div>
                 </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Improvements (AImp):</span>
+                    <strong data-field="stat-studies-aimp">${formatInteger(state.stats?.studiesCompleted?.AImp ?? state.algorithms?.AImp?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Upgrades (AUpg):</span>
+                    <strong data-field="stat-studies-aupg">${formatInteger(state.stats?.studiesCompleted?.AUpg ?? state.algorithms?.AUpg?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Recalculations (ARec):</span>
+                    <strong data-field="stat-studies-arec">${formatInteger(state.stats?.studiesCompleted?.ARec ?? state.algorithms?.ARec?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Redesigns (ARed):</span>
+                    <strong data-field="stat-studies-ared">${formatInteger(state.stats?.studiesCompleted?.ARed ?? state.algorithms?.ARed?.produced ?? 0)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tes-rail-divider" style="margin: 16px 0;"></div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn-primary" data-action="close-drawer">Close</button>
               </div>
             </div>
           </div>
@@ -4016,6 +4538,11 @@ export function createRenderer(container, engine) {
     render();
   };
   render.showInfo = showInfoPopover;
+  render.isNarrativeModalOpen = isNarrativeModalOpen;
+  render.getActiveNarrativeMilestone = () => activeNarrativeMilestone;
+  render.showNarrativeModal = showNarrativeModal;
+  render.transitionNarrativeComingSoon = transitionNarrativeComingSoon;
+  render.closeNarrativeModal = closeNarrativeModal;
   render.nextNews = () => {
     const list = getNewsList();
     newsIndex = (newsIndex + 1) % list.length;

@@ -218,18 +218,36 @@ button:focus-visible {
   color: var(--tes-text);
 }
 
+.tes-beta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--tes-cyan);
+  opacity: 0.8;
+  margin-left: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.tes-news-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 3px 20px;
+  background: rgba(6, 12, 22, 0.7);
+  border-bottom: 1px solid var(--tes-border);
+}
+
 .tes-news-ticker {
   flex: 1;
-  max-width: 780px;
-  height: 32px;
+  width: 100%;
+  max-width: 100%;
+  height: 26px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 12px;
-  background: rgba(11, 21, 35, 0.65);
-  border: 1px solid var(--tes-border);
-  border-radius: 6px;
-  font-size: 12.5px;
+  padding: 0 4px;
+  font-size: 12px;
   color: var(--tes-text-secondary);
   overflow: hidden;
   user-select: none;
@@ -297,6 +315,13 @@ button:focus-visible {
 .btn-utility--active {
   border-color: var(--tes-purple);
   color: var(--tes-purple-light);
+}
+
+.btn-utility:disabled,
+.btn-utility--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto !important;
 }
 
 .btn-utility-icon {
@@ -687,6 +712,21 @@ button:focus-visible {
   font-weight: 700;
   color: var(--tes-cyan);
   font-variant-numeric: tabular-nums;
+}
+
+.tes-crc-growth {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tes-cyan);
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+  user-select: none;
+}
+
+.tes-crc-growth--negative {
+  color: var(--tes-danger);
 }
 
 /* A-Features Compact Rows (Section 6.3) */
@@ -1604,6 +1644,144 @@ button:disabled {
 }
 
 /* ==========================================================================
+   Particle Synthesizer Teaser & Narrative Milestone Modals
+   ========================================================================== */
+.tes-synth-teaser-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(16, 24, 40, 0.85) 0%, rgba(45, 18, 70, 0.75) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.15);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.tes-synth-teaser-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tes-synth-teaser-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #c084fc;
+}
+
+.tes-synth-teaser-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-top: 2px;
+}
+
+.tes-pulse-btn {
+  animation: tes-pulse-glow 2.5s infinite ease-in-out;
+}
+
+@keyframes tes-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.75);
+  }
+}
+
+.tes-narrative-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 15, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  padding: 20px;
+}
+
+.tes-narrative-overlay--active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tes-narrative-modal {
+  background: linear-gradient(135deg, rgba(10, 18, 30, 0.96) 0%, rgba(20, 14, 38, 0.96) 100%);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  box-shadow: 0 0 40px rgba(56, 189, 248, 0.18), 0 25px 50px rgba(0, 0, 0, 0.85);
+  border-radius: 12px;
+  width: min(580px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: #e2e8f0;
+  font-family: var(--tes-font-sans, system-ui, sans-serif);
+  line-height: 1.6;
+  transform: scale(0.96);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tes-narrative-overlay--active .tes-narrative-modal {
+  transform: scale(1);
+}
+
+.tes-narrative-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--tes-cyan, #38bdf8);
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tes-narrative-body {
+  font-size: 14.5px;
+  color: #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tes-narrative-body p {
+  margin: 0;
+}
+
+.tes-narrative-body strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.tes-narrative-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.tes-stat-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(11, 21, 35, 0.45);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--tes-border);
+}
+
+/* ==========================================================================
    Responsive Adaptations (Section 9)
    ========================================================================== */
 @media (max-width: 1100px) {
@@ -1623,11 +1801,10 @@ button:disabled {
   }
   .tes-top-bar {
     flex-wrap: wrap;
+    gap: 8px;
   }
-  .tes-news-ticker {
-    max-width: 100%;
-    order: 3;
-    width: 100%;
+  .tes-news-bar {
+    padding: 3px 12px;
   }
 }
 

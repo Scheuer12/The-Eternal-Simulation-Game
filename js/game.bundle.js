@@ -5801,6 +5801,10 @@
       "hardcapStart": 999,
       "softcapScale": 100,
       "unique": true
+    },
+    "statisticsDisplay": {
+      "initialCost": 1e-7,
+      "unique": true
     }
   },
   "algorithmRedesign": {
@@ -7003,6 +7007,7 @@ if (typeof globalThis !== "undefined") {
     formatDuration,
     formatStudyDuration,
     formatEngineering,
+    getEnergyEquivalenceText,
     setGlobalNotation,
     getGlobalNotation,
   };
@@ -7235,6 +7240,74 @@ function formatStudyDuration(seconds, notation = currentNotation) {
     return `${rate.toFixed(1)}/s`;
   }
   return `${s.toFixed(2)}s`;
+}
+
+function getEnergyEquivalenceText(value, notation = currentNotation) {
+  const e = big(value ?? 0);
+  if (!e.isFinite() || e.lt(2.25e-7)) {
+    return "Even a flea is still waiting for launch.";
+  }
+
+  // 1. Flea jumps: 2.25e-7 J to 1 J
+  if (e.lt(1)) {
+    const n = e.div(2.25e-7).floor();
+    if (n.lte(1)) {
+      return "Enough to make a flea jump 1 time.";
+    }
+    return `Enough to make a flea jump ${formatInteger(n, notation)} times.`;
+  }
+
+  // 2. Apples lifted: 1 J to 1000 J
+  if (e.lt(1000)) {
+    const n = e.div(1);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to lift 1 small apple one meter.";
+    }
+    return `Enough to lift ${formatNumber(n, 1, notation)} small apples one meter.`;
+  }
+
+  // 3. Cups of water: 1000 J to 3.6e6 J
+  if (e.lt(3.6e6)) {
+    const n = e.div(1000);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to warm 1 cup of water by 1°C.";
+    }
+    return `Enough to warm ${formatNumber(n, 1, notation)} cups of water by 1°C.`;
+  }
+
+  // 4. 1-kW heater: 3.6e6 J to 4.184e9 J
+  if (e.lt(4.184e9)) {
+    const n = e.div(3.6e6);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to run a 1-kW heater for 1 hour.";
+    }
+    return `Enough to run a 1-kW heater for ${formatNumber(n, 1, notation)} hours.`;
+  }
+
+  // 5. Tonnes of TNT: 4.184e9 J to 1.74e17 J
+  if (e.lt(1.74e17)) {
+    const n = e.div(4.184e9);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Equivalent to the energy of approximately 1 tonne of TNT.";
+    }
+    return `Equivalent to the energy of approximately ${formatNumber(n, 1, notation)} tonnes of TNT.`;
+  }
+
+  // 6. Sunlight on Earth: 1.74e17 J to 3.8e26 J
+  if (e.lt(3.8e26)) {
+    const n = e.div(1.74e17);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Comparable to 1 second of sunlight intercepted by Earth.";
+    }
+    return `Comparable to ${formatNumber(n, 1, notation)} seconds of sunlight intercepted by Earth.`;
+  }
+
+  // 7. Total Sun output: >= 3.8e26 J
+  const n = e.div(3.8e26);
+  if (n.gte(0.995) && n.lt(1.005)) {
+    return "Comparable to 1 second of the Sun's total energy output.";
+  }
+  return `Comparable to ${formatNumber(n, 1, notation)} seconds of the Sun's total energy output.`;
 }
 
 
@@ -7847,6 +7920,12 @@ function calculateDeviceCost(type, owned = 0, config = {}) {
     case "powerCell": {
       return calculatePowerCellCost(owned, config);
     }
+    case "backpropagator": {
+      return big(config.devices?.backpropagator?.initialCost ?? 1);
+    }
+    case "statisticsDisplay": {
+      return big(config.devices?.statisticsDisplay?.initialCost ?? 1e-7);
+    }
     default:
       return big(0);
   }
@@ -7864,7 +7943,9 @@ function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {})
     case "microprocessor":
     case "transistorBoard":
     case "overclocker":
-    case "crcGadget": {
+    case "crcGadget":
+    case "backpropagator":
+    case "statisticsDisplay": {
       return calculateDeviceCost(type, currentOwned, config);
     }
     case "transistor": {
@@ -9379,6 +9460,59 @@ registerElement({
 });
 
 // ----------------------------------------------------------------------------
+// 9b. Statistics Display (Unique Learning Device)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "statisticsDisplay",
+  name: "Statistics Display",
+  category: "learning",
+  lane: "resources",
+  icon: "icon-statistics",
+  description: "Unlocks advanced facility statistics and energy production records.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("statisticsDisplay", 0, config),
+  getOwned: (state) => ((state.devices?.statisticsDisplay?.owned ?? 0) >= 1 ? 1 : 0),
+  isRevealed: () => true,
+  isUnlocked: () => true,
+  isEligible: (state, config) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (isOwned) reasons.push("Statistics Display is already installed (Unique device)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: !isOwned && canAfford,
+      isUnlocked: true,
+      strictUnlocked: true,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    if (isOwned && !isForced) {
+      return { success: false, newCount: 1, cost: big(0), count: 0 };
+    }
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    if (!state.devices.statisticsDisplay) {
+      state.devices.statisticsDisplay = { owned: 0 };
+    }
+    state.devices.statisticsDisplay.owned = 1;
+    state.unlocks.statisticsDisplay = true;
+    state.stats.totalPurchases = (state.stats.totalPurchases ?? 0) + 1;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
 // 10. Power Cell
 // ----------------------------------------------------------------------------
 registerElement({
@@ -9727,6 +9861,12 @@ registerElement({
     state.unlocks.chips = false;
 
     state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
+    if (state.stats) {
+      state.stats.timeSinceLastSO = 0;
+    }
+    if ((state.devices?.statisticsDisplay?.owned ?? 0) > 0) {
+      state.unlocks.statisticsDisplay = true;
+    }
 
     return { newCount: state.facilityOptimizations, cost: null, count: 1 };
   },
@@ -9914,6 +10054,9 @@ function createInitialState(config = {}) {
       backpropagator: {
         owned: 0,
       },
+      statisticsDisplay: {
+        owned: 0,
+      },
     },
 
     // Technological Unlock Milestones
@@ -9932,15 +10075,38 @@ function createInitialState(config = {}) {
       backpropagator: false,
       hardDisk: false,
       powerCell: false,
+      statisticsDisplay: true,
+    },
+
+    // Narrative Milestone Progression
+    narrative: {
+      introCompleted: false,
+      so1Completed: false,
+      so2Completed: false,
+      energy100e9Completed: false,
+      synthTeaserUnlocked: false,
     },
 
     // Statistics
     stats: {
       gameTime: 0,
       totalEnergyProduced: big(0),
+      totalEnergyProducedEra: big(0),
+      timeInCurrentEra: 0,
+      timeSinceLastSO: 0,
+      highestComputerLevel: 1,
+      highestStoredEnergy: big(0),
+      highestGrossEnergyRate: big(0),
       totalPurchases: 0,
       totalMachineLearnings: 0,
       totalFacilityOptimizations: 0,
+      studiesCompleted: {
+        AImp: 0,
+        AUpg: 0,
+        ARec: 0,
+        ARed: 0,
+      },
+      fastest100e9Time: null,
     },
 
     // Timestamp & Persistence
@@ -10116,6 +10282,9 @@ function normalizeState(raw = {}, config = {}) {
       backpropagator: {
         owned: Math.max(0, Number(raw.devices?.backpropagator?.owned ?? raw.devices?.backpropagator ?? 0)),
       },
+      statisticsDisplay: {
+        owned: Math.max(0, Number(raw.devices?.statisticsDisplay?.owned ?? 0)),
+      },
     },
 
     unlocks: {
@@ -10123,14 +10292,46 @@ function normalizeState(raw = {}, config = {}) {
       ...(raw.unlocks ?? {}),
       ARed: Boolean(raw.unlocks?.ARed || (raw.facilityOptimizations ?? 0) >= 2),
       backpropagator: Boolean(raw.unlocks?.backpropagator || (raw.devices?.backpropagator?.owned > 0) || (raw.devices?.backpropagator > 0)),
+      statisticsDisplay: Boolean(raw.unlocks?.statisticsDisplay !== false),
+    },
+
+    narrative: {
+      introCompleted: raw.narrative?.introCompleted !== undefined
+        ? Boolean(raw.narrative.introCompleted)
+        : (Number(raw.stats?.gameTime ?? 0) > 0 || big(raw.energy ?? 0).gt(0) || Number(raw.computerLevel ?? 1) > 1),
+      so1Completed: raw.narrative?.so1Completed !== undefined
+        ? Boolean(raw.narrative.so1Completed)
+        : (Number(raw.facilityOptimizations ?? 0) >= 1),
+      so2Completed: raw.narrative?.so2Completed !== undefined
+        ? Boolean(raw.narrative.so2Completed)
+        : (Number(raw.facilityOptimizations ?? 0) >= 2),
+      energy100e9Completed: raw.narrative?.energy100e9Completed !== undefined
+        ? Boolean(raw.narrative.energy100e9Completed)
+        : (big(raw.energy ?? 0).gte(100e9) || big(raw.stats?.highestStoredEnergy ?? 0).gte(100e9)),
+      synthTeaserUnlocked: raw.narrative?.synthTeaserUnlocked !== undefined
+        ? Boolean(raw.narrative.synthTeaserUnlocked)
+        : (big(raw.energy ?? 0).gte(100e9) || big(raw.stats?.highestStoredEnergy ?? 0).gte(100e9)),
     },
 
     stats: {
       gameTime: Number(raw.stats?.gameTime ?? 0),
       totalEnergyProduced: big(raw.stats?.totalEnergyProduced ?? 0),
+      totalEnergyProducedEra: big(raw.stats?.totalEnergyProducedEra ?? raw.stats?.totalEnergyProduced ?? 0),
+      timeInCurrentEra: Number(raw.stats?.timeInCurrentEra ?? raw.stats?.gameTime ?? 0),
+      timeSinceLastSO: Number(raw.stats?.timeSinceLastSO ?? raw.stats?.gameTime ?? 0),
+      highestComputerLevel: Math.max(1, Number(raw.stats?.highestComputerLevel ?? raw.computerLevel ?? 1)),
+      highestStoredEnergy: big(raw.stats?.highestStoredEnergy ?? raw.energy ?? 0),
+      highestGrossEnergyRate: big(raw.stats?.highestGrossEnergyRate ?? 0),
       totalPurchases: Number(raw.stats?.totalPurchases ?? 0),
       totalMachineLearnings: Number(raw.stats?.totalMachineLearnings ?? 0),
-      totalFacilityOptimizations: Number(raw.stats?.totalFacilityOptimizations ?? 0),
+      totalFacilityOptimizations: Number(raw.stats?.totalFacilityOptimizations ?? raw.facilityOptimizations ?? 0),
+      studiesCompleted: {
+        AImp: Math.max(0, Number(raw.stats?.studiesCompleted?.AImp ?? raw.algorithms?.AImp?.produced ?? 0)),
+        AUpg: Math.max(0, Number(raw.stats?.studiesCompleted?.AUpg ?? raw.algorithms?.AUpg?.produced ?? 0)),
+        ARec: Math.max(0, Number(raw.stats?.studiesCompleted?.ARec ?? raw.algorithms?.ARec?.produced ?? 0)),
+        ARed: Math.max(0, Number(raw.stats?.studiesCompleted?.ARed ?? raw.algorithms?.ARed?.produced ?? 0)),
+      },
+      fastest100e9Time: raw.stats?.fastest100e9Time != null ? Number(raw.stats.fastest100e9Time) : null,
     },
 
     ui: {
@@ -10501,9 +10702,32 @@ class GameEngine {
 
     if (production.gt(0)) {
       this.state.stats.totalEnergyProduced = big(this.state.stats.totalEnergyProduced).add(production.mul(delta));
+      if (!this.state.stats.totalEnergyProducedEra) {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProduced);
+      } else {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProducedEra).add(production.mul(delta));
+      }
     }
     if (this.state.energy.gt(this.state.peakEnergy)) {
       this.state.peakEnergy = this.state.energy;
+    }
+    if (this.state.stats) {
+      this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
+      this.state.stats.timeInCurrentEra = (this.state.stats.timeInCurrentEra ?? 0) + delta;
+      this.state.stats.timeSinceLastSO = (this.state.stats.timeSinceLastSO ?? 0) + delta;
+      const compLevel = this.state.computerLevel ?? 1;
+      if (compLevel > (this.state.stats.highestComputerLevel ?? 1)) {
+        this.state.stats.highestComputerLevel = compLevel;
+      }
+      if (this.state.energy.gt(this.state.stats.highestStoredEnergy ?? 0)) {
+        this.state.stats.highestStoredEnergy = this.state.energy;
+      }
+      if (production.gt(this.state.stats.highestGrossEnergyRate ?? 0)) {
+        this.state.stats.highestGrossEnergyRate = production;
+      }
+      if (this.state.energy.gte(100e9) && this.state.stats.fastest100e9Time == null) {
+        this.state.stats.fastest100e9Time = this.state.stats.timeInCurrentEra;
+      }
     }
 
     // 2. Hard Disk Operation (Section 4.6 Available Data Cap integration)
@@ -10691,6 +10915,9 @@ class GameEngine {
         if (target === "AImp") {
           this.state.algorithms.AImp.owned += desiredUnits;
           this.state.algorithms.AImp.produced += desiredUnits;
+          if (this.state.stats?.studiesCompleted) {
+            this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + desiredUnits;
+          }
           if (this.state.studyImproves?.AImp) {
             this.state.studyImproves.AImp.completions += desiredUnits;
           }
@@ -10705,6 +10932,9 @@ class GameEngine {
             this.state.algorithms.AImp.owned -= maxAffordable * factor;
             this.state.algorithms.AUpg.owned += maxAffordable;
             this.state.algorithms.AUpg.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.AUpg) {
               this.state.studyImproves.AUpg.completions += maxAffordable;
             }
@@ -10724,6 +10954,9 @@ class GameEngine {
             this.state.algorithms.AUpg.owned -= maxAffordable * factor;
             this.state.algorithms.ARec.owned += maxAffordable;
             this.state.algorithms.ARec.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.ARec) {
               this.state.studyImproves.ARec.completions += maxAffordable;
             }
@@ -10742,6 +10975,9 @@ class GameEngine {
             this.state.algorithms.ARec.owned -= maxAffordable * factor;
             this.state.algorithms.ARed.owned += maxAffordable;
             this.state.algorithms.ARed.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.ARed) {
               this.state.studyImproves.ARed.completions += maxAffordable;
             }
@@ -10762,6 +10998,9 @@ class GameEngine {
     if (target === "AImp") {
       this.state.algorithms.AImp.owned += 1;
       this.state.algorithms.AImp.produced += 1;
+      if (this.state.stats?.studiesCompleted) {
+        this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + 1;
+      }
       if (this.state.studyImproves?.AImp) {
         this.state.studyImproves.AImp.completions += 1;
       }
@@ -10774,6 +11013,9 @@ class GameEngine {
         this.state.algorithms.AImp.owned -= factor;
         this.state.algorithms.AUpg.owned += 1;
         this.state.algorithms.AUpg.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + 1;
+        }
         if (this.state.studyImproves?.AUpg) {
           this.state.studyImproves.AUpg.completions += 1;
         }
@@ -10788,6 +11030,9 @@ class GameEngine {
         this.state.algorithms.AUpg.owned -= factor;
         this.state.algorithms.ARec.owned += 1;
         this.state.algorithms.ARec.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + 1;
+        }
         if (this.state.studyImproves?.ARec) {
           this.state.studyImproves.ARec.completions += 1;
         }
@@ -10802,6 +11047,9 @@ class GameEngine {
         this.state.algorithms.ARec.owned -= factor;
         this.state.algorithms.ARed.owned += 1;
         this.state.algorithms.ARed.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + 1;
+        }
         if (this.state.studyImproves?.ARed) {
           this.state.studyImproves.ARed.completions += 1;
         }
@@ -12185,6 +12433,26 @@ function getTooltipContent(topic, context = {}) {
       };
     }
 
+    // ------------------------------------------------------------------------
+    // 12. Statistics Display
+    // ------------------------------------------------------------------------
+    case "device-statistics-display":
+    case "statisticsDisplay":
+    case "statistics_display": {
+      const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+      return {
+        title: "Statistics Display",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; line-height: 1.45;">
+            <div><strong style="color: var(--tes-cyan);">📊 Facility Telemetry:</strong> Unlocks advanced facility statistics and energy records.</div>
+            <div><strong style="color: var(--tes-teal);">🔒 Status:</strong> ${isOwned ? "Installed (Access granted via Stats button)" : "Available for installation"}</div>
+            <div><strong style="color: #a78bfa;">⚡ Persistence:</strong> Permanent unlock; preserved across Machine Learning and Setup Optimization.</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
     // Default fallback
     default: {
       return {
@@ -12217,6 +12485,89 @@ function getTooltipContent(topic, context = {}) {
 const TES_ICON_ROOT = "icons/";
 const tesIconPath = (name) => `${TES_ICON_ROOT}${name}.png`;
 
+class CrcGrowthTracker {
+  constructor() {
+    this.history = [];
+    this.lastMlCount = null;
+    this.lastSoCount = null;
+  }
+
+  reset() {
+    this.history = [];
+  }
+
+  update(prodRate, nowMs, mlCount = 0, soCount = 0) {
+    if (this.lastMlCount !== null && (this.lastMlCount !== mlCount || this.lastSoCount !== soCount)) {
+      this.reset();
+    }
+    this.lastMlCount = mlCount;
+    this.lastSoCount = soCount;
+
+    const rate = big(prodRate || 0);
+    this.history.push({ time: nowMs, rate });
+
+    const cutoff = nowMs - 2500;
+    while (this.history.length > 2 && this.history[0].time < cutoff) {
+      this.history.shift();
+    }
+
+    const targetTime = nowMs - 1000;
+    let closest = null;
+    let minDiff = Infinity;
+
+    for (const entry of this.history) {
+      const diff = Math.abs(entry.time - targetTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = entry;
+      }
+    }
+
+    if (!closest) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const dt = (nowMs - closest.time) / 1000;
+    if (dt < 0.4) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const pastRate = closest.rate;
+    if (pastRate.eq(0)) {
+      if (rate.eq(0)) {
+        return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+      }
+      return { text: "(---/sec)", percentage: 0, isNegative: false };
+    }
+
+    if (rate.eq(pastRate)) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    let percentNum;
+    try {
+      const ratio = rate.div(pastRate);
+      const change = ratio.minus(1);
+      percentNum = change.div(dt).mul(100).toNumber();
+    } catch {
+      percentNum = 0;
+    }
+
+    if (!Number.isFinite(percentNum) || Number.isNaN(percentNum)) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    if (Math.abs(percentNum) < 0.005) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const isNegative = percentNum < 0;
+    const sign = isNegative ? "" : "+";
+    const formatted = `${sign}${percentNum.toFixed(2)}%/sec`;
+    return { text: `(${formatted})`, percentage: percentNum, isNegative };
+  }
+}
+
 function createRenderer(container, engine) {
   let isMounted = false;
   let activeDrawer = null; // 'dev' | 'transistor' | 'microprocessor' | 'harddisk' | 'settings' | 'stats' | 'overclock'
@@ -12225,6 +12576,9 @@ function createRenderer(container, engine) {
   let newsTimer = null;
   let isNewsPaused = false;
   let batchPopoverTarget = null; // target feature id or device id for batch menu
+  const crcGrowthTracker = new CrcGrowthTracker();
+  let activeNarrativeMilestone = null;
+  let isNarrativePreview = false;
 
   // Default news items if __TES_NEWS__ is missing or empty
   const defaultNews = [
@@ -12272,6 +12626,176 @@ function createRenderer(container, engine) {
     }
   }
 
+  function isNarrativeModalOpen() {
+    return Boolean(activeNarrativeMilestone);
+  }
+
+  function showNarrativeModal(milestone, isPreview = false) {
+    if (activeNarrativeMilestone && !isPreview) return;
+    activeNarrativeMilestone = milestone;
+    isNarrativePreview = isPreview;
+
+    const overlay = dom?.narrativeOverlay || container.querySelector("#narrative-overlay");
+    const titleEl = dom?.narrativeTitle || container.querySelector("#narrative-title");
+    const bodyEl = dom?.narrativeBody || container.querySelector("#narrative-body");
+    const actionsEl = dom?.narrativeActions || container.querySelector("#narrative-actions");
+    if (!overlay || !titleEl || !bodyEl || !actionsEl) return;
+
+    switch (milestone) {
+      case "intro": {
+        titleEl.textContent = "FACILITY AWAKENING";
+        bodyEl.innerHTML = `
+          <p>You can't remember how you got here.</p>
+          <p>You're lying on a strange bed, in a room you don't recognize.</p>
+          <p>Across the room, a dim blue panel casts the only light, its glow catching the dust drifting through the air.</p>
+          <p>As you approach, a handful of unfamiliar devices blink with the same warning:</p>
+          <p><strong style="color: var(--tes-danger); letter-spacing: 1px;">LOW POWER</strong></p>
+          <p>At the center of the largest screen, a single button pulses quietly.</p>
+          <p>Almost as if it has been waiting for you.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary tes-pulse-btn" data-action="close-narrative" data-milestone="intro">Start Simulation</button>
+        `;
+        break;
+      }
+      case "so1": {
+        titleEl.textContent = "TRANSMISSION RECEIVED";
+        bodyEl.innerHTML = `
+          <p>Out of nowhere, a gentle, strangely captivating voice fills the silence.</p>
+          <p>"Congratulations.</p>
+          <p>It seems you're making progress.</p>
+          <p>You've already gone further than a few others. But there's still a very long way to go.</p>
+          <p>Current record:</p>
+          <p><strong style="color: var(--tes-cyan); letter-spacing: 1px;">333.33 billion years.</strong></p>
+          <p>Good luck."</p>
+          <p>The voice disappears as suddenly as it arrived.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="so1">Continue</button>
+        `;
+        break;
+      }
+      case "so2": {
+        titleEl.textContent = "FACILITY SECTOR UNLOCKED";
+        bodyEl.innerHTML = `
+          <p>A dry click sounds somewhere behind you.</p>
+          <p>You turn.</p>
+          <p>A heavy iron double door, previously hidden in the darkness, begins to glow faintly around its edges.</p>
+          <p>Above it, an old display flickers to life:</p>
+          <p><strong style="color: var(--tes-cyan); letter-spacing: 1px;">PARTICLE SYNTHESIZER</strong></p>
+          <p><strong style="color: var(--tes-danger); letter-spacing: 1px;">LOW POWER</strong></p>
+          <p>The doors remain shut.</p>
+          <p>For now.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="so2">Continue</button>
+        `;
+        break;
+      }
+      case "energy100e9": {
+        titleEl.textContent = "CAPACITY ACHIEVED";
+        bodyEl.innerHTML = `
+          <p>An oddly familiar startup chime fills the room as the Stored Energy indicator reaches 100%.</p>
+          <p>Behind you, the iron double doors begin to open.</p>
+          <p>The sound of ancient machinery echoes through the facility.</p>
+          <p>A new section illuminates on the control panel.</p>
+          <p>In the Devices interface, a new control pulses softly.</p>
+          <p>Its design looks promising.</p>
+          <p>And just a little dangerous.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary tes-pulse-btn" data-action="transition-narrative-coming-soon">Activate</button>
+        `;
+        break;
+      }
+      case "coming-soon": {
+        titleEl.textContent = "COMING SOON...";
+        bodyEl.innerHTML = `
+          <p>The Particle Synthesizer is responding.</p>
+          <p>But the next experiment is not ready.</p>
+          <p>The simulation will continue.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="coming-soon">Close</button>
+        `;
+        break;
+      }
+    }
+
+    overlay.classList.add("tes-narrative-overlay--active");
+    overlay.setAttribute("aria-hidden", "false");
+    const primaryBtn = actionsEl.querySelector("button");
+    if (primaryBtn) primaryBtn.focus();
+  }
+
+  function transitionNarrativeComingSoon() {
+    const titleEl = dom?.narrativeTitle || container.querySelector("#narrative-title");
+    const bodyEl = dom?.narrativeBody || container.querySelector("#narrative-body");
+    const actionsEl = dom?.narrativeActions || container.querySelector("#narrative-actions");
+    if (!titleEl || !bodyEl || !actionsEl) return;
+
+    if (!isNarrativePreview && engine.state.narrative) {
+      engine.state.narrative.energy100e9Completed = true;
+      engine.state.narrative.synthTeaserUnlocked = true;
+    }
+
+    titleEl.textContent = "COMING SOON...";
+    bodyEl.innerHTML = `
+      <p>The Particle Synthesizer is responding.</p>
+      <p>But the next experiment is not ready.</p>
+      <p>The simulation will continue.</p>
+    `;
+    actionsEl.innerHTML = `
+      <button class="btn-primary" data-action="close-narrative" data-milestone="energy100e9">Close</button>
+    `;
+    const btn = actionsEl.querySelector("button");
+    if (btn) btn.focus();
+  }
+
+  function closeNarrativeModal(milestone) {
+    const targetMilestone = milestone || activeNarrativeMilestone;
+    const overlay = dom?.narrativeOverlay || container.querySelector("#narrative-overlay");
+    if (overlay) {
+      overlay.classList.remove("tes-narrative-overlay--active");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
+    if (!isNarrativePreview && engine.state.narrative) {
+      if (targetMilestone === "intro") engine.state.narrative.introCompleted = true;
+      else if (targetMilestone === "so1") engine.state.narrative.so1Completed = true;
+      else if (targetMilestone === "so2") engine.state.narrative.so2Completed = true;
+      else if (targetMilestone === "energy100e9" || targetMilestone === "coming-soon") {
+        engine.state.narrative.energy100e9Completed = true;
+        engine.state.narrative.synthTeaserUnlocked = true;
+      }
+    }
+
+    activeNarrativeMilestone = null;
+    isNarrativePreview = false;
+  }
+
+  function checkNarrativeTriggers(state) {
+    if (activeNarrativeMilestone) return;
+    if (!state.narrative) return;
+
+    if (!state.narrative.introCompleted) {
+      showNarrativeModal("intro");
+      return;
+    }
+    if ((state.facilityOptimizations ?? 0) === 1 && !state.narrative.so1Completed) {
+      showNarrativeModal("so1");
+      return;
+    }
+    if ((state.facilityOptimizations ?? 0) >= 2 && !state.narrative.so2Completed) {
+      showNarrativeModal("so2");
+      return;
+    }
+    if (big(state.energy ?? 0).gte(100e9) && !state.narrative.energy100e9Completed) {
+      showNarrativeModal("energy100e9");
+      return;
+    }
+  }
+
   function render() {
     if (!isMounted) {
       mountStructure();
@@ -12291,18 +12815,7 @@ function createRenderer(container, engine) {
             <div class="tes-brand">
               <img src="${tesIconPath("brand-orbit")}" alt="" class="tes-brand-icon" aria-hidden="true" onerror="this.style.display='none'" />
               <span class="tes-brand-title">The Eternal Simulation</span>
-            </div>
-
-            <!-- News Ticker -->
-            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
-              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
-              <span class="tes-news-content" data-field="news-content">
-                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
-              </span>
-              <div class="tes-news-controls">
-                <button class="tes-news-btn" data-action="news-prev" aria-label="Previous headline">&lt;</button>
-                <button class="tes-news-btn" data-action="news-next" aria-label="Next headline">&gt;</button>
-              </div>
+              <span class="tes-beta-tag">(BETA V0)</span>
             </div>
 
             <!-- Utility Controls -->
@@ -12315,7 +12828,7 @@ function createRenderer(container, engine) {
                 <img src="${tesIconPath("icon-measure")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Measure</span>
               </button>
-              <button class="btn-utility" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
+              <button class="btn-utility" id="btn-stats" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
                 <img src="${tesIconPath("icon-statistics")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Stats</span>
               </button>
@@ -12323,6 +12836,16 @@ function createRenderer(container, engine) {
                 <img src="${tesIconPath("icon-power")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Config</span>
               </button>
+            </div>
+          </div>
+
+          <!-- News Sub-Bar (Part 1.1) -->
+          <div class="tes-news-bar" id="news-bar">
+            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
+              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-news-content" data-field="news-content">
+                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
+              </span>
             </div>
           </div>
 
@@ -12336,15 +12859,13 @@ function createRenderer(container, engine) {
               <img src="${tesIconPath("nav-devices")}" alt="" class="tes-nav-icon" aria-hidden="true" />
               <span>Devices</span>
             </button>
-            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Science Layer unlocks in later phases">
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled aria-label="Unknown locked system" title="Locked">
               <img src="${tesIconPath("nav-science")}" alt="" class="tes-nav-icon" aria-hidden="true" />
-              <span>Science</span>
-              <span class="badge-tab-locked">LOCKED</span>
+              <span>???</span>
             </button>
-            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Particle synthesis unlocks in later phases">
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled aria-label="Unknown locked system" title="Locked">
               <img src="${tesIconPath("nav-particles")}" alt="" class="tes-nav-icon" aria-hidden="true" />
-              <span>Particles</span>
-              <span class="badge-tab-locked">LOCKED</span>
+              <span>???</span>
             </button>
             <button class="tes-nav-tab" data-action="open-drawer" data-drawer="settings" title="More Options">
               <img src="${tesIconPath("nav-more")}" alt="" class="tes-nav-icon" aria-hidden="true" />
@@ -12457,7 +12978,10 @@ function createRenderer(container, engine) {
                 </div>
 
                 <div class="tes-crc-right">
-                  <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                  <div class="tes-crc-rate-container" style="display: flex; align-items: baseline; gap: 8px;">
+                    <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                    <span class="tes-crc-growth" data-field="crc-growth" title="Measures the percentage change in gross Energy production per second.">(+0.00%/sec)</span>
+                  </div>
                   <span class="badge-status badge-status--active" data-field="crc-level-mult">Level 1</span>
                   <button class="btn-icon-only" data-action="show-info" data-topic="crc" aria-label="CRC Breakdown details">
                     <img src="${tesIconPath("icon-info")}" alt="" />
@@ -12738,6 +13262,20 @@ function createRenderer(container, engine) {
 
             <!-- TAB 2: DEVICES (Section 7) -->
             <section class="tes-devices-tab" id="tab-devices" style="display: none;">
+              <!-- Particle Synthesizer Teaser (Revealed after reaching 100e9 J) -->
+              <div class="tes-synth-teaser-card" id="synth-teaser-card" style="display: none;">
+                <div class="tes-synth-teaser-left">
+                  <img src="${tesIconPath("nav-particles")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                  <div class="tes-synth-teaser-info">
+                    <div class="tes-synth-teaser-title">PARTICLE SYNTHESIZER</div>
+                    <div class="tes-synth-teaser-desc">The heavy iron doors have unlocked. High-voltage chambers hum with unknown potential.</div>
+                  </div>
+                </div>
+                <button class="btn-primary tes-pulse-btn" data-action="activate-synth-teaser" id="btn-activate-synth">
+                  Activate
+                </button>
+              </div>
+
               <!-- Filter Bar (Section 7.3) -->
               <div class="tes-filter-bar">
                 <div class="tes-category-pills">
@@ -13102,6 +13640,28 @@ function createRenderer(container, engine) {
                         </button>
                       </div>
                     </article>
+
+                    <!-- Statistics Display -->
+                    <article class="tes-device-row" data-device-id="statisticsDisplay" id="device-row-statistics-display">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("icon-statistics")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Statistics Display</span>
+                            <span class="badge-status badge-status--off" data-field="statistics-display-badge">${formatEnergy(1e-7)}</span>
+                          </div>
+                          <span class="tes-device-desc">Unlocks advanced facility statistics and energy production records.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="statisticsDisplay" data-field="statistics-display-action-btn">
+                          Add (${formatEnergy(1e-7)})
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-statistics-display" aria-label="Statistics Display info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
                 </div>
               </div>
@@ -13112,6 +13672,15 @@ function createRenderer(container, engine) {
         <!-- DRAWERS & MODALS CONTAINER -->
         <div id="tes-drawers-container"></div>
         <div id="tes-popover-container"></div>
+
+        <!-- NARRATIVE MILESTONE MODAL OVERLAY -->
+        <div class="tes-narrative-overlay" id="narrative-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+          <div class="tes-narrative-modal" id="narrative-modal">
+            <h3 class="tes-narrative-title" id="narrative-title"></h3>
+            <div class="tes-narrative-body" id="narrative-body"></div>
+            <div class="tes-narrative-actions" id="narrative-actions"></div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -13204,7 +13773,14 @@ function createRenderer(container, engine) {
       energyDecayItem: container.querySelector("#energy-decay-item"),
       energyDecay: container.querySelector('[data-field="energy-decay"]'),
       crcRate: container.querySelector('[data-field="crc-rate"]'),
+      crcGrowth: container.querySelector('[data-field="crc-growth"]'),
       crcLevelMult: container.querySelector('[data-field="crc-level-mult"]'),
+      btnStats: container.querySelector("#btn-stats"),
+      synthTeaserCard: container.querySelector("#synth-teaser-card"),
+      narrativeOverlay: container.querySelector("#narrative-overlay"),
+      narrativeTitle: container.querySelector("#narrative-title"),
+      narrativeBody: container.querySelector("#narrative-body"),
+      narrativeActions: container.querySelector("#narrative-actions"),
 
       energyEraPercent: container.querySelector('[data-field="energy-era-percent"]'),
       energyEraFill: container.querySelector('[data-field="energy-era-fill"]'),
@@ -13317,6 +13893,7 @@ function createRenderer(container, engine) {
       "powerCell",
       "hardDisk",
       "backpropagator",
+      "statisticsDisplay",
     ];
 
     deviceIds.forEach((id) => {
@@ -13425,6 +14002,14 @@ function createRenderer(container, engine) {
               ),
             };
             break;
+          case "statisticsDisplay":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="statistics-display-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="statistics-display-action-btn"]',
+              ),
+            };
+            break;
         }
       }
     });
@@ -13474,6 +14059,23 @@ function createRenderer(container, engine) {
         Boolean(state.devMode),
       );
     }
+
+    // Statistics Utility Button Availability (Part 3.1)
+    if (dom.btnStats) {
+      const statsUnlocked = Boolean(state.devices?.statisticsDisplay?.owned || state.devMode);
+      if (statsUnlocked) {
+        dom.btnStats.disabled = false;
+        dom.btnStats.title = "Simulation Statistics";
+        dom.btnStats.classList.remove("btn-utility--disabled");
+      } else {
+        dom.btnStats.disabled = true;
+        dom.btnStats.title = "Requires Statistics Display";
+        dom.btnStats.classList.add("btn-utility--disabled");
+      }
+    }
+
+    // Narrative Milestone Triggers Check (Part 2)
+    checkNarrativeTriggers(state);
 
     // Tab Switching Display
     const activeTab = state.ui?.activeTab || "energy";
@@ -13558,6 +14160,24 @@ function createRenderer(container, engine) {
     // Cosmic Radiation Condenser (CRC) displays GROSS Production
     setElText(dom.crcRate, formatRate(prodRate));
     setElText(dom.crcLevelMult, `Level ${compLevel}`);
+
+    // CRC Growth Indicator (Part 4)
+    if (dom.crcGrowth) {
+      const growth = crcGrowthTracker.update(
+        prodRate,
+        performance.now(),
+        state.stats?.totalMachineLearnings ?? 0,
+        state.facilityOptimizations ?? 0,
+      );
+      if (dom.crcGrowth.textContent !== growth.text) {
+        dom.crcGrowth.textContent = growth.text;
+      }
+      if (growth.isNegative) {
+        dom.crcGrowth.classList.add("tes-crc-growth--negative");
+      } else {
+        dom.crcGrowth.classList.remove("tes-crc-growth--negative");
+      }
+    }
 
     // Stored Energy displays NET Production: Gross - Decay (and any active device drain)
     let totalDrain = overflowDecay;
@@ -13997,6 +14617,12 @@ function createRenderer(container, engine) {
     const filter = state.ui?.deviceCategoryFilter || "all";
     const showAdded = state.ui?.showAdded !== false;
     const showUnavailable = state.ui?.showUnavailable !== false;
+
+    // Particle Synthesizer Teaser Visibility (Part 2.5)
+    if (dom.synthTeaserCard) {
+      const showTeaser = Boolean(state.narrative?.synthTeaserUnlocked);
+      dom.synthTeaserCard.style.display = showTeaser ? "flex" : "none";
+    }
 
     // Checkbox synchronization
     if (dom.toggleShowAdded && dom.toggleShowAdded.checked !== showAdded) {
@@ -14699,6 +15325,42 @@ function createRenderer(container, engine) {
         }
         break;
       }
+
+      case "statisticsDisplay": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="statistics-display-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="statistics-display-action-btn"]');
+        const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+
+        if (isOwned) {
+          if (badge) {
+            const cls = "badge-status badge-status--active";
+            if (badge.className !== cls) badge.className = cls;
+            setElText(badge, "Installed");
+          }
+          if (btn) {
+            setElText(btn, "Installed");
+            btn.disabled = true;
+            if (btn.className !== "btn-secondary") btn.className = "btn-secondary";
+          }
+        } else {
+          if (badge) {
+            const cls = "badge-status badge-status--off";
+            if (badge.className !== cls) badge.className = cls;
+            setElText(badge, cost ? formatEnergy(cost) : formatEnergy(1e-7));
+          }
+          if (btn) {
+            setElText(btn, cost ? `Add (${formatEnergy(cost)})` : "Add");
+            btn.disabled = !canClick;
+            const btnCls = canClick ? "btn-primary" : "btn-secondary";
+            if (btn.className !== btnCls) btn.className = btnCls;
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -15170,9 +15832,30 @@ function createRenderer(container, engine) {
       }
 
       case "stats": {
+        const totalEnergyProducedEra = state.stats?.totalEnergyProducedEra ?? state.stats?.totalEnergyProduced ?? 0;
+        setElText(
+          containerEl.querySelector('[data-field="stat-era-energy"]'),
+          formatEnergy(totalEnergyProducedEra),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-equivalence"]'),
+          getEnergyEquivalenceText(totalEnergyProducedEra),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-total-playtime"]'),
+          formatDuration(state.stats?.gameTime ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-era-time"]'),
+          formatDuration(state.stats?.timeInCurrentEra ?? state.stats?.gameTime ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-so-time"]'),
+          formatDuration(state.stats?.timeSinceLastSO ?? state.stats?.gameTime ?? 0),
+        );
         setElText(
           containerEl.querySelector('[data-field="stat-comp-level"]'),
-          state.computerLevel ?? 1,
+          state.stats?.highestComputerLevel ?? state.computerLevel ?? 1,
         );
         setElText(
           containerEl.querySelector('[data-field="stat-mls"]'),
@@ -15188,7 +15871,23 @@ function createRenderer(container, engine) {
         );
         setElText(
           containerEl.querySelector('[data-field="stat-energy"]'),
-          formatEnergy(state.energy),
+          formatEnergy(state.stats?.highestStoredEnergy ?? state.energy ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-aimp"]'),
+          formatInteger(state.stats?.studiesCompleted?.AImp ?? state.algorithms?.AImp?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-aupg"]'),
+          formatInteger(state.stats?.studiesCompleted?.AUpg ?? state.algorithms?.AUpg?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-arec"]'),
+          formatInteger(state.stats?.studiesCompleted?.ARec ?? state.algorithms?.ARec?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-ared"]'),
+          formatInteger(state.stats?.studiesCompleted?.ARed ?? state.algorithms?.ARed?.produced ?? 0),
         );
         break;
       }
@@ -15703,6 +16402,17 @@ function createRenderer(container, engine) {
                 </div>
 
                 <div class="tes-section-header">
+                  <span class="tes-section-title">NARRATIVE MILESTONE PREVIEWS</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 18px;">
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="intro">Preview Intro</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="so1">Preview SO1</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="so2">Preview SO2</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="energy100e9">Preview 100e9 J</button>
+                </div>
+
+                <div class="tes-section-header">
                   <span class="tes-section-title" data-field="dev-audit-count">AUDIT LOG (${state.auditLogs?.length ?? 0})</span>
                   <div class="tes-section-line"></div>
                 </div>
@@ -15815,40 +16525,120 @@ function createRenderer(container, engine) {
         break;
       }
 
-      // 7. Statistics Modal
+      // 7. Statistics Modal (Revamped Instrumentation)
       case "stats": {
+        const totalEnergyProducedEra = state.stats?.totalEnergyProducedEra ?? state.stats?.totalEnergyProduced ?? 0;
         containerEl.innerHTML = `
           <div class="tes-modal-overlay" data-action="close-drawer">
-            <div class="tes-modal">
+            <div class="tes-modal" style="width: min(640px, 95vw); max-height: 85vh; overflow-y: auto;">
               <div class="tes-modal-header">
-                <h3 class="tes-modal-title">Simulation Statistics</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("icon-statistics")}" alt="" style="width: 22px; height: 22px;" />
+                  <h3 class="tes-modal-title">Facility Instrumentation & Records</h3>
+                </div>
                 <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Facility Level:</span>
-                  <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.computerLevel ?? 1}</strong>
+
+              <!-- SECTION: CORE STATISTICS -->
+              <div class="tes-stats-section" style="margin-bottom: 16px;">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">CORE ENERGY ERA METRICS</span>
+                  <div class="tes-section-line"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Machine Learnings:</span>
-                  <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                  <span class="eyebrow" style="color: var(--tes-cyan);">TOTAL ENERGY PRODUCED — CURRENT ENERGY ERA</span>
+                  <div style="font-size: 20px; font-weight: 700; color: #fff; margin: 4px 0 8px 0;" data-field="stat-era-energy">
+                    ${formatEnergy(totalEnergyProducedEra)}
+                  </div>
+                  <div style="font-size: 13px; font-style: italic; color: #94a3b8; line-height: 1.45;" data-field="stat-equivalence">
+                    ${getEnergyEquivalenceText(totalEnergyProducedEra)}
+                  </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Facility Optimizations:</span>
-                  <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Playtime:</span>
+                    <strong data-field="stat-total-playtime">${formatDuration(state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Time in Current Era:</span>
+                    <strong data-field="stat-era-time">${formatDuration(state.stats?.timeInCurrentEra ?? state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Time Since Last Setup Optimization:</span>
+                    <strong data-field="stat-so-time">${formatDuration(state.stats?.timeSinceLastSO ?? state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Fastest 100e9 J Run:</span>
+                    <strong data-field="stat-fastest-100e9">${state.stats?.fastest100e9Time != null ? formatDuration(state.stats.fastest100e9Time) : "Not recorded"}</strong>
+                  </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Total Hardware Purchases:</span>
-                  <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+              </div>
+
+              <!-- SECTION: PROGRESSION RECORDS -->
+              <div class="tes-stats-section" style="margin-bottom: 16px;">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">PROGRESSION RECORDS</span>
+                  <div class="tes-section-line"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Stored Energy:</span>
-                  <strong data-field="stat-energy">${formatEnergy(state.energy)}</strong>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Highest Computer Level:</span>
+                    <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.stats?.highestComputerLevel ?? state.computerLevel ?? 1}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Highest Stored Energy:</span>
+                    <strong data-field="stat-energy" style="color: #60a5fa;">${formatEnergy(state.stats?.highestStoredEnergy ?? state.energy ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Peak Gross Production Rate:</span>
+                    <strong style="color: var(--tes-teal);">${formatRate(state.stats?.highestGrossEnergyRate ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Hardware Purchases:</span>
+                    <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Machine Learnings:</span>
+                    <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Setup Optimizations:</span>
+                    <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+                  </div>
                 </div>
-                <div class="tes-rail-divider"></div>
-                <div style="display: flex; justify-content: flex-end;">
-                  <button class="btn-primary" data-action="close-drawer">Close</button>
+              </div>
+
+              <!-- SECTION: COMPLETED ALGORITHM STUDIES -->
+              <div class="tes-stats-section">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">COMPLETED ALGORITHM STUDIES</span>
+                  <div class="tes-section-line"></div>
                 </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Improvements (AImp):</span>
+                    <strong data-field="stat-studies-aimp">${formatInteger(state.stats?.studiesCompleted?.AImp ?? state.algorithms?.AImp?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Upgrades (AUpg):</span>
+                    <strong data-field="stat-studies-aupg">${formatInteger(state.stats?.studiesCompleted?.AUpg ?? state.algorithms?.AUpg?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Recalculations (ARec):</span>
+                    <strong data-field="stat-studies-arec">${formatInteger(state.stats?.studiesCompleted?.ARec ?? state.algorithms?.ARec?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Redesigns (ARed):</span>
+                    <strong data-field="stat-studies-ared">${formatInteger(state.stats?.studiesCompleted?.ARed ?? state.algorithms?.ARed?.produced ?? 0)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tes-rail-divider" style="margin: 16px 0;"></div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn-primary" data-action="close-drawer">Close</button>
               </div>
             </div>
           </div>
@@ -16181,6 +16971,11 @@ function createRenderer(container, engine) {
     render();
   };
   render.showInfo = showInfoPopover;
+  render.isNarrativeModalOpen = isNarrativeModalOpen;
+  render.getActiveNarrativeMilestone = () => activeNarrativeMilestone;
+  render.showNarrativeModal = showNarrativeModal;
+  render.transitionNarrativeComingSoon = transitionNarrativeComingSoon;
+  render.closeNarrativeModal = closeNarrativeModal;
   render.nextNews = () => {
     const list = getNewsList();
     newsIndex = (newsIndex + 1) % list.length;
@@ -16229,6 +17024,27 @@ function bindHotkeys(engine, renderer) {
       return;
     }
 
+    if (renderer?.isNarrativeModalOpen?.()) {
+      if (event.key === "Escape") {
+        const milestone = renderer.getActiveNarrativeMilestone?.();
+        if (milestone !== "intro") {
+          event.preventDefault();
+          renderer.closeNarrativeModal?.(milestone);
+          if (renderer?.render) renderer.render();
+        }
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const primaryBtn = document.querySelector("#narrative-actions button");
+        if (primaryBtn) {
+          primaryBtn.click();
+        }
+        return;
+      }
+      return;
+    }
+
     const key = event.key.toUpperCase();
     if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       event.preventDefault();
@@ -16238,6 +17054,8 @@ function bindHotkeys(engine, renderer) {
   });
 
   window.addEventListener("keyup", (event) => {
+    if (renderer?.isNarrativeModalOpen?.()) return;
+
     const key = event.key.toUpperCase();
     if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       engine.setHotkeyState(key, false);
@@ -16254,6 +17072,15 @@ function bindHotkeys(engine, renderer) {
 function bindActions(app, engine, saveActions, config, renderer) {
   // Handle click actions
   app.addEventListener("click", (event) => {
+    if (event.target && event.target.id === "narrative-overlay") {
+      const milestone = renderer?.getActiveNarrativeMilestone?.();
+      if (milestone && milestone !== "intro") {
+        if (renderer?.closeNarrativeModal) renderer.closeNarrativeModal(milestone);
+        if (renderer?.render) renderer.render();
+        return;
+      }
+    }
+
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
 
@@ -16276,7 +17103,14 @@ function bindActions(app, engine, saveActions, config, renderer) {
 
       // 2. Drawer & Modal Management
       case "open-drawer": {
-        if (renderer?.openDrawer) renderer.openDrawer(target.dataset.drawer);
+        const drawer = target.dataset.drawer;
+        if (drawer === "stats") {
+          const hasStats = Boolean(engine.state.devices?.statisticsDisplay?.owned || engine.state.devMode);
+          if (!hasStats) {
+            return;
+          }
+        }
+        if (renderer?.openDrawer) renderer.openDrawer(drawer);
         break;
       }
       case "close-drawer": {
@@ -16291,6 +17125,31 @@ function bindActions(app, engine, saveActions, config, renderer) {
       case "close-modal": {
         if (target.classList.contains("tes-modal-overlay") && event.target !== target) break;
         if (renderer?.closeDrawer) renderer.closeDrawer();
+        break;
+      }
+
+      // Narrative Milestones
+      case "close-narrative": {
+        const milestone = target.dataset.milestone;
+        if (renderer?.closeNarrativeModal) renderer.closeNarrativeModal(milestone);
+        if (renderer?.render) renderer.render();
+        break;
+      }
+      case "transition-narrative-coming-soon": {
+        if (renderer?.transitionNarrativeComingSoon) renderer.transitionNarrativeComingSoon();
+        break;
+      }
+      case "preview-narrative": {
+        const milestone = target.dataset.milestone;
+        if (milestone && renderer?.showNarrativeModal) {
+          renderer.showNarrativeModal(milestone, true);
+        }
+        break;
+      }
+      case "activate-synth-teaser": {
+        if (renderer?.showNarrativeModal) {
+          renderer.showNarrativeModal("coming-soon", false);
+        }
         break;
       }
 
@@ -16651,6 +17510,20 @@ async function start() {
     let previousSave = previousTime;
 
     function frame(now) {
+      if (renderer?.isNarrativeModalOpen?.()) {
+        previousTime = now;
+        if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
+          try {
+            renderer.render();
+          } catch (err) {
+            console.error("[Main] Error during narrative modal render:", err);
+          }
+          previousRender = now;
+        }
+        window.requestAnimationFrame(frame);
+        return;
+      }
+
       const rawDelta = (now - previousTime) / 1000;
       previousTime = now;
 

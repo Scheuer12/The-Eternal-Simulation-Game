@@ -665,6 +665,26 @@ export function getTooltipContent(topic, context = {}) {
       };
     }
 
+    // ------------------------------------------------------------------------
+    // 12. Statistics Display
+    // ------------------------------------------------------------------------
+    case "device-statistics-display":
+    case "statisticsDisplay":
+    case "statistics_display": {
+      const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+      return {
+        title: "Statistics Display",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; line-height: 1.45;">
+            <div><strong style="color: var(--tes-cyan);">📊 Facility Telemetry:</strong> Unlocks advanced facility statistics and energy records.</div>
+            <div><strong style="color: var(--tes-teal);">🔒 Status:</strong> ${isOwned ? "Installed (Access granted via Stats button)" : "Available for installation"}</div>
+            <div><strong style="color: #a78bfa;">⚡ Persistence:</strong> Permanent unlock; preserved across Machine Learning and Setup Optimization.</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
     // Default fallback
     default: {
       return {

@@ -113,9 +113,32 @@ export class GameEngine {
 
     if (production.gt(0)) {
       this.state.stats.totalEnergyProduced = big(this.state.stats.totalEnergyProduced).add(production.mul(delta));
+      if (!this.state.stats.totalEnergyProducedEra) {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProduced);
+      } else {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProducedEra).add(production.mul(delta));
+      }
     }
     if (this.state.energy.gt(this.state.peakEnergy)) {
       this.state.peakEnergy = this.state.energy;
+    }
+    if (this.state.stats) {
+      this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
+      this.state.stats.timeInCurrentEra = (this.state.stats.timeInCurrentEra ?? 0) + delta;
+      this.state.stats.timeSinceLastSO = (this.state.stats.timeSinceLastSO ?? 0) + delta;
+      const compLevel = this.state.computerLevel ?? 1;
+      if (compLevel > (this.state.stats.highestComputerLevel ?? 1)) {
+        this.state.stats.highestComputerLevel = compLevel;
+      }
+      if (this.state.energy.gt(this.state.stats.highestStoredEnergy ?? 0)) {
+        this.state.stats.highestStoredEnergy = this.state.energy;
+      }
+      if (production.gt(this.state.stats.highestGrossEnergyRate ?? 0)) {
+        this.state.stats.highestGrossEnergyRate = production;
+      }
+      if (this.state.energy.gte(100e9) && this.state.stats.fastest100e9Time == null) {
+        this.state.stats.fastest100e9Time = this.state.stats.timeInCurrentEra;
+      }
     }
 
     // 2. Hard Disk Operation (Section 4.6 Available Data Cap integration)
@@ -303,6 +326,9 @@ export class GameEngine {
         if (target === "AImp") {
           this.state.algorithms.AImp.owned += desiredUnits;
           this.state.algorithms.AImp.produced += desiredUnits;
+          if (this.state.stats?.studiesCompleted) {
+            this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + desiredUnits;
+          }
           if (this.state.studyImproves?.AImp) {
             this.state.studyImproves.AImp.completions += desiredUnits;
           }
@@ -317,6 +343,9 @@ export class GameEngine {
             this.state.algorithms.AImp.owned -= maxAffordable * factor;
             this.state.algorithms.AUpg.owned += maxAffordable;
             this.state.algorithms.AUpg.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.AUpg) {
               this.state.studyImproves.AUpg.completions += maxAffordable;
             }
@@ -336,6 +365,9 @@ export class GameEngine {
             this.state.algorithms.AUpg.owned -= maxAffordable * factor;
             this.state.algorithms.ARec.owned += maxAffordable;
             this.state.algorithms.ARec.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.ARec) {
               this.state.studyImproves.ARec.completions += maxAffordable;
             }
@@ -354,6 +386,9 @@ export class GameEngine {
             this.state.algorithms.ARec.owned -= maxAffordable * factor;
             this.state.algorithms.ARed.owned += maxAffordable;
             this.state.algorithms.ARed.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.ARed) {
               this.state.studyImproves.ARed.completions += maxAffordable;
             }
@@ -374,6 +409,9 @@ export class GameEngine {
     if (target === "AImp") {
       this.state.algorithms.AImp.owned += 1;
       this.state.algorithms.AImp.produced += 1;
+      if (this.state.stats?.studiesCompleted) {
+        this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + 1;
+      }
       if (this.state.studyImproves?.AImp) {
         this.state.studyImproves.AImp.completions += 1;
       }
@@ -386,6 +424,9 @@ export class GameEngine {
         this.state.algorithms.AImp.owned -= factor;
         this.state.algorithms.AUpg.owned += 1;
         this.state.algorithms.AUpg.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + 1;
+        }
         if (this.state.studyImproves?.AUpg) {
           this.state.studyImproves.AUpg.completions += 1;
         }
@@ -400,6 +441,9 @@ export class GameEngine {
         this.state.algorithms.AUpg.owned -= factor;
         this.state.algorithms.ARec.owned += 1;
         this.state.algorithms.ARec.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + 1;
+        }
         if (this.state.studyImproves?.ARec) {
           this.state.studyImproves.ARec.completions += 1;
         }
@@ -414,6 +458,9 @@ export class GameEngine {
         this.state.algorithms.ARec.owned -= factor;
         this.state.algorithms.ARed.owned += 1;
         this.state.algorithms.ARed.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + 1;
+        }
         if (this.state.studyImproves?.ARed) {
           this.state.studyImproves.ARed.completions += 1;
         }

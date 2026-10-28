@@ -710,6 +710,59 @@ registerElement({
 });
 
 // ----------------------------------------------------------------------------
+// 9b. Statistics Display (Unique Learning Device)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "statisticsDisplay",
+  name: "Statistics Display",
+  category: "learning",
+  lane: "resources",
+  icon: "icon-statistics",
+  description: "Unlocks advanced facility statistics and energy production records.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("statisticsDisplay", 0, config),
+  getOwned: (state) => ((state.devices?.statisticsDisplay?.owned ?? 0) >= 1 ? 1 : 0),
+  isRevealed: () => true,
+  isUnlocked: () => true,
+  isEligible: (state, config) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (isOwned) reasons.push("Statistics Display is already installed (Unique device)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: !isOwned && canAfford,
+      isUnlocked: true,
+      strictUnlocked: true,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    if (isOwned && !isForced) {
+      return { success: false, newCount: 1, cost: big(0), count: 0 };
+    }
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    if (!state.devices.statisticsDisplay) {
+      state.devices.statisticsDisplay = { owned: 0 };
+    }
+    state.devices.statisticsDisplay.owned = 1;
+    state.unlocks.statisticsDisplay = true;
+    state.stats.totalPurchases = (state.stats.totalPurchases ?? 0) + 1;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
 // 10. Power Cell
 // ----------------------------------------------------------------------------
 registerElement({
@@ -1058,6 +1111,12 @@ registerElement({
     state.unlocks.chips = false;
 
     state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
+    if (state.stats) {
+      state.stats.timeSinceLastSO = 0;
+    }
+    if ((state.devices?.statisticsDisplay?.owned ?? 0) > 0) {
+      state.unlocks.statisticsDisplay = true;
+    }
 
     return { newCount: state.facilityOptimizations, cost: null, count: 1 };
   },

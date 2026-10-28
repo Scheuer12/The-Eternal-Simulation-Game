@@ -40,6 +40,27 @@ function bindHotkeys(engine, renderer) {
       return;
     }
 
+    if (renderer?.isNarrativeModalOpen?.()) {
+      if (event.key === "Escape") {
+        const milestone = renderer.getActiveNarrativeMilestone?.();
+        if (milestone !== "intro") {
+          event.preventDefault();
+          renderer.closeNarrativeModal?.(milestone);
+          if (renderer?.render) renderer.render();
+        }
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const primaryBtn = document.querySelector("#narrative-actions button");
+        if (primaryBtn) {
+          primaryBtn.click();
+        }
+        return;
+      }
+      return;
+    }
+
     const key = event.key.toUpperCase();
     if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       event.preventDefault();
@@ -49,6 +70,8 @@ function bindHotkeys(engine, renderer) {
   });
 
   window.addEventListener("keyup", (event) => {
+    if (renderer?.isNarrativeModalOpen?.()) return;
+
     const key = event.key.toUpperCase();
     if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       engine.setHotkeyState(key, false);
@@ -65,6 +88,15 @@ function bindHotkeys(engine, renderer) {
 function bindActions(app, engine, saveActions, config, renderer) {
   // Handle click actions
   app.addEventListener("click", (event) => {
+    if (event.target && event.target.id === "narrative-overlay") {
+      const milestone = renderer?.getActiveNarrativeMilestone?.();
+      if (milestone && milestone !== "intro") {
+        if (renderer?.closeNarrativeModal) renderer.closeNarrativeModal(milestone);
+        if (renderer?.render) renderer.render();
+        return;
+      }
+    }
+
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
 
@@ -87,7 +119,14 @@ function bindActions(app, engine, saveActions, config, renderer) {
 
       // 2. Drawer & Modal Management
       case "open-drawer": {
-        if (renderer?.openDrawer) renderer.openDrawer(target.dataset.drawer);
+        const drawer = target.dataset.drawer;
+        if (drawer === "stats") {
+          const hasStats = Boolean(engine.state.devices?.statisticsDisplay?.owned || engine.state.devMode);
+          if (!hasStats) {
+            return;
+          }
+        }
+        if (renderer?.openDrawer) renderer.openDrawer(drawer);
         break;
       }
       case "close-drawer": {
@@ -102,6 +141,31 @@ function bindActions(app, engine, saveActions, config, renderer) {
       case "close-modal": {
         if (target.classList.contains("tes-modal-overlay") && event.target !== target) break;
         if (renderer?.closeDrawer) renderer.closeDrawer();
+        break;
+      }
+
+      // Narrative Milestones
+      case "close-narrative": {
+        const milestone = target.dataset.milestone;
+        if (renderer?.closeNarrativeModal) renderer.closeNarrativeModal(milestone);
+        if (renderer?.render) renderer.render();
+        break;
+      }
+      case "transition-narrative-coming-soon": {
+        if (renderer?.transitionNarrativeComingSoon) renderer.transitionNarrativeComingSoon();
+        break;
+      }
+      case "preview-narrative": {
+        const milestone = target.dataset.milestone;
+        if (milestone && renderer?.showNarrativeModal) {
+          renderer.showNarrativeModal(milestone, true);
+        }
+        break;
+      }
+      case "activate-synth-teaser": {
+        if (renderer?.showNarrativeModal) {
+          renderer.showNarrativeModal("coming-soon", false);
+        }
         break;
       }
 
@@ -462,6 +526,20 @@ async function start() {
     let previousSave = previousTime;
 
     function frame(now) {
+      if (renderer?.isNarrativeModalOpen?.()) {
+        previousTime = now;
+        if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
+          try {
+            renderer.render();
+          } catch (err) {
+            console.error("[Main] Error during narrative modal render:", err);
+          }
+          previousRender = now;
+        }
+        window.requestAnimationFrame(frame);
+        return;
+      }
+
       const rawDelta = (now - previousTime) / 1000;
       previousTime = now;
 
