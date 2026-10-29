@@ -7,6 +7,9 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const rootDir = process.cwd();
 const PORT = 8089;
+const outputDir = process.env.TES_SCREENSHOT_DIR
+  ? path.resolve(process.env.TES_SCREENSHOT_DIR)
+  : path.join(rootDir, "outputs", "screenshots");
 
 const MIME_TYPES = {
   ".html": "text/html",
@@ -39,8 +42,19 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, async () => {
   console.log(`Static server running at http://localhost:${PORT}`);
-  const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-  const artifactDir = "C:\\Users\\Scheuer\\.gemini\\antigravity\\brain\\3ca7f4cc-0b20-42b2-8ce3-d92062e53a41";
+  const chromePath =
+    process.env.CHROME_PATH ||
+    (process.platform === "win32"
+      ? path.join(
+          process.env.ProgramFiles || "C:\\Program Files",
+          "Google",
+          "Chrome",
+          "Application",
+          "chrome.exe",
+        )
+      : process.platform === "darwin"
+        ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        : "google-chrome");
 
   const targets = [
     { file: "screenshot-energy.png", query: "demo=1&tab=energy" },
@@ -56,9 +70,10 @@ server.listen(PORT, async () => {
   ];
 
   try {
+    fs.mkdirSync(outputDir, { recursive: true });
     for (const item of targets) {
       console.log(`Capturing ${item.file}...`);
-      const localPath = path.join(rootDir, item.file);
+      const localPath = path.join(outputDir, item.file);
       await execFileAsync(chromePath, [
         "--headless",
         "--disable-gpu",
@@ -71,16 +86,9 @@ server.listen(PORT, async () => {
         `http://localhost:${PORT}/index.html?${item.query}`,
       ]);
       console.log(`Captured ${item.file}`);
-
-      // Copy to artifact directory
-      if (fs.existsSync(artifactDir)) {
-        const destPath = path.join(artifactDir, item.file);
-        fs.copyFileSync(localPath, destPath);
-        console.log(`Copied ${item.file} to artifact directory`);
-      }
     }
 
-    console.log("All patch screenshots captured and copied successfully!");
+    console.log(`All screenshots captured in ${outputDir}`);
   } catch (err) {
     console.error("Error capturing screenshots:", err);
   } finally {
