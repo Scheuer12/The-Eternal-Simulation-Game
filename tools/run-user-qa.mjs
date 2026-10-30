@@ -97,7 +97,19 @@ server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`QA Server running at http://localhost:${PORT}`);
-  const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  const chromePath =
+    process.env.CHROME_PATH ||
+    (process.platform === "win32"
+      ? path.join(
+          process.env.ProgramFiles || "C:\\Program Files",
+          "Google",
+          "Chrome",
+          "Application",
+          "chrome.exe",
+        )
+      : process.platform === "darwin"
+        ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        : "google-chrome");
 
   chromeProcess = spawn(chromePath, [
     "--headless",

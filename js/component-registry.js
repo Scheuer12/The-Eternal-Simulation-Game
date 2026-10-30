@@ -234,6 +234,56 @@ registerElement({
   },
 });
 
+// AutoCalculator — Redesigns
+registerElement({
+  id: "autoCalculator_ARed",
+  name: "AutoCalculator — Redesigns",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-red",
+  description: "Automates Algorithm Redesign studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.ARed > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.ARed && (state.facilityOptimizations ?? 0) >= 2),
+  isUnlocked: (state) => Boolean(state.unlocks?.ARed && (state.facilityOptimizations ?? 0) >= 2),
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.ARed && (state.facilityOptimizations ?? 0) >= 2);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.ARed ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires unlocking Algorithm Redesign via Setup Optimization 2");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.ARed ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    if (!state.devices.chips.allocations) state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0, ARed: 0 };
+    state.devices.chips.allocations.ARed = (state.devices.chips.allocations.ARed ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true, ARed: true };
+    state.devices.chips.enabled.ARed = true;
+    state.unlocks.chips = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
 // ----------------------------------------------------------------------------
 // 2. Transistor Board
 // ----------------------------------------------------------------------------
@@ -660,6 +710,59 @@ registerElement({
 });
 
 // ----------------------------------------------------------------------------
+// 9b. Statistics Display (Unique Learning Device)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "statisticsDisplay",
+  name: "Statistics Display",
+  category: "learning",
+  lane: "resources",
+  icon: "icon-statistics",
+  description: "Unlocks advanced facility statistics and energy production records.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("statisticsDisplay", 0, config),
+  getOwned: (state) => ((state.devices?.statisticsDisplay?.owned ?? 0) >= 1 ? 1 : 0),
+  isRevealed: () => true,
+  isUnlocked: () => true,
+  isEligible: (state, config) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (isOwned) reasons.push("Statistics Display is already installed (Unique device)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: !isOwned && canAfford,
+      isUnlocked: true,
+      strictUnlocked: true,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    if (isOwned && !isForced) {
+      return { success: false, newCount: 1, cost: big(0), count: 0 };
+    }
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    if (!state.devices.statisticsDisplay) {
+      state.devices.statisticsDisplay = { owned: 0 };
+    }
+    state.devices.statisticsDisplay.owned = 1;
+    state.unlocks.statisticsDisplay = true;
+    state.stats.totalPurchases = (state.stats.totalPurchases ?? 0) + 1;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
 // 10. Power Cell
 // ----------------------------------------------------------------------------
 registerElement({
@@ -705,6 +808,98 @@ registerElement({
 });
 
 // ----------------------------------------------------------------------------
+// 10b. Backpropagator (Unique Energy Device, unlocked at SO3)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "backpropagator",
+  name: "Backpropagator",
+  category: "energy",
+  lane: "resources",
+  icon: "backpropagator",
+  description: "Improves global Energy production based on the amount of Algorithm Redesigns owned.",
+  unique: true,
+  getCost: (state, config) => {
+    const cost = config.devices?.backpropagator?.initialCost ?? 1;
+    return big(cost);
+  },
+  getOwned: (state) => {
+    const val = state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0;
+    return val > 0 ? 1 : 0;
+  },
+  isRevealed: (state, config) => {
+    if ((state.facilityOptimizations ?? 0) < 3) return false;
+    const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+    const numThreshold = Number(threshold);
+    if (!Number.isFinite(numThreshold) || numThreshold < 0) return false;
+    const peak = big(state.peakEnergy ?? 0);
+    const cur = big(state.energy ?? 0);
+    const owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    return Boolean(state.unlocks?.backpropagator) 
+      || owned 
+      || cur.gte(numThreshold) 
+      || peak.gte(numThreshold);
+  },
+  isUnlocked: (state, config) => {
+    if ((state.facilityOptimizations ?? 0) < 3) return false;
+    const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+    const numThreshold = Number(threshold);
+    if (!Number.isFinite(numThreshold) || numThreshold < 0) return false;
+    const peak = big(state.peakEnergy ?? 0);
+    const cur = big(state.energy ?? 0);
+    const owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    return Boolean(state.unlocks?.backpropagator) 
+      || owned 
+      || cur.gte(numThreshold) 
+      || peak.gte(numThreshold);
+  },
+  isEligible: (state, config) => {
+    const soEligible = (state.facilityOptimizations ?? 0) >= 3;
+    const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+    const numThreshold = Number(threshold);
+    const validThreshold = Number.isFinite(numThreshold) && numThreshold >= 0;
+    const peak = big(state.peakEnergy ?? 0);
+    const cur = big(state.energy ?? 0);
+    const owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    const discovered = validThreshold && (cur.gte(numThreshold) || peak.gte(numThreshold) || owned || Boolean(state.unlocks?.backpropagator));
+    const strictUnlocked = soEligible && discovered;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = big(config.devices?.backpropagator?.initialCost ?? 1);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = !owned;
+    const reasons = [];
+    if (!soEligible) reasons.push("Requires Setup Optimization 3");
+    else if (!discovered) reasons.push(`Requires reaching ${numThreshold} stored energy`);
+    if (!notOwned) reasons.push("Already owned (unique)");
+    if (!canAfford) reasons.push("Insufficient energy");
+
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = big(config.devices?.backpropagator?.initialCost ?? 1);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    if (typeof state.devices.backpropagator === "object" && state.devices.backpropagator !== null) {
+      state.devices.backpropagator.owned = 1;
+    } else {
+      state.devices.backpropagator = { owned: 1 };
+    }
+    state.unlocks.backpropagator = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
 // 11. Run Machine Learning (Soft Reset)
 // ----------------------------------------------------------------------------
 registerElement({
@@ -745,26 +940,35 @@ registerElement({
     state.algorithms.AUpg.produced = 0;
     state.algorithms.ARec.owned = 0;
     state.algorithms.ARec.produced = 0;
+    if (state.algorithms.ARed) {
+      state.algorithms.ARed.owned = 0;
+      state.algorithms.ARed.produced = 0;
+    }
 
     // Reset study improve milestones & multipliers on Machine Learning (Section 1.8)
     if (state.studyImproves) {
       state.studyImproves.AImp = { completions: 0, claimed: 0 };
       state.studyImproves.AUpg = { completions: 0, claimed: 0 };
       state.studyImproves.ARec = { completions: 0, claimed: 0 };
+      state.studyImproves.ARed = { completions: 0, claimed: 0 };
     }
 
     // Clear study queues and pending worker reservations
     state.studyQueues.AImp = 0;
     state.studyQueues.AUpg = 0;
     state.studyQueues.ARec = 0;
+    state.studyQueues.ARed = 0;
     state.reservedInputs.AImp = 0;
     state.reservedInputs.AUpg = 0;
+    state.reservedInputs.ARec = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
     if (state.manualStudies) {
-      for (const t of ["AImp", "AUpg", "ARec"]) {
-        state.manualStudies[t].active = false;
-        state.manualStudies[t].elapsed = 0;
+      for (const t of ["AImp", "AUpg", "ARec", "ARed"]) {
+        if (state.manualStudies[t]) {
+          state.manualStudies[t].active = false;
+          state.manualStudies[t].elapsed = 0;
+        }
       }
     }
 
@@ -827,6 +1031,7 @@ registerElement({
       AImp: { completions: 0, claimed: 0 },
       AUpg: { completions: 0, claimed: 0 },
       ARec: { completions: 0, claimed: 0 },
+      ARed: { completions: 0, claimed: 0 },
     };
 
     // 1. Reset A-Feature inventories
@@ -836,19 +1041,27 @@ registerElement({
     state.algorithms.AUpg.produced = 0;
     state.algorithms.ARec.owned = 0;
     state.algorithms.ARec.produced = 0;
+    if (state.algorithms.ARed) {
+      state.algorithms.ARed.owned = 0;
+      state.algorithms.ARed.produced = 0;
+    }
 
     // 2. Clear pending studies and reservations
     state.studyQueues.AImp = 0;
     state.studyQueues.AUpg = 0;
     state.studyQueues.ARec = 0;
+    state.studyQueues.ARed = 0;
     state.reservedInputs.AImp = 0;
     state.reservedInputs.AUpg = 0;
+    state.reservedInputs.ARec = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
     if (state.manualStudies) {
-      for (const t of ["AImp", "AUpg", "ARec"]) {
-        state.manualStudies[t].active = false;
-        state.manualStudies[t].elapsed = 0;
+      for (const t of ["AImp", "AUpg", "ARec", "ARed"]) {
+        if (state.manualStudies[t]) {
+          state.manualStudies[t].active = false;
+          state.manualStudies[t].elapsed = 0;
+        }
       }
     }
 
@@ -861,10 +1074,10 @@ registerElement({
 
     // 5. Remove conventional purchased hardware
     state.devices.chips.owned = 0;
-    state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0 };
+    state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0, ARed: 0 };
     state.devices.transistorBoard.owned = false;
     state.devices.transistorsPurchased = 0;
-    state.devices.transistorAllocations = { AImp: 0, AUpg: 0, ARec: 0 };
+    state.devices.transistorAllocations = { AImp: 0, AUpg: 0, ARec: 0, ARed: 0 };
     state.devices.microprocessor.owned = 0;
     state.devices.microprocessor.target = "AImp";
     state.devices.overclocker.owned = 0;
@@ -877,6 +1090,7 @@ registerElement({
     state.devices.hardDisks.owned = 0;
     state.devices.hardDisks.state = "off";
     state.devices.hardDisks.activeSeconds = 0;
+    state.devices.backpropagator = { owned: 0 };
 
     // 6. Reset Power Cell charge to zero (owned Power Cells are PRESERVED as the sole exception!)
     state.powerCellCharge = big(0);
@@ -885,6 +1099,10 @@ registerElement({
     // ARec is unlocked permanently across facility optimizations!
     state.unlocks.ARec = true;
     state.unlocks.hardDisk = true;
+    if (state.facilityOptimizations >= 2) {
+      state.unlocks.ARed = true;
+    }
+    state.unlocks.backpropagator = false;
     state.unlocks.processor = false; // Only appears when 1e-6 J is reached
     state.unlocks.transistorBoard = false;
     state.unlocks.microprocessor = false;
@@ -893,6 +1111,12 @@ registerElement({
     state.unlocks.chips = false;
 
     state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
+    if (state.stats) {
+      state.stats.timeSinceLastSO = 0;
+    }
+    if ((state.devices?.statisticsDisplay?.owned ?? 0) > 0) {
+      state.unlocks.statisticsDisplay = true;
+    }
 
     return { newCount: state.facilityOptimizations, cost: null, count: 1 };
   },

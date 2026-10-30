@@ -15,6 +15,7 @@ import { quicksaveState, loadQuicksaveState, hasQuicksaveState, saveState } from
 import {
   calculateEnergyProduction,
   calculateEnergyOverflowDecay,
+  integrateEnergyStep,
   calculateEffectiveStudyDuration,
   calculateEffectiveStudySpeed,
   calculateAvailableData,
@@ -62,6 +63,7 @@ export class GameEngine {
       AImp: Number(this.state.devices?.chips?.timers?.AImp ?? 0),
       AUpg: Number(this.state.devices?.chips?.timers?.AUpg ?? 0),
       ARec: Number(this.state.devices?.chips?.timers?.ARec ?? 0),
+      ARed: Number(this.state.devices?.chips?.timers?.ARed ?? 0),
     };
   }
 
@@ -102,20 +104,41 @@ export class GameEngine {
 
     this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
 
-    // 1. Energy Production & Overflow Decay
+    // 1. Energy Production & Overflow Decay (Bounded Monotonic Implicit Integration)
     const stableCap = calculatePowerCellCapacity(this.state.powerCells ?? 0, this.state, this.config, this.statResolver);
     const production = calculateEnergyProduction(this.state, this.config, this.statResolver);
     const decay = calculateEnergyOverflowDecay(this.state.energy, stableCap, this.config);
 
-    const netRate = production.sub(decay);
-    const netEnergyDelta = netRate.mul(delta);
-    this.state.energy = bigMax(0, big(this.state.energy).add(netEnergyDelta));
+    this.state.energy = integrateEnergyStep(this.state.energy, production, stableCap, delta, this.config);
 
     if (production.gt(0)) {
       this.state.stats.totalEnergyProduced = big(this.state.stats.totalEnergyProduced).add(production.mul(delta));
+      if (!this.state.stats.totalEnergyProducedEra) {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProduced);
+      } else {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProducedEra).add(production.mul(delta));
+      }
     }
     if (this.state.energy.gt(this.state.peakEnergy)) {
       this.state.peakEnergy = this.state.energy;
+    }
+    if (this.state.stats) {
+      this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
+      this.state.stats.timeInCurrentEra = (this.state.stats.timeInCurrentEra ?? 0) + delta;
+      this.state.stats.timeSinceLastSO = (this.state.stats.timeSinceLastSO ?? 0) + delta;
+      const compLevel = this.state.computerLevel ?? 1;
+      if (compLevel > (this.state.stats.highestComputerLevel ?? 1)) {
+        this.state.stats.highestComputerLevel = compLevel;
+      }
+      if (this.state.energy.gt(this.state.stats.highestStoredEnergy ?? 0)) {
+        this.state.stats.highestStoredEnergy = this.state.energy;
+      }
+      if (production.gt(this.state.stats.highestGrossEnergyRate ?? 0)) {
+        this.state.stats.highestGrossEnergyRate = production;
+      }
+      if (this.state.energy.gte(100e9) && this.state.stats.fastest100e9Time == null) {
+        this.state.stats.fastest100e9Time = this.state.stats.timeInCurrentEra;
+      }
     }
 
     // 2. Hard Disk Operation (Section 4.6 Available Data Cap integration)
@@ -207,6 +230,7 @@ export class GameEngine {
         AImp: { active: false, elapsed: 0 },
         AUpg: { active: false, elapsed: 0 },
         ARec: { active: false, elapsed: 0 },
+        ARed: { active: false, elapsed: 0 },
       };
       if (this.state.manualStudy?.target && this.state.manualStudy.active) {
         this.state.manualStudies[this.state.manualStudy.target].active = true;
@@ -214,7 +238,7 @@ export class GameEngine {
       }
     }
 
-    const targets = ["AImp", "AUpg", "ARec"];
+    const targets = ["AImp", "AUpg", "ARec", "ARed"];
     let lastActiveTarget = this.state.manualStudy?.target || null;
 
     for (const target of targets) {
@@ -226,6 +250,10 @@ export class GameEngine {
         continue;
       }
       if (target === "ARec" && !this.state.unlocks?.ARec) {
+        study.active = false;
+        continue;
+      }
+      if (target === "ARed" && !this.state.unlocks?.ARed) {
         study.active = false;
         continue;
       }
@@ -278,12 +306,13 @@ export class GameEngine {
     const chips = this.state.devices?.chips;
     if (!chips || chips.owned <= 0) return;
 
-    for (const target of ["AImp", "AUpg", "ARec"]) {
+    for (const target of ["AImp", "AUpg", "ARec", "ARed"]) {
       if (chips.enabled && chips.enabled[target] === false) continue;
       const workerCount = chips.allocations?.[target] ?? 0;
       if (workerCount <= 0) continue;
       if (target === "AUpg" && !this.state.unlocks.AUpg) continue;
       if (target === "ARec" && !this.state.unlocks.ARec) continue;
+      if (target === "ARed" && !this.state.unlocks.ARed) continue;
 
       const effectiveDur = calculateEffectiveStudyDuration(target, this.state, this.config, this.statResolver);
       if (effectiveDur <= 0) continue;
@@ -297,6 +326,9 @@ export class GameEngine {
         if (target === "AImp") {
           this.state.algorithms.AImp.owned += desiredUnits;
           this.state.algorithms.AImp.produced += desiredUnits;
+          if (this.state.stats?.studiesCompleted) {
+            this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + desiredUnits;
+          }
           if (this.state.studyImproves?.AImp) {
             this.state.studyImproves.AImp.completions += desiredUnits;
           }
@@ -311,6 +343,9 @@ export class GameEngine {
             this.state.algorithms.AImp.owned -= maxAffordable * factor;
             this.state.algorithms.AUpg.owned += maxAffordable;
             this.state.algorithms.AUpg.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.AUpg) {
               this.state.studyImproves.AUpg.completions += maxAffordable;
             }
@@ -330,8 +365,32 @@ export class GameEngine {
             this.state.algorithms.AUpg.owned -= maxAffordable * factor;
             this.state.algorithms.ARec.owned += maxAffordable;
             this.state.algorithms.ARec.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.ARec) {
               this.state.studyImproves.ARec.completions += maxAffordable;
+            }
+            const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
+            this.chipTimers[target] -= executedCycles * effectiveDur;
+            this.statResolver.invalidateCache();
+          } else {
+            this.chipTimers[target] = Math.min(this.chipTimers[target], effectiveDur);
+          }
+        } else if (target === "ARed") {
+          const factor = this.config.economy?.algorithmConversionFactor ?? 12;
+          const availableARec = this.state.algorithms.ARec.owned;
+          const maxAffordable = Math.min(desiredUnits, Math.floor(availableARec / factor));
+
+          if (maxAffordable > 0) {
+            this.state.algorithms.ARec.owned -= maxAffordable * factor;
+            this.state.algorithms.ARed.owned += maxAffordable;
+            this.state.algorithms.ARed.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + maxAffordable;
+            }
+            if (this.state.studyImproves?.ARed) {
+              this.state.studyImproves.ARed.completions += maxAffordable;
             }
             const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
             this.chipTimers[target] -= executedCycles * effectiveDur;
@@ -350,6 +409,9 @@ export class GameEngine {
     if (target === "AImp") {
       this.state.algorithms.AImp.owned += 1;
       this.state.algorithms.AImp.produced += 1;
+      if (this.state.stats?.studiesCompleted) {
+        this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + 1;
+      }
       if (this.state.studyImproves?.AImp) {
         this.state.studyImproves.AImp.completions += 1;
       }
@@ -362,6 +424,9 @@ export class GameEngine {
         this.state.algorithms.AImp.owned -= factor;
         this.state.algorithms.AUpg.owned += 1;
         this.state.algorithms.AUpg.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + 1;
+        }
         if (this.state.studyImproves?.AUpg) {
           this.state.studyImproves.AUpg.completions += 1;
         }
@@ -376,8 +441,28 @@ export class GameEngine {
         this.state.algorithms.AUpg.owned -= factor;
         this.state.algorithms.ARec.owned += 1;
         this.state.algorithms.ARec.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + 1;
+        }
         if (this.state.studyImproves?.ARec) {
           this.state.studyImproves.ARec.completions += 1;
+        }
+        this.statResolver.invalidateCache();
+        return true;
+      }
+      return false;
+    }
+
+    if (target === "ARed") {
+      if (this.state.algorithms.ARec.owned >= factor) {
+        this.state.algorithms.ARec.owned -= factor;
+        this.state.algorithms.ARed.owned += 1;
+        this.state.algorithms.ARed.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + 1;
+        }
+        if (this.state.studyImproves?.ARed) {
+          this.state.studyImproves.ARed.completions += 1;
         }
         this.statResolver.invalidateCache();
         return true;
@@ -431,6 +516,15 @@ export class GameEngine {
     if (!u.ARec && (this.state.facilityOptimizations ?? 0) >= 1) {
       u.ARec = true;
     }
+    if (!u.ARed && (this.state.facilityOptimizations ?? 0) >= 2) {
+      u.ARed = true;
+    }
+    const bThreshold = Number(this.config.devices?.backpropagator?.energytoUnlock ?? 1);
+    if (!u.backpropagator && (this.state.facilityOptimizations ?? 0) >= 3 && Number.isFinite(bThreshold) && bThreshold >= 0) {
+      if (big(this.state.energy).gte(bThreshold) || big(this.state.peakEnergy ?? 0).gte(bThreshold)) {
+        u.backpropagator = true;
+      }
+    }
   }
 
   // ==========================================================================
@@ -438,9 +532,10 @@ export class GameEngine {
   // ==========================================================================
 
   startManualStudy(target, count = 1) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks.ARed) return false;
 
     const k = Math.max(1, Math.floor(count ?? 1));
     this.state.studyQueues[target] = (this.state.studyQueues[target] ?? 0) + k;
@@ -449,7 +544,11 @@ export class GameEngine {
         AImp: { active: false, elapsed: 0 },
         AUpg: { active: false, elapsed: 0 },
         ARec: { active: false, elapsed: 0 },
+        ARed: { active: false, elapsed: 0 },
       };
+    }
+    if (!this.state.manualStudies[target]) {
+      this.state.manualStudies[target] = { active: false, elapsed: 0 };
     }
     this.state.manualStudies[target].active = true;
     this.state.manualStudy.target = target;
@@ -468,8 +567,10 @@ export class GameEngine {
       this.state.manualStudy.active = anyActive;
     } else {
       if (this.state.manualStudies) {
-        for (const t of ["AImp", "AUpg", "ARec"]) {
-          this.state.manualStudies[t].active = false;
+        for (const t of ["AImp", "AUpg", "ARec", "ARed"]) {
+          if (this.state.manualStudies[t]) {
+            this.state.manualStudies[t].active = false;
+          }
         }
       }
       this.state.manualStudy.active = false;
@@ -479,9 +580,10 @@ export class GameEngine {
   }
 
   startContinuousStudy(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks?.ARed) return false;
 
     this.continuousStudyTargets.add(target);
     if (!this.state.manualStudies) {
@@ -489,7 +591,11 @@ export class GameEngine {
         AImp: { active: false, elapsed: 0 },
         AUpg: { active: false, elapsed: 0 },
         ARec: { active: false, elapsed: 0 },
+        ARed: { active: false, elapsed: 0 },
       };
+    }
+    if (!this.state.manualStudies[target]) {
+      this.state.manualStudies[target] = { active: false, elapsed: 0 };
     }
     this.state.manualStudies[target].active = true;
     this.state.manualStudy.target = target;
@@ -543,6 +649,10 @@ export class GameEngine {
       if (this.state.unlocks?.ARec) {
         this.startContinuousStudy("ARec");
       }
+    } else if (k === "G") {
+      if (this.state.unlocks?.ARed) {
+        this.startContinuousStudy("ARed");
+      }
     } else if (k === "T") {
       this.installTransistor("AImp");
     } else if (k === "M") {
@@ -557,6 +667,8 @@ export class GameEngine {
       this.stopContinuousStudy("AUpg");
     } else if (k === "R") {
       this.stopContinuousStudy("ARec");
+    } else if (k === "G") {
+      this.stopContinuousStudy("ARed");
     }
   }
 
@@ -577,12 +689,15 @@ export class GameEngine {
     if (this.heldHotkeys.has("R") && this.state.unlocks?.ARec) {
       if (!this.continuousStudyTargets.has("ARec")) this.startContinuousStudy("ARec");
     }
+    if (this.heldHotkeys.has("G") && this.state.unlocks?.ARed) {
+      if (!this.continuousStudyTargets.has("ARed")) this.startContinuousStudy("ARed");
+    }
   }
 
   toggleAutoStudy(target) {
     if (!this.state.devices?.chips) return false;
     if (!this.state.devices.chips.enabled) {
-      this.state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+      this.state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true, ARed: true };
     }
     const current = this.state.devices.chips.enabled[target] !== false;
     this.state.devices.chips.enabled[target] = !current;
@@ -593,9 +708,10 @@ export class GameEngine {
   reassignChip(fromTarget, toTarget, count = 1) {
     const allocations = this.state.devices?.chips?.allocations;
     if (!allocations) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(fromTarget)) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(toTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(fromTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(toTarget)) return false;
     if (toTarget === "ARec" && !this.state.unlocks.ARec) return false;
+    if (toTarget === "ARed" && !this.state.unlocks.ARed) return false;
 
     const available = allocations[fromTarget] ?? 0;
     const moveCount = Math.min(available, Math.max(1, Math.floor(count ?? 1)));
@@ -610,9 +726,10 @@ export class GameEngine {
   reassignTransistors(fromTarget, toTarget, count = 1) {
     const allocations = this.state.devices?.transistorAllocations;
     if (!allocations) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(fromTarget)) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(toTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(fromTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(toTarget)) return false;
     if (toTarget === "ARec" && !this.state.unlocks.ARec) return false;
+    if (toTarget === "ARed" && !this.state.unlocks.ARed) return false;
 
     const available = allocations[fromTarget] ?? 0;
     const moveCount = Math.min(available, Math.max(1, Math.floor(count ?? 1)));
@@ -629,6 +746,7 @@ export class GameEngine {
     if (!allocations) return false;
     const targets = ["AImp", "AUpg"];
     if (this.state.unlocks?.ARec) targets.push("ARec");
+    if (this.state.unlocks?.ARed) targets.push("ARed");
 
     const total = this.state.devices.transistorsPurchased ?? 0;
     if (total <= 0) return false;
@@ -650,8 +768,9 @@ export class GameEngine {
   }
 
   setMicroprocessorTarget(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "ARec" && !this.state.unlocks.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks.ARed) return false;
     this.state.devices.microprocessor.target = target;
     this.notify();
     return true;
@@ -779,9 +898,10 @@ export class GameEngine {
   }
 
   claimStudyImprove(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks?.ARed) return false;
     if (this.config.studyImprove?.enabled === false) return false;
 
     if (!this.state.studyImproves) {
@@ -789,6 +909,7 @@ export class GameEngine {
         AImp: { completions: 0, claimed: 0 },
         AUpg: { completions: 0, claimed: 0 },
         ARec: { completions: 0, claimed: 0 },
+        ARed: { completions: 0, claimed: 0 },
       };
     }
     if (!this.state.studyImproves[target]) {
@@ -811,9 +932,10 @@ export class GameEngine {
   }
 
   installTransistor(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks?.ARed) return false;
 
     const boardOwned = Boolean(this.state.devices?.transistorBoard?.owned);
     if (!boardOwned && !this.state.devMode) {
@@ -862,7 +984,7 @@ export class GameEngine {
   }
 
   addAFeature(featureId, count = 1) {
-    if (!["AImp", "AUpg", "ARec"].includes(featureId)) return;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(featureId)) return;
     const k = Math.max(1, Math.floor(count ?? 1));
     this.state.algorithms[featureId].owned += k;
     this.state.algorithms[featureId].produced += k;
@@ -930,6 +1052,7 @@ export class GameEngine {
       this.state.devices.chips.timers.AImp = this.chipTimers.AImp;
       this.state.devices.chips.timers.AUpg = this.chipTimers.AUpg;
       this.state.devices.chips.timers.ARec = this.chipTimers.ARec;
+      this.state.devices.chips.timers.ARed = this.chipTimers.ARed;
     }
     saveState(this.state, this.developmentMode);
   }

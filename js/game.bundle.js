@@ -5710,7 +5710,7 @@
   },
   "decay": {
     "overflowDecayRate": 0.012,
-    "overflowDecayPower": 1.42
+    "overflowDecayPower": 1.33
   },
   "dataXP": {
     "aImpData": 1,
@@ -5721,13 +5721,18 @@
       "scaleMultiplier": 2304,
       "powerExponent": 1.6643485138,
       "xpExponentialStartLevel": 6,
-      "xpGrowthFactor": 2.1
-    }
+      "xpGrowthFactor": 2.1,
+      "latePressureStartLevel": 12,
+      "latePressureFactor": 400
+    },
+    "aRedData": 729
   },
   "facilityOptimization": {
     "initialLevelRequired": 6,
     "levelIncrement": 3,
-    "deviceMultiplierBase": 1.09
+    "deviceMultiplierBase": 1.09,
+    "deviceEffectCoefficient": 1.35,
+    "curveMode": "logarithmic"
   },
   "devices": {
     "chip": {
@@ -5742,7 +5747,9 @@
     "transistor": {
       "initialCost": 2.5e-10,
       "costMultiplier": 1.6,
-      "speedBonusPerUnit": 0.069
+      "speedBonusPerUnit": 0.069,
+      "latePressureStart": 24,
+      "latePressureKappa": 0.18
     },
     "microprocessor": {
       "initialCost": 3e-9,
@@ -5766,7 +5773,7 @@
     },
     "capacitor": {
       "initialCost": 1e-8,
-      "costMultiplier": 3,
+      "costMultiplier": 2.7,
       "bonusPerUnit": 0.5
     },
     "processor": {
@@ -5782,10 +5789,28 @@
       "drainTimeConstant": 60
     },
     "powerCell": {
+      "initialCost": 1e-12,
+      "costMultiplier": 3.6,
+      "baseCapacity": 1e+100
+    },
+    "backpropagator": {
+      "energytoUnlock": 0.1,
       "initialCost": 1,
-      "costMultiplier": 2.25,
-      "baseCapacity": 0.001
+      "resonanceBase": 3.39,
+      "softcapStart": 63,
+      "hardcapStart": 999,
+      "softcapScale": 100,
+      "unique": true
+    },
+    "statisticsDisplay": {
+      "initialCost": 1e-7,
+      "unique": true
     }
+  },
+  "algorithmRedesign": {
+    "resonanceBase": 3.3,
+    "softcapStart": 1000,
+    "postSoftcapScale": 1
   }
 };
   globalThis.__TES_NEWS__ = [
@@ -6982,6 +7007,7 @@ if (typeof globalThis !== "undefined") {
     formatDuration,
     formatStudyDuration,
     formatEngineering,
+    getEnergyEquivalenceText,
     setGlobalNotation,
     getGlobalNotation,
   };
@@ -7173,10 +7199,15 @@ function formatInteger(value, notation = currentNotation) {
 function formatNumber(value, decimals = 1, notation = currentNotation) {
   const d = big(value);
   if (!d.isFinite()) return "SIGNAL ERROR";
+  const dec =
+    typeof decimals === "object" && decimals !== null
+      ? (decimals.maxDecimals ?? decimals.maximumFractionDigits ?? decimals.decimals ?? 1)
+      : (typeof decimals === "number" ? decimals : Number(decimals) || 0);
+  const clampedDec = Math.max(0, Math.min(20, Math.floor(dec)));
   if (d.abs().lte(99999)) {
     return d.toNumber().toLocaleString("en-US", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
+      minimumFractionDigits: clampedDec,
+      maximumFractionDigits: clampedDec,
     });
   }
   return formatEngineering(d, "", notation);
@@ -7209,6 +7240,74 @@ function formatStudyDuration(seconds, notation = currentNotation) {
     return `${rate.toFixed(1)}/s`;
   }
   return `${s.toFixed(2)}s`;
+}
+
+function getEnergyEquivalenceText(value, notation = currentNotation) {
+  const e = big(value ?? 0);
+  if (!e.isFinite() || e.lt(2.25e-7)) {
+    return "Even a flea is still waiting for launch.";
+  }
+
+  // 1. Flea jumps: 2.25e-7 J to 1 J
+  if (e.lt(1)) {
+    const n = e.div(2.25e-7).floor();
+    if (n.lte(1)) {
+      return "Enough to make a flea jump 1 time.";
+    }
+    return `Enough to make a flea jump ${formatInteger(n, notation)} times.`;
+  }
+
+  // 2. Apples lifted: 1 J to 1000 J
+  if (e.lt(1000)) {
+    const n = e.div(1);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to lift 1 small apple one meter.";
+    }
+    return `Enough to lift ${formatNumber(n, 1, notation)} small apples one meter.`;
+  }
+
+  // 3. Cups of water: 1000 J to 3.6e6 J
+  if (e.lt(3.6e6)) {
+    const n = e.div(1000);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to warm 1 cup of water by 1°C.";
+    }
+    return `Enough to warm ${formatNumber(n, 1, notation)} cups of water by 1°C.`;
+  }
+
+  // 4. 1-kW heater: 3.6e6 J to 4.184e9 J
+  if (e.lt(4.184e9)) {
+    const n = e.div(3.6e6);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Enough to run a 1-kW heater for 1 hour.";
+    }
+    return `Enough to run a 1-kW heater for ${formatNumber(n, 1, notation)} hours.`;
+  }
+
+  // 5. Tonnes of TNT: 4.184e9 J to 1.74e17 J
+  if (e.lt(1.74e17)) {
+    const n = e.div(4.184e9);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Equivalent to the energy of approximately 1 tonne of TNT.";
+    }
+    return `Equivalent to the energy of approximately ${formatNumber(n, 1, notation)} tonnes of TNT.`;
+  }
+
+  // 6. Sunlight on Earth: 1.74e17 J to 3.8e26 J
+  if (e.lt(3.8e26)) {
+    const n = e.div(1.74e17);
+    if (n.gte(0.995) && n.lt(1.005)) {
+      return "Comparable to 1 second of sunlight intercepted by Earth.";
+    }
+    return `Comparable to ${formatNumber(n, 1, notation)} seconds of sunlight intercepted by Earth.`;
+  }
+
+  // 7. Total Sun output: >= 3.8e26 J
+  const n = e.div(3.8e26);
+  if (n.gte(0.995) && n.lt(1.005)) {
+    return "Comparable to 1 second of the Sun's total energy output.";
+  }
+  return `Comparable to ${formatNumber(n, 1, notation)} seconds of the Sun's total energy output.`;
 }
 
 
@@ -7290,11 +7389,14 @@ function calculateAlgorithmStrengths(computerLevel = 1, config = {}, capacitorMu
   const aUpg = aImp * F * (L + 1);
   // Step 3: ARec inherits Capacitor-amplified AUpg strength
   const aRec = aUpg * F * (L + 1);
+  // Step 4: ARed inherits Capacitor-amplified ARec strength
+  const aRed = aRec * F * (L + 1);
 
   return {
     AImp: aImp,
     AUpg: aUpg,
     ARec: aRec,
+    ARed: aRed,
   };
 }
 
@@ -7320,6 +7422,7 @@ function calculateAlgorithmPerformance(state = {}, config = {}, statResolver = n
   const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
   const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
   const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+  const aRedOwned = state.algorithms?.ARed?.owned ?? 0;
 
   const deviceMultiplier = statResolver
     ? statResolver.resolve("devices.globalMultiplier", { state, config })
@@ -7335,8 +7438,9 @@ function calculateAlgorithmPerformance(state = {}, config = {}, statResolver = n
   const aImpContrib = big(strengths.AImp).mul(aImpOwned);
   const aUpgContrib = big(strengths.AUpg).mul(aUpgOwned);
   const aRecContrib = big(strengths.ARec).mul(aRecOwned);
+  const aRedContrib = big(strengths.ARed ?? 0).mul(aRedOwned);
 
-  return aImpContrib.add(aUpgContrib).add(aRecContrib);
+  return aImpContrib.add(aUpgContrib).add(aRecContrib).add(aRedContrib);
 }
 
 function calculateCrcMultiplier(state = {}, config = {}, deviceMultiplier = 1) {
@@ -7344,6 +7448,42 @@ function calculateCrcMultiplier(state = {}, config = {}, deviceMultiplier = 1) {
   if (!hasGadget) return 1.0;
   const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
   return 1.0 + (baseMult - 1.0) * deviceMultiplier;
+}
+
+function calculateBackpropagatorMultiplier(stateOrCount = 0, config = {}, isOwnedOrResolver = null) {
+  let owned = false;
+  let R = 0;
+
+  if (typeof stateOrCount === "object" && stateOrCount !== null) {
+    const state = stateOrCount;
+    owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    R = Math.max(0, Math.floor(state.algorithms?.ARed?.owned ?? 0));
+  } else {
+    // Direct numerical call: calculateBackpropagatorMultiplier(ownedARed, config, isOwned)
+    R = Math.max(0, Math.floor(Number(stateOrCount) || 0));
+    owned = isOwnedOrResolver === false ? false : true;
+  }
+
+  if (!owned || R <= 0) {
+    return big(1.0);
+  }
+
+  const devConfig = config.devices?.backpropagator ?? {};
+
+  const q = Number(devConfig.resonanceBase ?? 8.5);
+  const Rsoft = Number(devConfig.softcapStart ?? 100);
+  const Rhard = Number(devConfig.hardcapStart ?? 1000);
+  const s = Number(devConfig.softcapScale ?? 100);
+
+  const Rbounded = Math.min(R, Rhard);
+
+  let effectiveR = Rbounded;
+  if (Rbounded > Rsoft) {
+    effectiveR = Rsoft + s * Math.log1p((Rbounded - Rsoft) / s);
+  }
+
+  const exponent = Math.sqrt(effectiveR);
+  return big(q).pow(exponent);
 }
 
 function calculateEnergyProduction(state = {}, config = {}, statResolver = null) {
@@ -7358,7 +7498,9 @@ function calculateEnergyProduction(state = {}, config = {}, statResolver = null)
     ? statResolver.resolve("devices.crc.multiplier", { state, config })
     : calculateCrcMultiplier(state, config, deviceMultiplier);
 
-  return ap.mul(crcMult);
+  const backpropagatorMult = calculateBackpropagatorMultiplier(state, config, statResolver);
+
+  return ap.mul(crcMult).mul(backpropagatorMult);
 }
 
 function calculateEnergyOverflowDecay(storedEnergy = 0, stableCapacity = 0, config = {}) {
@@ -7416,12 +7558,14 @@ function calculateDataFromAlgorithms(state = {}, config = {}) {
   const aImpVal = config.dataXP?.aImpData ?? 1;
   const aUpgVal = config.dataXP?.aUpgData ?? 9;
   const aRecVal = config.dataXP?.aRecData ?? 81;
+  const aRedVal = config.dataXP?.aRedData ?? 0;
 
   const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
   const aUpgOwned = state.algorithms?.AUpg?.owned ?? 0;
   const aRecOwned = state.algorithms?.ARec?.owned ?? 0;
+  const aRedOwned = state.algorithms?.ARed?.owned ?? 0;
 
-  return aImpOwned * aImpVal + aUpgOwned * aUpgVal + aRecOwned * aRecVal;
+  return aImpOwned * aImpVal + aUpgOwned * aUpgVal + aRecOwned * aRecVal + aRedOwned * aRedVal;
 }
 
 function calculateAvailableData(state = {}, config = {}) {
@@ -7466,25 +7610,45 @@ function calculateRequiredDataForNextComputerLevel(currentLevel = 1, config = {}
     ?? 1.45;
   const G = Number.isFinite(rawGrowth) && rawGrowth > 1 ? rawGrowth : 1.45;
 
+  let baseXp = 0;
   // For L <= A: retain exact existing early-game polynomial progression
   if (L <= A) {
-    return calculatePolynomialDataRequirement(L, config);
-  }
+    baseXp = calculatePolynomialDataRequirement(L, config);
+  } else {
+    // For L > A: exponential progression anchored at Level A: ceil(XP_A * G^(L - A))
+    const xpA = calculatePolynomialDataRequirement(A, config);
+    const power = L - A;
+    const mult = G ** power;
 
-  // For L > A: exponential progression anchored at Level A: ceil(XP_A * G^(L - A))
-  const xpA = calculatePolynomialDataRequirement(A, config);
-  const power = L - A;
-  const mult = G ** power;
-
-  if (!Number.isFinite(mult)) {
-    try {
-      return big(xpA).mul(big(G).pow(power)).ceil().toNumber();
-    } catch {
-      return Number.MAX_SAFE_INTEGER;
+    if (!Number.isFinite(mult)) {
+      try {
+        baseXp = big(xpA).mul(big(G).pow(power)).ceil();
+      } catch {
+        baseXp = big(Number.MAX_SAFE_INTEGER);
+      }
+    } else {
+      baseXp = Math.ceil(xpA * mult);
     }
   }
 
-  return Math.ceil(xpA * mult);
+  // Phase 6.2: Machine Learning late-XP pressure for Computer Levels > latePressureStartLevel (12)
+  const lateStart = config.dataXP?.machineLearning?.latePressureStartLevel ?? 12;
+  const lateFactor = config.dataXP?.machineLearning?.latePressureFactor ?? 1;
+
+  if (L > lateStart && lateFactor > 1) {
+    const latePower = L - lateStart;
+    try {
+      const finalVal = big(baseXp).mul(big(lateFactor).pow(latePower)).ceil();
+      if (finalVal.gt(1e300)) {
+        return 1e300 * (1 + L * 1e-14);
+      }
+      return finalVal.toNumber();
+    } catch {
+      return 1e300 * (1 + L * 1e-14);
+    }
+  }
+
+  return typeof baseXp === "number" ? baseXp : (baseXp.toNumber ? baseXp.toNumber() : Number(baseXp));
 }
 
 // ============================================================================
@@ -7502,10 +7666,18 @@ function calculateFacilityOptimizationRequirement(completedCount = 0, config = {
 const calculateSetupOptimizationRequirement = calculateFacilityOptimizationRequirement;
 
 function calculateFacilityDeviceMultiplier(completedCount = 0, config = {}) {
-  const H = Math.max(0, Math.floor(completedCount ?? 0));
+  const S = Math.max(0, Math.floor(completedCount ?? 0));
   const fo = config.facilityOptimization || config.setupOptimization || {};
-  const base = fo.deviceMultiplierBase ?? fo.multiplierBase ?? 1.09;
-  return base ** H;
+  const mode = fo.curveMode ?? (fo.deviceEffectCoefficient !== undefined ? "logarithmic" : "exponential");
+
+  if (mode === "exponential") {
+    const base = fo.deviceMultiplierBase ?? fo.multiplierBase ?? 1.09;
+    return base ** S;
+  }
+
+  // Authoritative logarithmic curve: D(S) = 1 + alpha * Math.log1p(S)
+  const alpha = fo.deviceEffectCoefficient ?? 1.35;
+  return 1 + alpha * Math.log1p(S);
 }
 
 const calculateSetupDeviceMultiplier = calculateFacilityDeviceMultiplier;
@@ -7705,9 +7877,21 @@ function calculateDeviceCost(type, owned = 0, config = {}) {
       return big(config.devices?.transistorBoard?.initialCost ?? 2e-10);
     }
     case "transistor": {
-      const init = config.devices?.transistor?.initialCost ?? 3e-11;
-      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
-      return calculateGeometricCost(init, mult, owned);
+      const init = config.devices?.transistor?.initialCost ?? 250e-12;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.6;
+      const N = Math.max(0, Math.floor(owned ?? 0));
+      const baseCost = calculateGeometricCost(init, mult, N);
+
+      // Phase 6.1: Transistor late-price pressure for purchases beyond N0 (24)
+      const N0 = config.devices?.transistor?.latePressureStart ?? 24;
+      const kappa = config.devices?.transistor?.latePressureKappa ?? 0.18;
+
+      if (N > N0 && kappa > 0) {
+        const excess = N - N0;
+        const pressure = Math.exp(kappa * Math.pow(excess, 1.5));
+        return baseCost.mul(pressure);
+      }
+      return baseCost;
     }
     case "microprocessor": {
       return big(config.devices?.microprocessor?.initialCost ?? 3e-9);
@@ -7736,6 +7920,12 @@ function calculateDeviceCost(type, owned = 0, config = {}) {
     case "powerCell": {
       return calculatePowerCellCost(owned, config);
     }
+    case "backpropagator": {
+      return big(config.devices?.backpropagator?.initialCost ?? 1);
+    }
+    case "statisticsDisplay": {
+      return big(config.devices?.statisticsDisplay?.initialCost ?? 1e-7);
+    }
     default:
       return big(0);
   }
@@ -7753,13 +7943,32 @@ function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {})
     case "microprocessor":
     case "transistorBoard":
     case "overclocker":
-    case "crcGadget": {
+    case "crcGadget":
+    case "backpropagator":
+    case "statisticsDisplay": {
       return calculateDeviceCost(type, currentOwned, config);
     }
     case "transistor": {
-      const init = config.devices?.transistor?.initialCost ?? 3e-11;
-      const mult = config.devices?.transistor?.costMultiplier ?? 1.4;
-      return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+      const init = config.devices?.transistor?.initialCost ?? 250e-12;
+      const mult = config.devices?.transistor?.costMultiplier ?? 1.6;
+      const N0 = config.devices?.transistor?.latePressureStart ?? 24;
+      const kappa = config.devices?.transistor?.latePressureKappa ?? 0.18;
+
+      if (kappa <= 0 || (currentOwned + kCount) <= N0) {
+        return calculateBulkGeometricCost(init, mult, currentOwned, kCount);
+      }
+
+      let total = big(0);
+      let i = 0;
+      if (currentOwned < N0) {
+        const geomCount = N0 - currentOwned;
+        total = total.add(calculateBulkGeometricCost(init, mult, currentOwned, geomCount));
+        i = geomCount;
+      }
+      for (; i < kCount; i++) {
+        total = total.add(calculateDeviceCost("transistor", currentOwned + i, config));
+      }
+      return total;
     }
     case "capacitor": {
       const init = config.devices?.capacitor?.initialCost ?? 1e-8;
@@ -7788,6 +7997,43 @@ function calculateBulkDeviceCost(type, currentOwned = 0, count = 1, config = {})
   }
 }
 
+function integrateEnergyStep(currentEnergy, production, stableCap, delta, config = {}) {
+  const e0 = big(currentEnergy);
+  const p = big(production);
+  const cap = big(stableCap);
+  const dt = big(delta);
+
+  // If production is zero or negative, decay only drains towards capacity
+  if (p.lte(0)) {
+    const decay = calculateEnergyOverflowDecay(e0, cap, config);
+    return bigMax(0, e0.sub(decay.mul(dt)));
+  }
+
+  // Fast path: if tentative energy without decay is <= capacity, decay is strictly 0
+  const rhs = e0.add(p.mul(dt));
+  if (rhs.lte(cap)) {
+    return bigMax(0, rhs);
+  }
+
+  // Bounded monotonic implicit solver: E1 + dt * D(E1) = E0 + dt * P
+  // D(E) is strictly monotonic non-decreasing, so E1 in [cap, rhs]
+  let low = cap;
+  let high = rhs;
+
+  for (let iter = 0; iter < 35; iter++) {
+    const mid = low.add(high).div(2);
+    const d = calculateEnergyOverflowDecay(mid, cap, config);
+    const g = mid.add(d.mul(dt));
+    if (g.lt(rhs)) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return low.add(high).div(2);
+}
+
 // ============================================================================
 // REGISTER FORMULAS IN DEFAULT FORMULA REGISTRY
 // ============================================================================
@@ -7798,8 +8044,10 @@ defaultFormulaRegistry.register("computerPerformanceMultiplier", calculateComput
 defaultFormulaRegistry.register("capacitorMultiplier", calculateCapacitorMultiplier);
 defaultFormulaRegistry.register("algorithmPerformance", calculateAlgorithmPerformance);
 defaultFormulaRegistry.register("crcMultiplier", calculateCrcMultiplier);
+defaultFormulaRegistry.register("backpropagatorMultiplier", calculateBackpropagatorMultiplier);
 defaultFormulaRegistry.register("energyProduction", calculateEnergyProduction);
 defaultFormulaRegistry.register("energyOverflowDecay", calculateEnergyOverflowDecay);
+defaultFormulaRegistry.register("integrateEnergyStep", integrateEnergyStep);
 defaultFormulaRegistry.register("energyEraProgress", calculateEnergyEraProgress);
 defaultFormulaRegistry.register("energyEraPercent", calculateEnergyEraPercent);
 defaultFormulaRegistry.register("dataFromAlgorithms", calculateDataFromAlgorithms);
@@ -8197,6 +8445,14 @@ function createStandardEffects(config = {}) {
       operation: "base",
       value: (context) => calculateEffectiveStudySpeed("ARec", context.state, context.config ?? config),
     },
+    {
+      id: "study-speed-ared",
+      label: "A.Redesign Study Speed",
+      source: "studyFleet",
+      targetStatId: "studies.ARed.speed",
+      operation: "base",
+      value: (context) => calculateEffectiveStudySpeed("ARed", context.state, context.config ?? config),
+    },
   ];
 }
 
@@ -8228,6 +8484,7 @@ const MANDATORY_STAT_IDS = Object.freeze({
   STUDY_SPEED_AIMP: "studies.AImp.speed",
   STUDY_SPEED_AUPG: "studies.AUpg.speed",
   STUDY_SPEED_AREC: "studies.ARec.speed",
+  STUDY_SPEED_ARED: "studies.ARed.speed",
   POWER_CELL_CAPACITY: "devices.powerCell.capacity",
 
   // Architecture contract compatibility keys
@@ -8727,6 +8984,56 @@ registerElement({
   },
 });
 
+// AutoCalculator — Redesigns
+registerElement({
+  id: "autoCalculator_ARed",
+  name: "AutoCalculator — Redesigns",
+  category: "automation",
+  lane: "efficiency",
+  icon: "auto-calculator-red",
+  description: "Automates Algorithm Redesign studies continuously.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config),
+  getOwned: (state) => (state.devices?.chips?.allocations?.ARed > 0 ? 1 : 0),
+  isRevealed: (state) => Boolean(state.unlocks?.ARed && (state.facilityOptimizations ?? 0) >= 2),
+  isUnlocked: (state) => Boolean(state.unlocks?.ARed && (state.facilityOptimizations ?? 0) >= 2),
+  isEligible: (state, config) => {
+    const strictUnlocked = Boolean(state.unlocks?.ARed && (state.facilityOptimizations ?? 0) >= 2);
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = (state.devices?.chips?.allocations?.ARed ?? 0) === 0;
+    const reasons = [];
+    if (!strictUnlocked) reasons.push("Requires unlocking Algorithm Redesign via Setup Optimization 2");
+    if (!notOwned) reasons.push("Already installed (1/1)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = calculateDeviceCost("chip", state.devices?.chips?.owned ?? 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: (state.devices?.chips?.allocations?.ARed ?? 0), cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    state.devices.chips.owned = (state.devices.chips.owned ?? 0) + 1;
+    if (!state.devices.chips.allocations) state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0, ARed: 0 };
+    state.devices.chips.allocations.ARed = (state.devices.chips.allocations.ARed ?? 0) + 1;
+    if (!state.devices.chips.enabled) state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true, ARed: true };
+    state.devices.chips.enabled.ARed = true;
+    state.unlocks.chips = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
 // ----------------------------------------------------------------------------
 // 2. Transistor Board
 // ----------------------------------------------------------------------------
@@ -9153,6 +9460,59 @@ registerElement({
 });
 
 // ----------------------------------------------------------------------------
+// 9b. Statistics Display (Unique Learning Device)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "statisticsDisplay",
+  name: "Statistics Display",
+  category: "learning",
+  lane: "resources",
+  icon: "icon-statistics",
+  description: "Unlocks advanced facility statistics and energy production records.",
+  unique: true,
+  getCost: (state, config) => calculateDeviceCost("statisticsDisplay", 0, config),
+  getOwned: (state) => ((state.devices?.statisticsDisplay?.owned ?? 0) >= 1 ? 1 : 0),
+  isRevealed: () => true,
+  isUnlocked: () => true,
+  isEligible: (state, config) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    const canAfford = big(state.energy).gte(cost);
+    const reasons = [];
+    if (isOwned) reasons.push("Statistics Display is already installed (Unique device)");
+    if (!canAfford) reasons.push("Insufficient energy");
+    return {
+      eligible: !isOwned && canAfford,
+      isUnlocked: true,
+      strictUnlocked: true,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+    if (isOwned && !isForced) {
+      return { success: false, newCount: 1, cost: big(0), count: 0 };
+    }
+    const cost = calculateDeviceCost("statisticsDisplay", 0, config);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    if (!state.devices.statisticsDisplay) {
+      state.devices.statisticsDisplay = { owned: 0 };
+    }
+    state.devices.statisticsDisplay.owned = 1;
+    state.unlocks.statisticsDisplay = true;
+    state.stats.totalPurchases = (state.stats.totalPurchases ?? 0) + 1;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
 // 10. Power Cell
 // ----------------------------------------------------------------------------
 registerElement({
@@ -9198,6 +9558,98 @@ registerElement({
 });
 
 // ----------------------------------------------------------------------------
+// 10b. Backpropagator (Unique Energy Device, unlocked at SO3)
+// ----------------------------------------------------------------------------
+registerElement({
+  id: "backpropagator",
+  name: "Backpropagator",
+  category: "energy",
+  lane: "resources",
+  icon: "backpropagator",
+  description: "Improves global Energy production based on the amount of Algorithm Redesigns owned.",
+  unique: true,
+  getCost: (state, config) => {
+    const cost = config.devices?.backpropagator?.initialCost ?? 1;
+    return big(cost);
+  },
+  getOwned: (state) => {
+    const val = state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0;
+    return val > 0 ? 1 : 0;
+  },
+  isRevealed: (state, config) => {
+    if ((state.facilityOptimizations ?? 0) < 3) return false;
+    const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+    const numThreshold = Number(threshold);
+    if (!Number.isFinite(numThreshold) || numThreshold < 0) return false;
+    const peak = big(state.peakEnergy ?? 0);
+    const cur = big(state.energy ?? 0);
+    const owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    return Boolean(state.unlocks?.backpropagator) 
+      || owned 
+      || cur.gte(numThreshold) 
+      || peak.gte(numThreshold);
+  },
+  isUnlocked: (state, config) => {
+    if ((state.facilityOptimizations ?? 0) < 3) return false;
+    const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+    const numThreshold = Number(threshold);
+    if (!Number.isFinite(numThreshold) || numThreshold < 0) return false;
+    const peak = big(state.peakEnergy ?? 0);
+    const cur = big(state.energy ?? 0);
+    const owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    return Boolean(state.unlocks?.backpropagator) 
+      || owned 
+      || cur.gte(numThreshold) 
+      || peak.gte(numThreshold);
+  },
+  isEligible: (state, config) => {
+    const soEligible = (state.facilityOptimizations ?? 0) >= 3;
+    const threshold = config.devices?.backpropagator?.energytoUnlock ?? 1;
+    const numThreshold = Number(threshold);
+    const validThreshold = Number.isFinite(numThreshold) && numThreshold >= 0;
+    const peak = big(state.peakEnergy ?? 0);
+    const cur = big(state.energy ?? 0);
+    const owned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) > 0;
+    const discovered = validThreshold && (cur.gte(numThreshold) || peak.gte(numThreshold) || owned || Boolean(state.unlocks?.backpropagator));
+    const strictUnlocked = soEligible && discovered;
+    const unlocked = strictUnlocked || Boolean(state.devMode);
+    const cost = big(config.devices?.backpropagator?.initialCost ?? 1);
+    const canAfford = big(state.energy).gte(cost);
+    const notOwned = !owned;
+    const reasons = [];
+    if (!soEligible) reasons.push("Requires Setup Optimization 3");
+    else if (!discovered) reasons.push(`Requires reaching ${numThreshold} stored energy`);
+    if (!notOwned) reasons.push("Already owned (unique)");
+    if (!canAfford) reasons.push("Insufficient energy");
+
+    return {
+      eligible: unlocked && canAfford && notOwned,
+      isUnlocked: unlocked,
+      strictUnlocked,
+      canAfford,
+      cost,
+      reasons,
+    };
+  },
+  applyPurchase: (state, config, { isForced = false } = {}) => {
+    const cost = big(config.devices?.backpropagator?.initialCost ?? 1);
+    if (!big(state.energy).gte(cost) && !isForced) {
+      return { success: false, newCount: 0, cost: big(0), count: 0 };
+    }
+    if (big(state.energy).gte(cost)) {
+      state.energy = big(state.energy).sub(cost);
+    }
+    if (typeof state.devices.backpropagator === "object" && state.devices.backpropagator !== null) {
+      state.devices.backpropagator.owned = 1;
+    } else {
+      state.devices.backpropagator = { owned: 1 };
+    }
+    state.unlocks.backpropagator = true;
+    return { success: true, newCount: 1, cost, count: 1 };
+  },
+});
+
+// ----------------------------------------------------------------------------
 // 11. Run Machine Learning (Soft Reset)
 // ----------------------------------------------------------------------------
 registerElement({
@@ -9238,26 +9690,35 @@ registerElement({
     state.algorithms.AUpg.produced = 0;
     state.algorithms.ARec.owned = 0;
     state.algorithms.ARec.produced = 0;
+    if (state.algorithms.ARed) {
+      state.algorithms.ARed.owned = 0;
+      state.algorithms.ARed.produced = 0;
+    }
 
     // Reset study improve milestones & multipliers on Machine Learning (Section 1.8)
     if (state.studyImproves) {
       state.studyImproves.AImp = { completions: 0, claimed: 0 };
       state.studyImproves.AUpg = { completions: 0, claimed: 0 };
       state.studyImproves.ARec = { completions: 0, claimed: 0 };
+      state.studyImproves.ARed = { completions: 0, claimed: 0 };
     }
 
     // Clear study queues and pending worker reservations
     state.studyQueues.AImp = 0;
     state.studyQueues.AUpg = 0;
     state.studyQueues.ARec = 0;
+    state.studyQueues.ARed = 0;
     state.reservedInputs.AImp = 0;
     state.reservedInputs.AUpg = 0;
+    state.reservedInputs.ARec = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
     if (state.manualStudies) {
-      for (const t of ["AImp", "AUpg", "ARec"]) {
-        state.manualStudies[t].active = false;
-        state.manualStudies[t].elapsed = 0;
+      for (const t of ["AImp", "AUpg", "ARec", "ARed"]) {
+        if (state.manualStudies[t]) {
+          state.manualStudies[t].active = false;
+          state.manualStudies[t].elapsed = 0;
+        }
       }
     }
 
@@ -9320,6 +9781,7 @@ registerElement({
       AImp: { completions: 0, claimed: 0 },
       AUpg: { completions: 0, claimed: 0 },
       ARec: { completions: 0, claimed: 0 },
+      ARed: { completions: 0, claimed: 0 },
     };
 
     // 1. Reset A-Feature inventories
@@ -9329,19 +9791,27 @@ registerElement({
     state.algorithms.AUpg.produced = 0;
     state.algorithms.ARec.owned = 0;
     state.algorithms.ARec.produced = 0;
+    if (state.algorithms.ARed) {
+      state.algorithms.ARed.owned = 0;
+      state.algorithms.ARed.produced = 0;
+    }
 
     // 2. Clear pending studies and reservations
     state.studyQueues.AImp = 0;
     state.studyQueues.AUpg = 0;
     state.studyQueues.ARec = 0;
+    state.studyQueues.ARed = 0;
     state.reservedInputs.AImp = 0;
     state.reservedInputs.AUpg = 0;
+    state.reservedInputs.ARec = 0;
     state.manualStudy.active = false;
     state.manualStudy.elapsed = 0;
     if (state.manualStudies) {
-      for (const t of ["AImp", "AUpg", "ARec"]) {
-        state.manualStudies[t].active = false;
-        state.manualStudies[t].elapsed = 0;
+      for (const t of ["AImp", "AUpg", "ARec", "ARed"]) {
+        if (state.manualStudies[t]) {
+          state.manualStudies[t].active = false;
+          state.manualStudies[t].elapsed = 0;
+        }
       }
     }
 
@@ -9354,10 +9824,10 @@ registerElement({
 
     // 5. Remove conventional purchased hardware
     state.devices.chips.owned = 0;
-    state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0 };
+    state.devices.chips.allocations = { AImp: 0, AUpg: 0, ARec: 0, ARed: 0 };
     state.devices.transistorBoard.owned = false;
     state.devices.transistorsPurchased = 0;
-    state.devices.transistorAllocations = { AImp: 0, AUpg: 0, ARec: 0 };
+    state.devices.transistorAllocations = { AImp: 0, AUpg: 0, ARec: 0, ARed: 0 };
     state.devices.microprocessor.owned = 0;
     state.devices.microprocessor.target = "AImp";
     state.devices.overclocker.owned = 0;
@@ -9370,6 +9840,7 @@ registerElement({
     state.devices.hardDisks.owned = 0;
     state.devices.hardDisks.state = "off";
     state.devices.hardDisks.activeSeconds = 0;
+    state.devices.backpropagator = { owned: 0 };
 
     // 6. Reset Power Cell charge to zero (owned Power Cells are PRESERVED as the sole exception!)
     state.powerCellCharge = big(0);
@@ -9378,6 +9849,10 @@ registerElement({
     // ARec is unlocked permanently across facility optimizations!
     state.unlocks.ARec = true;
     state.unlocks.hardDisk = true;
+    if (state.facilityOptimizations >= 2) {
+      state.unlocks.ARed = true;
+    }
+    state.unlocks.backpropagator = false;
     state.unlocks.processor = false; // Only appears when 1e-6 J is reached
     state.unlocks.transistorBoard = false;
     state.unlocks.microprocessor = false;
@@ -9386,6 +9861,12 @@ registerElement({
     state.unlocks.chips = false;
 
     state.stats.totalFacilityOptimizations = (state.stats.totalFacilityOptimizations ?? 0) + 1;
+    if (state.stats) {
+      state.stats.timeSinceLastSO = 0;
+    }
+    if ((state.devices?.statisticsDisplay?.owned ?? 0) > 0) {
+      state.unlocks.statisticsDisplay = true;
+    }
 
     return { newCount: state.facilityOptimizations, cost: null, count: 1 };
   },
@@ -9474,16 +9955,17 @@ function createInitialState(config = {}) {
     computerLevel: config.economy?.initialComputerLevel ?? 1,
     facilityOptimizations: 0,
 
-    // Exactly Three Algorithm Features
+    // Four Algorithm Features (AImp, AUpg, ARec, ARed)
     algorithms: {
       AImp: { owned: 0, produced: 0 },
       AUpg: { owned: 0, produced: 0 },
       ARec: { owned: 0, produced: 0 },
+      ARed: { owned: 0, produced: 0 },
     },
 
     // Study Execution State
     manualStudy: {
-      target: null, // 'AImp' | 'AUpg' | 'ARec' | null
+      target: null, // 'AImp' | 'AUpg' | 'ARec' | 'ARed' | null
       elapsed: 0,
       active: false,
     },
@@ -9491,15 +9973,18 @@ function createInitialState(config = {}) {
       AImp: { active: false, elapsed: 0 },
       AUpg: { active: false, elapsed: 0 },
       ARec: { active: false, elapsed: 0 },
+      ARed: { active: false, elapsed: 0 },
     },
     studyQueues: {
       AImp: 0,
       AUpg: 0,
       ARec: 0,
+      ARed: 0,
     },
     reservedInputs: {
       AImp: 0,
       AUpg: 0,
+      ARec: 0,
     },
 
     // Study Improve (Section 1)
@@ -9507,6 +9992,7 @@ function createInitialState(config = {}) {
       AImp: { completions: 0, claimed: 0 },
       AUpg: { completions: 0, claimed: 0 },
       ARec: { completions: 0, claimed: 0 },
+      ARed: { completions: 0, claimed: 0 },
     },
 
     // Devices & Infrastructure
@@ -9517,16 +10003,19 @@ function createInitialState(config = {}) {
           AImp: 0,
           AUpg: 0,
           ARec: 0,
+          ARed: 0,
         },
         enabled: {
           AImp: true,
           AUpg: true,
           ARec: true,
+          ARed: true,
         },
         timers: {
           AImp: 0,
           AUpg: 0,
           ARec: 0,
+          ARed: 0,
         },
       },
       transistorBoard: {
@@ -9537,6 +10026,7 @@ function createInitialState(config = {}) {
         AImp: 0,
         AUpg: 0,
         ARec: 0,
+        ARed: 0,
       },
       microprocessor: {
         owned: 0,
@@ -9561,6 +10051,12 @@ function createInitialState(config = {}) {
         activeSeconds: 0,
         buffer: 0,
       },
+      backpropagator: {
+        owned: 0,
+      },
+      statisticsDisplay: {
+        owned: 0,
+      },
     },
 
     // Technological Unlock Milestones
@@ -9568,6 +10064,7 @@ function createInitialState(config = {}) {
       AImp: true,
       AUpg: true,
       ARec: false,
+      ARed: false,
       chips: false,
       transistorBoard: false,
       microprocessor: false,
@@ -9575,17 +10072,41 @@ function createInitialState(config = {}) {
       crcGadget: true,
       capacitor: false,
       processor: false,
+      backpropagator: false,
       hardDisk: false,
       powerCell: false,
+      statisticsDisplay: true,
+    },
+
+    // Narrative Milestone Progression
+    narrative: {
+      introCompleted: false,
+      so1Completed: false,
+      so2Completed: false,
+      energy100e9Completed: false,
+      synthTeaserUnlocked: false,
     },
 
     // Statistics
     stats: {
       gameTime: 0,
       totalEnergyProduced: big(0),
+      totalEnergyProducedEra: big(0),
+      timeInCurrentEra: 0,
+      timeSinceLastSO: 0,
+      highestComputerLevel: 1,
+      highestStoredEnergy: big(0),
+      highestGrossEnergyRate: big(0),
       totalPurchases: 0,
       totalMachineLearnings: 0,
       totalFacilityOptimizations: 0,
+      studiesCompleted: {
+        AImp: 0,
+        AUpg: 0,
+        ARec: 0,
+        ARed: 0,
+      },
+      fastest100e9Time: null,
     },
 
     // Timestamp & Persistence
@@ -9641,6 +10162,10 @@ function normalizeState(raw = {}, config = {}) {
         owned: Math.max(0, Number(raw.algorithms?.ARec?.owned ?? 0)),
         produced: Math.max(0, Number(raw.algorithms?.ARec?.produced ?? 0)),
       },
+      ARed: {
+        owned: Math.max(0, Number(raw.algorithms?.ARed?.owned ?? 0)),
+        produced: Math.max(0, Number(raw.algorithms?.ARed?.produced ?? 0)),
+      },
     },
 
     manualStudy: {
@@ -9661,15 +10186,21 @@ function normalizeState(raw = {}, config = {}) {
         active: Boolean(raw.manualStudies?.ARec?.active ?? (raw.manualStudy?.target === "ARec" && raw.manualStudy?.active)),
         elapsed: Number(raw.manualStudies?.ARec?.elapsed ?? (raw.manualStudy?.target === "ARec" ? raw.manualStudy?.elapsed : 0)),
       },
+      ARed: {
+        active: Boolean(raw.manualStudies?.ARed?.active ?? (raw.manualStudy?.target === "ARed" && raw.manualStudy?.active)),
+        elapsed: Number(raw.manualStudies?.ARed?.elapsed ?? (raw.manualStudy?.target === "ARed" ? raw.manualStudy?.elapsed : 0)),
+      },
     },
     studyQueues: {
       AImp: Math.max(0, Number(raw.studyQueues?.AImp ?? 0)),
       AUpg: Math.max(0, Number(raw.studyQueues?.AUpg ?? 0)),
       ARec: Math.max(0, Number(raw.studyQueues?.ARec ?? 0)),
+      ARed: Math.max(0, Number(raw.studyQueues?.ARed ?? 0)),
     },
     reservedInputs: {
       AImp: Math.max(0, Number(raw.reservedInputs?.AImp ?? 0)),
       AUpg: Math.max(0, Number(raw.reservedInputs?.AUpg ?? 0)),
+      ARec: Math.max(0, Number(raw.reservedInputs?.ARec ?? 0)),
     },
 
     studyImproves: {
@@ -9685,6 +10216,10 @@ function normalizeState(raw = {}, config = {}) {
         completions: Math.max(0, Number(raw.studyImproves?.ARec?.completions ?? 0)),
         claimed: Math.max(0, Number(raw.studyImproves?.ARec?.claimed ?? 0)),
       },
+      ARed: {
+        completions: Math.max(0, Number(raw.studyImproves?.ARed?.completions ?? 0)),
+        claimed: Math.max(0, Number(raw.studyImproves?.ARed?.claimed ?? 0)),
+      },
     },
 
     devices: {
@@ -9694,16 +10229,19 @@ function normalizeState(raw = {}, config = {}) {
           AImp: Math.max(0, Number(raw.devices?.chips?.allocations?.AImp ?? raw.devices?.autoCalculators ?? 0)),
           AUpg: Math.max(0, Number(raw.devices?.chips?.allocations?.AUpg ?? 0)),
           ARec: Math.max(0, Number(raw.devices?.chips?.allocations?.ARec ?? 0)),
+          ARed: Math.max(0, Number(raw.devices?.chips?.allocations?.ARed ?? 0)),
         },
         enabled: {
           AImp: raw.devices?.chips?.enabled?.AImp !== false,
           AUpg: raw.devices?.chips?.enabled?.AUpg !== false,
           ARec: raw.devices?.chips?.enabled?.ARec !== false,
+          ARed: raw.devices?.chips?.enabled?.ARed !== false,
         },
         timers: {
           AImp: Math.max(0, Number(raw.devices?.chips?.timers?.AImp ?? 0)),
           AUpg: Math.max(0, Number(raw.devices?.chips?.timers?.AUpg ?? 0)),
           ARec: Math.max(0, Number(raw.devices?.chips?.timers?.ARec ?? 0)),
+          ARed: Math.max(0, Number(raw.devices?.chips?.timers?.ARed ?? 0)),
         },
       },
       transistorBoard: {
@@ -9714,6 +10252,7 @@ function normalizeState(raw = {}, config = {}) {
         AImp: Math.max(0, Number(raw.devices?.transistorAllocations?.AImp ?? 0)),
         AUpg: Math.max(0, Number(raw.devices?.transistorAllocations?.AUpg ?? 0)),
         ARec: Math.max(0, Number(raw.devices?.transistorAllocations?.ARec ?? 0)),
+        ARed: Math.max(0, Number(raw.devices?.transistorAllocations?.ARed ?? 0)),
       },
       microprocessor: {
         owned: Math.min(1, Math.max(0, Number(raw.devices?.microprocessor?.owned ?? 0))),
@@ -9740,19 +10279,59 @@ function normalizeState(raw = {}, config = {}) {
         activeSeconds: Number(raw.devices?.hardDisks?.activeSeconds ?? 0),
         buffer: Math.max(0, Number(raw.devices?.hardDisks?.buffer ?? 0)),
       },
+      backpropagator: {
+        owned: Math.max(0, Number(raw.devices?.backpropagator?.owned ?? raw.devices?.backpropagator ?? 0)),
+      },
+      statisticsDisplay: {
+        owned: Math.max(0, Number(raw.devices?.statisticsDisplay?.owned ?? 0)),
+      },
     },
 
     unlocks: {
       ...initial.unlocks,
       ...(raw.unlocks ?? {}),
+      ARed: Boolean(raw.unlocks?.ARed || (raw.facilityOptimizations ?? 0) >= 2),
+      backpropagator: Boolean(raw.unlocks?.backpropagator || (raw.devices?.backpropagator?.owned > 0) || (raw.devices?.backpropagator > 0)),
+      statisticsDisplay: Boolean(raw.unlocks?.statisticsDisplay !== false),
+    },
+
+    narrative: {
+      introCompleted: raw.narrative?.introCompleted !== undefined
+        ? Boolean(raw.narrative.introCompleted)
+        : (Number(raw.stats?.gameTime ?? 0) > 0 || big(raw.energy ?? 0).gt(0) || Number(raw.computerLevel ?? 1) > 1),
+      so1Completed: raw.narrative?.so1Completed !== undefined
+        ? Boolean(raw.narrative.so1Completed)
+        : (Number(raw.facilityOptimizations ?? 0) >= 1),
+      so2Completed: raw.narrative?.so2Completed !== undefined
+        ? Boolean(raw.narrative.so2Completed)
+        : (Number(raw.facilityOptimizations ?? 0) >= 2),
+      energy100e9Completed: raw.narrative?.energy100e9Completed !== undefined
+        ? Boolean(raw.narrative.energy100e9Completed)
+        : (big(raw.energy ?? 0).gte(100e9) || big(raw.stats?.highestStoredEnergy ?? 0).gte(100e9)),
+      synthTeaserUnlocked: raw.narrative?.synthTeaserUnlocked !== undefined
+        ? Boolean(raw.narrative.synthTeaserUnlocked)
+        : (big(raw.energy ?? 0).gte(100e9) || big(raw.stats?.highestStoredEnergy ?? 0).gte(100e9)),
     },
 
     stats: {
       gameTime: Number(raw.stats?.gameTime ?? 0),
       totalEnergyProduced: big(raw.stats?.totalEnergyProduced ?? 0),
+      totalEnergyProducedEra: big(raw.stats?.totalEnergyProducedEra ?? raw.stats?.totalEnergyProduced ?? 0),
+      timeInCurrentEra: Number(raw.stats?.timeInCurrentEra ?? raw.stats?.gameTime ?? 0),
+      timeSinceLastSO: Number(raw.stats?.timeSinceLastSO ?? raw.stats?.gameTime ?? 0),
+      highestComputerLevel: Math.max(1, Number(raw.stats?.highestComputerLevel ?? raw.computerLevel ?? 1)),
+      highestStoredEnergy: big(raw.stats?.highestStoredEnergy ?? raw.energy ?? 0),
+      highestGrossEnergyRate: big(raw.stats?.highestGrossEnergyRate ?? 0),
       totalPurchases: Number(raw.stats?.totalPurchases ?? 0),
       totalMachineLearnings: Number(raw.stats?.totalMachineLearnings ?? 0),
-      totalFacilityOptimizations: Number(raw.stats?.totalFacilityOptimizations ?? 0),
+      totalFacilityOptimizations: Number(raw.stats?.totalFacilityOptimizations ?? raw.facilityOptimizations ?? 0),
+      studiesCompleted: {
+        AImp: Math.max(0, Number(raw.stats?.studiesCompleted?.AImp ?? raw.algorithms?.AImp?.produced ?? 0)),
+        AUpg: Math.max(0, Number(raw.stats?.studiesCompleted?.AUpg ?? raw.algorithms?.AUpg?.produced ?? 0)),
+        ARec: Math.max(0, Number(raw.stats?.studiesCompleted?.ARec ?? raw.algorithms?.ARec?.produced ?? 0)),
+        ARed: Math.max(0, Number(raw.stats?.studiesCompleted?.ARed ?? raw.algorithms?.ARed?.produced ?? 0)),
+      },
+      fastest100e9Time: raw.stats?.fastest100e9Time != null ? Number(raw.stats.fastest100e9Time) : null,
     },
 
     ui: {
@@ -10073,6 +10652,7 @@ class GameEngine {
       AImp: Number(this.state.devices?.chips?.timers?.AImp ?? 0),
       AUpg: Number(this.state.devices?.chips?.timers?.AUpg ?? 0),
       ARec: Number(this.state.devices?.chips?.timers?.ARec ?? 0),
+      ARed: Number(this.state.devices?.chips?.timers?.ARed ?? 0),
     };
   }
 
@@ -10113,20 +10693,41 @@ class GameEngine {
 
     this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
 
-    // 1. Energy Production & Overflow Decay
+    // 1. Energy Production & Overflow Decay (Bounded Monotonic Implicit Integration)
     const stableCap = calculatePowerCellCapacity(this.state.powerCells ?? 0, this.state, this.config, this.statResolver);
     const production = calculateEnergyProduction(this.state, this.config, this.statResolver);
     const decay = calculateEnergyOverflowDecay(this.state.energy, stableCap, this.config);
 
-    const netRate = production.sub(decay);
-    const netEnergyDelta = netRate.mul(delta);
-    this.state.energy = bigMax(0, big(this.state.energy).add(netEnergyDelta));
+    this.state.energy = integrateEnergyStep(this.state.energy, production, stableCap, delta, this.config);
 
     if (production.gt(0)) {
       this.state.stats.totalEnergyProduced = big(this.state.stats.totalEnergyProduced).add(production.mul(delta));
+      if (!this.state.stats.totalEnergyProducedEra) {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProduced);
+      } else {
+        this.state.stats.totalEnergyProducedEra = big(this.state.stats.totalEnergyProducedEra).add(production.mul(delta));
+      }
     }
     if (this.state.energy.gt(this.state.peakEnergy)) {
       this.state.peakEnergy = this.state.energy;
+    }
+    if (this.state.stats) {
+      this.state.stats.gameTime = (this.state.stats.gameTime ?? 0) + delta;
+      this.state.stats.timeInCurrentEra = (this.state.stats.timeInCurrentEra ?? 0) + delta;
+      this.state.stats.timeSinceLastSO = (this.state.stats.timeSinceLastSO ?? 0) + delta;
+      const compLevel = this.state.computerLevel ?? 1;
+      if (compLevel > (this.state.stats.highestComputerLevel ?? 1)) {
+        this.state.stats.highestComputerLevel = compLevel;
+      }
+      if (this.state.energy.gt(this.state.stats.highestStoredEnergy ?? 0)) {
+        this.state.stats.highestStoredEnergy = this.state.energy;
+      }
+      if (production.gt(this.state.stats.highestGrossEnergyRate ?? 0)) {
+        this.state.stats.highestGrossEnergyRate = production;
+      }
+      if (this.state.energy.gte(100e9) && this.state.stats.fastest100e9Time == null) {
+        this.state.stats.fastest100e9Time = this.state.stats.timeInCurrentEra;
+      }
     }
 
     // 2. Hard Disk Operation (Section 4.6 Available Data Cap integration)
@@ -10218,6 +10819,7 @@ class GameEngine {
         AImp: { active: false, elapsed: 0 },
         AUpg: { active: false, elapsed: 0 },
         ARec: { active: false, elapsed: 0 },
+        ARed: { active: false, elapsed: 0 },
       };
       if (this.state.manualStudy?.target && this.state.manualStudy.active) {
         this.state.manualStudies[this.state.manualStudy.target].active = true;
@@ -10225,7 +10827,7 @@ class GameEngine {
       }
     }
 
-    const targets = ["AImp", "AUpg", "ARec"];
+    const targets = ["AImp", "AUpg", "ARec", "ARed"];
     let lastActiveTarget = this.state.manualStudy?.target || null;
 
     for (const target of targets) {
@@ -10237,6 +10839,10 @@ class GameEngine {
         continue;
       }
       if (target === "ARec" && !this.state.unlocks?.ARec) {
+        study.active = false;
+        continue;
+      }
+      if (target === "ARed" && !this.state.unlocks?.ARed) {
         study.active = false;
         continue;
       }
@@ -10289,12 +10895,13 @@ class GameEngine {
     const chips = this.state.devices?.chips;
     if (!chips || chips.owned <= 0) return;
 
-    for (const target of ["AImp", "AUpg", "ARec"]) {
+    for (const target of ["AImp", "AUpg", "ARec", "ARed"]) {
       if (chips.enabled && chips.enabled[target] === false) continue;
       const workerCount = chips.allocations?.[target] ?? 0;
       if (workerCount <= 0) continue;
       if (target === "AUpg" && !this.state.unlocks.AUpg) continue;
       if (target === "ARec" && !this.state.unlocks.ARec) continue;
+      if (target === "ARed" && !this.state.unlocks.ARed) continue;
 
       const effectiveDur = calculateEffectiveStudyDuration(target, this.state, this.config, this.statResolver);
       if (effectiveDur <= 0) continue;
@@ -10308,6 +10915,9 @@ class GameEngine {
         if (target === "AImp") {
           this.state.algorithms.AImp.owned += desiredUnits;
           this.state.algorithms.AImp.produced += desiredUnits;
+          if (this.state.stats?.studiesCompleted) {
+            this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + desiredUnits;
+          }
           if (this.state.studyImproves?.AImp) {
             this.state.studyImproves.AImp.completions += desiredUnits;
           }
@@ -10322,6 +10932,9 @@ class GameEngine {
             this.state.algorithms.AImp.owned -= maxAffordable * factor;
             this.state.algorithms.AUpg.owned += maxAffordable;
             this.state.algorithms.AUpg.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.AUpg) {
               this.state.studyImproves.AUpg.completions += maxAffordable;
             }
@@ -10341,8 +10954,32 @@ class GameEngine {
             this.state.algorithms.AUpg.owned -= maxAffordable * factor;
             this.state.algorithms.ARec.owned += maxAffordable;
             this.state.algorithms.ARec.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + maxAffordable;
+            }
             if (this.state.studyImproves?.ARec) {
               this.state.studyImproves.ARec.completions += maxAffordable;
+            }
+            const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
+            this.chipTimers[target] -= executedCycles * effectiveDur;
+            this.statResolver.invalidateCache();
+          } else {
+            this.chipTimers[target] = Math.min(this.chipTimers[target], effectiveDur);
+          }
+        } else if (target === "ARed") {
+          const factor = this.config.economy?.algorithmConversionFactor ?? 12;
+          const availableARec = this.state.algorithms.ARec.owned;
+          const maxAffordable = Math.min(desiredUnits, Math.floor(availableARec / factor));
+
+          if (maxAffordable > 0) {
+            this.state.algorithms.ARec.owned -= maxAffordable * factor;
+            this.state.algorithms.ARed.owned += maxAffordable;
+            this.state.algorithms.ARed.produced += maxAffordable;
+            if (this.state.stats?.studiesCompleted) {
+              this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + maxAffordable;
+            }
+            if (this.state.studyImproves?.ARed) {
+              this.state.studyImproves.ARed.completions += maxAffordable;
             }
             const executedCycles = Math.min(fullCycles, Math.ceil(maxAffordable / workerCount));
             this.chipTimers[target] -= executedCycles * effectiveDur;
@@ -10361,6 +10998,9 @@ class GameEngine {
     if (target === "AImp") {
       this.state.algorithms.AImp.owned += 1;
       this.state.algorithms.AImp.produced += 1;
+      if (this.state.stats?.studiesCompleted) {
+        this.state.stats.studiesCompleted.AImp = (this.state.stats.studiesCompleted.AImp ?? 0) + 1;
+      }
       if (this.state.studyImproves?.AImp) {
         this.state.studyImproves.AImp.completions += 1;
       }
@@ -10373,6 +11013,9 @@ class GameEngine {
         this.state.algorithms.AImp.owned -= factor;
         this.state.algorithms.AUpg.owned += 1;
         this.state.algorithms.AUpg.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.AUpg = (this.state.stats.studiesCompleted.AUpg ?? 0) + 1;
+        }
         if (this.state.studyImproves?.AUpg) {
           this.state.studyImproves.AUpg.completions += 1;
         }
@@ -10387,8 +11030,28 @@ class GameEngine {
         this.state.algorithms.AUpg.owned -= factor;
         this.state.algorithms.ARec.owned += 1;
         this.state.algorithms.ARec.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARec = (this.state.stats.studiesCompleted.ARec ?? 0) + 1;
+        }
         if (this.state.studyImproves?.ARec) {
           this.state.studyImproves.ARec.completions += 1;
+        }
+        this.statResolver.invalidateCache();
+        return true;
+      }
+      return false;
+    }
+
+    if (target === "ARed") {
+      if (this.state.algorithms.ARec.owned >= factor) {
+        this.state.algorithms.ARec.owned -= factor;
+        this.state.algorithms.ARed.owned += 1;
+        this.state.algorithms.ARed.produced += 1;
+        if (this.state.stats?.studiesCompleted) {
+          this.state.stats.studiesCompleted.ARed = (this.state.stats.studiesCompleted.ARed ?? 0) + 1;
+        }
+        if (this.state.studyImproves?.ARed) {
+          this.state.studyImproves.ARed.completions += 1;
         }
         this.statResolver.invalidateCache();
         return true;
@@ -10442,6 +11105,15 @@ class GameEngine {
     if (!u.ARec && (this.state.facilityOptimizations ?? 0) >= 1) {
       u.ARec = true;
     }
+    if (!u.ARed && (this.state.facilityOptimizations ?? 0) >= 2) {
+      u.ARed = true;
+    }
+    const bThreshold = Number(this.config.devices?.backpropagator?.energytoUnlock ?? 1);
+    if (!u.backpropagator && (this.state.facilityOptimizations ?? 0) >= 3 && Number.isFinite(bThreshold) && bThreshold >= 0) {
+      if (big(this.state.energy).gte(bThreshold) || big(this.state.peakEnergy ?? 0).gte(bThreshold)) {
+        u.backpropagator = true;
+      }
+    }
   }
 
   // ==========================================================================
@@ -10449,9 +11121,10 @@ class GameEngine {
   // ==========================================================================
 
   startManualStudy(target, count = 1) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks.ARed) return false;
 
     const k = Math.max(1, Math.floor(count ?? 1));
     this.state.studyQueues[target] = (this.state.studyQueues[target] ?? 0) + k;
@@ -10460,7 +11133,11 @@ class GameEngine {
         AImp: { active: false, elapsed: 0 },
         AUpg: { active: false, elapsed: 0 },
         ARec: { active: false, elapsed: 0 },
+        ARed: { active: false, elapsed: 0 },
       };
+    }
+    if (!this.state.manualStudies[target]) {
+      this.state.manualStudies[target] = { active: false, elapsed: 0 };
     }
     this.state.manualStudies[target].active = true;
     this.state.manualStudy.target = target;
@@ -10479,8 +11156,10 @@ class GameEngine {
       this.state.manualStudy.active = anyActive;
     } else {
       if (this.state.manualStudies) {
-        for (const t of ["AImp", "AUpg", "ARec"]) {
-          this.state.manualStudies[t].active = false;
+        for (const t of ["AImp", "AUpg", "ARec", "ARed"]) {
+          if (this.state.manualStudies[t]) {
+            this.state.manualStudies[t].active = false;
+          }
         }
       }
       this.state.manualStudy.active = false;
@@ -10490,9 +11169,10 @@ class GameEngine {
   }
 
   startContinuousStudy(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks?.ARed) return false;
 
     this.continuousStudyTargets.add(target);
     if (!this.state.manualStudies) {
@@ -10500,7 +11180,11 @@ class GameEngine {
         AImp: { active: false, elapsed: 0 },
         AUpg: { active: false, elapsed: 0 },
         ARec: { active: false, elapsed: 0 },
+        ARed: { active: false, elapsed: 0 },
       };
+    }
+    if (!this.state.manualStudies[target]) {
+      this.state.manualStudies[target] = { active: false, elapsed: 0 };
     }
     this.state.manualStudies[target].active = true;
     this.state.manualStudy.target = target;
@@ -10554,6 +11238,10 @@ class GameEngine {
       if (this.state.unlocks?.ARec) {
         this.startContinuousStudy("ARec");
       }
+    } else if (k === "G") {
+      if (this.state.unlocks?.ARed) {
+        this.startContinuousStudy("ARed");
+      }
     } else if (k === "T") {
       this.installTransistor("AImp");
     } else if (k === "M") {
@@ -10568,6 +11256,8 @@ class GameEngine {
       this.stopContinuousStudy("AUpg");
     } else if (k === "R") {
       this.stopContinuousStudy("ARec");
+    } else if (k === "G") {
+      this.stopContinuousStudy("ARed");
     }
   }
 
@@ -10588,12 +11278,15 @@ class GameEngine {
     if (this.heldHotkeys.has("R") && this.state.unlocks?.ARec) {
       if (!this.continuousStudyTargets.has("ARec")) this.startContinuousStudy("ARec");
     }
+    if (this.heldHotkeys.has("G") && this.state.unlocks?.ARed) {
+      if (!this.continuousStudyTargets.has("ARed")) this.startContinuousStudy("ARed");
+    }
   }
 
   toggleAutoStudy(target) {
     if (!this.state.devices?.chips) return false;
     if (!this.state.devices.chips.enabled) {
-      this.state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true };
+      this.state.devices.chips.enabled = { AImp: true, AUpg: true, ARec: true, ARed: true };
     }
     const current = this.state.devices.chips.enabled[target] !== false;
     this.state.devices.chips.enabled[target] = !current;
@@ -10604,9 +11297,10 @@ class GameEngine {
   reassignChip(fromTarget, toTarget, count = 1) {
     const allocations = this.state.devices?.chips?.allocations;
     if (!allocations) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(fromTarget)) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(toTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(fromTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(toTarget)) return false;
     if (toTarget === "ARec" && !this.state.unlocks.ARec) return false;
+    if (toTarget === "ARed" && !this.state.unlocks.ARed) return false;
 
     const available = allocations[fromTarget] ?? 0;
     const moveCount = Math.min(available, Math.max(1, Math.floor(count ?? 1)));
@@ -10621,9 +11315,10 @@ class GameEngine {
   reassignTransistors(fromTarget, toTarget, count = 1) {
     const allocations = this.state.devices?.transistorAllocations;
     if (!allocations) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(fromTarget)) return false;
-    if (!["AImp", "AUpg", "ARec"].includes(toTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(fromTarget)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(toTarget)) return false;
     if (toTarget === "ARec" && !this.state.unlocks.ARec) return false;
+    if (toTarget === "ARed" && !this.state.unlocks.ARed) return false;
 
     const available = allocations[fromTarget] ?? 0;
     const moveCount = Math.min(available, Math.max(1, Math.floor(count ?? 1)));
@@ -10640,6 +11335,7 @@ class GameEngine {
     if (!allocations) return false;
     const targets = ["AImp", "AUpg"];
     if (this.state.unlocks?.ARec) targets.push("ARec");
+    if (this.state.unlocks?.ARed) targets.push("ARed");
 
     const total = this.state.devices.transistorsPurchased ?? 0;
     if (total <= 0) return false;
@@ -10661,8 +11357,9 @@ class GameEngine {
   }
 
   setMicroprocessorTarget(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "ARec" && !this.state.unlocks.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks.ARed) return false;
     this.state.devices.microprocessor.target = target;
     this.notify();
     return true;
@@ -10790,9 +11487,10 @@ class GameEngine {
   }
 
   claimStudyImprove(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks?.ARed) return false;
     if (this.config.studyImprove?.enabled === false) return false;
 
     if (!this.state.studyImproves) {
@@ -10800,6 +11498,7 @@ class GameEngine {
         AImp: { completions: 0, claimed: 0 },
         AUpg: { completions: 0, claimed: 0 },
         ARec: { completions: 0, claimed: 0 },
+        ARed: { completions: 0, claimed: 0 },
       };
     }
     if (!this.state.studyImproves[target]) {
@@ -10822,9 +11521,10 @@ class GameEngine {
   }
 
   installTransistor(target) {
-    if (!["AImp", "AUpg", "ARec"].includes(target)) return false;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(target)) return false;
     if (target === "AUpg" && !this.state.unlocks?.AUpg) return false;
     if (target === "ARec" && !this.state.unlocks?.ARec) return false;
+    if (target === "ARed" && !this.state.unlocks?.ARed) return false;
 
     const boardOwned = Boolean(this.state.devices?.transistorBoard?.owned);
     if (!boardOwned && !this.state.devMode) {
@@ -10873,7 +11573,7 @@ class GameEngine {
   }
 
   addAFeature(featureId, count = 1) {
-    if (!["AImp", "AUpg", "ARec"].includes(featureId)) return;
+    if (!["AImp", "AUpg", "ARec", "ARed"].includes(featureId)) return;
     const k = Math.max(1, Math.floor(count ?? 1));
     this.state.algorithms[featureId].owned += k;
     this.state.algorithms[featureId].produced += k;
@@ -10941,6 +11641,7 @@ class GameEngine {
       this.state.devices.chips.timers.AImp = this.chipTimers.AImp;
       this.state.devices.chips.timers.AUpg = this.chipTimers.AUpg;
       this.state.devices.chips.timers.ARec = this.chipTimers.ARec;
+      this.state.devices.chips.timers.ARed = this.chipTimers.ARed;
     }
     saveState(this.state, this.developmentMode);
   }
@@ -10981,6 +11682,7 @@ function simulateOfflineProgress(
   const startAImp = state.algorithms?.AImp?.owned ?? 0;
   const startAUpg = state.algorithms?.AUpg?.owned ?? 0;
   const startARec = state.algorithms?.ARec?.owned ?? 0;
+  const startARed = state.algorithms?.ARed?.owned ?? 0;
   const startTotalEnergy = big(state.stats?.totalEnergyProduced ?? 0);
 
   if (simulatedSeconds < 1 || stepSeconds <= 0 || maxSteps <= 0) {
@@ -10997,10 +11699,12 @@ function simulateOfflineProgress(
         AImp: 0,
         AUpg: 0,
         ARec: 0,
+        ARed: 0,
       },
       algorithmImprovementsCompleted: 0,
       algorithmUpgradesCompleted: 0,
       algorithmRefactoringsCompleted: 0,
+      algorithmRedesignsCompleted: 0,
       energyProduced: big(0),
     };
   }
@@ -11028,6 +11732,7 @@ function simulateOfflineProgress(
   const diffAImp = Math.max(0, (engine.state.algorithms?.AImp?.owned ?? 0) - startAImp);
   const diffAUpg = Math.max(0, (engine.state.algorithms?.AUpg?.owned ?? 0) - startAUpg);
   const diffARec = Math.max(0, (engine.state.algorithms?.ARec?.owned ?? 0) - startARec);
+  const diffARed = Math.max(0, (engine.state.algorithms?.ARed?.owned ?? 0) - startARed);
 
   // Sync chip timers back into state
   if (engine.state.devices?.chips) {
@@ -11035,6 +11740,7 @@ function simulateOfflineProgress(
     engine.state.devices.chips.timers.AImp = engine.chipTimers.AImp;
     engine.state.devices.chips.timers.AUpg = engine.chipTimers.AUpg;
     engine.state.devices.chips.timers.ARec = engine.chipTimers.ARec;
+    engine.state.devices.chips.timers.ARed = engine.chipTimers.ARed;
   }
 
   // Synchronize the simulated engine state into the persistent state object
@@ -11053,10 +11759,12 @@ function simulateOfflineProgress(
       AImp: diffAImp,
       AUpg: diffAUpg,
       ARec: diffARec,
+      ARed: diffARed,
     },
     algorithmImprovementsCompleted: diffAImp,
     algorithmUpgradesCompleted: diffAUpg,
     algorithmRefactoringsCompleted: diffARec,
+    algorithmRedesignsCompleted: diffARed,
     energyProduced: totalEnergyProduced,
   };
   state.lastOfflineSummary = summary;
@@ -11066,6 +11774,7 @@ function simulateOfflineProgress(
     if (diffAImp > 0) parts.push(`+${diffAImp} AImp`);
     if (diffAUpg > 0) parts.push(`+${diffAUpg} AUpg`);
     if (diffARec > 0) parts.push(`+${diffARec} ARec`);
+    if (diffARed > 0) parts.push(`+${diffARed} ARed`);
     const studiesStr = parts.length > 0 ? ` (${parts.join(", ")})` : "";
     state.log.unshift({
       id: `${now}-offline`,
@@ -11091,6 +11800,8 @@ function simulateOfflineProgress(
  * No balancing constants are hardcoded in strings.
  */
 
+
+const INFO_FOOTER = `<div style="margin-top: 6px; font-size: 11px; color: var(--tes-text-tertiary); font-style: italic;">Read more on Info Section</div>`;
 
 /**
  * Generates structured tooltip content for a given topic or device id.
@@ -11129,7 +11840,8 @@ function getTooltipContent(topic, context = {}) {
     // ------------------------------------------------------------------------
     // 1. Energy Summary & Mechanics
     // ------------------------------------------------------------------------
-    case "energy-summary": {
+    case "energy-summary":
+    case "stored_energy": {
       const stableCap = calculatePowerCellCapacity(state.powerCells ?? 0, state, config, resolver);
       const decayRate = config.decay?.overflowDecayRate ?? 0.009;
       const decayPower = config.decay?.overflowDecayPower ?? 1.35;
@@ -11137,34 +11849,12 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Energy Dynamics & Overflow Decay",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11.5px; line-height: 1.45;">
-            <div>
-              <strong style="color: var(--tes-cyan);">⚡ Gross Production (CRC):</strong>
-              Total cosmic radiation condensed per second by active algorithm features and Computer Level.
-            </div>
-            <div>
-              <strong style="color: var(--tes-teal);">🛡️ Stable Capacity:</strong>
-              Safe storage threshold provided by <strong>Power Cells</strong> (currently ${formatEnergy(stableCap)}). Energy up to this limit is completely secure and <strong>never decays</strong>.
-            </div>
-            <div>
-              <strong style="color: var(--tes-danger);">🔥 Overflow Decay:</strong>
-              Any stored energy exceeding Stable Capacity dissipates into space per second:
-              <div style="margin-top: 3px; padding: 4px 8px; background: rgba(255, 68, 68, 0.12); border-left: 2px solid var(--tes-danger); border-radius: 3px; font-family: monospace; font-size: 11px;">
-                Decay = ${decayRate} × (Stored - Capacity)<sup>${decayPower}</sup> J/s
-              </div>
-            </div>
-            <div>
-              <strong style="color: #60a5fa;">📊 Net Production:</strong>
-              The true rate of change of your stored energy balance:
-              <div style="margin-top: 3px; padding: 4px 8px; background: rgba(96, 165, 250, 0.12); border-left: 2px solid #60a5fa; border-radius: 3px; font-family: monospace; font-size: 11px;">
-                Net = Gross Production - Overflow Decay
-              </div>
-              <div style="color: var(--tes-text-tertiary); font-size: 10.5px; margin-top: 3px;">
-                • Positive Net: Stored energy is accumulating<br>
-                • Zero Net: Dynamic equilibrium point<br>
-                • Negative Net: Storage is depleting
-              </div>
-            </div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; line-height: 1.45;">
+            <div><strong style="color: var(--tes-cyan);">⚡ Gross Production:</strong> Cosmic radiation condensed into Energy per second.</div>
+            <div><strong style="color: var(--tes-teal);">🛡️ Stable Capacity:</strong> ${formatEnergy(stableCap)} (safe threshold provided by Power Cells; energy below never decays).</div>
+            <div><strong style="color: var(--tes-danger);">🔥 Overflow Decay:</strong> Excess energy decays superlinearly (${decayRate} × ΔE<sup>${decayPower}</sup> J/s).</div>
+            <div><strong style="color: #60a5fa;">📊 Net Production:</strong> Gross Production - Overflow Decay.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11173,7 +11863,8 @@ function getTooltipContent(topic, context = {}) {
     // ------------------------------------------------------------------------
     // 2. Cosmic Radiation Condenser (CRC)
     // ------------------------------------------------------------------------
-    case "crc": {
+    case "crc":
+    case "crc_production": {
       const hasGadget = (state.devices?.crcGadget?.owned ?? 0) > 0;
       const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
       const crcMult = calculateCrcMultiplier(state, config, deviceMult);
@@ -11182,23 +11873,22 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Cosmic Radiation Condenser",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Harvests background cosmic radiation and converts Algorithm Performance (AP) directly into Energy.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Harvests background cosmic radiation, converting Algorithm Performance (AP) directly into Energy.</div>
             <div><strong>Active AP:</strong> Sum of owned algorithm feature contributions.</div>
-            <div><strong>CRC Multiplier:</strong> ${hasGadget ? `${crcMult.toFixed(2)}x (CRC Gadget active${hasPrestigeBonus ? ` · ${deviceMult.toFixed(2)}x SO bonus` : ""})` : "1.00x (Standard)"}</div>
-            <div style="margin-top: 4px; padding: 4px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-family: monospace; font-size: 11px;">
-              Energy Production = AP × CRC_Modifiers
-            </div>
+            <div><strong>Production Multiplier:</strong> ${hasGadget ? `${crcMult.toFixed(2)}x (CRC Gadget active${hasPrestigeBonus ? ` · ${deviceMult.toFixed(2)}x SO bonus` : ""})` : "1.00x (Standard)"}</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
     }
 
     // ------------------------------------------------------------------------
-    // 3. Algorithm Features (AImp, AUpg, ARec)
+    // 3. Algorithm Features (AImp, AUpg, ARec, ARed)
     // ------------------------------------------------------------------------
     case "aimp":
-    case "algorithmImprovement": {
+    case "algorithmImprovement":
+    case "aimp_study": {
       const owned = state.algorithms?.AImp?.owned ?? 0;
       const unitStrength = strengths.AImp;
       const totalContrib = big(unitStrength).mul(owned);
@@ -11206,20 +11896,20 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Algorithm Improvement (A.Imp)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Generates Energy through computational improvements. Free to study.</div>
-            <div><strong>Computer Level:</strong> Level ${compLevel}</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>First-tier computational study generating baseline Energy and Data. Free to study.</div>
             <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s per unit (Base: ${formatEnergy(baseStrengths.AImp)}/s)</div>
             ${caps > 0 ? `<div><strong>Capacitor Bonus:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
-            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (Total: ${formatEnergy(totalContrib)}/s)</div>
-            <div><strong>Available Data Contribution:</strong> 1 Data (XP) per owned unit</div>
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (${formatEnergy(totalContrib)}/s · 1 Data/unit)</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
     }
 
     case "aupg":
-    case "algorithmUpgrade": {
+    case "algorithmUpgrade":
+    case "aupg_study": {
       const owned = state.algorithms?.AUpg?.owned ?? 0;
       const unitStrength = strengths.AUpg;
       const conversionRatio = compLevel + 1;
@@ -11228,21 +11918,21 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Algorithm Upgrade (A.Upg)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Converts lower-order algorithms into more efficient computational structures.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Second-tier study converting lower-order algorithms into higher efficiency.</div>
             <div><strong>Conversion Cost:</strong> Consumes ${conversionFactor} A.Imp units per study.</div>
-            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s per unit</div>
-            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited from A.Imp${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
-            <div><strong>Conversion Efficiency:</strong> Yields <strong>${conversionRatio}x</strong> energy contribution per conversion (L + 1 = ${compLevel} + 1).</div>
-            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (Total: ${formatEnergy(totalContrib)}/s)</div>
-            <div><strong>Data Trade-off:</strong> Data contribution falls from ${conversionFactor} to 9 per converted set.</div>
+            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s (${conversionRatio}x conversion efficiency)</div>
+            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (${formatEnergy(totalContrib)}/s · 9 Data/unit)</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
     }
 
     case "arec":
-    case "algorithmRecalculation": {
+    case "algorithmRecalculation":
+    case "arec_study": {
       const owned = state.algorithms?.ARec?.owned ?? 0;
       const unitStrength = strengths.ARec;
       const conversionRatio = compLevel + 1;
@@ -11251,14 +11941,36 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Algorithm Recalculation (A.Rec)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Converts upgrades into higher-order facility masterwork computations.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Third-tier masterwork computation unlocked in Setup Optimization 1.</div>
             <div><strong>Conversion Cost:</strong> Consumes ${conversionFactor} A.Upg units per study.</div>
-            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s per unit</div>
-            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited from A.Upg${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
-            <div><strong>Conversion Efficiency:</strong> Yields <strong>${conversionRatio}x</strong> energy contribution per conversion (L + 1 = ${compLevel} + 1).</div>
-            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (Total: ${formatEnergy(totalContrib)}/s)</div>
-            <div><strong>Data Trade-off:</strong> Data contribution falls from ${conversionFactor * 9} to 81 per converted set.</div>
+            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s (${conversionRatio}x conversion efficiency)</div>
+            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (${formatEnergy(totalContrib)}/s · 81 Data/unit)</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
+    case "ared":
+    case "algorithmRedesign":
+    case "ared_study": {
+      const owned = state.algorithms?.ARed?.owned ?? 0;
+      const unitStrength = strengths.ARed ?? 0;
+      const conversionRatio = compLevel + 1;
+      const totalContrib = big(unitStrength).mul(owned);
+
+      return {
+        title: "Algorithm Redesign (A.Red)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Fourth-tier masterwork computation unlocked in Setup Optimization 2.</div>
+            <div><strong>Conversion Cost:</strong> Consumes ${conversionFactor} A.Rec units per study.</div>
+            <div><strong>Unit Strength:</strong> ${formatEnergy(unitStrength)}/s (${conversionRatio}x conversion efficiency)</div>
+            ${caps > 0 ? `<div><strong>Capacitor Cascade:</strong> +${((capacitorMult - 1) * 100).toFixed(foMult > 1.0001 ? 1 : 0)}% (${capacitorMult.toFixed(2)}x inherited${foMult > 1.0001 ? ` · ${foMult.toFixed(2)}x SO bonus` : ""})</div>` : ""}
+            <div><strong>Owned Units:</strong> ${formatInteger(owned)} (${formatEnergy(totalContrib)}/s · ${config.dataXP?.aRedData ?? 729} Data/unit)</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11268,25 +11980,20 @@ function getTooltipContent(topic, context = {}) {
     // 4. Machine Learning (Soft Reset)
     // ------------------------------------------------------------------------
     case "ml":
-    case "machineLearning": {
+    case "machineLearning":
+    case "machine_learning": {
       const currentData = calculateEffectiveAvailableData(state, config);
       const reqData = calculateRequiredDataForNextComputerLevel(compLevel, config);
-      const rawAnchor = config.dataXP?.machineLearning?.xpExponentialStartLevel ?? 5;
-      const rawGrowth = config.dataXP?.machineLearning?.xpGrowthFactor ?? 1.45;
-      const anchorLevel = Number.isFinite(rawAnchor) && rawAnchor >= 1 ? Math.floor(rawAnchor) : 5;
-      const growthFactor = Number.isFinite(rawGrowth) && rawGrowth > 1 ? rawGrowth : 1.45;
-      const isExp = compLevel > anchorLevel;
 
       return {
         title: "Machine Learning (Soft Reset)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Advances Computer Level from Level ${compLevel} to Level ${compLevel + 1}.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Advances Computer Level to increase algorithmic strength and conversion efficiency.</div>
             <div><strong>Progress:</strong> ${formatInteger(currentData)} / ${formatInteger(reqData)} Available Data (XP)</div>
-            <div><strong>Data Cap:</strong> Usable Data is capped at the current level requirement. No surplus data carries over.</div>
-            <div><strong>XP Scaling Model:</strong> ${isExp ? `Exponential scaling (+${((growthFactor - 1) * 100).toFixed(0)}%/level, ×${growthFactor.toFixed(2)}) active (anchored after Level ${anchorLevel})` : `Polynomial baseline (transitions to +${((growthFactor - 1) * 100).toFixed(0)}%/level exponential scaling after Level ${anchorLevel})`}</div>
-            <div><strong>Cascading Effect:</strong> Progressively strengthens all algorithm features and scales conversion efficiency to ${(compLevel + 2)}x per tier.</div>
-            <div><strong>Preservation:</strong> Retains all purchased hardware, power cells, and stored energy; resets algorithm inventories and hard disk buffer.</div>
+            <div><strong>Conversion Yield:</strong> Scales conversion yield to ${(compLevel + 2)}x per tier.</div>
+            <div><strong>Preservation:</strong> Retains all hardware devices, Power Cells, and Stored Energy.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11297,7 +12004,8 @@ function getTooltipContent(topic, context = {}) {
     // ------------------------------------------------------------------------
     case "fo":
     case "facilityOptimization":
-    case "setupOptimization": {
+    case "setupOptimization":
+    case "facility_level": {
       const foCount = state.facilityOptimizations ?? 0;
       const reqLevel = calculateFacilityOptimizationRequirement(foCount, config);
       const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
@@ -11308,31 +12016,27 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Setup Optimization (Facility Restructure)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.45;">
-            <div>A high-order prestige action that restructures the facility for scalable throughput.</div>
-            <div style="padding: 6px 10px; background: rgba(168, 85, 247, 0.12); border-left: 2px solid #a855f7; border-radius: 4px;">
-              <div><strong>Requirement:</strong> Computer Level ${reqLevel} (Current: Level ${curLevel})</div>
-              <div><strong>Status:</strong> ${isEligible ? "<span style='color: #c084fc; font-weight: bold;'>ELIGIBLE</span>" : `<span style='color: var(--tes-text-tertiary);'>Need Level ${reqLevel}</span>`}</div>
-            </div>
-            <div><strong>Permanent Multiplier:</strong> Currently <strong>${curBonus.toFixed(2)}×</strong> &rarr; Next: <strong style="color: #c084fc;">${nextBonus.toFixed(2)}×</strong> (+9% compounding on all devices).</div>
-            <div style="display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--tes-text-secondary); margin-top: 2px;">
-              <div><strong style="color: #34d399;">Preserves:</strong> Power Cells (sole hardware exception!), Permanent Multipliers.</div>
-              <div><strong style="color: #f87171;">Resets (Hard Reset):</strong> Facility Level (to Lv. 1), Stored Energy, Study Improvements, Algorithms, Conventional Devices.</div>
-              <div><strong style="color: #60a5fa;">Unlocks:</strong> Algorithm Recalculation (ARec) permanently.</div>
-            </div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; line-height: 1.4;">
+            <div>High-order prestige restructuring the facility for scalable throughput.</div>
+            <div><strong>Requirement:</strong> Computer Level ${reqLevel} (Current: Level ${curLevel} · ${isEligible ? "<span style='color: #c084fc; font-weight: bold;'>Ready</span>" : "Locked"})</div>
+            <div><strong>Logarithmic SO Bonus:</strong> ${curBonus.toFixed(2)}× &rarr; Next: <strong style="color: #c084fc;">${nextBonus.toFixed(2)}×</strong> on eligible devices.</div>
+            <div><strong>Preserves:</strong> Computer Level, Power Cells, and Permanent Multipliers.</div>
+            <div><strong>Milestone Unlocks:</strong> SO1 &rarr; A.Rec · SO2 &rarr; A.Red · SO3 &rarr; Backpropagator.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
     }
 
     // ------------------------------------------------------------------------
-    // 4C. Study Improve Tooltips (Section 2.4)
+    // 4C. Study Improve Tooltips
     // ------------------------------------------------------------------------
     case "study-improve-aimp":
     case "study-improve-aupg":
-    case "study-improve-arec": {
-      const featureId = topic.endsWith("aimp") ? "AImp" : topic.endsWith("aupg") ? "AUpg" : "ARec";
-      const name = featureId === "AImp" ? "Algorithm Improvement" : featureId === "AUpg" ? "Algorithm Upgrade" : "Algorithm Recalculation";
+    case "study-improve-arec":
+    case "study-improve-ared": {
+      const featureId = topic.endsWith("aimp") ? "AImp" : topic.endsWith("aupg") ? "AUpg" : topic.endsWith("arec") ? "ARec" : "ARed";
+      const name = featureId === "AImp" ? "Algorithm Improvement" : featureId === "AUpg" ? "Algorithm Upgrade" : featureId === "ARec" ? "Algorithm Recalculation" : "Algorithm Redesign";
       const cur = state.studyImproves?.[featureId] ?? { completions: 0, claimed: 0 };
       const curLevel = cur.claimed;
       const curMult = calculateStudyImproveMultiplier(curLevel, config);
@@ -11343,29 +12047,26 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: `Study Improve — ${name}`,
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Milestone-based speed enhancement for <strong>${name}</strong> studies.</div>
-            <div><strong>Improve Level:</strong> Level ${curLevel} (${curMult.toFixed(3)}x speed multiplier)</div>
-            <div><strong>Current ML Cycle Completions:</strong> ${formatInteger(cur.completions)} / ${formatInteger(nextMilestone)} studies</div>
-            <div><strong>Next Milestone:</strong> ${formatInteger(nextMilestone)} completions (${nextMult.toFixed(3)}x speed multiplier)</div>
-            <div><strong>Status:</strong> ${isEligible ? "<span style='color: var(--tes-cyan); font-weight: bold;'>READY TO CLAIM! Click arrow to claim.</span>" : `<span style='color: var(--tes-text-tertiary);'>Need ${formatInteger(nextMilestone - cur.completions)} more completions</span>`}</div>
-            <div style="color: var(--tes-text-tertiary); font-size: 11px;">
-              • Free to claim — costs no Energy, Data, or units.<br>
-              • Resets to Level 0 upon Machine Learning.
-            </div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Milestone study completions grant cumulative speed multipliers to ${name}.</div>
+            <div><strong>Level:</strong> Level ${curLevel} (${curMult.toFixed(3)}x speed multiplier)</div>
+            <div><strong>Progress:</strong> ${formatInteger(cur.completions)} / ${formatInteger(nextMilestone)} completions ${isEligible ? "(<span style='color: var(--tes-cyan); font-weight: bold;'>Ready to claim!</span>)" : ""}</div>
+            <div><strong>Next Tier:</strong> ${nextMult.toFixed(3)}x speed multiplier (free to claim).</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
     }
 
     // ------------------------------------------------------------------------
-    // 4C. Install Transistor Tooltips (Section 3.8)
+    // 4D. Install Transistor Tooltips
     // ------------------------------------------------------------------------
     case "install-transistor-aimp":
     case "install-transistor-aupg":
-    case "install-transistor-arec": {
-      const featureId = topic.endsWith("aimp") ? "AImp" : topic.endsWith("aupg") ? "AUpg" : "ARec";
-      const name = featureId === "AImp" ? "Algorithm Improvement" : featureId === "AUpg" ? "Algorithm Upgrade" : "Algorithm Recalculation";
+    case "install-transistor-arec":
+    case "install-transistor-ared": {
+      const featureId = topic.endsWith("aimp") ? "AImp" : topic.endsWith("aupg") ? "AUpg" : topic.endsWith("arec") ? "ARec" : "ARed";
+      const name = featureId === "AImp" ? "Algorithm Improvement" : featureId === "AUpg" ? "Algorithm Upgrade" : featureId === "ARec" ? "Algorithm Recalculation" : "Algorithm Redesign";
       const totalT = state.devices?.transistorsPurchased ?? 0;
       const allocatedT = state.devices?.transistorAllocations?.[featureId] ?? 0;
       const cost = calculateBulkDeviceCost("transistor", totalT, 1, config);
@@ -11374,15 +12075,12 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: `Install Transistor — ${name}`,
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Purchases exactly one global Transistor and installs it directly into <strong>${name}</strong>.</div>
-            <div><strong>Current Global Cost:</strong> ${formatEnergy(cost)}</div>
-            <div><strong>Transistors on ${name}:</strong> ${formatInteger(allocatedT)} units (Effective Speed: ${speedMult.toFixed(2)}x)</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Purchases and allocates one Transistor directly to ${name}.</div>
+            <div><strong>Unit Cost:</strong> ${formatEnergy(cost)} (shared global pricing)</div>
+            <div><strong>Allocated on ${name}:</strong> ${formatInteger(allocatedT)} units (Speed: ${speedMult.toFixed(2)}x)</div>
             <div><strong>Global Total:</strong> ${formatInteger(totalT)} purchased across all studies.</div>
-            <div style="color: var(--tes-text-tertiary); font-size: 11px;">
-              • Uses shared global pricing across all studies.<br>
-              • Can be redistributed at any time via the Transistor Board.
-            </div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11397,10 +12095,11 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "AutoCalculator — Improvements",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Independent automation worker. Automatically studies Algorithm Improvement continuously.</div>
-            <div><strong>Effective Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
-            <div><strong>Output:</strong> Produces 1 A.Imp unit upon each completion. Respects all transistor speed bonuses.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Automates Algorithm Improvement studies continuously in parallel.</div>
+            <div><strong>Cycle Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Output:</strong> Produces 1 A.Imp unit upon each completion.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11412,11 +12111,11 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "AutoCalculator — Upgrades",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Independent automation worker. Automatically studies Algorithm Upgrade continuously.</div>
-            <div><strong>Requirement:</strong> Requires ${conversionFactor} A.Imp units available to initiate study.</div>
-            <div><strong>Effective Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
-            <div><strong>Output:</strong> Consumes ${conversionFactor} A.Imp and produces 1 A.Upg unit upon completion.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Automates Algorithm Upgrade studies continuously in parallel.</div>
+            <div><strong>Cycle Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Conversion:</strong> Consumes ${conversionFactor} A.Imp &rarr; Produces 1 A.Upg.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11428,11 +12127,40 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "AutoCalculator — Recalculations",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Independent automation worker. Automatically studies Algorithm Recalculation continuously.</div>
-            <div><strong>Requirement:</strong> Requires ${conversionFactor} A.Upg units available to initiate study.</div>
-            <div><strong>Effective Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
-            <div><strong>Output:</strong> Consumes ${conversionFactor} A.Upg and produces 1 A.Rec unit upon completion.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Automates Algorithm Recalculation studies continuously in parallel.</div>
+            <div><strong>Cycle Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Conversion:</strong> Consumes ${conversionFactor} A.Upg &rarr; Produces 1 A.Rec.</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
+    case "device-chip-ared":
+    case "autoCalculator_ARed": {
+      const dur = calculateEffectiveStudyDuration("ARed", state, config, resolver);
+      return {
+        title: "AutoCalculator — Redesigns",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Automates Algorithm Redesign studies continuously in parallel.</div>
+            <div><strong>Cycle Duration:</strong> ${dur.toFixed(2)}s per cycle</div>
+            <div><strong>Conversion:</strong> Consumes ${conversionFactor} A.Rec &rarr; Produces 1 A.Red.</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
+    case "chip": {
+      return {
+        title: "AutoCalculator Chip",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Dedicated parallel calculation worker for algorithm studies.</div>
+            <div><strong>Automation:</strong> Conducts hands-free study cycles in the background.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11442,7 +12170,9 @@ function getTooltipContent(topic, context = {}) {
     // 6. Computation Devices: Transistor Board, Transistors
     // ------------------------------------------------------------------------
     case "device-board":
-    case "transistorBoard": {
+    case "transistorBoard":
+    case "transistor_board":
+    case "transistor": {
       const totalT = state.devices?.transistorsPurchased ?? 0;
       const baseBonusPercent = (config.devices?.transistor?.speedBonusPerUnit ?? 0.05) * 100;
       const effectiveBonusPercent = baseBonusPercent * studySpeedMult;
@@ -11452,8 +12182,8 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Transistor Board",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Infrastructure to acquire and distribute Transistors across algorithm study targets.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Manages and distributes computational Transistors across study targets.</div>
             <div><strong>Purchased Transistors:</strong> ${formatInteger(totalT)} total units</div>
             ${hasPrestigeBonus ? `
               <div><strong>Effective Speed Bonus:</strong> +${effectiveBonusPercent.toFixed(2)}% per Transistor (+${baseBonusPercent.toFixed(1)}% base × ${studySpeedMult.toFixed(2)}x prestige bonus)</div>
@@ -11461,6 +12191,7 @@ function getTooltipContent(topic, context = {}) {
               <div><strong>Base Speed Bonus:</strong> +${baseBonusPercent.toFixed(1)}% Study Speed per allocated Transistor</div>
             `}
             <div><strong>Next Transistor Cost:</strong> ${formatEnergy(nextCost)}</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11489,26 +12220,22 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Microprocessor (Unique Device)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Amplifies the speed of the selected study exponentially based on allocated Transistors.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Unique hardware providing exponential speed scaling on the targeted study.</div>
             <div><strong>Status:</strong> ${isOwned ? `<span style="color: var(--tes-teal); font-weight: 600;">Installed (1 of 1)</span>` : `Uninstalled (Cost: ${formatEnergy(cost)})`}</div>
-            <div><strong>Selected Target:</strong> ${target}</div>
-            <div><strong>Allocated Transistors (T):</strong> ${formatInteger(allocatedT)} T on ${target}</div>
+            <div><strong>Selected Target:</strong> ${target} (${formatInteger(allocatedT)} Transistors)</div>
             ${isOwned ? (hasPrestigeBonus ? `
               <div><strong>Base Multiplier:</strong> ${rawMult.toFixed(2)}x (${multiplierBase.toFixed(2)}<sup>${allocatedT}</sup>)</div>
               <div><strong>Prestige Multiplier:</strong> ${studySpeedMult.toFixed(2)}x (${foMult > 1.0001 ? `${foMult.toFixed(2)}x SO` : ""}${foMult > 1.0001 && procMult > 1.0001 ? " × " : ""}${procMult > 1.0001 ? `${procMult.toFixed(2)}x Processor` : ""})</div>
               <div><strong>Effective Microprocessor Multiplier:</strong> <span style="color: var(--tes-teal); font-weight: 600;">${effectiveMicroMult.toFixed(2)}x</span></div>
             ` : `
               <div><strong>Speed Multiplier:</strong> ${rawMult.toFixed(2)}x (${multiplierBase.toFixed(2)}<sup>${allocatedT}</sup>)</div>
+              <div style="margin-top: 2px; font-family: monospace; font-size: 11px;">Multiplier = (${multiplierBase.toFixed(2)})<sup>T</sup></div>
             `) : `
               <div><strong>Speed Multiplier:</strong> Inactive (Requires Installation)</div>
             `}
             <div><strong>Effective Target Study Speed:</strong> ${speedMult.toFixed(2)}x</div>
-            <div style="margin-top: 4px; padding: 4px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-family: monospace; font-size: 11px;">
-              ${hasPrestigeBonus
-                ? `Multiplier = 1 + (${multiplierBase.toFixed(2)}<sup>T</sup> - 1) × ${studySpeedMult.toFixed(2)}`
-                : `Multiplier = (${multiplierBase.toFixed(2)})<sup>T</sup>`}
-            </div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11527,11 +12254,12 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Processor",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>High-tier efficiency hardware revealed upon reaching 1 µJ (1e-6 J) stored energy.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>High-tier hardware revealed at 1 µJ, accelerating all study speed-efficiency devices.</div>
             <div><strong>Owned Units:</strong> ${formatInteger(owned)}</div>
             <div><strong>Study Speed-Efficiency Bonus:</strong> +${bonusPerUnit.toFixed(1)}% per unit (+${totalBonus.toFixed(1)}% total · ${procMult.toFixed(2)}x multiplier)</div>
-            <div>Improves study speed-efficiency devices (Transistors, Microprocessor, Overclocker).</div>
+            <div><strong>Affects:</strong> Transistors, Microprocessor, and Overclocker.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11553,14 +12281,12 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Overclocker (Unique Device)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Temporarily accelerates the selected computation by sacrificing allocated Transistors.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Unique device that temporarily supercharges the Microprocessor target.</div>
             <div><strong>Status:</strong> ${isOwned ? "Installed" : "Uninstalled"}</div>
-            <div><strong>Activation Requirement:</strong> At least ${minT} Transistors on Microprocessor target (currently ${formatInteger(allocatedT)} T on ${target}).</div>
-            <div><strong>Boost Formula:</strong> Multiplies Microprocessor bonus by (1 + T/${bonusDiv.toFixed(0)}) for ln(T)/ln(${durBase.toFixed(1)}) seconds.</div>
-            ${hasPrestigeBonus ? `
-              <div><strong>Prestige Boost:</strong> ${studySpeedMult.toFixed(2)}x boost applied to overclock speed amplification.</div>
-            ` : ""}
+            <div><strong>Activation Requirement:</strong> Requires ≥ ${minT} Transistors on target (currently ${formatInteger(allocatedT)} T on ${target}).</div>
+            <div><strong>Boost:</strong> Multiplies speed by (1 + T/${bonusDiv.toFixed(0)}) for ln(T)/ln(${durBase.toFixed(1)})s.${hasPrestigeBonus ? ` (${studySpeedMult.toFixed(2)}x prestige boost)` : ""}</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11570,7 +12296,8 @@ function getTooltipContent(topic, context = {}) {
     // 10. CRC Gadget
     // ------------------------------------------------------------------------
     case "device-crc-gadget":
-    case "crcGadget": {
+    case "crcGadget":
+    case "crc_gadget": {
       const isOwned = (state.devices?.crcGadget?.owned ?? 0) >= 1;
       const baseMult = config.devices?.crcGadget?.productionMultiplier ?? 2.0;
       const crcMult = calculateCrcMultiplier(state, config, deviceMult);
@@ -11579,14 +12306,43 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "CRC Gadget (Unique Device)",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Permanently amplifies Cosmic Radiation Condenser energy output.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Unique device permanently amplifying Cosmic Radiation Condenser output.</div>
             <div><strong>Status:</strong> ${isOwned ? "Installed" : "Available"}</div>
             ${hasPrestigeBonus ? `
               <div><strong>Production Multiplier:</strong> ${crcMult.toFixed(2)}x (${baseMult.toFixed(2)}x base × ${deviceMult.toFixed(2)}x SO bonus)</div>
             ` : `
               <div><strong>Production Multiplier:</strong> ${baseMult.toFixed(2)}x global energy production boost.</div>
             `}
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 10b. Backpropagator (Unique Device)
+    // ------------------------------------------------------------------------
+    case "device-backpropagator":
+    case "backpropagator": {
+      const isOwned = (state.devices?.backpropagator?.owned ?? state.devices?.backpropagator ?? 0) >= 1;
+      const rOwned = state.algorithms?.ARed?.owned ?? 0;
+      const devConfig = config.devices?.backpropagator ?? {};
+      const q = devConfig.resonanceBase ?? 8.5;
+      const rSoft = devConfig.softcapStart ?? 100;
+      const rHard = devConfig.hardcapStart ?? 1000;
+      const cost = devConfig.initialCost ?? 1;
+      const resMult = calculateBackpropagatorMultiplier(state, config, resolver);
+
+      return {
+        title: "Backpropagator (Unique Device)",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Unique device scaling global Energy production based on owned Algorithm Redesigns.</div>
+            <div><strong>Status:</strong> ${isOwned ? `<span style="color: var(--tes-teal); font-weight: 600;">Installed (1 of 1)</span>` : `Uninstalled (Cost: ${formatEnergy(cost)})`}</div>
+            <div><strong>Scaling:</strong> q = ${q} across ${formatInteger(rOwned)} A.Red (Softcap: ${formatInteger(rSoft)}, Hardcap: ${formatInteger(rHard)})</div>
+            <div><strong>Active Resonance Multiplier:</strong> <span style="color: var(--tes-teal); font-weight: 600;">${isOwned ? `${formatNumber(resMult, 2)}x` : "1.00x (Requires Installation)"}</span></div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11606,8 +12362,8 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Capacitor",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Capacitors directly increase the energy strength of Algorithm Improvements. Because higher-order Algorithm Features derive their strength from lower-order ones, this bonus also increases the energy contribution of Algorithm Upgrades and Algorithm Recalculations.</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Amplifies Algorithm Improvement energy strength, cascading across all tiers.</div>
             <div><strong>Owned Units:</strong> ${formatInteger(owned)}</div>
             ${hasPrestigeBonus ? `
               <div><strong>Unit Cascade Bonus:</strong> +${effectivePerUnit.toFixed(1)}% per unit (+${basePerUnit.toFixed(0)}% base × ${deviceMult.toFixed(2)}x SO bonus)</div>
@@ -11615,13 +12371,7 @@ function getTooltipContent(topic, context = {}) {
               <div><strong>Unit Cascade Bonus:</strong> +${basePerUnit.toFixed(0)}% per unit</div>
             `}
             <div><strong>Effective Multiplier:</strong> ${capacitorMult.toFixed(2)}x (+${totalBonusPct}% total cascade bonus across all tiers)</div>
-            <div style="margin-top: 4px; padding: 6px 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 11px;">
-              <div><strong>Cascaded Unit Strengths (Level ${compLevel}):</strong></div>
-              <div>• A.Imp: ${formatEnergy(strengths.AImp)}/s</div>
-              <div>• A.Upg: ${formatEnergy(strengths.AUpg)}/s</div>
-              <div>• A.Rec: ${formatEnergy(strengths.ARec)}/s</div>
-            </div>
-            <div style="color: var(--tes-text-tertiary); font-size: 10.5px;">All algorithm tiers increase by precisely ${capacitorMult.toFixed(2)}x without altering conversion efficiency.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11631,7 +12381,8 @@ function getTooltipContent(topic, context = {}) {
     // 12. Power Cell
     // ------------------------------------------------------------------------
     case "device-powercell":
-    case "powerCell": {
+    case "powerCell":
+    case "power_cell": {
       const owned = state.powerCells ?? 0;
       const baseCap = config.devices?.powerCell?.baseCapacity ?? 1e-3;
       const totalCap = calculatePowerCellCapacity(owned, state, config, resolver);
@@ -11639,13 +12390,12 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Power Cell",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Expands the facility's operational energy capacity to prevent loss from Overflow Decay.</div>
-            <div><strong>Base Capacity:</strong> ${formatEnergy(baseCap)} per cell</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Expands loss-free Stable Capacity to shield stored energy from Overflow Decay.</div>
+            <div><strong>Base Capacity:</strong> ${formatEnergy(baseCap)} per cell (${formatEnergy(totalCap)} total stable storage)</div>
             <div><strong>Prestige Multiplier:</strong> 1.00x (Exempt from Setup Optimization and Processor bonuses)</div>
-            <div><strong>Current Stable Capacity:</strong> ${formatEnergy(totalCap)} (100% loss-free storage)</div>
-            <div><strong>Persistence:</strong> Owned Power Cells persist across Machine Learning and Facility Optimization.</div>
-            <div style="color: var(--tes-text-tertiary); font-size: 11px;">Note: Stable Capacity is a decay buffer, not a hard limit on total wallet energy.</div>
+            <div><strong>Persistence:</strong> Owned Power Cells persist across all resets.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11655,7 +12405,8 @@ function getTooltipContent(topic, context = {}) {
     // 13. Hard Disk
     // ------------------------------------------------------------------------
     case "device-harddisk":
-    case "hardDisk": {
+    case "hardDisk":
+    case "hard_disk": {
       const owned = state.devices?.hardDisks?.owned ?? 0;
       const status = state.devices?.hardDisks?.state ?? "off";
       const buffer = state.devices?.hardDisks?.buffer ?? 0;
@@ -11667,16 +12418,36 @@ function getTooltipContent(topic, context = {}) {
       return {
         title: "Hard Disk",
         body: `
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-            <div>Consumes Energy continuously to generate temporary Available Data (XP).</div>
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Consumes energy to continuously generate temporary Data (XP) into a buffer.</div>
             <div><strong>Status:</strong> <span style="text-transform: uppercase; font-weight: 600;">${status}</span> (${formatInteger(owned)} disks)</div>
             ${hasPrestigeBonus ? `
               <div><strong>Generation Rate:</strong> +${formatNumber(totalXpRate, 1)} Data/s (+${effectiveRatePerDisk.toFixed(2)}/s per active disk · ${dataRate.toFixed(1)}/s base × ${deviceMult.toFixed(2)}x SO bonus)</div>
             ` : `
               <div><strong>Generation Rate:</strong> +${formatNumber(totalXpRate, 1)} Data/s (+${dataRate.toFixed(1)}/s base per active disk)</div>
             `}
-            <div><strong>Buffered Data:</strong> +${formatInteger(buffer)} Available Data</div>
-            <div><strong>Standby Safety:</strong> If energy depletes, hard disks enter standby to preserve data buffer without consuming energy.</div>
+            <div><strong>Buffered Data:</strong> +${formatInteger(buffer)} Available Data (standby protection active)</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 12. Statistics Display
+    // ------------------------------------------------------------------------
+    case "device-statistics-display":
+    case "statisticsDisplay":
+    case "statistics_display": {
+      const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+      return {
+        title: "Statistics Display",
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; line-height: 1.45;">
+            <div><strong style="color: var(--tes-cyan);">📊 Facility Telemetry:</strong> Unlocks advanced facility statistics and energy records.</div>
+            <div><strong style="color: var(--tes-teal);">🔒 Status:</strong> ${isOwned ? "Installed (Access granted via Stats button)" : "Available for installation"}</div>
+            <div><strong style="color: #a78bfa;">⚡ Persistence:</strong> Permanent unlock; preserved across Machine Learning and Setup Optimization.</div>
+            ${INFO_FOOTER}
           </div>
         `,
       };
@@ -11686,7 +12457,12 @@ function getTooltipContent(topic, context = {}) {
     default: {
       return {
         title: "Telemetry Information",
-        body: `Detailed operational metrics for ${topic}.`,
+        body: `
+          <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+            <div>Operational metrics and status overview for ${topic}.</div>
+            ${INFO_FOOTER}
+          </div>
+        `,
       };
     }
   }
@@ -11709,6 +12485,89 @@ function getTooltipContent(topic, context = {}) {
 const TES_ICON_ROOT = "icons/";
 const tesIconPath = (name) => `${TES_ICON_ROOT}${name}.png`;
 
+class CrcGrowthTracker {
+  constructor() {
+    this.history = [];
+    this.lastMlCount = null;
+    this.lastSoCount = null;
+  }
+
+  reset() {
+    this.history = [];
+  }
+
+  update(prodRate, nowMs, mlCount = 0, soCount = 0) {
+    if (this.lastMlCount !== null && (this.lastMlCount !== mlCount || this.lastSoCount !== soCount)) {
+      this.reset();
+    }
+    this.lastMlCount = mlCount;
+    this.lastSoCount = soCount;
+
+    const rate = big(prodRate || 0);
+    this.history.push({ time: nowMs, rate });
+
+    const cutoff = nowMs - 2500;
+    while (this.history.length > 2 && this.history[0].time < cutoff) {
+      this.history.shift();
+    }
+
+    const targetTime = nowMs - 1000;
+    let closest = null;
+    let minDiff = Infinity;
+
+    for (const entry of this.history) {
+      const diff = Math.abs(entry.time - targetTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = entry;
+      }
+    }
+
+    if (!closest) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const dt = (nowMs - closest.time) / 1000;
+    if (dt < 0.4) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const pastRate = closest.rate;
+    if (pastRate.eq(0)) {
+      if (rate.eq(0)) {
+        return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+      }
+      return { text: "(---/sec)", percentage: 0, isNegative: false };
+    }
+
+    if (rate.eq(pastRate)) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    let percentNum;
+    try {
+      const ratio = rate.div(pastRate);
+      const change = ratio.minus(1);
+      percentNum = change.div(dt).mul(100).toNumber();
+    } catch {
+      percentNum = 0;
+    }
+
+    if (!Number.isFinite(percentNum) || Number.isNaN(percentNum)) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    if (Math.abs(percentNum) < 0.005) {
+      return { text: "(+0.00%/sec)", percentage: 0, isNegative: false };
+    }
+
+    const isNegative = percentNum < 0;
+    const sign = isNegative ? "" : "+";
+    const formatted = `${sign}${percentNum.toFixed(2)}%/sec`;
+    return { text: `(${formatted})`, percentage: percentNum, isNegative };
+  }
+}
+
 function createRenderer(container, engine) {
   let isMounted = false;
   let activeDrawer = null; // 'dev' | 'transistor' | 'microprocessor' | 'harddisk' | 'settings' | 'stats' | 'overclock'
@@ -11717,6 +12576,9 @@ function createRenderer(container, engine) {
   let newsTimer = null;
   let isNewsPaused = false;
   let batchPopoverTarget = null; // target feature id or device id for batch menu
+  const crcGrowthTracker = new CrcGrowthTracker();
+  let activeNarrativeMilestone = null;
+  let isNarrativePreview = false;
 
   // Default news items if __TES_NEWS__ is missing or empty
   const defaultNews = [
@@ -11764,6 +12626,176 @@ function createRenderer(container, engine) {
     }
   }
 
+  function isNarrativeModalOpen() {
+    return Boolean(activeNarrativeMilestone);
+  }
+
+  function showNarrativeModal(milestone, isPreview = false) {
+    if (activeNarrativeMilestone && !isPreview) return;
+    activeNarrativeMilestone = milestone;
+    isNarrativePreview = isPreview;
+
+    const overlay = dom?.narrativeOverlay || container.querySelector("#narrative-overlay");
+    const titleEl = dom?.narrativeTitle || container.querySelector("#narrative-title");
+    const bodyEl = dom?.narrativeBody || container.querySelector("#narrative-body");
+    const actionsEl = dom?.narrativeActions || container.querySelector("#narrative-actions");
+    if (!overlay || !titleEl || !bodyEl || !actionsEl) return;
+
+    switch (milestone) {
+      case "intro": {
+        titleEl.textContent = "FACILITY AWAKENING";
+        bodyEl.innerHTML = `
+          <p>You can't remember how you got here.</p>
+          <p>You're lying on a strange bed, in a room you don't recognize.</p>
+          <p>Across the room, a dim blue panel casts the only light, its glow catching the dust drifting through the air.</p>
+          <p>As you approach, a handful of unfamiliar devices blink with the same warning:</p>
+          <p><strong style="color: var(--tes-danger); letter-spacing: 1px;">LOW POWER</strong></p>
+          <p>At the center of the largest screen, a single button pulses quietly.</p>
+          <p>Almost as if it has been waiting for you.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary tes-pulse-btn" data-action="close-narrative" data-milestone="intro">Start Simulation</button>
+        `;
+        break;
+      }
+      case "so1": {
+        titleEl.textContent = "TRANSMISSION RECEIVED";
+        bodyEl.innerHTML = `
+          <p>Out of nowhere, a gentle, strangely captivating voice fills the silence.</p>
+          <p>"Congratulations.</p>
+          <p>It seems you're making progress.</p>
+          <p>You've already gone further than a few others. But there's still a very long way to go.</p>
+          <p>Current record:</p>
+          <p><strong style="color: var(--tes-cyan); letter-spacing: 1px;">333.33 billion years.</strong></p>
+          <p>Good luck."</p>
+          <p>The voice disappears as suddenly as it arrived.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="so1">Continue</button>
+        `;
+        break;
+      }
+      case "so2": {
+        titleEl.textContent = "FACILITY SECTOR UNLOCKED";
+        bodyEl.innerHTML = `
+          <p>A dry click sounds somewhere behind you.</p>
+          <p>You turn.</p>
+          <p>A heavy iron double door, previously hidden in the darkness, begins to glow faintly around its edges.</p>
+          <p>Above it, an old display flickers to life:</p>
+          <p><strong style="color: var(--tes-cyan); letter-spacing: 1px;">PARTICLE SYNTHESIZER</strong></p>
+          <p><strong style="color: var(--tes-danger); letter-spacing: 1px;">LOW POWER</strong></p>
+          <p>The doors remain shut.</p>
+          <p>For now.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="so2">Continue</button>
+        `;
+        break;
+      }
+      case "energy100e9": {
+        titleEl.textContent = "CAPACITY ACHIEVED";
+        bodyEl.innerHTML = `
+          <p>An oddly familiar startup chime fills the room as the Stored Energy indicator reaches 100%.</p>
+          <p>Behind you, the iron double doors begin to open.</p>
+          <p>The sound of ancient machinery echoes through the facility.</p>
+          <p>A new section illuminates on the control panel.</p>
+          <p>In the Devices interface, a new control pulses softly.</p>
+          <p>Its design looks promising.</p>
+          <p>And just a little dangerous.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary tes-pulse-btn" data-action="transition-narrative-coming-soon">Activate</button>
+        `;
+        break;
+      }
+      case "coming-soon": {
+        titleEl.textContent = "COMING SOON...";
+        bodyEl.innerHTML = `
+          <p>The Particle Synthesizer is responding.</p>
+          <p>But the next experiment is not ready.</p>
+          <p>The simulation will continue.</p>
+        `;
+        actionsEl.innerHTML = `
+          <button class="btn-primary" data-action="close-narrative" data-milestone="coming-soon">Close</button>
+        `;
+        break;
+      }
+    }
+
+    overlay.classList.add("tes-narrative-overlay--active");
+    overlay.setAttribute("aria-hidden", "false");
+    const primaryBtn = actionsEl.querySelector("button");
+    if (primaryBtn) primaryBtn.focus();
+  }
+
+  function transitionNarrativeComingSoon() {
+    const titleEl = dom?.narrativeTitle || container.querySelector("#narrative-title");
+    const bodyEl = dom?.narrativeBody || container.querySelector("#narrative-body");
+    const actionsEl = dom?.narrativeActions || container.querySelector("#narrative-actions");
+    if (!titleEl || !bodyEl || !actionsEl) return;
+
+    if (!isNarrativePreview && engine.state.narrative) {
+      engine.state.narrative.energy100e9Completed = true;
+      engine.state.narrative.synthTeaserUnlocked = true;
+    }
+
+    titleEl.textContent = "COMING SOON...";
+    bodyEl.innerHTML = `
+      <p>The Particle Synthesizer is responding.</p>
+      <p>But the next experiment is not ready.</p>
+      <p>The simulation will continue.</p>
+    `;
+    actionsEl.innerHTML = `
+      <button class="btn-primary" data-action="close-narrative" data-milestone="energy100e9">Close</button>
+    `;
+    const btn = actionsEl.querySelector("button");
+    if (btn) btn.focus();
+  }
+
+  function closeNarrativeModal(milestone) {
+    const targetMilestone = milestone || activeNarrativeMilestone;
+    const overlay = dom?.narrativeOverlay || container.querySelector("#narrative-overlay");
+    if (overlay) {
+      overlay.classList.remove("tes-narrative-overlay--active");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
+    if (!isNarrativePreview && engine.state.narrative) {
+      if (targetMilestone === "intro") engine.state.narrative.introCompleted = true;
+      else if (targetMilestone === "so1") engine.state.narrative.so1Completed = true;
+      else if (targetMilestone === "so2") engine.state.narrative.so2Completed = true;
+      else if (targetMilestone === "energy100e9" || targetMilestone === "coming-soon") {
+        engine.state.narrative.energy100e9Completed = true;
+        engine.state.narrative.synthTeaserUnlocked = true;
+      }
+    }
+
+    activeNarrativeMilestone = null;
+    isNarrativePreview = false;
+  }
+
+  function checkNarrativeTriggers(state) {
+    if (activeNarrativeMilestone) return;
+    if (!state.narrative) return;
+
+    if (!state.narrative.introCompleted) {
+      showNarrativeModal("intro");
+      return;
+    }
+    if ((state.facilityOptimizations ?? 0) === 1 && !state.narrative.so1Completed) {
+      showNarrativeModal("so1");
+      return;
+    }
+    if ((state.facilityOptimizations ?? 0) >= 2 && !state.narrative.so2Completed) {
+      showNarrativeModal("so2");
+      return;
+    }
+    if (big(state.energy ?? 0).gte(100e9) && !state.narrative.energy100e9Completed) {
+      showNarrativeModal("energy100e9");
+      return;
+    }
+  }
+
   function render() {
     if (!isMounted) {
       mountStructure();
@@ -11783,18 +12815,7 @@ function createRenderer(container, engine) {
             <div class="tes-brand">
               <img src="${tesIconPath("brand-orbit")}" alt="" class="tes-brand-icon" aria-hidden="true" onerror="this.style.display='none'" />
               <span class="tes-brand-title">The Eternal Simulation</span>
-            </div>
-
-            <!-- News Ticker -->
-            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
-              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
-              <span class="tes-news-content" data-field="news-content">
-                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
-              </span>
-              <div class="tes-news-controls">
-                <button class="tes-news-btn" data-action="news-prev" aria-label="Previous headline">&lt;</button>
-                <button class="tes-news-btn" data-action="news-next" aria-label="Next headline">&gt;</button>
-              </div>
+              <span class="tes-beta-tag">(BETA V0)</span>
             </div>
 
             <!-- Utility Controls -->
@@ -11807,7 +12828,7 @@ function createRenderer(container, engine) {
                 <img src="${tesIconPath("icon-measure")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Measure</span>
               </button>
-              <button class="btn-utility" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
+              <button class="btn-utility" id="btn-stats" data-action="open-drawer" data-drawer="stats" title="Simulation Statistics">
                 <img src="${tesIconPath("icon-statistics")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Stats</span>
               </button>
@@ -11815,6 +12836,16 @@ function createRenderer(container, engine) {
                 <img src="${tesIconPath("icon-power")}" alt="" class="btn-utility-icon" aria-hidden="true" />
                 <span>Config</span>
               </button>
+            </div>
+          </div>
+
+          <!-- News Sub-Bar (Part 1.1) -->
+          <div class="tes-news-bar" id="news-bar">
+            <div class="tes-news-ticker" id="news-ticker" title="Galactic Newsfeed">
+              <img src="${tesIconPath("news")}" alt="" class="tes-news-icon" aria-hidden="true" onerror="this.style.display='none'" />
+              <span class="tes-news-content" data-field="news-content">
+                The universe keeps expanding, and somehow apartments on big cities keeps getting smaller...
+              </span>
             </div>
           </div>
 
@@ -11828,15 +12859,13 @@ function createRenderer(container, engine) {
               <img src="${tesIconPath("nav-devices")}" alt="" class="tes-nav-icon" aria-hidden="true" />
               <span>Devices</span>
             </button>
-            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Science Layer unlocks in later phases">
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled aria-label="Unknown locked system" title="Locked">
               <img src="${tesIconPath("nav-science")}" alt="" class="tes-nav-icon" aria-hidden="true" />
-              <span>Science</span>
-              <span class="badge-tab-locked">LOCKED</span>
+              <span>???</span>
             </button>
-            <button class="tes-nav-tab tes-nav-tab--disabled" disabled title="Locked: Particle synthesis unlocks in later phases">
+            <button class="tes-nav-tab tes-nav-tab--disabled" disabled aria-label="Unknown locked system" title="Locked">
               <img src="${tesIconPath("nav-particles")}" alt="" class="tes-nav-icon" aria-hidden="true" />
-              <span>Particles</span>
-              <span class="badge-tab-locked">LOCKED</span>
+              <span>???</span>
             </button>
             <button class="tes-nav-tab" data-action="open-drawer" data-drawer="settings" title="More Options">
               <img src="${tesIconPath("nav-more")}" alt="" class="tes-nav-icon" aria-hidden="true" />
@@ -11949,7 +12978,10 @@ function createRenderer(container, engine) {
                 </div>
 
                 <div class="tes-crc-right">
-                  <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                  <div class="tes-crc-rate-container" style="display: flex; align-items: baseline; gap: 8px;">
+                    <div class="tes-crc-production" data-field="crc-rate">+0.00 pJ/s</div>
+                    <span class="tes-crc-growth" data-field="crc-growth" title="Measures the percentage change in gross Energy production per second.">(+0.00%/sec)</span>
+                  </div>
                   <span class="badge-status badge-status--active" data-field="crc-level-mult">Level 1</span>
                   <button class="btn-icon-only" data-action="show-info" data-topic="crc" aria-label="CRC Breakdown details">
                     <img src="${tesIconPath("icon-info")}" alt="" />
@@ -12111,6 +13143,57 @@ function createRenderer(container, engine) {
                     <span class="tes-install-transistor-cost tabular" data-field="arec-transistor-cost">250 pJ</span>
                   </button>
                 </div>
+
+                <!-- 4. Algorithm Redesign (ARed) - Revealed only if unlocks.ARed -->
+                <div class="tes-study-unit" id="study-unit-ared" style="display: none;">
+                  <article class="tes-study-row" id="study-row-ared">
+                    <div class="tes-study-left">
+                      <img src="${tesIconPath("algorithm-redesign")}" alt="" class="tes-study-icon" aria-hidden="true" />
+                      <div class="tes-study-info">
+                        <span class="eyebrow">REDESIGN STUDY</span>
+                        <div class="tes-study-title-line">
+                          <div class="tes-study-name" data-field="ared-title">Algorithm Redesign (0)</div>
+                          <button class="btn-study-improve btn-study-improve--disabled" data-action="claim-study-improve" data-target="ARed" data-field="ared-improve-btn" aria-disabled="true" aria-label="Improve Algorithm Redesign study speed" title="Study Improve: Accelerate study speed">
+                            <span class="improve-arrow">▲</span>
+                            <span class="improve-level-badge" data-field="ared-improve-badge" style="display: none;">0</span>
+                            <span class="improve-milestone-hint tabular" data-field="ared-improve-milestone">0/33</span>
+                          </button>
+                        </div>
+                        <span class="tes-study-desc" style="font-size: 11px; color: var(--tes-text-secondary);">Synthesizes recalculations into architectural redesigns.</span>
+                        <span class="tes-study-cost-hint">Req 12 A.Rec</span>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-center">
+                      <span class="tes-study-duration" data-field="ared-dur">0.50s</span>
+                      <div class="tes-progress-circle-wrap" title="Study Progress">
+                        <svg class="tes-progress-svg" width="22" height="22" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" fill="none"></circle>
+                          <circle cx="12" cy="12" r="9" stroke="var(--tes-teal)" stroke-width="2.5" fill="none"
+                            stroke-dasharray="56.5" stroke-dashoffset="56.5" data-field="ared-progress-ring"></circle>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div class="tes-study-right">
+                      <button class="btn-primary" data-action="study-feature" data-target="ARed" data-count="1" data-field="ared-study-btn" title="Study Algorithm Redesign (Hotkey: G)">
+                        Study <kbd class="tes-hotkey-hint">G</kbd>
+                      </button>
+                      <div class="badge-auto" data-action="toggle-auto-study" data-target="ARed" data-field="ared-auto-badge">
+                        Auto: Locked
+                      </div>
+                      <button class="btn-icon-only" data-action="show-info" data-topic="ared" aria-label="A.Red info">
+                        <img src="${tesIconPath("icon-info")}" alt="" />
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Install Transistor Card (Section 3) -->
+                  <button class="tes-install-transistor-card" data-action="install-transistor" data-target="ARed" data-field="ared-install-transistor" style="${boardOwned ? '' : 'display: none;'}" aria-label="Install Transistor into Algorithm Redesign">
+                    <span class="tes-install-transistor-label">Install Transistor</span>
+                    <span class="tes-install-transistor-cost tabular" data-field="ared-transistor-cost">250 pJ</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Prestige Actions Row (Side-by-Side: Machine Learning & Setup Optimization) -->
@@ -12179,6 +13262,20 @@ function createRenderer(container, engine) {
 
             <!-- TAB 2: DEVICES (Section 7) -->
             <section class="tes-devices-tab" id="tab-devices" style="display: none;">
+              <!-- Particle Synthesizer Teaser (Revealed after reaching 100e9 J) -->
+              <div class="tes-synth-teaser-card" id="synth-teaser-card" style="display: none;">
+                <div class="tes-synth-teaser-left">
+                  <img src="${tesIconPath("nav-particles")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                  <div class="tes-synth-teaser-info">
+                    <div class="tes-synth-teaser-title">PARTICLE SYNTHESIZER</div>
+                    <div class="tes-synth-teaser-desc">The heavy iron doors have unlocked. High-voltage chambers hum with unknown potential.</div>
+                  </div>
+                </div>
+                <button class="btn-primary tes-pulse-btn" data-action="activate-synth-teaser" id="btn-activate-synth">
+                  Activate
+                </button>
+              </div>
+
               <!-- Filter Bar (Section 7.3) -->
               <div class="tes-filter-bar">
                 <div class="tes-category-pills">
@@ -12283,6 +13380,28 @@ function createRenderer(container, engine) {
                           Add
                         </button>
                         <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-arec" aria-label="AutoCalculator ARec info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
+                    <!-- AutoCalculator ARed (Revealed only if unlocks.ARed) -->
+                    <article class="tes-device-row" data-device-id="autoCalculator_ARed" id="device-row-chip-ared" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("auto-calculator-red")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">AutoCalculator — Redesigns</span>
+                            <span class="badge-status badge-status--off" data-field="chip-ared-badge">${formatEnergy(1.92e-9)}</span>
+                          </div>
+                          <span class="tes-device-desc">Automatically performs studies of its assigned type.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="autoCalculator_ARed" data-field="chip-ared-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-chip-ared" aria-label="AutoCalculator ARed info">
                           <img src="${tesIconPath("icon-info")}" alt="" />
                         </button>
                       </div>
@@ -12423,6 +13542,28 @@ function createRenderer(container, engine) {
                       </div>
                     </article>
 
+                    <!-- Backpropagator (Unique Device, revealed at SO3 when currentRunPeakEnergy >= energytoUnlock) -->
+                    <article class="tes-device-row" data-device-id="backpropagator" id="device-row-backpropagator" style="display: none;">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("backpropagator")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Backpropagator</span>
+                            <span class="badge-status badge-status--off" data-field="backpropagator-badge">${formatEnergy(1)}</span>
+                          </div>
+                          <span class="tes-device-desc">Improves global Energy production based on the amount of Algorithm Redesigns owned.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="backpropagator" data-field="backpropagator-action-btn">
+                          Add
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-backpropagator" aria-label="Backpropagator info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
+
                     <!-- Capacitor -->
                     <article class="tes-device-row" data-device-id="capacitor" id="device-row-capacitor">
                       <div class="tes-device-row-left">
@@ -12499,6 +13640,28 @@ function createRenderer(container, engine) {
                         </button>
                       </div>
                     </article>
+
+                    <!-- Statistics Display -->
+                    <article class="tes-device-row" data-device-id="statisticsDisplay" id="device-row-statistics-display">
+                      <div class="tes-device-row-left">
+                        <img src="${tesIconPath("icon-statistics")}" alt="" class="tes-device-icon" aria-hidden="true" />
+                        <div class="tes-device-main-info">
+                          <div class="tes-device-title-line">
+                            <span class="tes-device-name">Statistics Display</span>
+                            <span class="badge-status badge-status--off" data-field="statistics-display-badge">${formatEnergy(1e-7)}</span>
+                          </div>
+                          <span class="tes-device-desc">Unlocks advanced facility statistics and energy production records.</span>
+                        </div>
+                      </div>
+                      <div class="tes-device-row-right">
+                        <button class="btn-primary" data-action="buy-element" data-element-id="statisticsDisplay" data-field="statistics-display-action-btn">
+                          Add (${formatEnergy(1e-7)})
+                        </button>
+                        <button class="btn-icon-only" data-action="show-info" data-topic="device-statistics-display" aria-label="Statistics Display info">
+                          <img src="${tesIconPath("icon-info")}" alt="" />
+                        </button>
+                      </div>
+                    </article>
                   </div>
                 </div>
               </div>
@@ -12509,6 +13672,15 @@ function createRenderer(container, engine) {
         <!-- DRAWERS & MODALS CONTAINER -->
         <div id="tes-drawers-container"></div>
         <div id="tes-popover-container"></div>
+
+        <!-- NARRATIVE MILESTONE MODAL OVERLAY -->
+        <div class="tes-narrative-overlay" id="narrative-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+          <div class="tes-narrative-modal" id="narrative-modal">
+            <h3 class="tes-narrative-title" id="narrative-title"></h3>
+            <div class="tes-narrative-body" id="narrative-body"></div>
+            <div class="tes-narrative-actions" id="narrative-actions"></div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -12601,7 +13773,14 @@ function createRenderer(container, engine) {
       energyDecayItem: container.querySelector("#energy-decay-item"),
       energyDecay: container.querySelector('[data-field="energy-decay"]'),
       crcRate: container.querySelector('[data-field="crc-rate"]'),
+      crcGrowth: container.querySelector('[data-field="crc-growth"]'),
       crcLevelMult: container.querySelector('[data-field="crc-level-mult"]'),
+      btnStats: container.querySelector("#btn-stats"),
+      synthTeaserCard: container.querySelector("#synth-teaser-card"),
+      narrativeOverlay: container.querySelector("#narrative-overlay"),
+      narrativeTitle: container.querySelector("#narrative-title"),
+      narrativeBody: container.querySelector("#narrative-body"),
+      narrativeActions: container.querySelector("#narrative-actions"),
 
       energyEraPercent: container.querySelector('[data-field="energy-era-percent"]'),
       energyEraFill: container.querySelector('[data-field="energy-era-fill"]'),
@@ -12640,6 +13819,19 @@ function createRenderer(container, engine) {
       arecImproveMilestone: container.querySelector('[data-field="arec-improve-milestone"]'),
       arecInstallTransistor: container.querySelector('[data-field="arec-install-transistor"]'),
       arecTransistorCost: container.querySelector('[data-field="arec-transistor-cost"]'),
+
+      aredUnit: container.querySelector('#study-unit-ared'),
+      aredRow: container.querySelector("#study-row-ared"),
+      aredTitle: container.querySelector('[data-field="ared-title"]'),
+      aredDur: container.querySelector('[data-field="ared-dur"]'),
+      aredRing: container.querySelector('[data-field="ared-progress-ring"]'),
+      aredAutoBadge: container.querySelector('[data-field="ared-auto-badge"]'),
+      aredBtn: container.querySelector('[data-field="ared-study-btn"]'),
+      aredImproveBtn: container.querySelector('[data-field="ared-improve-btn"]'),
+      aredImproveBadge: container.querySelector('[data-field="ared-improve-badge"]'),
+      aredImproveMilestone: container.querySelector('[data-field="ared-improve-milestone"]'),
+      aredInstallTransistor: container.querySelector('[data-field="ared-install-transistor"]'),
+      aredTransistorCost: container.querySelector('[data-field="ared-transistor-cost"]'),
 
       mlProgressText: container.querySelector(
         '[data-field="ml-progress-text"]',
@@ -12691,6 +13883,7 @@ function createRenderer(container, engine) {
       "autoCalculator_AImp",
       "autoCalculator_AUpg",
       "autoCalculator_ARec",
+      "autoCalculator_ARed",
       "transistorBoard",
       "microprocessor",
       "processor",
@@ -12699,6 +13892,8 @@ function createRenderer(container, engine) {
       "capacitor",
       "powerCell",
       "hardDisk",
+      "backpropagator",
+      "statisticsDisplay",
     ];
 
     deviceIds.forEach((id) => {
@@ -12727,6 +13922,14 @@ function createRenderer(container, engine) {
               badge: row.querySelector('[data-field="chip-arec-badge"]'),
               actionBtn: row.querySelector(
                 '[data-field="chip-arec-action-btn"]',
+              ),
+            };
+            break;
+          case "autoCalculator_ARed":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="chip-ared-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="chip-ared-action-btn"]',
               ),
             };
             break;
@@ -12791,6 +13994,22 @@ function createRenderer(container, engine) {
               ),
             };
             break;
+          case "backpropagator":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="backpropagator-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="backpropagator-action-btn"]',
+              ),
+            };
+            break;
+          case "statisticsDisplay":
+            dom.deviceControls[id] = {
+              badge: row.querySelector('[data-field="statistics-display-badge"]'),
+              actionBtn: row.querySelector(
+                '[data-field="statistics-display-action-btn"]',
+              ),
+            };
+            break;
         }
       }
     });
@@ -12840,6 +14059,23 @@ function createRenderer(container, engine) {
         Boolean(state.devMode),
       );
     }
+
+    // Statistics Utility Button Availability (Part 3.1)
+    if (dom.btnStats) {
+      const statsUnlocked = Boolean(state.devices?.statisticsDisplay?.owned || state.devMode);
+      if (statsUnlocked) {
+        dom.btnStats.disabled = false;
+        dom.btnStats.title = "Simulation Statistics";
+        dom.btnStats.classList.remove("btn-utility--disabled");
+      } else {
+        dom.btnStats.disabled = true;
+        dom.btnStats.title = "Requires Statistics Display";
+        dom.btnStats.classList.add("btn-utility--disabled");
+      }
+    }
+
+    // Narrative Milestone Triggers Check (Part 2)
+    checkNarrativeTriggers(state);
 
     // Tab Switching Display
     const activeTab = state.ui?.activeTab || "energy";
@@ -12924,6 +14160,24 @@ function createRenderer(container, engine) {
     // Cosmic Radiation Condenser (CRC) displays GROSS Production
     setElText(dom.crcRate, formatRate(prodRate));
     setElText(dom.crcLevelMult, `Level ${compLevel}`);
+
+    // CRC Growth Indicator (Part 4)
+    if (dom.crcGrowth) {
+      const growth = crcGrowthTracker.update(
+        prodRate,
+        performance.now(),
+        state.stats?.totalMachineLearnings ?? 0,
+        state.facilityOptimizations ?? 0,
+      );
+      if (dom.crcGrowth.textContent !== growth.text) {
+        dom.crcGrowth.textContent = growth.text;
+      }
+      if (growth.isNegative) {
+        dom.crcGrowth.classList.add("tes-crc-growth--negative");
+      } else {
+        dom.crcGrowth.classList.remove("tes-crc-growth--negative");
+      }
+    }
 
     // Stored Energy displays NET Production: Gross - Decay (and any active device drain)
     let totalDrain = overflowDecay;
@@ -13030,6 +14284,7 @@ function createRenderer(container, engine) {
     updateStudyExtraControls("AImp", dom.aimpImproveBtn, dom.aimpImproveBadge, dom.aimpImproveMilestone, dom.aimpInstallTransistor, dom.aimpTransistorCost);
     updateStudyExtraControls("AUpg", dom.aupgImproveBtn, dom.aupgImproveBadge, dom.aupgImproveMilestone, dom.aupgInstallTransistor, dom.aupgTransistorCost);
     updateStudyExtraControls("ARec", dom.arecImproveBtn, dom.arecImproveBadge, dom.arecImproveMilestone, dom.arecInstallTransistor, dom.arecTransistorCost);
+    updateStudyExtraControls("ARed", dom.aredImproveBtn, dom.aredImproveBadge, dom.aredImproveMilestone, dom.aredInstallTransistor, dom.aredTransistorCost);
 
     // Algorithm Improvement
     const aImpOwned = state.algorithms?.AImp?.owned ?? 0;
@@ -13212,6 +14467,80 @@ function createRenderer(container, engine) {
       }
     }
 
+    // Algorithm Redesign
+    if (dom.aredRow) {
+      if (state.unlocks?.ARed) {
+        if (dom.aredUnit && dom.aredUnit.style.display !== "flex")
+          dom.aredUnit.style.display = "flex";
+        if (dom.aredRow.style.display !== "flex")
+          dom.aredRow.style.display = "flex";
+        const aRedOwned = state.algorithms?.ARed?.owned ?? 0;
+        setElText(
+          dom.aredTitle,
+          `Algorithm Redesign (${formatInteger(aRedOwned)})`,
+        );
+        const aRedDur = calculateEffectiveStudyDuration(
+          "ARed",
+          state,
+          config,
+          engine.statResolver,
+        );
+        setElText(dom.aredDur, formatStudyDuration(aRedDur));
+        const aRedCanAfford = (state.algorithms?.ARec?.owned ?? 0) >= 12;
+        if (dom.aredBtn) {
+          const disabled = !aRedCanAfford && !state.devMode;
+          if (dom.aredBtn.disabled !== disabled)
+            dom.aredBtn.disabled = disabled;
+        }
+        if (dom.aredRing) {
+          const aRedStudy = state.manualStudies?.ARed ?? (state.manualStudy?.target === "ARed" ? state.manualStudy : null);
+          const isARedActive = Boolean(aRedStudy?.active);
+          if (isARedActive && aRedDur > 0) {
+            if (aRedDur < 0.05) {
+              dom.aredRing.setAttribute("stroke-dashoffset", "0");
+            } else {
+              const progress = Math.min(
+                1,
+                (aRedStudy?.elapsed ?? 0) / aRedDur,
+              );
+              const offset = (56.5 * (1 - progress)).toFixed(1);
+              if (dom.aredRing.getAttribute("stroke-dashoffset") !== offset) {
+                dom.aredRing.setAttribute("stroke-dashoffset", offset);
+              }
+            }
+          } else if (dom.aredRing.getAttribute("stroke-dashoffset") !== "56.5") {
+            dom.aredRing.setAttribute("stroke-dashoffset", "56.5");
+          }
+        }
+        if (dom.aredAutoBadge) {
+          const hasChip = (state.devices?.chips?.allocations?.ARed ?? 0) > 0;
+          if (!hasChip) {
+            if (
+              dom.aredAutoBadge.className !== "badge-auto badge-auto--locked"
+            ) {
+              dom.aredAutoBadge.className = "badge-auto badge-auto--locked";
+              dom.aredAutoBadge.textContent = "Auto: Locked";
+            }
+          } else {
+            const isEnabled = state.devices?.chips?.enabled?.ARed !== false;
+            const targetClass = `badge-auto ${isEnabled ? "badge-auto--on" : "badge-auto--off"}`;
+            const targetText = isEnabled ? "Auto: ON" : "Auto: OFF";
+            if (dom.aredAutoBadge.className !== targetClass) {
+              dom.aredAutoBadge.className = targetClass;
+              dom.aredAutoBadge.textContent = targetText;
+            }
+          }
+        }
+      } else {
+        if (dom.aredUnit && dom.aredUnit.style.display !== "none") {
+          dom.aredUnit.style.display = "none";
+        }
+        if (dom.aredRow.style.display !== "none") {
+          dom.aredRow.style.display = "none";
+        }
+      }
+    }
+
     // Machine Learning Card
     setElText(
       dom.mlProgressText,
@@ -13289,6 +14618,12 @@ function createRenderer(container, engine) {
     const showAdded = state.ui?.showAdded !== false;
     const showUnavailable = state.ui?.showUnavailable !== false;
 
+    // Particle Synthesizer Teaser Visibility (Part 2.5)
+    if (dom.synthTeaserCard) {
+      const showTeaser = Boolean(state.narrative?.synthTeaserUnlocked);
+      dom.synthTeaserCard.style.display = showTeaser ? "flex" : "none";
+    }
+
     // Checkbox synchronization
     if (dom.toggleShowAdded && dom.toggleShowAdded.checked !== showAdded) {
       dom.toggleShowAdded.checked = showAdded;
@@ -13312,6 +14647,7 @@ function createRenderer(container, engine) {
       "autoCalculator_AImp",
       "autoCalculator_AUpg",
       "autoCalculator_ARec",
+      "autoCalculator_ARed",
       "transistorBoard",
       "microprocessor",
       "processor",
@@ -13320,6 +14656,7 @@ function createRenderer(container, engine) {
       "capacitor",
       "powerCell",
       "hardDisk",
+      "backpropagator",
     ];
 
     let counts = {
@@ -13550,6 +14887,54 @@ function createRenderer(container, engine) {
               btn.dataset.action = "buy-element";
             if (btn.dataset.elementId !== "autoCalculator_ARec")
               btn.dataset.elementId = "autoCalculator_ARec";
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+          }
+        }
+        break;
+      }
+
+      case "autoCalculator_ARed": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="chip-ared-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="chip-ared-action-btn"]');
+        const hasARed = (state.devices?.chips?.allocations?.ARed ?? 0) > 0;
+        if (hasARed) {
+          const isEnabled = state.devices?.chips?.enabled?.ARed !== false;
+          if (badge) {
+            const cls = `badge-status ${isEnabled ? "badge-status--active" : "badge-status--off"}`;
+            const txt = isEnabled ? "Active" : "Paused";
+            if (badge.className !== cls) badge.className = cls;
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-secondary")
+              btn.className = "btn-secondary";
+            const txt = isEnabled ? "Pause" : "Resume";
+            if (btn.textContent !== txt) btn.textContent = txt;
+            if (btn.dataset.action !== "toggle-auto-study")
+              btn.dataset.action = "toggle-auto-study";
+            if (btn.dataset.target !== "ARed") btn.dataset.target = "ARed";
+            if (btn.dataset.elementId) delete btn.dataset.elementId;
+            if (btn.disabled) btn.disabled = false;
+          }
+        } else {
+          if (badge) {
+            if (badge.className !== "badge-status badge-status--off")
+              badge.className = "badge-status badge-status--off";
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.className !== "btn-primary") btn.className = "btn-primary";
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            if (btn.dataset.action !== "buy-element")
+              btn.dataset.action = "buy-element";
+            if (btn.dataset.elementId !== "autoCalculator_ARed")
+              btn.dataset.elementId = "autoCalculator_ARed";
             const disabled = !canClick;
             if (btn.disabled !== disabled) btn.disabled = disabled;
           }
@@ -13900,6 +15285,82 @@ function createRenderer(container, engine) {
         }
         break;
       }
+
+      case "backpropagator": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="backpropagator-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="backpropagator-action-btn"]');
+        const hasDevice = (owned ?? 0) > 0;
+
+        if (hasDevice) {
+          if (badge) {
+            const cls = "badge-status badge-status--active";
+            if (badge.className !== cls) badge.className = cls;
+            const mult = calculateBackpropagatorMultiplier(state, config, engine.statResolver);
+            const txt = mult.gt(1) ? `${formatNumber(mult, 1)}x` : "Active";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            if (btn.disabled !== true) btn.disabled = true;
+            if (btn.textContent !== "Owned") btn.textContent = "Owned";
+            if (btn.className !== "btn-secondary") btn.className = "btn-secondary";
+          }
+        } else {
+          if (badge) {
+            const cls = "badge-status badge-status--off";
+            if (badge.className !== cls) badge.className = cls;
+            const txt = cost ? formatEnergy(cost) : "Locked";
+            if (badge.textContent !== txt) badge.textContent = txt;
+          }
+          if (btn) {
+            const disabled = !canClick;
+            if (btn.disabled !== disabled) btn.disabled = disabled;
+            if (btn.textContent !== "Add") btn.textContent = "Add";
+            const btnCls = canClick ? "btn-primary" : "btn-secondary";
+            if (btn.className !== btnCls) btn.className = btnCls;
+          }
+        }
+        break;
+      }
+
+      case "statisticsDisplay": {
+        const badge =
+          controls?.badge ||
+          row.querySelector('[data-field="statistics-display-badge"]');
+        const btn =
+          controls?.actionBtn ||
+          row.querySelector('[data-field="statistics-display-action-btn"]');
+        const isOwned = (state.devices?.statisticsDisplay?.owned ?? 0) >= 1;
+
+        if (isOwned) {
+          if (badge) {
+            const cls = "badge-status badge-status--active";
+            if (badge.className !== cls) badge.className = cls;
+            setElText(badge, "Installed");
+          }
+          if (btn) {
+            setElText(btn, "Installed");
+            btn.disabled = true;
+            if (btn.className !== "btn-secondary") btn.className = "btn-secondary";
+          }
+        } else {
+          if (badge) {
+            const cls = "badge-status badge-status--off";
+            if (badge.className !== cls) badge.className = cls;
+            setElText(badge, cost ? formatEnergy(cost) : formatEnergy(1e-7));
+          }
+          if (btn) {
+            setElText(btn, cost ? `Add (${formatEnergy(cost)})` : "Add");
+            btn.disabled = !canClick;
+            const btnCls = canClick ? "btn-primary" : "btn-secondary";
+            if (btn.className !== btnCls) btn.className = btnCls;
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -13910,7 +15371,11 @@ function createRenderer(container, engine) {
           containerEl.querySelector('[data-field="drawer-t-arec"]'),
         );
         const isARecUnlocked = Boolean(state.unlocks?.ARec);
-        if (hasARecInDom !== isARecUnlocked) {
+        const hasARedInDom = Boolean(
+          containerEl.querySelector('[data-field="drawer-t-ared"]'),
+        );
+        const isARedUnlocked = Boolean(state.unlocks?.ARed);
+        if (hasARecInDom !== isARecUnlocked || hasARedInDom !== isARedUnlocked) {
           lastActiveDrawer = null;
           renderDrawersAndModals(state, config);
           return;
@@ -13926,6 +15391,7 @@ function createRenderer(container, engine) {
         const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
         const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
         const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const tARed = state.devices?.transistorAllocations?.ARed ?? 0;
         const speedAImp = calculateEffectiveStudySpeed(
           "AImp",
           state,
@@ -13944,6 +15410,12 @@ function createRenderer(container, engine) {
           config,
           engine.statResolver,
         );
+        const speedARed = calculateEffectiveStudySpeed(
+          "ARed",
+          state,
+          config,
+          engine.statResolver,
+        );
         const durAImp = calculateEffectiveStudyDuration(
           "AImp",
           state,
@@ -13958,6 +15430,12 @@ function createRenderer(container, engine) {
         );
         const durARec = calculateEffectiveStudyDuration(
           "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARed = calculateEffectiveStudyDuration(
+          "ARed",
           state,
           config,
           engine.statResolver,
@@ -14085,6 +15563,49 @@ function createRenderer(container, engine) {
           );
           if (btnUpgToRec) btnUpgToRec.disabled = tAUpg <= 0;
         }
+
+        const btnRedToImp = containerEl.querySelector(
+          '[data-field="drawer-reassign-ared-aimp"]',
+        );
+        if (btnRedToImp) btnRedToImp.disabled = tARed <= 0;
+        const btnRedToUpg = containerEl.querySelector(
+          '[data-field="drawer-reassign-ared-aupg"]',
+        );
+        if (btnRedToUpg) btnRedToUpg.disabled = tARed <= 0;
+        const btnRedToRec = containerEl.querySelector(
+          '[data-field="drawer-reassign-ared-arec"]',
+        );
+        if (btnRedToRec) btnRedToRec.disabled = tARed <= 0;
+
+        const rowARed = containerEl.querySelector(
+          '[data-field="drawer-row-ared"]',
+        );
+        if (rowARed) {
+          setElText(
+            containerEl.querySelector('[data-field="drawer-t-ared"]'),
+            formatInteger(tARed),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-dur-ared"]'),
+            formatStudyDuration(durARed),
+          );
+          setElText(
+            containerEl.querySelector('[data-field="drawer-speed-ared"]'),
+            `${speedARed.toFixed(2)}x`,
+          );
+          const btnImpToRed = containerEl.querySelector(
+            '[data-field="drawer-reassign-aimp-ared"]',
+          );
+          if (btnImpToRed) btnImpToRed.disabled = tAImp <= 0;
+          const btnUpgToRed = containerEl.querySelector(
+            '[data-field="drawer-reassign-aupg-ared"]',
+          );
+          if (btnUpgToRed) btnUpgToRed.disabled = tAUpg <= 0;
+          const btnRecToRed = containerEl.querySelector(
+            '[data-field="drawer-reassign-arec-ared"]',
+          );
+          if (btnRecToRed) btnRecToRed.disabled = tARec <= 0;
+        }
         break;
       }
 
@@ -14093,7 +15614,11 @@ function createRenderer(container, engine) {
           containerEl.querySelector('[data-micro-target-btn="ARec"]'),
         );
         const isARecUnlocked = Boolean(state.unlocks?.ARec);
-        if (hasARecBtn !== isARecUnlocked) {
+        const hasARedBtn = Boolean(
+          containerEl.querySelector('[data-micro-target-btn="ARed"]'),
+        );
+        const isARedUnlocked = Boolean(state.unlocks?.ARed);
+        if (hasARecBtn !== isARecUnlocked || hasARedBtn !== isARedUnlocked) {
           lastActiveDrawer = null;
           renderDrawersAndModals(state, config);
           return;
@@ -14307,9 +15832,30 @@ function createRenderer(container, engine) {
       }
 
       case "stats": {
+        const totalEnergyProducedEra = state.stats?.totalEnergyProducedEra ?? state.stats?.totalEnergyProduced ?? 0;
+        setElText(
+          containerEl.querySelector('[data-field="stat-era-energy"]'),
+          formatEnergy(totalEnergyProducedEra),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-equivalence"]'),
+          getEnergyEquivalenceText(totalEnergyProducedEra),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-total-playtime"]'),
+          formatDuration(state.stats?.gameTime ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-era-time"]'),
+          formatDuration(state.stats?.timeInCurrentEra ?? state.stats?.gameTime ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-so-time"]'),
+          formatDuration(state.stats?.timeSinceLastSO ?? state.stats?.gameTime ?? 0),
+        );
         setElText(
           containerEl.querySelector('[data-field="stat-comp-level"]'),
-          state.computerLevel ?? 1,
+          state.stats?.highestComputerLevel ?? state.computerLevel ?? 1,
         );
         setElText(
           containerEl.querySelector('[data-field="stat-mls"]'),
@@ -14325,7 +15871,23 @@ function createRenderer(container, engine) {
         );
         setElText(
           containerEl.querySelector('[data-field="stat-energy"]'),
-          formatEnergy(state.energy),
+          formatEnergy(state.stats?.highestStoredEnergy ?? state.energy ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-aimp"]'),
+          formatInteger(state.stats?.studiesCompleted?.AImp ?? state.algorithms?.AImp?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-aupg"]'),
+          formatInteger(state.stats?.studiesCompleted?.AUpg ?? state.algorithms?.AUpg?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-arec"]'),
+          formatInteger(state.stats?.studiesCompleted?.ARec ?? state.algorithms?.ARec?.produced ?? 0),
+        );
+        setElText(
+          containerEl.querySelector('[data-field="stat-studies-ared"]'),
+          formatInteger(state.stats?.studiesCompleted?.ARed ?? state.algorithms?.ARed?.produced ?? 0),
         );
         break;
       }
@@ -14398,6 +15960,7 @@ function createRenderer(container, engine) {
         const tAImp = state.devices?.transistorAllocations?.AImp ?? 0;
         const tAUpg = state.devices?.transistorAllocations?.AUpg ?? 0;
         const tARec = state.devices?.transistorAllocations?.ARec ?? 0;
+        const tARed = state.devices?.transistorAllocations?.ARed ?? 0;
         const speedAImp = calculateEffectiveStudySpeed(
           "AImp",
           state,
@@ -14416,6 +15979,12 @@ function createRenderer(container, engine) {
           config,
           engine.statResolver,
         );
+        const speedARed = calculateEffectiveStudySpeed(
+          "ARed",
+          state,
+          config,
+          engine.statResolver,
+        );
         const durAImp = calculateEffectiveStudyDuration(
           "AImp",
           state,
@@ -14430,6 +15999,12 @@ function createRenderer(container, engine) {
         );
         const durARec = calculateEffectiveStudyDuration(
           "ARec",
+          state,
+          config,
+          engine.statResolver,
+        );
+        const durARed = calculateEffectiveStudyDuration(
+          "ARed",
           state,
           config,
           engine.statResolver,
@@ -14495,6 +16070,7 @@ function createRenderer(container, engine) {
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                           <button data-field="drawer-reassign-aupg-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="AImp" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
                           ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AImp" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                          ${state.unlocks?.ARed ? `<button data-field="drawer-reassign-ared-aimp" class="btn-secondary" data-action="reassign-transistor" data-from="ARed" data-to="AImp" data-count="1" ${tARed <= 0 ? "disabled" : ""}>+1 from ARed</button>` : ""}
                         </div>
                       </td>
                     </tr>
@@ -14507,6 +16083,7 @@ function createRenderer(container, engine) {
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                           <button data-field="drawer-reassign-aimp-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="AUpg" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
                           ${state.unlocks?.ARec ? `<button data-field="drawer-reassign-arec-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="AUpg" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>` : ""}
+                          ${state.unlocks?.ARed ? `<button data-field="drawer-reassign-ared-aupg" class="btn-secondary" data-action="reassign-transistor" data-from="ARed" data-to="AUpg" data-count="1" ${tARed <= 0 ? "disabled" : ""}>+1 from ARed</button>` : ""}
                         </div>
                       </td>
                     </tr>
@@ -14522,6 +16099,26 @@ function createRenderer(container, engine) {
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                           <button data-field="drawer-reassign-aimp-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="ARec" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
                           <button data-field="drawer-reassign-aupg-arec" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="ARec" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                          ${state.unlocks?.ARed ? `<button data-field="drawer-reassign-ared-arec" class="btn-secondary" data-action="reassign-transistor" data-from="ARed" data-to="ARec" data-count="1" ${tARed <= 0 ? "disabled" : ""}>+1 from ARed</button>` : ""}
+                        </div>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
+                    ${
+                      state.unlocks?.ARed
+                        ? `
+                    <tr data-field="drawer-row-ared">
+                      <td><strong>A.Redesign</strong></td>
+                      <td data-field="drawer-t-ared" style="color: var(--tes-cyan); font-weight: 600;">${formatInteger(tARed)}</td>
+                      <td data-field="drawer-dur-ared">${formatStudyDuration(durARed)}</td>
+                      <td data-field="drawer-speed-ared">${speedARed.toFixed(2)}x</td>
+                      <td>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <button data-field="drawer-reassign-aimp-ared" class="btn-secondary" data-action="reassign-transistor" data-from="AImp" data-to="ARed" data-count="1" ${tAImp <= 0 ? "disabled" : ""}>+1 from AImp</button>
+                          <button data-field="drawer-reassign-aupg-ared" class="btn-secondary" data-action="reassign-transistor" data-from="AUpg" data-to="ARed" data-count="1" ${tAUpg <= 0 ? "disabled" : ""}>+1 from AUpg</button>
+                          <button data-field="drawer-reassign-arec-ared" class="btn-secondary" data-action="reassign-transistor" data-from="ARec" data-to="ARed" data-count="1" ${tARec <= 0 ? "disabled" : ""}>+1 from ARec</button>
                         </div>
                       </td>
                     </tr>
@@ -14601,6 +16198,7 @@ function createRenderer(container, engine) {
                   <button data-micro-target-btn="AImp" class="${mTarget === "AImp" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AImp">Target A.Imp</button>
                   <button data-micro-target-btn="AUpg" class="${mTarget === "AUpg" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="AUpg">Target A.Upg</button>
                   ${state.unlocks?.ARec ? `<button data-micro-target-btn="ARec" class="${mTarget === "ARec" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="ARec">Target A.Rec</button>` : ""}
+                  ${state.unlocks?.ARed ? `<button data-micro-target-btn="ARed" class="${mTarget === "ARed" ? "btn-primary" : "btn-secondary"}" data-action="set-micro-target" data-target="ARed">Target A.Red</button>` : ""}
                 </div>
 
                 <div class="tes-stored-energy-card" style="max-width: 100%; padding: 14px 18px; margin-bottom: 16px;">
@@ -14804,6 +16402,17 @@ function createRenderer(container, engine) {
                 </div>
 
                 <div class="tes-section-header">
+                  <span class="tes-section-title">NARRATIVE MILESTONE PREVIEWS</span>
+                  <div class="tes-section-line"></div>
+                </div>
+                <div class="tes-cheats-grid" style="margin-bottom: 18px;">
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="intro">Preview Intro</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="so1">Preview SO1</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="so2">Preview SO2</button>
+                  <button class="btn-secondary" data-action="preview-narrative" data-milestone="energy100e9">Preview 100e9 J</button>
+                </div>
+
+                <div class="tes-section-header">
                   <span class="tes-section-title" data-field="dev-audit-count">AUDIT LOG (${state.auditLogs?.length ?? 0})</span>
                   <div class="tes-section-line"></div>
                 </div>
@@ -14916,40 +16525,120 @@ function createRenderer(container, engine) {
         break;
       }
 
-      // 7. Statistics Modal
+      // 7. Statistics Modal (Revamped Instrumentation)
       case "stats": {
+        const totalEnergyProducedEra = state.stats?.totalEnergyProducedEra ?? state.stats?.totalEnergyProduced ?? 0;
         containerEl.innerHTML = `
           <div class="tes-modal-overlay" data-action="close-drawer">
-            <div class="tes-modal">
+            <div class="tes-modal" style="width: min(640px, 95vw); max-height: 85vh; overflow-y: auto;">
               <div class="tes-modal-header">
-                <h3 class="tes-modal-title">Simulation Statistics</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${tesIconPath("icon-statistics")}" alt="" style="width: 22px; height: 22px;" />
+                  <h3 class="tes-modal-title">Facility Instrumentation & Records</h3>
+                </div>
                 <button class="btn-icon-only" data-action="close-drawer" aria-label="Close modal">&times;</button>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Facility Level:</span>
-                  <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.computerLevel ?? 1}</strong>
+
+              <!-- SECTION: CORE STATISTICS -->
+              <div class="tes-stats-section" style="margin-bottom: 16px;">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">CORE ENERGY ERA METRICS</span>
+                  <div class="tes-section-line"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Machine Learnings:</span>
-                  <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                  <span class="eyebrow" style="color: var(--tes-cyan);">TOTAL ENERGY PRODUCED — CURRENT ENERGY ERA</span>
+                  <div style="font-size: 20px; font-weight: 700; color: #fff; margin: 4px 0 8px 0;" data-field="stat-era-energy">
+                    ${formatEnergy(totalEnergyProducedEra)}
+                  </div>
+                  <div style="font-size: 13px; font-style: italic; color: #94a3b8; line-height: 1.45;" data-field="stat-equivalence">
+                    ${getEnergyEquivalenceText(totalEnergyProducedEra)}
+                  </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Facility Optimizations:</span>
-                  <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Playtime:</span>
+                    <strong data-field="stat-total-playtime">${formatDuration(state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Time in Current Era:</span>
+                    <strong data-field="stat-era-time">${formatDuration(state.stats?.timeInCurrentEra ?? state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Time Since Last Setup Optimization:</span>
+                    <strong data-field="stat-so-time">${formatDuration(state.stats?.timeSinceLastSO ?? state.stats?.gameTime ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Fastest 100e9 J Run:</span>
+                    <strong data-field="stat-fastest-100e9">${state.stats?.fastest100e9Time != null ? formatDuration(state.stats.fastest100e9Time) : "Not recorded"}</strong>
+                  </div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Total Hardware Purchases:</span>
-                  <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+              </div>
+
+              <!-- SECTION: PROGRESSION RECORDS -->
+              <div class="tes-stats-section" style="margin-bottom: 16px;">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">PROGRESSION RECORDS</span>
+                  <div class="tes-section-line"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span class="muted">Stored Energy:</span>
-                  <strong data-field="stat-energy">${formatEnergy(state.energy)}</strong>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Highest Computer Level:</span>
+                    <strong data-field="stat-comp-level" style="color: var(--tes-cyan);">${state.stats?.highestComputerLevel ?? state.computerLevel ?? 1}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Highest Stored Energy:</span>
+                    <strong data-field="stat-energy" style="color: #60a5fa;">${formatEnergy(state.stats?.highestStoredEnergy ?? state.energy ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Peak Gross Production Rate:</span>
+                    <strong style="color: var(--tes-teal);">${formatRate(state.stats?.highestGrossEnergyRate ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Hardware Purchases:</span>
+                    <strong data-field="stat-purchases">${formatInteger(state.stats?.totalPurchases ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Machine Learnings:</span>
+                    <strong data-field="stat-mls">${formatInteger(state.stats?.totalMachineLearnings ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Total Setup Optimizations:</span>
+                    <strong data-field="stat-fos">${formatInteger(state.facilityOptimizations ?? 0)}</strong>
+                  </div>
                 </div>
-                <div class="tes-rail-divider"></div>
-                <div style="display: flex; justify-content: flex-end;">
-                  <button class="btn-primary" data-action="close-drawer">Close</button>
+              </div>
+
+              <!-- SECTION: COMPLETED ALGORITHM STUDIES -->
+              <div class="tes-stats-section">
+                <div class="tes-section-header">
+                  <span class="tes-section-title">COMPLETED ALGORITHM STUDIES</span>
+                  <div class="tes-section-line"></div>
                 </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                  <div class="tes-stat-box">
+                    <span class="muted">Improvements (AImp):</span>
+                    <strong data-field="stat-studies-aimp">${formatInteger(state.stats?.studiesCompleted?.AImp ?? state.algorithms?.AImp?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Upgrades (AUpg):</span>
+                    <strong data-field="stat-studies-aupg">${formatInteger(state.stats?.studiesCompleted?.AUpg ?? state.algorithms?.AUpg?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Recalculations (ARec):</span>
+                    <strong data-field="stat-studies-arec">${formatInteger(state.stats?.studiesCompleted?.ARec ?? state.algorithms?.ARec?.produced ?? 0)}</strong>
+                  </div>
+                  <div class="tes-stat-box">
+                    <span class="muted">Redesigns (ARed):</span>
+                    <strong data-field="stat-studies-ared">${formatInteger(state.stats?.studiesCompleted?.ARed ?? state.algorithms?.ARed?.produced ?? 0)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tes-rail-divider" style="margin: 16px 0;"></div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn-primary" data-action="close-drawer">Close</button>
               </div>
             </div>
           </div>
@@ -15095,6 +16784,8 @@ function createRenderer(container, engine) {
         const curBonus = calculateFacilityDeviceMultiplier(foCount, config);
         const nextBonus = calculateFacilityDeviceMultiplier(foCount + 1, config);
         const isFirstTime = foCount === 0;
+        const isSecondTime = foCount === 1;
+        const isThirdTime = foCount === 2;
 
         containerEl.innerHTML = `
           <div class="tes-modal-overlay" data-action="close-drawer">
@@ -15114,8 +16805,28 @@ function createRenderer(container, engine) {
                   <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px;">
                     <img src="${tesIconPath("algorithm-recalculation")}" alt="" style="width: 28px; height: 28px;" />
                     <div style="font-size: 13px; line-height: 1.4;">
-                      <strong style="color: #e9d5ff; display: block; margin-bottom: 2px;">Nova Descoberta Científica!</strong>
+                      <strong style="color: #e9d5ff; display: block; margin-bottom: 2px;">Nova Descoberta Científica (SO1)!</strong>
                       <span style="color: #f3e8ff;">Uma nova forma de melhoria de algoritmo foi descoberta: <strong>Algorithm Recalculation (ARec)</strong>!</span>
+                    </div>
+                  </div>
+                `
+                    : isSecondTime
+                    ? `
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px;">
+                    <img src="${tesIconPath("algorithm-redesign")}" alt="" style="width: 28px; height: 28px;" />
+                    <div style="font-size: 13px; line-height: 1.4;">
+                      <strong style="color: #bae6fd; display: block; margin-bottom: 2px;">Nova Descoberta Científica (SO2)!</strong>
+                      <span style="color: #f0f9ff;">O quarto nível de computação será desbloqueado: <strong>Algorithm Redesign (ARed)</strong>!</span>
+                    </div>
+                  </div>
+                `
+                    : isThirdTime
+                    ? `
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 8px;">
+                    <img src="${tesIconPath("backpropagator")}" alt="" style="width: 28px; height: 28px;" />
+                    <div style="font-size: 13px; line-height: 1.4;">
+                      <strong style="color: #fde047; display: block; margin-bottom: 2px;">Marco Computacional Superior (SO3)!</strong>
+                      <span style="color: #fef08a;">Novo dispositivo quântico disponível após atingir energia suficiente: <strong>Backpropagator</strong>!</span>
                     </div>
                   </div>
                 `
@@ -15132,8 +16843,8 @@ function createRenderer(container, engine) {
                     <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
                       <li><strong>Stored Energy:</strong> Zerada completamente.</li>
                       <li><strong>Study Improvements:</strong> Todas as melhorias e milestones de estudos são zerados.</li>
-                      <li><strong>Algoritmos & Inventários:</strong> AImp, AUpg e ARec zerados.</li>
-                      <li><strong>Hardware Convencional:</strong> Chips, Transistores, Microprocessor, Capacitores, Processors e Hard Disks removidos.</li>
+                      <li><strong>Algoritmos & Inventários:</strong> AImp, AUpg, ARec e ARed zerados.</li>
+                      <li><strong>Hardware Convencional:</strong> Chips, Transistores, Microprocessor, Capacitores, Processors, Hard Disks e Backpropagator removidos.</li>
                     </ul>
                   </div>
 
@@ -15142,8 +16853,10 @@ function createRenderer(container, engine) {
                     <ul style="margin: 0; padding-left: 18px; color: var(--tes-text-secondary); line-height: 1.5;">
                       <li><strong>Computer Level & MLs:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservados</span> (não são reiniciados).</li>
                       <li><strong>Power Cells:</strong> <span style="color: #a7f3d0; font-weight: 600;">Preservadas intactas</span> (única exceção de hardware!).</li>
-                      <li><strong>Multiplicador Permanente:</strong> Bônus de <strong>+9% composto</strong> (de ${(curBonus).toFixed(2)}× para <strong style="color: #c084fc;">${(nextBonus).toFixed(2)}×</strong>) em hardware operacional.</li>
+                      <li><strong>Multiplicador Permanente:</strong> Bônus logarítmico (de ${(curBonus).toFixed(2)}× para <strong style="color: #c084fc;">${(nextBonus).toFixed(2)}×</strong>) em hardware operacional.</li>
                       <li><strong>Algorithm Recalculation (ARec):</strong> Desbloqueado permanentemente.</li>
+                      ${foCount >= 1 ? `<li><strong>Algorithm Redesign (ARed):</strong> Desbloqueado permanentemente.</li>` : ""}
+                      ${foCount >= 2 ? `<li><strong>Backpropagator:</strong> Apto para descoberta no SO3.</li>` : ""}
                     </ul>
                   </div>
                 </div>
@@ -15258,6 +16971,11 @@ function createRenderer(container, engine) {
     render();
   };
   render.showInfo = showInfoPopover;
+  render.isNarrativeModalOpen = isNarrativeModalOpen;
+  render.getActiveNarrativeMilestone = () => activeNarrativeMilestone;
+  render.showNarrativeModal = showNarrativeModal;
+  render.transitionNarrativeComingSoon = transitionNarrativeComingSoon;
+  render.closeNarrativeModal = closeNarrativeModal;
   render.nextNews = () => {
     const list = getNewsList();
     newsIndex = (newsIndex + 1) % list.length;
@@ -15306,8 +17024,29 @@ function bindHotkeys(engine, renderer) {
       return;
     }
 
+    if (renderer?.isNarrativeModalOpen?.()) {
+      if (event.key === "Escape") {
+        const milestone = renderer.getActiveNarrativeMilestone?.();
+        if (milestone !== "intro") {
+          event.preventDefault();
+          renderer.closeNarrativeModal?.(milestone);
+          if (renderer?.render) renderer.render();
+        }
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const primaryBtn = document.querySelector("#narrative-actions button");
+        if (primaryBtn) {
+          primaryBtn.click();
+        }
+        return;
+      }
+      return;
+    }
+
     const key = event.key.toUpperCase();
-    if (["A", "U", "R", "T", "M"].includes(key)) {
+    if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       event.preventDefault();
       engine.setHotkeyState(key, true);
       if (renderer?.render) renderer.render();
@@ -15315,8 +17054,10 @@ function bindHotkeys(engine, renderer) {
   });
 
   window.addEventListener("keyup", (event) => {
+    if (renderer?.isNarrativeModalOpen?.()) return;
+
     const key = event.key.toUpperCase();
-    if (["A", "U", "R", "T", "M"].includes(key)) {
+    if (["A", "U", "R", "G", "T", "M"].includes(key)) {
       engine.setHotkeyState(key, false);
       if (renderer?.render) renderer.render();
     }
@@ -15331,6 +17072,15 @@ function bindHotkeys(engine, renderer) {
 function bindActions(app, engine, saveActions, config, renderer) {
   // Handle click actions
   app.addEventListener("click", (event) => {
+    if (event.target && event.target.id === "narrative-overlay") {
+      const milestone = renderer?.getActiveNarrativeMilestone?.();
+      if (milestone && milestone !== "intro") {
+        if (renderer?.closeNarrativeModal) renderer.closeNarrativeModal(milestone);
+        if (renderer?.render) renderer.render();
+        return;
+      }
+    }
+
     const target = event.target.closest("[data-action]");
     if (!target || target.disabled) return;
 
@@ -15342,14 +17092,25 @@ function bindActions(app, engine, saveActions, config, renderer) {
         const tab = target.dataset.tab || "energy";
         if (engine.state.ui.activeTab !== tab) {
           engine.state.ui.activeTab = tab;
-          renderer.render();
+          try {
+            renderer.render();
+          } catch (err) {
+            console.error("[Main] Error during tab switch render:", err);
+          }
         }
         break;
       }
 
       // 2. Drawer & Modal Management
       case "open-drawer": {
-        if (renderer?.openDrawer) renderer.openDrawer(target.dataset.drawer);
+        const drawer = target.dataset.drawer;
+        if (drawer === "stats") {
+          const hasStats = Boolean(engine.state.devices?.statisticsDisplay?.owned || engine.state.devMode);
+          if (!hasStats) {
+            return;
+          }
+        }
+        if (renderer?.openDrawer) renderer.openDrawer(drawer);
         break;
       }
       case "close-drawer": {
@@ -15364,6 +17125,31 @@ function bindActions(app, engine, saveActions, config, renderer) {
       case "close-modal": {
         if (target.classList.contains("tes-modal-overlay") && event.target !== target) break;
         if (renderer?.closeDrawer) renderer.closeDrawer();
+        break;
+      }
+
+      // Narrative Milestones
+      case "close-narrative": {
+        const milestone = target.dataset.milestone;
+        if (renderer?.closeNarrativeModal) renderer.closeNarrativeModal(milestone);
+        if (renderer?.render) renderer.render();
+        break;
+      }
+      case "transition-narrative-coming-soon": {
+        if (renderer?.transitionNarrativeComingSoon) renderer.transitionNarrativeComingSoon();
+        break;
+      }
+      case "preview-narrative": {
+        const milestone = target.dataset.milestone;
+        if (milestone && renderer?.showNarrativeModal) {
+          renderer.showNarrativeModal(milestone, true);
+        }
+        break;
+      }
+      case "activate-synth-teaser": {
+        if (renderer?.showNarrativeModal) {
+          renderer.showNarrativeModal("coming-soon", false);
+        }
         break;
       }
 
@@ -15700,8 +17486,18 @@ async function start() {
 
     bindHotkeys(engine, renderer);
 
-    engine.subscribe(() => renderer.render());
-    renderer.render();
+    engine.subscribe(() => {
+      try {
+        renderer.render();
+      } catch (err) {
+        console.error("[Main] Error in engine subscription render:", err);
+      }
+    });
+    try {
+      renderer.render();
+    } catch (err) {
+      console.error("[Main] Error during initial render:", err);
+    }
 
     if (initialDrawer && renderer?.openDrawer) {
       renderer.openDrawer(initialDrawer);
@@ -15714,6 +17510,20 @@ async function start() {
     let previousSave = previousTime;
 
     function frame(now) {
+      if (renderer?.isNarrativeModalOpen?.()) {
+        previousTime = now;
+        if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
+          try {
+            renderer.render();
+          } catch (err) {
+            console.error("[Main] Error during narrative modal render:", err);
+          }
+          previousRender = now;
+        }
+        window.requestAnimationFrame(frame);
+        return;
+      }
+
       const rawDelta = (now - previousTime) / 1000;
       previousTime = now;
 
@@ -15722,7 +17532,11 @@ async function start() {
         if (bgSummary && bgSummary.simulatedSeconds >= 5 && !renderer.getActiveDrawer?.()) {
           renderer.openDrawer("offline");
         }
-        renderer.render();
+        try {
+          renderer.render();
+        } catch (err) {
+          console.error("[Main] Error during offline progress render:", err);
+        }
         if (!saveSuppressed) saveState(engine.state, developmentMode);
       } else {
         const deltaSeconds = Math.min(rawDelta, config.timing?.maximumTickSeconds ?? 1.0);
@@ -15730,7 +17544,11 @@ async function start() {
       }
 
       if (now - previousRender >= (config.timing?.renderIntervalMs ?? 50)) {
-        renderer.render();
+        try {
+          renderer.render();
+        } catch (err) {
+          console.error("[Main] Error during tick render:", err);
+        }
         previousRender = now;
       }
 

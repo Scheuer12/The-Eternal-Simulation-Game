@@ -1,9 +1,13 @@
+# Historical classes blueprint
+
+> **Archive notice:** This is preserved planning material, not an implementation specification for the public BETA. Verify all mechanics and names against the current source, configuration, and executable tests.
+
 # The Eternal Simulation — Class Model & Relationships
 
-> **Status:** arquitetura de referência v1.1 — proposta para implementação incremental.  
-> **Público:** contributors, mantenedores e agentes de programação (Copilot/Codex).  
-> **Documento complementar:** `The_Eternal_Simulation_Architecture_Blueprint.md`.  
-> **Escopo:** organização de classes, instâncias, contratos, relações entre Layers, componentes e efeitos, e registro das decisões discutidas.  
+> **Status:** arquitetura de referência v1.1 — proposta para implementação incremental.
+> **Público:** contributors, mantenedores e agentes de programação (Copilot/Codex).
+> **Documento complementar:** `The_Eternal_Simulation_Architecture_Blueprint.md`.
+> **Escopo:** organização de classes, instâncias, contratos, relações entre Layers, componentes e efeitos, e registro das decisões discutidas.
 > **Idioma:** explicações em português; identificadores de código em inglês.
 
 ## 1. Decisão central

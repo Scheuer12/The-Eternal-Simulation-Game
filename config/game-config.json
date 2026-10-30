@@ -5,7 +5,7 @@
     "simulationStepMs": 50,
     "renderIntervalMs": 50,
     "autosaveIntervalMs": 5000,
-    "maximumTickSeconds": 1.0
+    "maximumTickSeconds": 1
   },
   "offlineProgress": {
     "maxOfflineSeconds": 86400,
@@ -34,7 +34,7 @@
   },
   "decay": {
     "overflowDecayRate": 0.012,
-    "overflowDecayPower": 1.42
+    "overflowDecayPower": 1.33
   },
   "dataXP": {
     "aImpData": 1,
@@ -45,28 +45,35 @@
       "scaleMultiplier": 2304,
       "powerExponent": 1.6643485138,
       "xpExponentialStartLevel": 6,
-      "xpGrowthFactor": 2.1
-    }
+      "xpGrowthFactor": 2.1,
+      "latePressureStartLevel": 12,
+      "latePressureFactor": 400
+    },
+    "aRedData": 729
   },
   "facilityOptimization": {
     "initialLevelRequired": 6,
     "levelIncrement": 3,
-    "deviceMultiplierBase": 1.09
+    "deviceMultiplierBase": 1.09,
+    "deviceEffectCoefficient": 1.35,
+    "curveMode": "logarithmic"
   },
   "devices": {
     "chip": {
       "initialCost": 3e-11,
-      "costMultiplier": 4.0,
+      "costMultiplier": 4,
       "defaultTarget": "AImp"
     },
     "transistorBoard": {
-      "initialCost": 500e-12,
+      "initialCost": 5e-10,
       "unique": true
     },
     "transistor": {
-      "initialCost": 250e-12,
+      "initialCost": 2.5e-10,
       "costMultiplier": 1.6,
-      "speedBonusPerUnit": 0.069
+      "speedBonusPerUnit": 0.069,
+      "latePressureStart": 24,
+      "latePressureKappa": 0.18
     },
     "microprocessor": {
       "initialCost": 3e-9,
@@ -81,34 +88,52 @@
       "unique": true,
       "minTransistors": 2,
       "durationBase": 1.5,
-      "bonusDivisor": 3.0
+      "bonusDivisor": 3
     },
     "crcGadget": {
       "initialCost": 1e-8,
       "unique": true,
-      "productionMultiplier": 2.0
+      "productionMultiplier": 2
     },
     "capacitor": {
       "initialCost": 1e-8,
-      "costMultiplier": 3,
+      "costMultiplier": 2.7,
       "bonusPerUnit": 0.5
     },
     "processor": {
-      "initialCost": 33e-6,
+      "initialCost": 0.000033,
       "costMultiplier": 30,
       "bonusPerUnit": 0.05
     },
     "hardDisk": {
-      "initialCost": 1e-5,
-      "costMultiplier": 9.0,
-      "dataRatePerDisk": 3.0,
+      "initialCost": 0.00001,
+      "costMultiplier": 9,
+      "dataRatePerDisk": 3,
       "baseEnergyDrainPerSecond": 1e-10,
-      "drainTimeConstant": 60.0
+      "drainTimeConstant": 60
     },
     "powerCell": {
-      "initialCost": 1.0,
-      "costMultiplier": 2.25,
-      "baseCapacity": 1e-3
+      "initialCost": 1e-12,
+      "costMultiplier": 3.6,
+      "baseCapacity": 1e100
+    },
+    "backpropagator": {
+      "energytoUnlock": 100e-3,
+      "initialCost": 1,
+      "resonanceBase": 3.39,
+      "softcapStart": 63,
+      "hardcapStart": 999,
+      "softcapScale": 100,
+      "unique": true
+    },
+    "statisticsDisplay": {
+      "initialCost": 1e-7,
+      "unique": true
     }
+  },
+  "algorithmRedesign": {
+    "resonanceBase": 3.3,
+    "softcapStart": 1000,
+    "postSoftcapScale": 1
   }
 }
